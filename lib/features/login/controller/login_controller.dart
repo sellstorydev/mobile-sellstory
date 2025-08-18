@@ -38,7 +38,7 @@ class LoginController extends GetxController {
     try {
       isLoading.value = true;
       await _authService.signInWithEmail(identity.value, password.value);
-      Get.offAllNamed('/dashboard');
+      Get.offAllNamed('/shell');
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
     } catch (e) {
@@ -59,7 +59,7 @@ class LoginController extends GetxController {
     try {
       isLoading.value = true;
       await _authService.signInWithGoogle();
-      Get.offAllNamed('/dashboard');
+      Get.offAllNamed('/shell');
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
     } catch (e) {

@@ -1,6 +1,48 @@
 # SellStory Mobile App
 
-A Flutter mobile application with Firebase Authentication using GetX for state management.
+A Flutter application for managing sales and customer relationships.
+
+## Bottom Navigation Customization
+
+The app features a bottom navigation bar with 5 tabs that can be easily customized:
+
+### Changing Active Color
+To change the active tab color, modify the `selectedItemColor` in `lib/features/shell/shell_page.dart`:
+```dart
+selectedItemColor: const Color(0xFFFF6A00), // Change this color
+```
+
+### Changing Labels
+To change tab labels, modify the `label` property in each `BottomNavigationBarItem`:
+```dart
+BottomNavigationBarItem(
+  icon: Icon(Icons.menu),
+  label: 'Job Card', // Change this text
+),
+```
+
+### Changing Icons
+To change tab icons, modify the `icon` property in each `BottomNavigationBarItem`:
+```dart
+BottomNavigationBarItem(
+  icon: Icon(Icons.menu), // Change this icon
+  label: 'Job Card',
+),
+```
+
+### Current Tab Configuration
+1. **Job Card** - `Icons.menu` (filled when active, outlined when inactive)
+2. **รายการคำสั่งซื้อ** - `Icons.description_outlined`
+3. **ลูกค้า** - `Icons.person_outline`
+4. **สินค้า** - `Icons.shopping_bag_outlined`
+5. **อื่น ๆ** - `Icons.grid_view_outlined`
+
+### Adding New Tabs
+To add a new tab:
+1. Create a new page in `lib/features/[feature_name]/view/[feature_name]_page.dart`
+2. Add the page to the `IndexedStack` in `lib/features/shell/shell_page.dart`
+3. Add a new `BottomNavigationBarItem` to the items list
+4. Update the `ShellController` if needed
 
 ## Features
 

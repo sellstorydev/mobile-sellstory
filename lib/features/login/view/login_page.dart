@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:get/get.dart';
 import '../controller/login_controller.dart';
 import '../widgets/branded_logo.dart';
-import '../widgets/primary_button.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../../core/theme/app_theme.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -31,63 +32,43 @@ class LoginPage extends StatelessWidget {
                       
                       // Email/Password form
                       Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Email field
-                          TextFormField(
-                            onChanged: controller.onIdentityChanged,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              hintText: 'อีเมล',
-                              prefixIcon: const Icon(Icons.email_outlined),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Theme.of(context).primaryColor),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
+                          Text(
+                            'อีเมล',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                                                      TextFormField(
+                              onChanged: controller.onIdentityChanged,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: const InputDecoration(
+                                hintText: 'กรอกอีเมล',
                               ),
                             ),
-                          ),
                           
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 24),
                           
                           // Password field
+                          Text(
+                            'รหัสผ่าน',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
                           Obx(() => TextFormField(
                             onChanged: controller.onPasswordChanged,
                             obscureText: controller.obscurePassword.value,
                             decoration: InputDecoration(
-                              hintText: 'รหัสผ่าน',
-                              prefixIcon: const Icon(Icons.lock_outlined),
+                              hintText: 'กรอกรหัสผ่าน',
                               suffixIcon: IconButton(
                                 onPressed: controller.togglePasswordVisibility,
                                 icon: Icon(
                                   controller.obscurePassword.value 
                                       ? Icons.visibility_off 
                                       : Icons.visibility,
+                                  color: AppTheme.textSecondary,
                                 ),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Theme.of(context).primaryColor),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
                               ),
                             ),
                           )),
@@ -103,21 +84,49 @@ class LoginPage extends StatelessWidget {
                           onPressed: controller.forgotPassword,
                           child: Text(
                             'ลืมรหัสผ่าน',
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontSize: 14,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.primaryOrange,
                             ),
                           ),
                         ),
                       ),
                       
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                       
                       // Login button
-                      Obx(() => PrimaryButton(
-                        text: 'เข้าสู่ระบบ',
-                        onPressed: controller.canSubmit ? controller.signInWithEmail : null,
-                        isLoading: controller.isLoading.value,
+                      Obx(() => SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: controller.canSubmit ? controller.signInWithEmail : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: controller.canSubmit 
+                                ? AppTheme.primaryOrange 
+                                : AppTheme.buttonDisabled,
+                            foregroundColor: controller.canSubmit 
+                                ? Colors.white 
+                                : AppTheme.buttonDisabledText,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: controller.isLoading.value
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text(
+                                  'เข้าสู่ระบบ',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
                       )),
                       
                       const SizedBox(height: 24),
@@ -125,18 +134,17 @@ class LoginPage extends StatelessWidget {
                       // Divider
                       Row(
                         children: [
-                          Expanded(child: Divider(color: Colors.grey[300])),
+                          Expanded(child: Divider(color: AppTheme.borderLightGrey)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
                               'หรือ',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.textSecondary,
                               ),
                             ),
                           ),
-                          Expanded(child: Divider(color: Colors.grey[300])),
+                          Expanded(child: Divider(color: AppTheme.borderLightGrey)),
                         ],
                       ),
                       
@@ -162,14 +170,56 @@ class LoginPage extends StatelessWidget {
                             ),
                           ),
                           style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            side: BorderSide(color: Colors.grey[300]!),
+                            backgroundColor: AppTheme.backgroundWhite,
+                            side: BorderSide(color: AppTheme.borderGrey),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                             ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
                         ),
                       )),
+                      
+                      const SizedBox(height: 32),
+                      
+                      // Information link
+                      Center(
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
+                            children: [
+                              const TextSpan(text: 'สอบถามข้อมูลเพิ่มเติม '),
+                                                             TextSpan(
+                                 text: 'https://lin.ee/uaT3pzf',
+                                 style: TextStyle(
+                                   color: AppTheme.primaryOrange,
+                                   decoration: TextDecoration.underline,
+                                 ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    // TODO: Open URL
+                                    Get.snackbar('Info', 'Opening LINE link...');
+                                  },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 48),
+                      
+                      // Version text
+                      Center(
+                        child: Text(
+                          'version 1.10.6 (288)',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textGrey,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

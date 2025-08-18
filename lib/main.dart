@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:device_preview/device_preview.dart';
 import 'firebase_options.dart';
 import 'app/app.dart';
 import 'core/theme/theme_controller.dart';
@@ -25,5 +26,10 @@ void main() async {
   Get.put(ThemeController(), permanent: true);
   Get.put(LocaleController(), permanent: true);
   
-  runApp(const SellStoryApp());
+  runApp(
+    DevicePreview(
+      enabled: true, // Enable device preview
+      builder: (context) => const SellStoryApp(),
+    ),
+  );
 }

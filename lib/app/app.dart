@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../core/network/api_client.dart';
 import '../data/services/firebase_auth_service.dart';
 import '../core/theme/theme_controller.dart';
+import '../core/theme/app_theme.dart';
 import '../core/i18n/locale_controller.dart';
 import '../core/i18n/app_translations.dart';
 import 'routes.dart';
@@ -20,14 +21,8 @@ class SellStoryApp extends StatelessWidget {
       
       return GetMaterialApp(
         title: 'SellStory',
-        theme: ThemeData(
-          colorSchemeSeed: const Color(0xFFFF6A00),
-          brightness: Brightness.light,
-        ),
-        darkTheme: ThemeData(
-          colorSchemeSeed: const Color(0xFFFF6A00),
-          brightness: Brightness.dark,
-        ),
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
         themeMode: themeController.mode.value,
         translations: AppTranslations(),
         locale: localeController.locale.value,
