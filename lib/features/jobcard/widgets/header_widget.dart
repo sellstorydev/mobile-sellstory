@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/app_assets.dart';
 
 class HeaderWidget extends StatelessWidget {
   const HeaderWidget({super.key});
@@ -26,7 +27,7 @@ class HeaderWidget extends StatelessWidget {
                     children: [
                       // Logo
                       Image.asset(
-                        'assets/splash_logo.png',
+                        AppAssets.splashLogo,
                         height: 28,
                         width: 28,
                         color: Colors.white,

@@ -22,7 +22,7 @@ class _SplashPageState extends State<SplashPage> {
       // Check if user is already signed in
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        Get.offAllNamed(AppRoutes.dashboard);
+        Get.offAllNamed(AppRoutes.shell);
       } else {
         Get.offAllNamed(AppRoutes.login);
       }

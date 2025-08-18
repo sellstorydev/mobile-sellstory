@@ -73,6 +73,9 @@ dev_dependencies:
   
   # Native splash screen generation
   flutter_native_splash: ^2.4.1
+  
+  # App launcher icon generation
+  flutter_launcher_icons: ^0.14.1
 
 # Native splash screen configuration
 flutter_native_splash:
@@ -82,6 +85,15 @@ flutter_native_splash:
   image_dark: assets/splash_logo.png
   android_gravity: center
   ios_content_mode: center
+
+# App launcher icon configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/sellstory_logo.png
+  # Optional: Android adaptive icon for better look on newer Android
+  # adaptive_icon_background: "#FFFFFF"
+  # adaptive_icon_foreground: assets/sellstory_logo.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -97,6 +109,57 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/splash_logo.png
+    - assets/sellstory_logo.png
+
+  # Custom fonts
+  fonts:
+    - family: Prompt
+      fonts:
+        - asset: assets/fonts/Prompt/Prompt-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Prompt/Prompt-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Prompt/Prompt-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Prompt/Prompt-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Prompt/Prompt-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Prompt/Prompt-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Prompt/Prompt-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Prompt/Prompt-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Prompt/Prompt-Black.ttf
+          weight: 900
+        - asset: assets/fonts/Prompt/Prompt-ThinItalic.ttf
+          weight: 100
+          style: italic
+        - asset: assets/fonts/Prompt/Prompt-ExtraLightItalic.ttf
+          weight: 200
+          style: italic
+        - asset: assets/fonts/Prompt/Prompt-LightItalic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/Prompt/Prompt-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/Prompt/Prompt-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/Prompt/Prompt-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+        - asset: assets/fonts/Prompt/Prompt-BoldItalic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/Prompt/Prompt-ExtraBoldItalic.ttf
+          weight: 800
+          style: italic
+        - asset: assets/fonts/Prompt/Prompt-BlackItalic.ttf
+          weight: 900
+          style: italic
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

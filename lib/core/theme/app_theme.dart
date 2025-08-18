@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_font.dart';
 
 class AppTheme {
   // Brand Colors
@@ -44,6 +45,7 @@ class AppTheme {
       brightness: Brightness.light,
       colorSchemeSeed: primaryOrange,
       scaffoldBackgroundColor: backgroundWhite,
+      fontFamily: AppFont.family,
 
       
       // App Bar Theme
@@ -111,60 +113,72 @@ class AppTheme {
       ),
       
       // Text Theme
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         headlineLarge: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: textPrimary,
         ),
         headlineMedium: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: textPrimary,
         ),
         headlineSmall: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
         titleLarge: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
         titleMedium: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 16,
           fontWeight: FontWeight.w500,
           color: textPrimary,
         ),
         titleSmall: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: textSecondary,
         ),
         bodyLarge: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 16,
           color: textPrimary,
         ),
         bodyMedium: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 14,
           color: textPrimary,
         ),
         bodySmall: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 12,
           color: textSecondary,
         ),
         labelLarge: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
         labelMedium: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: textPrimary,
         ),
         labelSmall: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 12,
           color: textSecondary,
         ),
@@ -190,6 +204,7 @@ class AppTheme {
       brightness: Brightness.dark,
       colorSchemeSeed: primaryOrange,
       scaffoldBackgroundColor: const Color(0xFF121212),
+      fontFamily: AppFont.family,
       
       // App Bar Theme
       appBarTheme: const AppBarTheme(
@@ -255,60 +270,72 @@ class AppTheme {
       ),
       
       // Text Theme
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         headlineLarge: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
         headlineMedium: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
         headlineSmall: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
         titleLarge: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
         titleMedium: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 16,
           fontWeight: FontWeight.w500,
           color: Colors.white,
         ),
         titleSmall: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: Color(0xFFBDBDBD),
         ),
         bodyLarge: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 16,
           color: Colors.white,
         ),
         bodyMedium: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 14,
           color: Colors.white,
         ),
         bodySmall: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 12,
           color: Color(0xFFBDBDBD),
         ),
         labelLarge: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
         labelMedium: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: Colors.white,
         ),
         labelSmall: TextStyle(
+          fontFamily: AppFont.family,
           fontSize: 12,
           color: Color(0xFFBDBDBD),
         ),
