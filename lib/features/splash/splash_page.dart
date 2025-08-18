@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../app/routes.dart';
 
 class SplashPage extends StatefulWidget {
@@ -13,9 +14,18 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    // Redirect to login after first frame
-    Future.microtask(() {
-      Get.offAllNamed(AppRoutes.login);
+    // Check auth state and redirect accordingly
+    Future.microtask(() async {
+      // Wait a bit for Firebase to initialize
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // Check if user is already signed in
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        Get.offAllNamed(AppRoutes.dashboard);
+      } else {
+        Get.offAllNamed(AppRoutes.login);
+      }
     });
   }
 

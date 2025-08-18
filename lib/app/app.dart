@@ -3,7 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import '../core/network/api_client.dart';
-import '../data/services/auth_service.dart';
+import '../data/services/firebase_auth_service.dart';
 import '../core/theme/theme_controller.dart';
 import '../core/i18n/locale_controller.dart';
 import '../core/i18n/app_translations.dart';
@@ -58,7 +58,7 @@ class SellStoryApp extends StatelessWidget {
     // API client setup
     Get.put<ApiClient>(ApiClient(Get.find<Dio>()));
 
-    // Auth service setup
-    Get.put<AuthService>(DummyAuthService(), permanent: true);
+    // Firebase Auth service setup
+    Get.put<FirebaseAuthService>(FirebaseAuthService(), permanent: true);
   }
 }

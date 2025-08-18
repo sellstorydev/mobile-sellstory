@@ -1,33 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../contract/login_view.dart';
-import '../presenter/login_presenter.dart';
+import '../controller/login_controller.dart';
 import '../widgets/branded_logo.dart';
 import '../widgets/primary_button.dart';
-import '../widgets/text_fields.dart';
-import '../../../data/services/auth_service.dart';
 import '../../../core/theme/theme_controller.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> implements LoginView {
-  late final LoginPresenter presenter;
-
-  @override
-  void initState() {
-    super.initState();
-    // Dependency injection
-    presenter = Get.put(LoginPresenter(Get.find<AuthService>()));
-    presenter.bind(this);
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // Initialize controller
+    final controller = Get.put(LoginController());
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -44,10 +29,69 @@ class _LoginPageState extends State<LoginPage> implements LoginView {
                       const BrandedLogo(),
                       const SizedBox(height: 48),
                       
-                      // Text fields
-                      LoginTextFields(
-                        onIdentityChanged: presenter.onIdentityChanged,
-                        onPasswordChanged: presenter.onPasswordChanged,
+                      // Email/Password form
+                      Column(
+                        children: [
+                          // Email field
+                          TextFormField(
+                            onChanged: controller.onIdentityChanged,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              hintText: 'อีเมล',
+                              prefixIcon: const Icon(Icons.email_outlined),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Password field
+                          Obx(() => TextFormField(
+                            onChanged: controller.onPasswordChanged,
+                            obscureText: controller.obscurePassword.value,
+                            decoration: InputDecoration(
+                              hintText: 'รหัสผ่าน',
+                              prefixIcon: const Icon(Icons.lock_outlined),
+                              suffixIcon: IconButton(
+                                onPressed: controller.togglePasswordVisibility,
+                                icon: Icon(
+                                  controller.obscurePassword.value 
+                                      ? Icons.visibility_off 
+                                      : Icons.visibility,
+                                ),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                          )),
+                        ],
                       ),
                       
                       const SizedBox(height: 16),
@@ -56,11 +100,9 @@ class _LoginPageState extends State<LoginPage> implements LoginView {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {
-                            // TODO: Navigate to forgot password
-                          },
+                          onPressed: controller.forgotPassword,
                           child: Text(
-                            'forgot_password'.tr,
+                            'ลืมรหัสผ่าน',
                             style: TextStyle(
                               color: Theme.of(context).primaryColor,
                               fontSize: 14,
@@ -73,56 +115,68 @@ class _LoginPageState extends State<LoginPage> implements LoginView {
                       
                       // Login button
                       Obx(() => PrimaryButton(
-                        text: 'login'.tr,
-                        onPressed: presenter.canSubmit.value ? presenter.onSubmit : null,
-                        isLoading: presenter.isLoading.value,
+                        text: 'เข้าสู่ระบบ',
+                        onPressed: controller.canSubmit ? controller.signInWithEmail : null,
+                        isLoading: controller.isLoading.value,
                       )),
                       
                       const SizedBox(height: 24),
                       
-                      // Register link
+                      // Divider
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            '${'register_q'.tr} ',
-                            style: TextStyle(
-                              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
-                              fontSize: 14,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              // TODO: Navigate to register
-                            },
+                          Expanded(child: Divider(color: Colors.grey[300])),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              'register'.tr,
+                              'หรือ',
                               style: TextStyle(
-                                color: Theme.of(context).primaryColor,
+                                color: Colors.grey[600],
                                 fontSize: 14,
-                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
+                          Expanded(child: Divider(color: Colors.grey[300])),
                         ],
                       ),
                       
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 24),
                       
-                      // Version text
-                      Text(
-                        'version'.tr,
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                          fontSize: 12,
+                      // Google Sign-In button
+                      Obx(() => SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: controller.isLoading.value ? null : controller.signInWithGoogle,
+                          icon: const Icon(
+                            Icons.g_mobiledata,
+                            size: 24,
+                            color: Colors.black87,
+                          ),
+                          label: const Text(
+                            'เข้าสู่ระบบด้วย Google',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            side: BorderSide(color: Colors.grey[300]!),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
-                      ),
+                      )),
                     ],
                   ),
                 ),
               ),
             ),
-            // Theme toggle button in top-right
+            
+            // Theme toggle button
             Positioned(
               top: 16,
               right: 16,
@@ -136,7 +190,6 @@ class _LoginPageState extends State<LoginPage> implements LoginView {
                     themeController.mode.value == ThemeMode.dark 
                         ? Icons.light_mode 
                         : Icons.dark_mode,
-                    color: Theme.of(context).primaryColor,
                   );
                 }),
               ),
@@ -145,27 +198,5 @@ class _LoginPageState extends State<LoginPage> implements LoginView {
         ),
       ),
     );
-  }
-
-  @override
-  void showLoading(bool value) {
-    // Loading state is handled by Obx in the UI
-  }
-
-  @override
-  void showError(String message) {
-    Get.snackbar(
-      'Error',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red[100],
-      colorText: Colors.red[900],
-      duration: const Duration(seconds: 3),
-    );
-  }
-
-  @override
-  void updateButtonEnabled(bool enabled) {
-    // Button state is handled by Obx in the UI
   }
 }

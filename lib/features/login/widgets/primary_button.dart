@@ -23,7 +23,7 @@ class PrimaryButton extends StatelessWidget {
           backgroundColor: Theme.of(context).primaryColor,
           foregroundColor: Theme.of(context).colorScheme.onPrimary,
           disabledBackgroundColor: Theme.of(context).disabledColor,
-          disabledForegroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+          disabledForegroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

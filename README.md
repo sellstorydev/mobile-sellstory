@@ -1,202 +1,229 @@
 # SellStory Mobile App
 
-A production-ready Flutter application built with MVP architecture using GetX for state management, dependency injection, and routing.
+A Flutter mobile application with Firebase Authentication using GetX for state management.
 
 ## Features
 
-- **MVP Architecture**: Clean separation of concerns with Model-View-Presenter pattern
-- **GetX Integration**: State management, dependency injection, and routing
-- **Thai Language Support**: Login screen with Thai text and validation
-- **Native Splash Screen**: Custom splash screen with logo
-- **Form Validation**: Real-time validation with disabled/enabled button states
-- **Unit Testing**: Comprehensive test coverage with Mocktail
-- **Dark Mode Support**: Automatic theme switching
+- **Firebase Authentication**
+  - Email/Password authentication
+  - Google Sign-In
+  - Phone number authentication (OTP)
+  - Password reset functionality
+- **GetX State Management**
+  - Reactive state management
+  - Dependency injection
+  - Route management
+- **Multi-language Support**
+  - English and Thai localization
+- **Theme Support**
+  - Light and dark mode
+- **Modern UI**
+  - Material Design 3
+  - Responsive layout
 
 ## Project Structure
 
 ```
 lib/
 ├── app/
-│   ├── app.dart                 # GetMaterialApp, theme, DI setup
-│   └── routes.dart              # GetX routes configuration
+│   ├── app.dart              # Main app configuration
+│   └── routes.dart           # Route definitions
 ├── core/
-│   ├── network/
-│   │   └── api_client.dart      # Dio wrapper for HTTP requests
-│   └── utils/
-│       └── validators.dart      # Form validation utilities
+│   ├── auth/
+│   │   └── auth_gate.dart    # Firebase auth state listener
+│   ├── i18n/                 # Internationalization
+│   ├── network/              # API client
+│   ├── theme/                # Theme management
+│   └── utils/                # Utilities
 ├── data/
 │   └── services/
-│       └── auth_service.dart    # Authentication service interface & implementation
-├── models/
-│   ├── user.dart               # User model
-│   └── auth_result.dart        # Authentication result model
-└── features/
-    ├── splash/
-    │   └── splash_page.dart     # Splash screen with auto-redirect
-    ├── login/
-    │   ├── contract/
-    │   │   └── login_view.dart  # MVP view interface
-    │   ├── presenter/
-    │   │   └── login_presenter.dart # MVP presenter with GetX
-    │   ├── view/
-    │   │   └── login_page.dart  # Login UI implementation
-    │   └── widgets/
-    │       ├── branded_logo.dart
-    │       ├── primary_button.dart
-    │       └── text_fields.dart
-    └── dashboard/
-        └── view/
-            └── dashboard_page.dart
+│       └── firebase_auth_service.dart  # Firebase auth service
+├── features/
+│   ├── dashboard/
+│   │   └── view/
+│   │       └── dashboard_page.dart
+│   ├── login/
+│   │   ├── controller/
+│   │   │   └── login_controller.dart   # GetX controller
+│   │   ├── view/
+│   │   │   └── login_page.dart         # Login UI
+│   │   └── widgets/                    # Reusable widgets
+│   └── splash/
+│       └── splash_page.dart
+├── models/                   # Data models
+└── main.dart                 # App entry point
 ```
 
-## Getting Started
+## Setup Instructions
 
-### Prerequisites
+### 1. Install Dependencies
 
-- Flutter SDK (3.8.1 or higher)
-- Dart SDK
-- Android Studio / VS Code
-- iOS Simulator (for iOS development)
+```bash
+flutter pub get
+```
 
-### Installation
+### 2. Firebase Setup
 
-1. **Clone the repository**
+#### Install FlutterFire CLI
+```bash
+dart pub global activate flutterfire_cli
+```
+
+#### Configure Firebase
+```bash
+flutterfire configure
+```
+
+This will:
+- Create a Firebase project (if needed)
+- Add your Flutter app to the project
+- Generate `lib/firebase_options.dart`
+- Update platform-specific configuration files
+
+#### Manual Firebase Console Setup
+
+1. **Create Firebase Project**
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project or select existing one
+
+2. **Add Android App**
+   - In Firebase Console, go to Project Settings > General
+   - Add Android app with package name: `com.example.sellstory`
+   - Download `google-services.json` and place in `android/app/`
+   - Add SHA-1 and SHA-256 fingerprints to Firebase Console
+
+3. **Add iOS App**
+   - In Firebase Console, add iOS app with bundle ID: `com.example.sellstory`
+   - Download `GoogleService-Info.plist` and place in `ios/Runner/`
+   - Add to Xcode project
+
+4. **Enable Authentication Methods**
+   - Go to Authentication > Sign-in method
+   - Enable Email/Password
+   - Enable Phone
+   - Enable Google Sign-In
+
+### 3. Platform-Specific Configuration
+
+#### Android
+1. **Add SHA fingerprints to Firebase Console**
    ```bash
-   git clone <repository-url>
-   cd mobile-sellstory
+   # Debug SHA-1
+   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+   
+   # Release SHA-1 (if you have a release keystore)
+   keytool -list -v -keystore your-release-key.keystore -alias your-key-alias
    ```
 
-2. **Install dependencies**
-   ```bash
-   flutter pub get
+2. **Update android/app/build.gradle.kts**
+   ```kotlin
+   android {
+       defaultConfig {
+           applicationId "com.example.sellstory"
+           minSdkVersion 21  // Required for Firebase
+       }
+   }
    ```
 
-3. **Generate native splash screen**
-   ```bash
-   # Note: You need to add a splash logo image to assets/splash_logo.png first
-   # The image should be a PNG file with transparent background
-   dart run flutter_native_splash:create
+#### iOS
+1. **Update ios/Runner/Info.plist**
+   ```xml
+   <key>CFBundleURLTypes</key>
+   <array>
+       <dict>
+           <key>CFBundleURLName</key>
+           <string>REVERSED_CLIENT_ID</string>
+           <key>CFBundleURLSchemes</key>
+           <array>
+               <string>YOUR_REVERSED_CLIENT_ID</string>
+           </array>
+       </dict>
+   </array>
+   <key>GIDClientID</key>
+   <string>YOUR_CLIENT_ID</string>
    ```
 
-4. **Run the app**
-   ```bash
-   flutter run
-   ```
+2. **Add Google Sign-In capability**
+   - Open Xcode
+   - Select Runner target
+   - Go to Signing & Capabilities
+   - Add "Sign in with Apple" capability
+
+### 4. Google Sign-In Assets
+
+Download the official Google Sign-In button assets from:
+https://developers.google.com/identity/branding-guidelines
+
+Place `google_icon.png` in the `assets/` directory.
+
+### 5. Run the App
+
+```bash
+flutter run
+```
 
 ## Testing
 
-### Run all tests
+Run unit tests:
 ```bash
 flutter test
 ```
 
-### Run specific test files
+Run widget tests:
 ```bash
-flutter test test/core/utils/validators_test.dart
-flutter test test/features/login/login_presenter_test.dart
-flutter test test/data/services/auth_service_test.dart
+flutter test test/features/login/login_page_test.dart
 ```
 
-### Test coverage
-```bash
-flutter test --coverage
-```
+## Authentication Flow
 
-## Architecture
-
-### MVP Pattern
-- **Model**: Data models (`User`, `AuthResult`)
-- **View**: UI components that implement view interfaces
-- **Presenter**: Business logic controllers that extend `GetxController`
-
-### GetX Integration
-- **State Management**: Reactive variables with `.obs`
-- **Dependency Injection**: `Get.put()` and `Get.find()`
-- **Routing**: Named routes with `GetPage`
-
-### Authentication Flow
-1. App starts at `/splash`
-2. Splash redirects to `/login` after first frame
-3. User enters credentials (email/phone + password)
-4. Form validates in real-time
-5. On successful login, navigates to `/dashboard`
-
-## Login Screen Features
-
-- **Thai Language**: All text in Thai language
-- **Form Validation**: 
-  - Identity: minimum 5 characters
-  - Password: minimum 6 characters
-- **Eye Toggle**: Password visibility toggle
-- **Button States**: Disabled until form is valid
-- **Loading States**: Loading indicator during authentication
-- **Error Handling**: SnackBar for error messages
-
-## Dummy Authentication
-
-For testing purposes, the app uses `DummyAuthService`:
-- **Success**: Password = "123456" and identity is not empty
-- **Delay**: 600ms artificial delay to simulate network request
-- **Error**: Any other combination returns "Invalid credentials"
-
-## Development
-
-### Code Analysis
-```bash
-flutter analyze
-```
-
-### Format Code
-```bash
-dart format lib/ test/
-```
-
-### Build for Production
-```bash
-# Android
-flutter build apk --release
-
-# iOS
-flutter build ios --release
-```
+1. **Splash Screen**: Checks Firebase auth state
+2. **Login Screen**: 
+   - Email/Password authentication
+   - Google Sign-In
+   - Phone OTP authentication
+3. **Dashboard**: Shows user info and sign-out option
 
 ## Dependencies
 
-### Production Dependencies
-- `get: ^4.6.6` - GetX for state management, DI, and routing
-- `dio: ^5.4.0` - HTTP client for API requests
+- `firebase_core`: ^3.4.0
+- `firebase_auth`: ^5.3.0
+- `google_sign_in`: ^6.2.1
+- `get`: ^4.6.6
+- `dio`: ^5.4.0
+- `intl`: ^0.20.2
+- `get_storage`: ^2.1.1
 
-### Development Dependencies
-- `flutter_test` - Flutter testing framework
-- `mocktail: ^1.0.3` - Mocking library for testing
-- `flutter_lints: ^4.0.0` - Code linting rules
-- `flutter_native_splash: ^2.4.1` - Native splash screen generation
+## Troubleshooting
 
-## Configuration
+### Common Issues
 
-### Native Splash Screen
-The splash screen is configured in `pubspec.yaml`:
-```yaml
-flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/splash_logo.png
-  color_dark: "#000000"
-  image_dark: assets/splash_logo.png
-  android_gravity: center
-  ios_content_mode: center
-```
+1. **Firebase not initialized**
+   - Ensure `flutterfire configure` was run
+   - Check `lib/firebase_options.dart` exists
+   - Verify Firebase.initializeApp() in main.dart
 
-### Theme Configuration
-- **Primary Color**: `#FF6A00` (Orange)
-- **Text Fields**: `OutlineInputBorder` with 12px radius
-- **Dark Mode**: Automatic theme switching supported
+2. **Google Sign-In not working**
+   - Verify SHA fingerprints in Firebase Console
+   - Check GoogleService-Info.plist configuration
+   - Ensure Google Sign-In is enabled in Firebase Console
+
+3. **Phone authentication issues**
+   - Enable Phone authentication in Firebase Console
+   - Add test phone numbers for development
+   - Check Firebase project billing (Phone auth requires billing)
+
+4. **Build errors**
+   - Clean and rebuild: `flutter clean && flutter pub get`
+   - Check platform-specific configuration files
+   - Verify all dependencies are compatible
 
 ## Contributing
 
-1. Follow the MVP architecture pattern
-2. Write unit tests for new features
-3. Ensure `flutter analyze` passes
-4. Run tests before submitting changes
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
 ## License
 
