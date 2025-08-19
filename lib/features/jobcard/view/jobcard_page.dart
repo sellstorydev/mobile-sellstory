@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/app_font.dart';
 
 class JobCardPage extends StatelessWidget {
   const JobCardPage({super.key});
@@ -89,7 +90,7 @@ class JobCardPage extends StatelessWidget {
             style: TextStyle(
               color: Colors.white,
               fontSize: 14,
-              fontFamily: 'Kanit',
+              fontFamily: AppFont.family,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -106,7 +107,7 @@ class JobCardPage extends StatelessWidget {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 14,
-                  fontFamily: 'Kanit',
+                  fontFamily: AppFont.family,
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -153,7 +154,7 @@ class JobCardPage extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFF333333),
                       fontSize: 20,
-                      fontFamily: 'Prompt',
+                      fontFamily: AppFont.family,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -173,7 +174,7 @@ class JobCardPage extends StatelessWidget {
                         style: TextStyle(
                           color: Color(0xFF4D4D4D),
                           fontSize: 12,
-                          fontFamily: 'Prompt',
+                          fontFamily: AppFont.family,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -307,7 +308,7 @@ class JobCardPage extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFFFF3312),
                       fontSize: 11,
-                      fontFamily: 'Kanit',
+                      fontFamily: AppFont.family,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -336,7 +337,7 @@ class JobCardPage extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFFB3B3B3),
                       fontSize: 11,
-                      fontFamily: 'Kanit',
+                      fontFamily: AppFont.family,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -365,7 +366,7 @@ class JobCardPage extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFFB3B3B3),
                       fontSize: 11,
-                      fontFamily: 'Kanit',
+                      fontFamily: AppFont.family,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -394,7 +395,7 @@ class JobCardPage extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFFB3B3B3),
                       fontSize: 11,
-                      fontFamily: 'Kanit',
+                      fontFamily: AppFont.family,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -423,7 +424,7 @@ class JobCardPage extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFFB3B3B3),
                       fontSize: 11,
-                      fontFamily: 'Kanit',
+                      fontFamily: AppFont.family,
                       fontWeight: FontWeight.w400,
                     ),
                   ),

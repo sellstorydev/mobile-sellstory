@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/app_font.dart';
 import '../../../domain/entities/job_card.dart';
 import '../../../domain/entities/lane.dart';
 import '../controller/board_controller.dart';
@@ -45,7 +46,7 @@ class _BoardPageState extends State<BoardPage> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: AppTheme.fontSize14,
-                        fontFamily: 'Kanit',
+                        fontFamily: AppFont.family,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -62,7 +63,7 @@ class _BoardPageState extends State<BoardPage> {
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: AppTheme.fontSize12,
-                            fontFamily: 'Kanit',
+                            fontFamily: AppFont.family,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
@@ -123,7 +124,7 @@ class _BoardPageState extends State<BoardPage> {
                               style: TextStyle(
                                 color: AppTheme.textDark,
                                 fontSize: AppTheme.fontSize20,
-                                fontFamily: 'Prompt',
+                                fontFamily: AppFont.family,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -143,7 +144,7 @@ class _BoardPageState extends State<BoardPage> {
                                   style: TextStyle(
                                     color: AppTheme.textMedium,
                                     fontSize: AppTheme.fontSize12,
-                                    fontFamily: 'Prompt',
+                                    fontFamily: AppFont.family,
                                     fontWeight: FontWeight.w400,
                                   ),
                                 ),
@@ -288,7 +289,7 @@ class _BoardPageState extends State<BoardPage> {
                   foregroundColor: AppTheme.figmaOrange,
                   textStyle: const TextStyle(
                     fontSize: AppTheme.fontSize10,
-                    fontFamily: 'Prompt',
+                    fontFamily: AppFont.family,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -314,7 +315,7 @@ class _BoardPageState extends State<BoardPage> {
       },
       axis: Axis.horizontal,
       listWidth: 360,
-      listPadding: EdgeInsets.zero, // เอา padding ออกให้ lane ชนขอบจอ
+      listPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing8), // เพิ่มระยะห่างระหว่าง lane
       listDecoration: BoxDecoration(
         color: AppTheme.laneBackground,
         borderRadius: BorderRadius.zero, // เอา border radius ออกให้ชนขอบจอ

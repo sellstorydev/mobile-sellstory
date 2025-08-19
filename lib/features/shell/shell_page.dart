@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/app_font.dart';
 import '../board/view/board_page.dart';
 import '../orders/view/orders_page.dart';
 import '../customers/view/customers_page.dart';
@@ -52,34 +53,34 @@ class ShellPage extends StatelessWidget {
                 label: 'Job Card',
                 onTap: () => controller.onTabTapped(0),
               ),
-              _buildNavItem(
-                index: 1,
-                currentIndex: controller.currentIndex.value,
-                icon: const Icon(Icons.description_outlined, size: AppTheme.iconSize28),
-                label: 'รายการคำสั่งซื้อ',
-                onTap: () => controller.onTabTapped(1),
-              ),
-              _buildNavItem(
-                index: 2,
-                currentIndex: controller.currentIndex.value,
-                icon: const Icon(Icons.person_outline, size: AppTheme.iconSize28),
-                label: 'ลูกค้า',
-                onTap: () => controller.onTabTapped(2),
-              ),
-              _buildNavItem(
-                index: 3,
-                currentIndex: controller.currentIndex.value,
-                icon: const Icon(Icons.shopping_bag_outlined, size: AppTheme.iconSize28),
-                label: 'สินค้า',
-                onTap: () => controller.onTabTapped(3),
-              ),
-              _buildNavItem(
-                index: 4,
-                currentIndex: controller.currentIndex.value,
-                icon: const Icon(Icons.grid_view, size: AppTheme.iconSize28),
-                label: 'อื่น ๆ',
-                onTap: () => controller.onTabTapped(4),
-              ),
+                                        _buildNavItem(
+                            index: 1,
+                            currentIndex: controller.currentIndex.value,
+                            icon: const Icon(Icons.receipt_long_outlined),
+                            label: 'คำสั่งซื้อ',
+                            onTap: () => controller.onTabTapped(1),
+                          ),
+                          _buildNavItem(
+                            index: 2,
+                            currentIndex: controller.currentIndex.value,
+                            icon: const Icon(Icons.people_outline),
+                            label: 'ลูกค้า',
+                            onTap: () => controller.onTabTapped(2),
+                          ),
+                          _buildNavItem(
+                            index: 3,
+                            currentIndex: controller.currentIndex.value,
+                            icon: const Icon(Icons.inventory_2_outlined),
+                            label: 'สินค้า',
+                            onTap: () => controller.onTabTapped(3),
+                          ),
+                          _buildNavItem(
+                            index: 4,
+                            currentIndex: controller.currentIndex.value,
+                            icon: const Icon(Icons.more_horiz),
+                            label: 'อื่น ๆ',
+                            onTap: () => controller.onTabTapped(4),
+                          ),
             ],
           ),
         ),
@@ -101,25 +102,38 @@ class ShellPage extends StatelessWidget {
         onTap: onTap,
         child: Container(
           height: 67,
-          padding: const EdgeInsets.only(top: AppTheme.spacing2, bottom: AppTheme.spacing8),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4, vertical: AppTheme.spacing4),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              icon,
-              Container(height: AppTheme.spacing4),
+              // Icon with better styling
+              Container(
+                width: AppTheme.iconSize28,
+                height: AppTheme.iconSize28,
+                child: IconTheme(
+                  data: IconThemeData(
+                    color: isSelected ? AppTheme.figmaRed : AppTheme.textSecondary,
+                    size: AppTheme.iconSize28,
+                  ),
+                  child: icon,
+                ),
+              ),
+              Container(height: AppTheme.spacing8),
+              // Label with better styling and responsive
               Flexible(
                 child: Text(
                   label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: isSelected ? AppTheme.figmaRed : AppTheme.textLightGrey,
+                    color: isSelected ? AppTheme.figmaRed : AppTheme.textSecondary,
                     fontSize: AppTheme.fontSize10,
-                    fontFamily: 'Kanit',
-                    fontWeight: FontWeight.w400,
+                    fontFamily: AppFont.family,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    height: 1.2,
                   ),
                   overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
+                  maxLines: 1,
                 ),
               ),
             ],
@@ -130,91 +144,10 @@ class ShellPage extends StatelessWidget {
   }
 
   Widget _buildJobCardIcon(bool isSelected) {
-    return Container(
-      width: 60,
-      height: 40,
-      child: Stack(
-        children: [
-          if (isSelected) ...[
-            Positioned(
-              left: 22.50,
-              top: 8.50,
-              child: Container(
-                width: 15,
-                height: 6,
-                decoration: ShapeDecoration(
-                  gradient: AppTheme.fabGradient,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.spacing2)),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 22.50,
-              top: 0.50,
-              child: Container(
-                width: 15,
-                height: 6,
-                decoration: ShapeDecoration(
-                  gradient: AppTheme.fabGradient,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.spacing2)),
-                ),
-              ),
-            ),
-          ] else ...[
-            Positioned(
-              left: 22.50,
-              top: 8.50,
-              child: Container(
-                width: 15,
-                height: 6,
-                decoration: ShapeDecoration(
-                  color: AppTheme.textLightGrey,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.spacing2)),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 22.50,
-              top: 0.50,
-              child: Container(
-                width: 15,
-                height: 6,
-                decoration: ShapeDecoration(
-                  color: AppTheme.textLightGrey,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.spacing2)),
-                ),
-              ),
-            ),
-          ],
-          Positioned(
-            left: 0,
-            top: 20,
-            child: Container(
-              width: 60,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      'Job Card',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isSelected ? AppTheme.figmaRed : AppTheme.textLightGrey,
-                        fontSize: AppTheme.fontSize10,
-                        fontFamily: 'Kanit',
-                        fontWeight: FontWeight.w400,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    return Icon(
+      Icons.work_outline,
+      color: isSelected ? AppTheme.figmaRed : AppTheme.textSecondary,
+      size: AppTheme.iconSize28,
     );
   }
 }
