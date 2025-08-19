@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
-import '../jobcard/view/jobcard_page.dart';
+import '../board/view/board_page.dart';
 import '../orders/view/orders_page.dart';
 import '../customers/view/customers_page.dart';
 import '../products/view/products_page.dart';
@@ -19,7 +19,7 @@ class ShellPage extends StatelessWidget {
       body: Obx(() => IndexedStack(
         index: controller.currentIndex.value,
         children: const [
-          JobCardPage(),
+          BoardPage(),
           OrdersPage(),
           CustomersPage(),
           ProductsPage(),

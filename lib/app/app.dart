@@ -8,6 +8,7 @@ import '../core/theme/theme_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/i18n/locale_controller.dart';
 import '../core/i18n/app_translations.dart';
+import '../core/di/locator.dart';
 import 'routes.dart';
 
 class SellStoryApp extends StatelessWidget {
@@ -55,5 +56,8 @@ class SellStoryApp extends StatelessWidget {
 
     // Firebase Auth service setup
     Get.put<FirebaseAuthService>(FirebaseAuthService(), permanent: true);
+    
+    // Board feature dependencies
+    Locator.setup();
   }
 }

@@ -43,6 +43,11 @@ dependencies:
   # HTTP client
   dio: ^5.4.0
   
+  # Kanban board for drag and drop
+  appflowy_board: ^0.1.2
+  # Alternative drag and drop package
+  drag_and_drop_lists: ^0.4.2
+  
   # Localization
   intl: ^0.20.2
   
