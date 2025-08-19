@@ -95,10 +95,10 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/sellstory_logo.png
+  image_path: assets/app_icon_fixed.png
   # Optional: Android adaptive icon for better look on newer Android
-  # adaptive_icon_background: "#FFFFFF"
-  # adaptive_icon_foreground: assets/sellstory_logo.png
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/app_icon_fixed.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
