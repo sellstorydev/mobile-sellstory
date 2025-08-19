@@ -96,6 +96,32 @@ lib/
 └── main.dart                 # App entry point
 ```
 
+## 🚀 iOS Build & Release Scripts
+
+### Quick Commands
+
+```bash
+# ตรวจสอบเวอร์ชันปัจจุบัน
+./scripts/check_version.sh
+
+# เปลี่ยนเวอร์ชันและ sync ทุกไฟล์
+./scripts/sync_version.sh 1.12.0 10
+
+# Build iOS แบบปกติ
+./scripts/build_ios.sh
+
+# Build iOS และเปิด Xcode สำหรับ Archive
+./scripts/build_ios.sh --archive
+
+# ทำทุกขั้นตอนในคำสั่งเดียว (เปลี่ยนเวอร์ชัน + build + เปิด Xcode)
+./scripts/quick_release.sh 1.12.0 10
+```
+
+### 📖 รายละเอียดเพิ่มเติม
+ดูคู่มือฉบับเต็มได้ที่: [docs/IOS_BUILD_GUIDE.md](docs/IOS_BUILD_GUIDE.md)
+
+---
+
 ## Setup Instructions
 
 ### 1. Install Dependencies
