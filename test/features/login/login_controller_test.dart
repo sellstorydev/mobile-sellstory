@@ -17,6 +17,7 @@ void main() {
   setUp(() {
     mockAuthService = MockFirebaseAuthService();
     Get.put<FirebaseAuthService>(mockAuthService);
+    Get.testMode = true; // Enable test mode to avoid navigation issues
     controller = LoginController();
   });
 

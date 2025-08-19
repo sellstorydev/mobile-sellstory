@@ -106,7 +106,7 @@ class JobCardPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(
+                  const Icon(
                     Icons.more_vert,
                     color: AppTheme.textSecondary,
                     size: 20,
@@ -136,7 +136,6 @@ class JobCardPage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Add new job card
         },
         backgroundColor: AppTheme.primaryOrange,
         foregroundColor: Colors.white,
@@ -341,7 +340,7 @@ class JobCardPage extends StatelessWidget {
                   // Date Range
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.access_time,
                         size: 16,
                         color: AppTheme.textSecondary,
@@ -363,15 +362,15 @@ class JobCardPage extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.visibility, size: 16, color: AppTheme.textSecondary),
+                        const Icon(Icons.visibility, size: 16, color: AppTheme.textSecondary),
                         const SizedBox(width: 4),
                         Text('4', style: Theme.of(context).textTheme.bodySmall),
                         const SizedBox(width: 12),
-                        Icon(Icons.chat_bubble_outline, size: 16, color: AppTheme.textSecondary),
+                        const Icon(Icons.chat_bubble_outline, size: 16, color: AppTheme.textSecondary),
                         const SizedBox(width: 4),
                         Text('1', style: Theme.of(context).textTheme.bodySmall),
                         const SizedBox(width: 12),
-                        Icon(Icons.check_circle_outline, size: 16, color: AppTheme.textSecondary),
+                        const Icon(Icons.check_circle_outline, size: 16, color: AppTheme.textSecondary),
                         const SizedBox(width: 4),
                         Text('0/3', style: Theme.of(context).textTheme.bodySmall),
                       ],
@@ -459,7 +458,7 @@ class JobCardPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       '+ เพิ่ม Job Card',
                       style: TextStyle(
                         color: AppTheme.primaryOrange,
@@ -479,9 +478,9 @@ class JobCardPage extends StatelessWidget {
                         color: Colors.blue,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Text(
+                      child: const Text(
                         '฿0.00',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,

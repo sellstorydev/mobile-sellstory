@@ -125,7 +125,7 @@ class JobCardTile extends StatelessWidget {
                   if (card.dueDate != null) ...[
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.access_time,
                           size: 16,
                           color: AppTheme.textSecondary,
@@ -150,7 +150,7 @@ class JobCardTile extends StatelessWidget {
                         backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.1),
                         child: Text(
                           _getInitials(card.assignee),
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: AppTheme.primaryOrange,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

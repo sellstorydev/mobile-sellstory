@@ -8,9 +8,43 @@ import '../controller/board_controller.dart';
 import '../presenter/board_presenter.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/lane_header.dart';
+import '../widgets/board_auto_scroll_wrapper.dart';
+import '../config/drag_config.dart';
 
-class BoardPage extends StatelessWidget {
+class BoardPage extends StatefulWidget {
   const BoardPage({super.key});
+
+  @override
+  State<BoardPage> createState() => _BoardPageState();
+}
+
+class _BoardPageState extends State<BoardPage> {
+  late ScrollController _horizontalScrollController;
+  final Map<String, ScrollController> _laneScrollControllers = {};
+  final DragAutoScrollConfig _scrollConfig = const DragAutoScrollConfig(
+    edgeExtent: 56.0,
+    velocityScalar: 120.0,
+    maxStep: 48.0,
+    tick: Duration(milliseconds: 16),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    for (final controller in _laneScrollControllers.values) {
+      controller.dispose();
+    }
+    _laneScrollControllers.clear();
+    super.dispose();
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +87,7 @@ class BoardPage extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.error_outline,
                       size: 64,
                       color: AppTheme.errorRed,
@@ -90,60 +124,67 @@ class BoardPage extends StatelessWidget {
   }
 
   Widget _buildBoard(BuildContext context, BoardController controller) {
-    return DragAndDropLists(
-      children: controller.lanes.map((lane) {
-        return DragAndDropList(
-          header: LaneHeader(
-            lane: lane,
-            onMenuTap: () => _showLaneMenu(context, controller, lane),
-          ),
-          children: lane.cards.map((card) {
-            return DragAndDropItem(
-              child: JobCardTile(
-                card: card,
-                onTap: () => _showCardDetails(context, card),
-              ),
-            );
-          }).toList(),
-          footer: Container(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: TextButton.icon(
-                onPressed: () => _showAddCardDialog(context, controller, lane.id),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Card'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.primaryOrange,
+    return BoardAutoScrollWrapper(
+      horizontalController: _horizontalScrollController,
+      laneControllers: _laneScrollControllers,
+      config: _scrollConfig,
+      onScrollStart: () => debugPrint('Board auto-scroll started'),
+      onScrollEnd: () => debugPrint('Board auto-scroll ended'),
+      child: DragAndDropLists(
+        children: controller.lanes.map((lane) {
+          return DragAndDropList(
+            header: LaneHeader(
+              lane: lane,
+              onMenuTap: () => _showLaneMenu(context, controller, lane),
+            ),
+            children: lane.cards.map((card) {
+              return DragAndDropItem(
+                child: JobCardTile(
+                  card: card,
+                  onTap: () => _showCardDetails(context, card),
+                ),
+              );
+            }).toList(),
+            footer: Container(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: TextButton.icon(
+                  onPressed: () => _showAddCardDialog(context, controller, lane.id),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Add Card'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primaryOrange,
+                  ),
                 ),
               ),
             ),
+          );
+        }).toList(),
+        onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
+          final fromLane = controller.lanes[oldListIndex];
+          final toLane = controller.lanes[newListIndex];
+          final card = fromLane.cards[oldItemIndex];
+          
+          controller.onMoveCard(
+            cardId: card.id,
+            fromLaneId: fromLane.id,
+            toLaneId: toLane.id,
+            toIndex: newItemIndex,
+          );
+        },
+        onListReorder: (int oldListIndex, int newListIndex) {
+          // Handle lane reordering if needed
+        },
+        axis: Axis.horizontal,
+        listWidth: 300,
+        listPadding: const EdgeInsets.all(8),
+        listDecoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppTheme.borderGrey,
+            width: 1,
           ),
-        );
-      }).toList(),
-      onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
-        final fromLane = controller.lanes[oldListIndex];
-        final toLane = controller.lanes[newListIndex];
-        final card = fromLane.cards[oldItemIndex];
-        
-        controller.onMoveCard(
-          cardId: card.id,
-          fromLaneId: fromLane.id,
-          toLaneId: toLane.id,
-          toIndex: newItemIndex,
-        );
-      },
-      onListReorder: (int oldListIndex, int newListIndex) {
-        // Handle lane reordering if needed
-      },
-      axis: Axis.horizontal,
-      listWidth: 300,
-      listPadding: const EdgeInsets.all(8),
-      listDecoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.borderGrey,
-          width: 1,
         ),
       ),
     );
@@ -283,7 +324,6 @@ class BoardPage extends StatelessWidget {
               title: const Text('Edit Lane'),
               onTap: () {
                 Navigator.of(context).pop();
-                // TODO: Implement edit lane
               },
             ),
             ListTile(
@@ -291,7 +331,6 @@ class BoardPage extends StatelessWidget {
               title: const Text('Delete Lane', style: TextStyle(color: AppTheme.errorRed)),
               onTap: () {
                 Navigator.of(context).pop();
-                // TODO: Implement delete lane
               },
             ),
           ],

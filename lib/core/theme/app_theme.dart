@@ -113,7 +113,7 @@ class AppTheme {
       ),
       
       // Text Theme
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         headlineLarge: TextStyle(
           fontFamily: AppFont.family,
           fontSize: 32,
@@ -270,7 +270,7 @@ class AppTheme {
       ),
       
       // Text Theme
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         headlineLarge: TextStyle(
           fontFamily: AppFont.family,
           fontSize: 32,

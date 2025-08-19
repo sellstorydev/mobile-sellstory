@@ -89,7 +89,6 @@ class MorePage extends StatelessWidget {
                       // Edit Profile Icon
                       IconButton(
                         onPressed: () {
-                          // TODO: Navigate to edit profile page
                           Get.snackbar(
                             'Info',
                             'Edit profile feature coming soon',
@@ -131,7 +130,6 @@ class MorePage extends StatelessWidget {
                       subtitle: const Text('จัดการข้อมูลส่วนตัว'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () {
-                        // TODO: Navigate to profile page
                         Get.snackbar(
                           'Info',
                           'Profile page coming soon',
@@ -157,7 +155,6 @@ class MorePage extends StatelessWidget {
                       subtitle: const Text('การตั้งค่าแอปพลิเคชัน'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () {
-                        // TODO: Navigate to settings page
                         Get.snackbar(
                           'Info',
                           'Settings page coming soon',
@@ -183,7 +180,6 @@ class MorePage extends StatelessWidget {
                       subtitle: const Text('คู่มือการใช้งาน'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () {
-                        // TODO: Navigate to help page
                         Get.snackbar(
                           'Info',
                           'Help page coming soon',

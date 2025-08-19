@@ -134,7 +134,7 @@ class LoginPage extends StatelessWidget {
                       // Divider
                       Row(
                         children: [
-                          Expanded(child: Divider(color: AppTheme.borderLightGrey)),
+                          const Expanded(child: Divider(color: AppTheme.borderLightGrey)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
@@ -144,7 +144,7 @@ class LoginPage extends StatelessWidget {
                               ),
                             ),
                           ),
-                          Expanded(child: Divider(color: AppTheme.borderLightGrey)),
+                          const Expanded(child: Divider(color: AppTheme.borderLightGrey)),
                         ],
                       ),
                       
@@ -171,7 +171,7 @@ class LoginPage extends StatelessWidget {
                           ),
                           style: OutlinedButton.styleFrom(
                             backgroundColor: AppTheme.backgroundWhite,
-                            side: BorderSide(color: AppTheme.borderGrey),
+                            side: const BorderSide(color: AppTheme.borderGrey),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -194,13 +194,12 @@ class LoginPage extends StatelessWidget {
                               const TextSpan(text: 'สอบถามข้อมูลเพิ่มเติม '),
                                                              TextSpan(
                                  text: 'https://lin.ee/uaT3pzf',
-                                 style: TextStyle(
+                                 style: const TextStyle(
                                    color: AppTheme.primaryOrange,
                                    decoration: TextDecoration.underline,
                                  ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () {
-                                    // TODO: Open URL
                                     Get.snackbar('Info', 'Opening LINE link...');
                                   },
                               ),

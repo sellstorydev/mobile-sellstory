@@ -20,6 +20,25 @@ This feature implements a Kanban-style job card dashboard with horizontal scroll
 ### Current Implementation
 The current version uses `DragAndDropLists` with horizontal scrolling for lanes and vertical scrolling for cards within each lane. This provides full drag and drop functionality for the Kanban board.
 
+### Auto-Scroll Enhancement
+The board now includes custom auto-scroll functionality that triggers when dragging cards near the edges of the viewport:
+
+#### Auto-Scroll Features
+- **Edge Detection**: Triggers when pointer is within 56px of any edge
+- **Smooth Scrolling**: Uses velocity-based scrolling with configurable speed
+- **Dual Axis Support**: Handles both horizontal (lane scrolling) and vertical (card scrolling)
+- **Configurable**: Customizable edge extent, velocity, and timing
+
+#### Auto-Scroll Configuration
+```dart
+const DragAutoScrollConfig(
+  edgeExtent: 56.0,        // px from edge to trigger scroll
+  velocityScalar: 120.0,   // scroll speed multiplier
+  maxStep: 48.0,           // max pixels per scroll step
+  tick: Duration(milliseconds: 16), // ~60fps scrolling
+)
+```
+
 ### Drag & Drop Integration
 The drag & drop functionality is implemented using the `drag_and_drop_lists` package with the following handlers:
 
@@ -58,6 +77,7 @@ onListReorder: (int oldListIndex, int newListIndex) {
 - ✅ Optimistic UI updates
 - ✅ **Drag & drop card reordering within lanes**
 - ✅ **Drag & drop card movement between lanes**
+- ✅ **Auto-scroll during drag operations** (edge-triggered scrolling)
 
 ### Planned Features
 - 🔄 Drag & drop lane reordering
@@ -93,5 +113,6 @@ The feature includes unit tests for:
 - Use cases (move card, reorder card, add card, add lane)
 - Presenter business logic
 - Repository operations
+- Auto-scroll configuration
 
 Run tests with: `flutter test test/features/board/`

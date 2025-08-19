@@ -16,7 +16,7 @@ class LaneHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
           bottom: BorderSide(
@@ -72,7 +72,7 @@ class LaneHeader extends StatelessWidget {
           if (onMenuTap != null)
             GestureDetector(
               onTap: onMenuTap,
-              child: Icon(
+              child: const Icon(
                 Icons.more_vert,
                 color: AppTheme.textSecondary,
                 size: 20,

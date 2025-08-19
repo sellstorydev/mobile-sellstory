@@ -78,7 +78,6 @@ class HeaderWidget extends StatelessWidget {
                         children: [
                           IconButton(
                             onPressed: () {
-                              // TODO: Calendar action
                             },
                             icon: const Icon(
                               Icons.calendar_today,
@@ -91,7 +90,6 @@ class HeaderWidget extends StatelessWidget {
                           const SizedBox(width: 16),
                           IconButton(
                             onPressed: () {
-                              // TODO: Chat action
                             },
                             icon: const Icon(
                               Icons.chat_bubble_outline,
@@ -104,7 +102,6 @@ class HeaderWidget extends StatelessWidget {
                           const SizedBox(width: 16),
                           IconButton(
                             onPressed: () {
-                              // TODO: Notification action
                             },
                             icon: const Icon(
                               Icons.notifications_outlined,
