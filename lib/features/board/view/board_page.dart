@@ -262,9 +262,7 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildBoard(BuildContext context, BoardController controller) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16, vertical: AppTheme.spacing8),
-      child: DragAndDropLists(
+    return DragAndDropLists(
       children: controller.lanes.map((lane) {
         return DragAndDropList(
           header: LaneHeader(
@@ -316,16 +314,15 @@ class _BoardPageState extends State<BoardPage> {
       },
       axis: Axis.horizontal,
       listWidth: 360,
-      listPadding: const EdgeInsets.all(AppTheme.spacing8),
+      listPadding: EdgeInsets.zero, // เอา padding ออกให้ lane ชนขอบจอ
       listDecoration: BoxDecoration(
         color: AppTheme.laneBackground,
-        borderRadius: BorderRadius.circular(AppTheme.radius12),
+        borderRadius: BorderRadius.zero, // เอา border radius ออกให้ชนขอบจอ
         border: Border.all(
           color: AppTheme.borderGrey,
           width: 1,
         ),
       ),
-    ),
     );
   }
 
