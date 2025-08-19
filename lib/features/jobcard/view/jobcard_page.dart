@@ -96,11 +96,11 @@ class JobCardPage extends StatelessWidget {
           Row(
             children: [
               Container(width: 18, height: 18),
-              const SizedBox(width: 4),
+              Container(width: 4),
               Container(width: 16, height: 17),
-              const SizedBox(width: 4),
+              Container(width: 4),
               Container(width: 16, height: 17),
-              const SizedBox(width: 4),
+              Container(width: 4),
               const Text(
                 '100%',
                 style: TextStyle(
@@ -110,7 +110,7 @@ class JobCardPage extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(width: 4),
+              Container(width: 4),
               Container(width: 18, height: 17),
             ],
           ),
@@ -143,7 +143,7 @@ class JobCardPage extends StatelessWidget {
                   borderRadius: BorderRadius.all(Radius.circular(8)),
                 ),
               ),
-              const SizedBox(width: 10),
+              Container(width: 10),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +167,7 @@ class JobCardPage extends StatelessWidget {
                           borderRadius: BorderRadius.all(Radius.circular(4)),
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      Container(width: 4),
                       const Text(
                         'ชื่อบอร์ด 1',
                         style: TextStyle(
@@ -194,7 +194,7 @@ class JobCardPage extends StatelessWidget {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
@@ -204,7 +204,7 @@ class JobCardPage extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 24),
+              Container(width: 24),
               // Search Icon
               GestureDetector(
                 onTap: () {
@@ -214,7 +214,7 @@ class JobCardPage extends StatelessWidget {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
@@ -224,7 +224,7 @@ class JobCardPage extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 24),
+              Container(width: 24),
               // More Options Icon
               GestureDetector(
                 onTap: () {
@@ -234,7 +234,7 @@ class JobCardPage extends StatelessWidget {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(

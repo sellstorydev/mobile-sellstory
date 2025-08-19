@@ -41,15 +41,15 @@ class _SplashPageState extends State<SplashPage> {
             Container(
               width: 80,
               height: 80,
-              child: Image.asset(
-                'assets/sellstory_logo.png',
+              child: const Image(
+                image: AssetImage('assets/sellstory_logo.png'),
                 width: 80,
                 height: 80,
                 fit: BoxFit.contain,
               ),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               'SellStory',
               style: TextStyle(
                 fontSize: 24,

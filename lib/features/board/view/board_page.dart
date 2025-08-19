@@ -17,11 +17,6 @@ class BoardPage extends StatefulWidget {
 }
 
 class _BoardPageState extends State<BoardPage> {
-
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return GetBuilder<BoardController>(
@@ -30,69 +25,233 @@ class _BoardPageState extends State<BoardPage> {
       ),
       builder: (controller) {
         return Scaffold(
-          backgroundColor: AppTheme.backgroundGrey,
-          appBar: AppBar(
-            title: const Text(
-              'Job Card Dashboard',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            backgroundColor: Colors.white,
-            elevation: 0,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () => _showAddLaneDialog(context, controller),
-                color: AppTheme.primaryOrange,
-              ),
-            ],
-          ),
-          body: Obx(() {
-            if (controller.isLoading.value) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: AppTheme.primaryOrange,
+          backgroundColor: Colors.white,
+          body: Column(
+            children: [
+              // Status Bar
+              Container(
+                width: double.infinity,
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment(1.00, 1.00),
+                    end: Alignment(-0.00, -0.03),
+                    colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
+                  ),
                 ),
-              );
-            }
-
-            if (controller.error?.value.isNotEmpty == true) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: AppTheme.errorRed,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error: ${controller.error?.value}',
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 16,
+                    const Text(
+                      '9:41',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontFamily: 'Kanit',
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => controller.load(),
-                      child: const Text('Retry'),
+                    Row(
+                      children: [
+                        Container(width: 16, height: 16),
+                        Container(width: 2),
+                        Container(width: 14, height: 15),
+                        Container(width: 2),
+                        Container(width: 14, height: 15),
+                        Container(width: 2),
+                        const Text(
+                          '100%',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontFamily: 'Kanit',
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        Container(width: 2),
+                        Container(width: 16, height: 15),
+                      ],
                     ),
                   ],
                 ),
-              );
-            }
+              ),
+              // Header
+              Container(
+                width: double.infinity,
+                height: 60,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: const BoxDecoration(color: Colors.white),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment(1.00, 1.00),
+                              end: Alignment(-0.00, -0.03),
+                              colors: [Color(0xFFFF0000), Color(0xFFFF6C0C)],
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'S',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(width: 8),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Job Card',
+                              style: TextStyle(
+                                color: Color(0xFF333333),
+                                fontSize: 20,
+                                fontFamily: 'Prompt',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFAB73F),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                Container(width: 2),
+                                const Text(
+                                  'ชื่อบอร์ด 1',
+                                  style: TextStyle(
+                                    color: Color(0xFF4D4D4D),
+                                    fontSize: 12,
+                                    fontFamily: 'Prompt',
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                                Container(width: 4),
+                                Transform.rotate(
+                                  angle: 1.57,
+                                  child: const Icon(
+                                    Icons.keyboard_arrow_down,
+                                    size: 16,
+                                    color: Color(0xFF4D4D4D),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          child: const Icon(Icons.calendar_today, size: 20),
+                        ),
+                        Container(width: 16),
+                        Container(
+                          width: 24,
+                          height: 24,
+                          child: const Icon(Icons.monitor, size: 20),
+                        ),
+                        Container(width: 16),
+                        Container(
+                          width: 24,
+                          height: 24,
+                          child: const Icon(Icons.notifications, size: 20),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Main Content
+              Expanded(
+                child: Obx(() {
+                  if (controller.isLoading.value) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryOrange,
+                      ),
+                    );
+                  }
 
-            return _buildBoard(context, controller);
-          }),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showAddCardDialog(context, controller),
-            backgroundColor: AppTheme.primaryOrange,
-            foregroundColor: Colors.white,
-            child: const Icon(Icons.add),
+                  if (controller.error?.value.isNotEmpty == true) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: AppTheme.errorRed,
+                          ),
+                          Container(height: 16),
+                          Text(
+                            'Error: ${controller.error?.value}',
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 16,
+                            ),
+                                                      ),
+                            Container(height: 16),
+                            ElevatedButton(
+                            onPressed: () => controller.load(),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return _buildBoard(context, controller);
+                }),
+              ),
+            ],
+          ),
+          floatingActionButton: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment(0.50, -0.00),
+                end: Alignment(0.50, 1.00),
+                colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x4CFB3327),
+                  blurRadius: 4,
+                  offset: const Offset(0.75, 3),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.add,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
         );
       },
@@ -100,6 +259,7 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildBoard(BuildContext context, BoardController controller) {
+
     return DragAndDropLists(
       children: controller.lanes.map((lane) {
         return DragAndDropList(
@@ -121,8 +281,15 @@ class _BoardPageState extends State<BoardPage> {
               child: TextButton.icon(
                 onPressed: () => _showAddCardDialog(context, controller, lane.id),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Card'),
-                style: TextButton.styleFrom(foregroundColor: AppTheme.primaryOrange),
+                label: const Text('เพิ่ม Job Card'),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFFF6C0C),
+                  textStyle: const TextStyle(
+                    fontSize: 10,
+                    fontFamily: 'Prompt',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
               ),
             ),
           ),
@@ -144,46 +311,20 @@ class _BoardPageState extends State<BoardPage> {
         // Handle lane reordering if needed
       },
       axis: Axis.horizontal,
-      listWidth: 300,
+      listWidth: 360,
       listPadding: const EdgeInsets.all(8),
-    );
-  }
-
-
-
-  void _showAddLaneDialog(BuildContext context, BoardController controller) {
-    final textController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Lane'),
-        content: TextField(
-          controller: textController,
-          decoration: const InputDecoration(
-            labelText: 'Lane Title',
-            hintText: 'Enter lane title...',
-          ),
-          autofocus: true,
+      listDecoration: BoxDecoration(
+        color: const Color(0xFFFFF0E7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.borderGrey,
+          width: 1,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (textController.text.isNotEmpty) {
-                controller.onAddLane(textController.text);
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
   }
+
+
 
   void _showAddCardDialog(BuildContext context, BoardController controller, [String? laneId]) {
     final titleController = TextEditingController();
