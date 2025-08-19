@@ -8,18 +8,26 @@ class BrandedLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Placeholder orange mark
+        // SellStory Logo
         Container(
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).primaryColor,
+              width: 2,
+            ),
           ),
-          child: Icon(
-            Icons.shopping_cart,
-            color: Theme.of(context).colorScheme.onPrimary,
-            size: 40,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Image.asset(
+              'assets/sellstory_logo.png',
+              width: 56,
+              height: 56,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
         const SizedBox(height: 16),

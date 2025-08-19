@@ -40,13 +40,28 @@ class LoginPage extends StatelessWidget {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 8),
-                                                      TextFormField(
-                              onChanged: controller.onIdentityChanged,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                hintText: 'กรอกอีเมล',
+                                                                                TextFormField(
+                            onChanged: controller.onIdentityChanged,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              hintText: 'กรอกอีเมล',
+                              filled: true,
+                              fillColor: AppTheme.backgroundGrey,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
                               ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             ),
+                          ),
                           
                           const SizedBox(height: 24),
                           
@@ -61,6 +76,21 @@ class LoginPage extends StatelessWidget {
                             obscureText: controller.obscurePassword.value,
                             decoration: InputDecoration(
                               hintText: 'กรอกรหัสผ่าน',
+                              filled: true,
+                              fillColor: AppTheme.backgroundGrey,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                               suffixIcon: IconButton(
                                 onPressed: controller.togglePasswordVisibility,
                                 icon: Icon(
@@ -96,7 +126,7 @@ class LoginPage extends StatelessWidget {
                       // Login button
                       Obx(() => SizedBox(
                         width: double.infinity,
-                        height: 48,
+                        height: 44,
                         child: ElevatedButton(
                           onPressed: controller.canSubmit ? controller.signInWithEmail : null,
                           style: ElevatedButton.styleFrom(
@@ -107,8 +137,11 @@ class LoginPage extends StatelessWidget {
                                 ? Colors.white 
                                 : AppTheme.buttonDisabledText,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            elevation: controller.canSubmit ? 2 : 0,
+                            shadowColor: AppTheme.primaryOrange.withValues(alpha: 0.3),
                           ),
                           child: controller.isLoading.value
                               ? const SizedBox(
@@ -124,6 +157,7 @@ class LoginPage extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
+                                    height: 1.2,
                                   ),
                                 ),
                         ),
@@ -153,13 +187,13 @@ class LoginPage extends StatelessWidget {
                       // Google Sign-In button
                       Obx(() => SizedBox(
                         width: double.infinity,
-                        height: 48,
+                        height: 44,
                         child: OutlinedButton.icon(
                           onPressed: controller.isLoading.value ? null : controller.signInWithGoogle,
-                          icon: const Icon(
-                            Icons.g_mobiledata,
-                            size: 24,
-                            color: Colors.black87,
+                          icon: Image.asset(
+                            'assets/google_icon.png',
+                            width: 24,
+                            height: 24,
                           ),
                           label: const Text(
                             'เข้าสู่ระบบด้วย Google',
@@ -167,15 +201,18 @@ class LoginPage extends StatelessWidget {
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
+                              height: 1.2,
                             ),
                           ),
                           style: OutlinedButton.styleFrom(
-                            backgroundColor: AppTheme.backgroundWhite,
+                            backgroundColor: Colors.white,
                             side: const BorderSide(color: AppTheme.borderGrey),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            elevation: 2,
+                            shadowColor: Colors.black.withValues(alpha: 0.1),
                           ),
                         ),
                       )),

@@ -8,6 +8,11 @@ class AppTheme {
   static const Color gradientStart = Color(0xFFFF7A00);
   static const Color gradientEnd = Color(0xFFFF3D00);
   
+  // Enhanced Brand Colors
+  static const Color primaryBlue = Color(0xFF2196F3);
+  static const Color primaryGreen = Color(0xFF4CAF50);
+  static const Color primaryPurple = Color(0xFF9C27B0);
+  
   // Header Gradient
   static const LinearGradient headerGradient = LinearGradient(
     begin: Alignment.topCenter,

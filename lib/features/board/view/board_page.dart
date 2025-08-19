@@ -146,14 +146,6 @@ class _BoardPageState extends State<BoardPage> {
       axis: Axis.horizontal,
       listWidth: 300,
       listPadding: const EdgeInsets.all(8),
-      listDecoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.borderGrey,
-          width: 1,
-        ),
-      ),
     );
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../widgets/header_widget.dart';
 
 class JobCardPage extends StatelessWidget {
   const JobCardPage({super.key});
@@ -8,482 +7,54 @@ class JobCardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundGrey,
-      body: CustomScrollView(
-        slivers: [
-          const HeaderWidget(),
-          
-          // Summary Statistics Row
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  // Status
-                  Expanded(
-                    child: _buildSummaryCard(
-                      icon: Icons.group,
-                      iconColor: Colors.red,
-                      title: 'สถานะ',
-                      value: '48 รายการ',
-                      context: context,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  
-                  // Total
-                  Expanded(
-                    child: _buildSummaryCard(
-                      icon: Icons.account_balance_wallet,
-                      iconColor: Colors.green,
-                      title: 'ยอดรวม',
-                      value: '฿9,605,000,000',
-                      context: context,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  
-                  // Outstanding
-                  Expanded(
-                    child: _buildSummaryCard(
-                      icon: Icons.description,
-                      iconColor: Colors.orange,
-                      title: 'ค้างชำระ',
-                      value: '฿4,318,000,000',
-                      context: context,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  
-                  // Overdue
-                  Expanded(
-                    child: _buildSummaryCard(
-                      icon: Icons.warning,
-                      iconColor: Colors.red,
-                      title: 'เกินกำหนด',
-                      value: '฿4,159,000,432',
-                      context: context,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // New Section Header
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Text(
-                    'New',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryOrange,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      '5',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'ยอดรวม ฿180,000.50',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.more_vert,
-                    color: AppTheme.textSecondary,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Job Cards List
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: _buildJobCard(context, index),
-                );
-              },
-              childCount: 2, // Show 2 job cards as in the screenshot
-            ),
-          ),
-          
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 80), // Bottom padding for FAB
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-        },
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.keyboard_arrow_up),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String value,
-    required BuildContext context,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: iconColor,
-            size: 24,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJobCard(BuildContext context, int index) {
-    final isFirstCard = index == 0;
-    
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: isFirstCard ? Colors.pink[50] : Colors.pink[50],
-        ),
+      backgroundColor: Colors.white,
+      body: Container(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height,
+        clipBehavior: Clip.antiAlias,
+        decoration: const BoxDecoration(color: Colors.white),
         child: Stack(
           children: [
-            // Overdue banner for second card
-            if (!isFirstCard)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'เกินเวลาที่กำหนด',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+            // Bottom Navigation Bar
+            Positioned(
+              left: 0,
+              bottom: 0,
+              right: 0,
+              child: _buildBottomNavigationBar(),
+            ),
             
-            Padding(
-              padding: const EdgeInsets.all(16),
+            // Floating Action Button
+            Positioned(
+              right: 16,
+              bottom: 96,
+              child: _buildFloatingActionButton(),
+            ),
+            
+            // Main Content with Status Bar and Header
+            Positioned(
+              left: 0,
+              top: 0,
+              right: 0,
+              bottom: 80,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tags Row
-                  if (isFirstCard) ...[
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.pink[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'do Hashtag',
-                            style: TextStyle(
-                              color: Colors.pink[700],
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'So Hashtag',
-                            style: TextStyle(
-                              color: Colors.green[700],
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Hashtag',
-                            style: TextStyle(
-                              color: Colors.blue[700],
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Progress bar
-                    Container(
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.yellow[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  
-                  // Job Card ID and Status
-                  Row(
-                    children: [
-                      Text(
-                        isFirstCard ? 'JC0012' : 'JC0013',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        isFirstCard ? 'น้อย' : 'กลาง',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Date Range
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.access_time,
-                        size: 16,
-                        color: AppTheme.textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isFirstCard 
-                            ? '30 ม.ค. 2567 - 28 ธ.ค. 2557'
-                            : '30 ม.ค. 2567 - 28 ธ.ค. 2567',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  // Stats for second card
-                  if (!isFirstCard) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.visibility, size: 16, color: AppTheme.textSecondary),
-                        const SizedBox(width: 4),
-                        Text('4', style: Theme.of(context).textTheme.bodySmall),
-                        const SizedBox(width: 12),
-                        const Icon(Icons.chat_bubble_outline, size: 16, color: AppTheme.textSecondary),
-                        const SizedBox(width: 4),
-                        Text('1', style: Theme.of(context).textTheme.bodySmall),
-                        const SizedBox(width: 12),
-                        const Icon(Icons.check_circle_outline, size: 16, color: AppTheme.textSecondary),
-                        const SizedBox(width: 4),
-                        Text('0/3', style: Theme.of(context).textTheme.bodySmall),
-                      ],
-                    ),
-                  ],
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Customer Info
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.white,
-                        child: Text(
-                          isFirstCard ? 'S' : 'ก',
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isFirstCard 
-                                  ? 'รัญญารัตน์ วรเตชะทรัพย์'
-                                  : 'กฤติรัช ปัทมเดชา',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              isFirstCard
-                                  ? 'บริษัท บิงชูภูเขาไฟ จํากัด มหาชน'
-                                  : 'บริษัท เบอร์ลี่ ยุคเกอร์ จํากัด (มหาชน)',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  // Sales Person Info
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.grey[200],
-                        child: Text(
-                          isFirstCard ? 'อ' : 'อ',
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        isFirstCard ? 'อรสพร 5.' : 'อรสพร 5.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  // Tasks for second card
-                  if (!isFirstCard) ...[
-                    const SizedBox(height: 12),
-                    Column(
-                      children: [
-                        _buildTaskItem('โทรแจ้งการเปลี่ยนราคาสินค้า....', '23 ม.ค.'),
-                        _buildTaskItem('ไปหาลูกค้า', '2 ก.พ.'),
-                        _buildTaskItem('โทรแจ้งการเปลี่ยนราคาสินค้า...', '31 ม.ค.'),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '+ เพิ่ม Job Card',
-                      style: TextStyle(
-                        color: AppTheme.primaryOrange,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                  
-                  // Amount Badge
-                  Positioned(
-                    top: 16,
-                    right: 16,
+                  // Status Bar
+                  _buildStatusBar(),
+                  // Header
+                  _buildHeader(context),
+                  // Content Area (placeholder for now)
+                  Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Text(
-                        '฿0.00',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                      width: double.infinity,
+                      color: AppTheme.backgroundGrey,
+                      // Content will be added here
+                      child: const Center(
+                        child: Text(
+                          'Job Card Content Area',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ),
                     ),
@@ -497,38 +68,400 @@ class JobCardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTaskItem(String task, String date) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+  Widget _buildStatusBar() {
+    return Container(
+      width: double.infinity,
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment(1.00, 1.00),
+          end: Alignment(-0.00, -0.03),
+          colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
+        ),
+      ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 4,
-            height: 4,
-            decoration: const BoxDecoration(
-              color: Colors.grey,
-              shape: BoxShape.circle,
+          const Text(
+            '9.41',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontFamily: 'Kanit',
+              fontWeight: FontWeight.w400,
             ),
           ),
-          const SizedBox(width: 8),
+          Row(
+            children: [
+              Container(width: 18, height: 18),
+              const SizedBox(width: 4),
+              Container(width: 16, height: 17),
+              const SizedBox(width: 4),
+              Container(width: 16, height: 17),
+              const SizedBox(width: 4),
+              const Text(
+                '100%',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontFamily: 'Kanit',
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Container(width: 18, height: 17),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: const BoxDecoration(color: Colors.white),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment(1.00, 1.00),
+                    end: Alignment(-0.00, -0.03),
+                    colors: [Color(0xFFFF0000), Color(0xFFFF6C0C)],
+                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Job Card',
+                    style: TextStyle(
+                      color: Color(0xFF333333),
+                      fontSize: 20,
+                      fontFamily: 'Prompt',
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 16,
+                        height: 16,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFAB73F),
+                          borderRadius: BorderRadius.all(Radius.circular(4)),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'ชื่อบอร์ด 1',
+                        style: TextStyle(
+                          color: Color(0xFF4D4D4D),
+                          fontSize: 12,
+                          fontFamily: 'Prompt',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              // Calendar/Filter Icon
+              GestureDetector(
+                onTap: () {
+                  // TODO: Add filter functionality
+                },
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Color(0xFF666666),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Search Icon
+              GestureDetector(
+                onTap: () {
+                  // TODO: Add search functionality
+                },
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.search,
+                    size: 16,
+                    color: Color(0xFF666666),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // More Options Icon
+              GestureDetector(
+                onTap: () {
+                  // TODO: Add menu functionality
+                },
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.more_vert,
+                    size: 16,
+                    color: Color(0xFF666666),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      width: double.infinity,
+      height: 80,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x19000000),
+            blurRadius: 8,
+            offset: Offset(0, -1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Job Card - Active Tab
           Expanded(
-            child: Text(
-              task,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
+            child: Container(
+              height: 67,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Active indicator bars
+                  Column(
+                    children: [
+                      Container(
+                        width: 15,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
+                          ),
+                          borderRadius: BorderRadius.all(Radius.circular(2)),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Container(
+                        width: 15,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
+                          ),
+                          borderRadius: BorderRadius.all(Radius.circular(2)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Job Card',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFFF3312),
+                      fontSize: 11,
+                      fontFamily: 'Kanit',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          Text(
-            date,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
+          
+          // รายการคำสั่งซื้อ
+          Expanded(
+            child: Container(
+              height: 67,
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.list_alt,
+                    size: 28,
+                    color: Color(0xFFB3B3B3),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'รายการคำสั่งซื้อ',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFB3B3B3),
+                      fontSize: 11,
+                      fontFamily: 'Kanit',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // ลูกค้า
+          Expanded(
+            child: Container(
+              height: 67,
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.people,
+                    size: 28,
+                    color: Color(0xFFB3B3B3),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'ลูกค้า',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFB3B3B3),
+                      fontSize: 11,
+                      fontFamily: 'Kanit',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // สินค้า
+          Expanded(
+            child: Container(
+              height: 67,
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.inventory_2,
+                    size: 28,
+                    color: Color(0xFFB3B3B3),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'สินค้า',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFB3B3B3),
+                      fontSize: 11,
+                      fontFamily: 'Kanit',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // อื่น ๆ
+          Expanded(
+            child: Container(
+              height: 67,
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.more_horiz,
+                    size: 28,
+                    color: Color(0xFFB3B3B3),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'อื่น ๆ',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFB3B3B3),
+                      fontSize: 11,
+                      fontFamily: 'Kanit',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return GestureDetector(
+      onTap: () {
+        // TODO: Add functionality for FAB
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: const BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x4CFB3327),
+              blurRadius: 4,
+              offset: Offset(0.75, 3),
+            ),
+          ],
+          gradient: LinearGradient(
+            colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
+          ),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 24,
+        ),
       ),
     );
   }
