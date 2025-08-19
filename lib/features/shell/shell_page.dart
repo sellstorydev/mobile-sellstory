@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/theme/app_theme.dart';
 import '../board/view/board_page.dart';
 import '../orders/view/orders_page.dart';
 import '../customers/view/customers_page.dart';
@@ -15,7 +16,7 @@ class ShellPage extends StatelessWidget {
     final controller = Get.put(ShellController());
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundWhite,
       body: Obx(() => IndexedStack(
         index: controller.currentIndex.value,
         children: const [
@@ -28,13 +29,13 @@ class ShellPage extends StatelessWidget {
       )),
       bottomNavigationBar: Obx(() => Container(
         width: double.infinity,
-        height: 80,
+        height: AppTheme.bottomNavHeight,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.backgroundWhite,
           boxShadow: [
             BoxShadow(
-              color: const Color(0x19000000),
-              blurRadius: 8,
+              color: AppTheme.shadowColor,
+              blurRadius: AppTheme.spacing8,
               offset: const Offset(0, -1),
               spreadRadius: 0,
             ),
@@ -54,28 +55,28 @@ class ShellPage extends StatelessWidget {
               _buildNavItem(
                 index: 1,
                 currentIndex: controller.currentIndex.value,
-                icon: const Icon(Icons.description_outlined, size: 24),
+                icon: const Icon(Icons.description_outlined, size: AppTheme.iconSize28),
                 label: 'รายการคำสั่งซื้อ',
                 onTap: () => controller.onTabTapped(1),
               ),
               _buildNavItem(
                 index: 2,
                 currentIndex: controller.currentIndex.value,
-                icon: const Icon(Icons.person_outline, size: 24),
+                icon: const Icon(Icons.person_outline, size: AppTheme.iconSize28),
                 label: 'ลูกค้า',
                 onTap: () => controller.onTabTapped(2),
               ),
               _buildNavItem(
                 index: 3,
                 currentIndex: controller.currentIndex.value,
-                icon: const Icon(Icons.shopping_bag_outlined, size: 24),
+                icon: const Icon(Icons.shopping_bag_outlined, size: AppTheme.iconSize28),
                 label: 'สินค้า',
                 onTap: () => controller.onTabTapped(3),
               ),
               _buildNavItem(
                 index: 4,
                 currentIndex: controller.currentIndex.value,
-                icon: const Icon(Icons.grid_view, size: 24),
+                icon: const Icon(Icons.grid_view, size: AppTheme.iconSize28),
                 label: 'อื่น ๆ',
                 onTap: () => controller.onTabTapped(4),
               ),
@@ -100,20 +101,20 @@ class ShellPage extends StatelessWidget {
         onTap: onTap,
         child: Container(
           height: 67,
-          padding: const EdgeInsets.only(top: 2, bottom: 8),
+          padding: const EdgeInsets.only(top: AppTheme.spacing2, bottom: AppTheme.spacing8),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               icon,
-              Container(height: 4),
+              Container(height: AppTheme.spacing4),
               Flexible(
                 child: Text(
                   label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: isSelected ? const Color(0xFFFF3312) : const Color(0xFFB3B3B3),
-                    fontSize: 10,
+                    color: isSelected ? AppTheme.figmaRed : AppTheme.textLightGrey,
+                    fontSize: AppTheme.fontSize10,
                     fontFamily: 'Kanit',
                     fontWeight: FontWeight.w400,
                   ),
@@ -142,12 +143,8 @@ class ShellPage extends StatelessWidget {
                 width: 15,
                 height: 6,
                 decoration: ShapeDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment(0.50, -0.00),
-                    end: Alignment(0.50, 1.00),
-                    colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
-                  ),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                  gradient: AppTheme.fabGradient,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.spacing2)),
                 ),
               ),
             ),
@@ -158,12 +155,8 @@ class ShellPage extends StatelessWidget {
                 width: 15,
                 height: 6,
                 decoration: ShapeDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment(0.50, -0.00),
-                    end: Alignment(0.50, 1.00),
-                    colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
-                  ),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                  gradient: AppTheme.fabGradient,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.spacing2)),
                 ),
               ),
             ),
@@ -175,8 +168,8 @@ class ShellPage extends StatelessWidget {
                 width: 15,
                 height: 6,
                 decoration: ShapeDecoration(
-                  color: const Color(0xFFB3B3B3),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                  color: AppTheme.textLightGrey,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.spacing2)),
                 ),
               ),
             ),
@@ -187,8 +180,8 @@ class ShellPage extends StatelessWidget {
                 width: 15,
                 height: 6,
                 decoration: ShapeDecoration(
-                  color: const Color(0xFFB3B3B3),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                  color: AppTheme.textLightGrey,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.spacing2)),
                 ),
               ),
             ),
@@ -207,8 +200,8 @@ class ShellPage extends StatelessWidget {
                       'Job Card',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: isSelected ? const Color(0xFFFF3312) : const Color(0xFFB3B3B3),
-                        fontSize: 10,
+                        color: isSelected ? AppTheme.figmaRed : AppTheme.textLightGrey,
+                        fontSize: AppTheme.fontSize10,
                         fontFamily: 'Kanit',
                         fontWeight: FontWeight.w400,
                       ),

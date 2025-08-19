@@ -15,10 +15,22 @@ class LaneHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16, vertical: AppTheme.spacing12),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppTheme.radius12),
+          topRight: Radius.circular(AppTheme.radius12),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowColor,
+            blurRadius: AppTheme.spacing4,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
+        border: const Border(
           bottom: BorderSide(
             color: AppTheme.borderGrey,
             width: 1,
@@ -28,34 +40,37 @@ class LaneHeader extends StatelessWidget {
       child: Row(
         children: [
           // Lane title
-          Text(
-            lane.title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
+          Expanded(
+            child: Text(
+              lane.title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           
-          const SizedBox(width: 8),
+          Container(width: AppTheme.spacing8),
           
           // Card count badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing8, vertical: AppTheme.spacing4),
             decoration: BoxDecoration(
               color: AppTheme.primaryOrange,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppTheme.radius12),
             ),
             child: Text(
               '${lane.cardCount}',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: AppTheme.fontSize12,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           
-          const Spacer(),
+          Container(width: AppTheme.spacing12),
           
           // Total amount
           Text(
@@ -66,16 +81,23 @@ class LaneHeader extends StatelessWidget {
             ),
           ),
           
-          const SizedBox(width: 8),
+          Container(width: AppTheme.spacing8),
           
           // Menu button
           if (onMenuTap != null)
             GestureDetector(
               onTap: onMenuTap,
-              child: const Icon(
-                Icons.more_vert,
-                color: AppTheme.textSecondary,
-                size: 20,
+              child: Container(
+                padding: const EdgeInsets.all(AppTheme.spacing4),
+                decoration: BoxDecoration(
+                  color: AppTheme.backgroundGrey,
+                  borderRadius: BorderRadius.circular(AppTheme.radius4),
+                ),
+                child: const Icon(
+                  Icons.more_vert,
+                  color: AppTheme.textSecondary,
+                  size: AppTheme.iconSize16,
+                ),
               ),
             ),
         ],

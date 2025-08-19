@@ -31,14 +31,10 @@ class _BoardPageState extends State<BoardPage> {
               // Status Bar
               Container(
                 width: double.infinity,
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+                height: AppTheme.statusBarHeight,
+                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing28),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment(1.00, 1.00),
-                    end: Alignment(-0.00, -0.03),
-                    colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
-                  ),
+                  gradient: AppTheme.statusBarGradient,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -48,30 +44,30 @@ class _BoardPageState extends State<BoardPage> {
                       '9:41',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: AppTheme.fontSize14,
                         fontFamily: 'Kanit',
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                     Row(
                       children: [
-                        Container(width: 16, height: 16),
-                        Container(width: 2),
-                        Container(width: 14, height: 15),
-                        Container(width: 2),
-                        Container(width: 14, height: 15),
-                        Container(width: 2),
+                        Container(width: AppTheme.iconSize16, height: AppTheme.iconSize16),
+                        Container(width: AppTheme.spacing2),
+                        Container(width: AppTheme.iconSize14, height: AppTheme.iconSize14),
+                        Container(width: AppTheme.spacing2),
+                        Container(width: AppTheme.iconSize14, height: AppTheme.iconSize14),
+                        Container(width: AppTheme.spacing2),
                         const Text(
                           '100%',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: AppTheme.fontSize12,
                             fontFamily: 'Kanit',
                             fontWeight: FontWeight.w400,
                           ),
                         ),
-                        Container(width: 2),
-                        Container(width: 16, height: 15),
+                        Container(width: AppTheme.spacing2),
+                        Container(width: AppTheme.iconSize16, height: AppTheme.iconSize14),
                       ],
                     ),
                   ],
@@ -80,9 +76,19 @@ class _BoardPageState extends State<BoardPage> {
               // Header
               Container(
                 width: double.infinity,
-                height: 60,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: const BoxDecoration(color: Colors.white),
+                height: AppTheme.headerHeight,
+                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing20),
+                decoration: BoxDecoration(
+                  color: AppTheme.backgroundWhite,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.shadowColor,
+                      blurRadius: AppTheme.spacing8,
+                      offset: const Offset(0, 1),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -90,28 +96,24 @@ class _BoardPageState extends State<BoardPage> {
                     Row(
                       children: [
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: AppTheme.iconSize20 * 2,
+                          height: AppTheme.iconSize20 * 2,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment(1.00, 1.00),
-                              end: Alignment(-0.00, -0.03),
-                              colors: [Color(0xFFFF0000), Color(0xFFFF6C0C)],
-                            ),
-                            borderRadius: BorderRadius.circular(8),
+                            gradient: AppTheme.logoGradient,
+                            borderRadius: BorderRadius.circular(AppTheme.radius8),
                           ),
                           child: const Center(
                             child: Text(
                               'S',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 20,
+                                fontSize: AppTheme.fontSize20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                         ),
-                        Container(width: 8),
+                        Container(width: AppTheme.spacing8),
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,8 +121,8 @@ class _BoardPageState extends State<BoardPage> {
                             const Text(
                               'Job Card',
                               style: TextStyle(
-                                color: Color(0xFF333333),
-                                fontSize: 20,
+                                color: AppTheme.textDark,
+                                fontSize: AppTheme.fontSize20,
                                 fontFamily: 'Prompt',
                                 fontWeight: FontWeight.w500,
                               ),
@@ -128,30 +130,30 @@ class _BoardPageState extends State<BoardPage> {
                             Row(
                               children: [
                                 Container(
-                                  width: 16,
-                                  height: 16,
+                                  width: AppTheme.iconSize16,
+                                  height: AppTheme.iconSize16,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFAB73F),
-                                    borderRadius: BorderRadius.circular(4),
+                                    color: AppTheme.figmaYellow,
+                                    borderRadius: BorderRadius.circular(AppTheme.radius4),
                                   ),
                                 ),
-                                Container(width: 2),
+                                Container(width: AppTheme.spacing2),
                                 const Text(
                                   'ชื่อบอร์ด 1',
                                   style: TextStyle(
-                                    color: Color(0xFF4D4D4D),
-                                    fontSize: 12,
+                                    color: AppTheme.textMedium,
+                                    fontSize: AppTheme.fontSize12,
                                     fontFamily: 'Prompt',
                                     fontWeight: FontWeight.w400,
                                   ),
                                 ),
-                                Container(width: 4),
+                                Container(width: AppTheme.spacing4),
                                 Transform.rotate(
                                   angle: 1.57,
                                   child: const Icon(
                                     Icons.keyboard_arrow_down,
-                                    size: 16,
-                                    color: Color(0xFF4D4D4D),
+                                    size: AppTheme.iconSize16,
+                                    color: AppTheme.textMedium,
                                   ),
                                 ),
                               ],
@@ -163,26 +165,31 @@ class _BoardPageState extends State<BoardPage> {
                     Row(
                       children: [
                         Container(
-                          width: 24,
-                          height: 24,
-                          child: const Icon(Icons.calendar_today, size: 20),
+                          width: AppTheme.iconSize24,
+                          height: AppTheme.iconSize24,
+                          child: const Icon(Icons.calendar_today, size: AppTheme.iconSize20),
                         ),
-                        Container(width: 16),
+                        Container(width: AppTheme.spacing16),
                         Container(
-                          width: 24,
-                          height: 24,
-                          child: const Icon(Icons.monitor, size: 20),
+                          width: AppTheme.iconSize24,
+                          height: AppTheme.iconSize24,
+                          child: const Icon(Icons.monitor, size: AppTheme.iconSize20),
                         ),
-                        Container(width: 16),
+                        Container(width: AppTheme.spacing16),
                         Container(
-                          width: 24,
-                          height: 24,
-                          child: const Icon(Icons.notifications, size: 20),
+                          width: AppTheme.iconSize24,
+                          height: AppTheme.iconSize24,
+                          child: const Icon(Icons.notifications, size: AppTheme.iconSize20),
                         ),
                       ],
                     ),
                   ],
                 ),
+              ),
+              // Padding between header and content
+              Container(
+                height: AppTheme.spacing16,
+                color: AppTheme.backgroundGrey,
               ),
               // Main Content
               Expanded(
@@ -205,16 +212,16 @@ class _BoardPageState extends State<BoardPage> {
                             size: 64,
                             color: AppTheme.errorRed,
                           ),
-                          Container(height: 16),
+                          Container(height: AppTheme.spacing16),
                           Text(
                             'Error: ${controller.error?.value}',
                             style: const TextStyle(
                               color: AppTheme.textSecondary,
-                              fontSize: 16,
+                              fontSize: AppTheme.fontSize16,
                             ),
-                                                      ),
-                            Container(height: 16),
-                            ElevatedButton(
+                          ),
+                          Container(height: AppTheme.spacing16),
+                          ElevatedButton(
                             onPressed: () => controller.load(),
                             child: const Text('Retry'),
                           ),
@@ -229,19 +236,15 @@ class _BoardPageState extends State<BoardPage> {
             ],
           ),
           floatingActionButton: Container(
-            width: 48,
-            height: 48,
+            width: AppTheme.fabSize,
+            height: AppTheme.fabSize,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment(0.50, -0.00),
-                end: Alignment(0.50, 1.00),
-                colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
-              ),
+              gradient: AppTheme.fabGradient,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0x4CFB3327),
-                  blurRadius: 4,
+                  color: AppTheme.fabShadowColor,
+                  blurRadius: AppTheme.spacing4,
                   offset: const Offset(0.75, 3),
                   spreadRadius: 0,
                 ),
@@ -250,7 +253,7 @@ class _BoardPageState extends State<BoardPage> {
             child: const Icon(
               Icons.add,
               color: Colors.white,
-              size: 24,
+              size: AppTheme.iconSize24,
             ),
           ),
         );
@@ -259,8 +262,9 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildBoard(BuildContext context, BoardController controller) {
-
-    return DragAndDropLists(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16, vertical: AppTheme.spacing8),
+      child: DragAndDropLists(
       children: controller.lanes.map((lane) {
         return DragAndDropList(
           header: LaneHeader(
@@ -276,16 +280,16 @@ class _BoardPageState extends State<BoardPage> {
             );
           }).toList(),
           footer: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTheme.spacing16),
             child: Center(
               child: TextButton.icon(
                 onPressed: () => _showAddCardDialog(context, controller, lane.id),
-                icon: const Icon(Icons.add, size: 16),
+                icon: const Icon(Icons.add, size: AppTheme.iconSize16),
                 label: const Text('เพิ่ม Job Card'),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFFF6C0C),
+                  foregroundColor: AppTheme.figmaOrange,
                   textStyle: const TextStyle(
-                    fontSize: 10,
+                    fontSize: AppTheme.fontSize10,
                     fontFamily: 'Prompt',
                     fontWeight: FontWeight.w400,
                   ),
@@ -312,15 +316,16 @@ class _BoardPageState extends State<BoardPage> {
       },
       axis: Axis.horizontal,
       listWidth: 360,
-      listPadding: const EdgeInsets.all(8),
+      listPadding: const EdgeInsets.all(AppTheme.spacing8),
       listDecoration: BoxDecoration(
-        color: const Color(0xFFFFF0E7),
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.laneBackground,
+        borderRadius: BorderRadius.circular(AppTheme.radius12),
         border: Border.all(
           color: AppTheme.borderGrey,
           width: 1,
         ),
       ),
+    ),
     );
   }
 
