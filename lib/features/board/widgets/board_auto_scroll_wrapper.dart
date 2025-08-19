@@ -111,28 +111,32 @@ class _BoardAutoScrollWrapperState extends State<BoardAutoScrollWrapper>
       }
     }
 
-    // Vertical scrolling - find the appropriate lane controller
+    // Vertical scrolling - find the appropriate lane controller based on horizontal position
     if (widget.laneControllers != null && widget.laneControllers!.isNotEmpty) {
-      // For now, use the first available controller
-      // In a more sophisticated implementation, you'd determine which lane is active
-      final controller = widget.laneControllers!.values.first;
-      if (controller.hasClients) {
-        double verticalStep = 0;
-        
-        if (localPosition.dy < widget.config.edgeExtent) {
-          // Top edge - scroll up
-          final distanceToEdge = widget.config.edgeExtent - localPosition.dy;
-          verticalStep = -_calculateStep(distanceToEdge);
-        } else if (localPosition.dy > size.height - widget.config.edgeExtent) {
-          // Bottom edge - scroll down
-          final distanceToEdge = localPosition.dy - (size.height - widget.config.edgeExtent);
-          verticalStep = _calculateStep(distanceToEdge);
-        }
+      // Calculate which lane the pointer is over based on horizontal position
+      const laneWidth = 320.0 + 16.0; // lane width + margin
+      final laneIndex = (localPosition.dx / laneWidth).floor();
+      
+      if (laneIndex >= 0 && laneIndex < widget.laneControllers!.length) {
+        final controller = widget.laneControllers!.values.elementAt(laneIndex);
+        if (controller.hasClients) {
+          double verticalStep = 0;
+          
+          if (localPosition.dy < widget.config.edgeExtent) {
+            // Top edge - scroll up
+            final distanceToEdge = widget.config.edgeExtent - localPosition.dy;
+            verticalStep = -_calculateStep(distanceToEdge);
+          } else if (localPosition.dy > size.height - widget.config.edgeExtent) {
+            // Bottom edge - scroll down
+            final distanceToEdge = localPosition.dy - (size.height - widget.config.edgeExtent);
+            verticalStep = _calculateStep(distanceToEdge);
+          }
 
-        if (verticalStep != 0) {
-          final newOffset = (controller.offset + verticalStep)
-              .clamp(0.0, controller.position.maxScrollExtent);
-          controller.jumpTo(newOffset);
+          if (verticalStep != 0) {
+            final newOffset = (controller.offset + verticalStep)
+                .clamp(0.0, controller.position.maxScrollExtent);
+            controller.jumpTo(newOffset);
+          }
         }
       }
     }
