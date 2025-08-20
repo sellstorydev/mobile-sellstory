@@ -157,19 +157,17 @@ class BoardPresenter {
     required String laneId,
     required String title,
     required String assignee,
-    required List<String> badges,
-    required double amount,
-    DateTime? dueDate,
   }) async {
     try {
       final newCard = JobCard(
         id: '',
         title: title,
         assignee: assignee,
-        dueDate: dueDate,
-        badges: badges,
-        amount: amount,
+        badges: [],
+        amount: 0.0,
         laneId: laneId,
+        boardId: workspaceId,
+        workspaceId: workspaceId,
         order: _currentState.lanes.firstWhere((l) => l.id == laneId).cards.length,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),

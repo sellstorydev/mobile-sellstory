@@ -200,8 +200,6 @@ class BoardController extends GetxController implements BoardView {
       laneId: laneId,
       title: title,
       assignee: assignee ?? '',
-      badges: [],
-      amount: 0.0,
     );
   }
 

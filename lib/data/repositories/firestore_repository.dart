@@ -77,7 +77,7 @@ class FirestoreRepository {
       // Get lanes directly from lanes subcollection
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
       
-      return _firestoreService.getDocumentsStream(
+    return _firestoreService.getDocumentsStream(
         lanesCollection,
         queryBuilder: (query) => query.orderBy('order', descending: false),
       ).asyncMap((lanesSnapshot) async {
@@ -142,6 +142,8 @@ class FirestoreRepository {
           badges: [], // Not in current data structure
           amount: 0.0, // Not in current data structure
           laneId: cardData['laneId'] ?? '',
+          boardId: cardData['boardId'] ?? '',
+          workspaceId: workspaceId,
           order: cardData['order'] ?? 0,
           createdAt: DateTime.fromMillisecondsSinceEpoch(cardData['createdAt'] ?? 0),
           updatedAt: DateTime.fromMillisecondsSinceEpoch(cardData['updatedAt'] ?? 0),
@@ -164,7 +166,8 @@ class FirestoreRepository {
         queryBuilder: (query) => query.orderBy('order', descending: false),
       ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
-          return JobCard.fromMap(doc.data(), doc.id);
+          final cardData = doc.data();
+          return JobCard.fromMap(cardData, doc.id);
         }).toList();
         _logger.systemEvent('Cards loaded', {'workspaceId': workspaceId, 'cardsCount': cards.length});
         return cards;
@@ -191,7 +194,8 @@ class FirestoreRepository {
             .orderBy('order', descending: false),
       ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
-          return JobCard.fromMap(doc.data(), doc.id);
+          final cardData = doc.data();
+          return JobCard.fromMap(cardData, doc.id);
         }).toList();
         _logger.systemEvent('Lane cards loaded', {
           'workspaceId': workspaceId,
@@ -215,12 +219,12 @@ class FirestoreRepository {
       });
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
       
-      return _firestoreService.getDocumentsStream(
+    return _firestoreService.getDocumentsStream(
         cardsCollection,
-        queryBuilder: (query) => query
+      queryBuilder: (query) => query
             .where('assignedTo', isEqualTo: userId)
-            .orderBy('order', descending: false),
-      ).map((snapshot) {
+          .orderBy('order', descending: false),
+    ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
           final cardData = doc.data();
           // Map Firestore data to JobCard entity
@@ -236,7 +240,7 @@ class FirestoreRepository {
             createdAt: DateTime.fromMillisecondsSinceEpoch(cardData['createdAt'] ?? 0),
             updatedAt: DateTime.fromMillisecondsSinceEpoch(cardData['updatedAt'] ?? 0),
           );
-        }).toList();
+      }).toList();
         _logger.systemEvent('User assigned cards loaded', {
           'workspaceId': workspaceId,
           'userId': userId,
@@ -260,7 +264,7 @@ class FirestoreRepository {
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
       final docRef = await _firestoreService.addDocument(lanesCollection, lane.toMap());
       _logger.methodExit('FirestoreRepository.createLane', {'laneId': docRef.id});
-      return docRef.id;
+    return docRef.id;
     } catch (e) {
       _logger.error('Failed to create lane', e);
       rethrow;
@@ -276,7 +280,7 @@ class FirestoreRepository {
       });
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
       final docRef = lanesCollection.doc(laneId);
-      await _firestoreService.updateDocument(docRef, data);
+    await _firestoreService.updateDocument(docRef, data);
       _logger.methodExit('FirestoreRepository.updateLane');
     } catch (e) {
       _logger.error('Failed to update lane', e);
@@ -293,7 +297,7 @@ class FirestoreRepository {
       });
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
       final docRef = lanesCollection.doc(laneId);
-      await _firestoreService.deleteDocument(docRef);
+    await _firestoreService.deleteDocument(docRef);
       _logger.methodExit('FirestoreRepository.deleteLane');
     } catch (e) {
       _logger.error('Failed to delete lane', e);
@@ -363,55 +367,55 @@ class FirestoreRepository {
         'newOrder': newOrder
       });
       
-      await _firestoreService.runTransaction((transaction) async {
+    await _firestoreService.runTransaction((transaction) async {
         final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
         
-        // Update the card's lane and order
+      // Update the card's lane and order
         final cardRef = cardsCollection.doc(cardId);
-        transaction.update(cardRef, {
-          'laneId': toLaneId,
-          'order': newOrder,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        
-        // Reorder cards in the source lane
-        final fromLaneCards = await _firestoreService.getDocuments(
+      transaction.update(cardRef, {
+        'laneId': toLaneId,
+        'order': newOrder,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      // Reorder cards in the source lane
+      final fromLaneCards = await _firestoreService.getDocuments(
           cardsCollection,
-          queryBuilder: (query) => query
-              .where('laneId', isEqualTo: fromLaneId)
-              .orderBy('order', descending: false),
-        );
-        
-        int order = 0;
-        for (final doc in fromLaneCards.docs) {
-          if (doc.id != cardId) {
-            transaction.update(doc.reference, {
-              'order': order,
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
-            order++;
-          }
-        }
-        
-        // Reorder cards in the destination lane
-        final toLaneCards = await _firestoreService.getDocuments(
-          cardsCollection,
-          queryBuilder: (query) => query
-              .where('laneId', isEqualTo: toLaneId)
-              .orderBy('order', descending: false),
-        );
-        
-        order = 0;
-        for (final doc in toLaneCards.docs) {
-          if (order >= newOrder) {
-            transaction.update(doc.reference, {
-              'order': order + 1,
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
-          }
+        queryBuilder: (query) => query
+            .where('laneId', isEqualTo: fromLaneId)
+            .orderBy('order', descending: false),
+      );
+      
+      int order = 0;
+      for (final doc in fromLaneCards.docs) {
+        if (doc.id != cardId) {
+          transaction.update(doc.reference, {
+            'order': order,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
           order++;
         }
-      });
+      }
+      
+      // Reorder cards in the destination lane
+      final toLaneCards = await _firestoreService.getDocuments(
+          cardsCollection,
+        queryBuilder: (query) => query
+            .where('laneId', isEqualTo: toLaneId)
+            .orderBy('order', descending: false),
+      );
+      
+      order = 0;
+      for (final doc in toLaneCards.docs) {
+        if (order >= newOrder) {
+          transaction.update(doc.reference, {
+            'order': order + 1,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        order++;
+      }
+    });
       
       _logger.methodExit('FirestoreRepository.moveCard');
     } catch (e) {
@@ -429,16 +433,16 @@ class FirestoreRepository {
         'cardIdsCount': cardIds.length
       });
       
-      await _firestoreService.runTransaction((transaction) async {
+    await _firestoreService.runTransaction((transaction) async {
         final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-        for (int i = 0; i < cardIds.length; i++) {
+      for (int i = 0; i < cardIds.length; i++) {
           final cardRef = cardsCollection.doc(cardIds[i]);
-          transaction.update(cardRef, {
-            'order': i,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-      });
+        transaction.update(cardRef, {
+          'order': i,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
       
       _logger.methodExit('FirestoreRepository.reorderCardsInLane');
     } catch (e) {

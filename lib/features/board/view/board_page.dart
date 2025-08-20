@@ -5,11 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
-import '../../../../core/services/logger_service.dart';
 import '../../../domain/entities/lane.dart';
 
 class BoardPage extends StatefulWidget {
-  const BoardPage({Key? key}) : super(key: key);
+  const BoardPage({super.key});
 
   @override
   State<BoardPage> createState() => _BoardPageState();
@@ -17,17 +16,14 @@ class BoardPage extends StatefulWidget {
 
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
-  final LoggerService _logger = Get.find<LoggerService>();
 
   @override
   void initState() {
     super.initState();
-    _logger.methodEntry('BoardPage.initState');
+    print('🚀 BoardPage initialized');
     
-    // Initialize with current user (you can get this from your auth service)
+    // Initialize with current user
     _initializeWithCurrentUser();
-    
-    _logger.methodExit('BoardPage.initState');
   }
 
   Future<void> _initializeWithCurrentUser() async {
@@ -35,23 +31,19 @@ class _BoardPageState extends State<BoardPage> {
       // Get current user ID from Firebase Auth
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        _logger.error('No authenticated user found');
+        print('❌ No authenticated user found');
         return;
       }
       
       final String currentUserId = currentUser.uid;
-      _logger.devTools('Initializing board with user', {
-        'userId': currentUserId,
-        'email': currentUser.email,
-        'displayName': currentUser.displayName,
-      });
+      print('👤 Initializing board with user: $currentUserId');
       
       await _controller.initializeWithUser(currentUserId);
       
       // Load user's assigned cards
       await _controller.loadUserAssignedCards();
     } catch (e) {
-      _logger.error('Failed to initialize board page', e);
+      print('❌ Failed to initialize board page: $e');
     }
   }
 
@@ -190,17 +182,17 @@ class _BoardPageState extends State<BoardPage> {
             child: const Icon(Icons.drag_handle, size: 16),
           ),
         ),
-                 children: _controller.lanes.map((lane) {
-           final laneData = lane as Lane;
-           return DragAndDropList(
-             header: _buildLaneHeader(laneData),
-             children: laneData.cards.map((card) {
-               return DragAndDropItem(
-                 child: JobCardTile(card: card),
-               );
-             }).toList(),
-           );
-         }).toList(),
+        children: _controller.lanes.map((lane) {
+          final laneData = lane as Lane;
+          return DragAndDropList(
+            header: _buildLaneHeader(laneData),
+            children: laneData.cards.map((card) {
+              return DragAndDropItem(
+                child: JobCardTile(card: card),
+              );
+            }).toList(),
+          );
+        }).toList(),
       ),
     );
   }
@@ -227,7 +219,7 @@ class _BoardPageState extends State<BoardPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${lane.cardCount} cards',
+                  '${lane.cards.length} cards',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
@@ -259,17 +251,11 @@ class _BoardPageState extends State<BoardPage> {
 
   void _handleCardReorder(int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
     try {
-      final oldLane = _controller.lanes[oldListIndex];
-      final newLane = _controller.lanes[newListIndex];
+      final oldLane = _controller.lanes[oldListIndex] as Lane;
+      final newLane = _controller.lanes[newListIndex] as Lane;
       final card = oldLane.cards[oldItemIndex];
 
-      _logger.userAction('Card reordered', {
-        'cardId': card.id,
-        'fromLaneId': oldLane.id,
-        'toLaneId': newLane.id,
-        'fromIndex': oldItemIndex,
-        'toIndex': newItemIndex,
-      });
+      print('🔄 Card reordered: ${card.id} from ${oldLane.title} to ${newLane.title}');
 
       _controller.onMoveCard(
         cardId: card.id,
@@ -278,16 +264,13 @@ class _BoardPageState extends State<BoardPage> {
         toIndex: newItemIndex,
       );
     } catch (e) {
-      _logger.error('Failed to handle card reorder', e);
+      print('❌ Failed to handle card reorder: $e');
     }
   }
 
   void _handleLaneReorder(int oldListIndex, int newListIndex) {
     // Implement lane reordering if needed
-    _logger.userAction('Lane reordered', {
-      'fromIndex': oldListIndex,
-      'toIndex': newListIndex,
-    });
+    print('🔄 Lane reordered from index $oldListIndex to $newListIndex');
   }
 
   void _showAddLaneDialog() {
@@ -327,7 +310,6 @@ class _BoardPageState extends State<BoardPage> {
   void _showAddCardDialog() {
     final TextEditingController titleController = TextEditingController();
     final TextEditingController assigneeController = TextEditingController();
-    final TextEditingController amountController = TextEditingController();
     String selectedLaneId = _controller.lanes.first.id;
 
     showDialog(
@@ -354,27 +336,18 @@ class _BoardPageState extends State<BoardPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Amount',
-                  hintText: 'Enter amount...',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: selectedLaneId,
                 decoration: const InputDecoration(
                   labelText: 'Lane',
                 ),
-                                 items: _controller.lanes.map((lane) {
-                   final laneData = lane as Lane;
-                   return DropdownMenuItem<String>(
-                     value: laneData.id,
-                     child: Text(laneData.title),
-                   );
-                 }).toList(),
+                items: _controller.lanes.map((lane) {
+                  final laneData = lane as Lane;
+                  return DropdownMenuItem<String>(
+                    value: laneData.id,
+                    child: Text(laneData.title),
+                  );
+                }).toList(),
                 onChanged: (value) {
                   if (value != null) {
                     selectedLaneId = value;
@@ -392,7 +365,6 @@ class _BoardPageState extends State<BoardPage> {
           ElevatedButton(
             onPressed: () {
               if (titleController.text.trim().isNotEmpty) {
-                final amount = double.tryParse(amountController.text) ?? 0.0;
                 _controller.onAddCard(
                   laneId: selectedLaneId,
                   title: titleController.text.trim(),

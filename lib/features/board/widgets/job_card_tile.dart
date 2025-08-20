@@ -94,7 +94,7 @@ class JobCardTile extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        card.id,
+                        card.customId.isNotEmpty ? card.customId : card.id,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary,
@@ -104,19 +104,32 @@ class JobCardTile extends StatelessWidget {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.infoBlue,
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(card.status),
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _getPriorityText(card.amount),
+                        card.status,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // Card title
+                  Text(
+                    card.title,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   
                   const SizedBox(height: 8),
@@ -174,26 +187,27 @@ class JobCardTile extends StatelessWidget {
               ),
             ),
             
-            // Amount badge
-            Positioned(
-              top: 16,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.infoBlue,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '฿${card.amount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+            // Amount badge (only show if amount > 0)
+            if (card.amount > 0)
+              Positioned(
+                top: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.infoBlue,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '฿${card.amount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -232,10 +246,16 @@ class JobCardTile extends StatelessWidget {
     return colors[badge] ?? Colors.grey[700]!;
   }
 
-  String _getPriorityText(double amount) {
-    if (amount > 20000) return 'High';
-    if (amount > 10000) return 'Medium';
-    return 'Low';
+  Color _getStatusColor(String status) {
+    final colors = {
+      'Pending': Colors.orange,
+      'In Progress': Colors.blue,
+      'Done': Colors.green,
+      'To Do': Colors.grey,
+      'Review': Colors.purple,
+      'Testing': Colors.teal,
+    };
+    return colors[status] ?? Colors.grey;
   }
 
   String _formatDate(DateTime date) {
@@ -251,6 +271,7 @@ class JobCardTile extends StatelessWidget {
   }
 
   String _getInitials(String name) {
+    if (name.isEmpty) return 'NA';
     final parts = name.split(' ');
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
