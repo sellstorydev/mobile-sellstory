@@ -10,8 +10,6 @@ import '../controller/board_controller.dart';
 import '../presenter/board_presenter.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/lane_header.dart';
-import '../widgets/board_auto_scroll_wrapper.dart';
-import '../config/drag_config.dart';
 import '../../debug/firebase_debug_page.dart';
 
 class BoardPage extends StatefulWidget {
@@ -676,178 +674,105 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildBoard(BuildContext context, BoardController controller) {
-    final ScrollController horizontalScrollController = ScrollController();
+    return DragAndDropLists(
+      children: _buildLanes(controller),
+      onItemReorder: (
+        int oldItemIndex,
+        int oldListIndex,
+        int newItemIndex,
+        int newListIndex,
+      ) {
+        final fromLane = controller.lanes[oldListIndex];
+        final toLane = controller.lanes[newListIndex];
+        final card = fromLane.cards[oldItemIndex];
 
-    return BoardAutoScrollWrapper(
-      horizontalController: horizontalScrollController,
-      config: const DragAutoScrollConfig(
-        edgeExtent: 50.0,
-        velocityScalar: 100.0,
-        maxStep: 20.0,
-        tick: Duration(milliseconds: 50),
-      ),
-      child: SingleChildScrollView(
-        controller: horizontalScrollController,
-        scrollDirection: Axis.horizontal,
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: controller.lanes.asMap().entries.map((entry) {
-            final laneIndex = entry.key;
-            final lane = entry.value;
-
-            return SizedBox(
-              width: controller.lanes.length <= 3
-                  ? MediaQuery.of(context).size.width / controller.lanes.length
-                  : 350, // Fixed width สำหรับ lane มากกว่า 3
-              child: DragTarget<JobCard>(
-                onWillAccept: (data) => data != null,
-                onAccept: (card) {
-                  // Handle dropping card from another lane
-                  final fromLaneIndex = controller.lanes.indexWhere(
-                    (l) => l.cards.contains(card),
-                  );
-                  if (fromLaneIndex != -1 && fromLaneIndex != laneIndex) {
-                    final fromLane = controller.lanes[fromLaneIndex];
-                    controller.onMoveCard(
-                      cardId: card.id,
-                      fromLaneId: fromLane.id,
-                      toLaneId: lane.id,
-                      toIndex: lane.cards.length,
-                    );
-                  }
-                },
-                builder: (context, candidateData, rejectedData) {
-                  final bool hasCandidate = candidateData.isNotEmpty;
-                  return Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.spacing4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: hasCandidate
-                          ? AppTheme.primaryOrange.withOpacity(0.1)
-                          : AppTheme.laneBackground,
-                      border: Border.all(
-                        color: hasCandidate
-                            ? AppTheme.primaryOrange
-                            : AppTheme.borderGrey,
-                        width: hasCandidate ? 2 : 1,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        // Lane Header
-                        LaneHeader(
-                          lane: lane,
-                          onMenuTap: () =>
-                              _showLaneMenu(context, controller, lane),
-                        ),
-                        // Cards Container with ScrollView - Lock vertical scroll here
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              NotificationListener<ScrollNotification>(
-                                onNotification: (scrollNotification) {
-                                  // Allow auto-scroll during drag
-                                  if (scrollNotification is ScrollUpdateNotification) {
-                                    // Auto-scroll will be handled by DragAndDropLists
-                                    return false;
-                                  }
-                                  return false;
-                                },
-                                                                child: DragAndDropLists(
-                                  children: [
-                                    DragAndDropList(
-                                      children: lane.cards.map((card) => DragAndDropItem(
-                                        child: LongPressDraggable<JobCard>(
-                                          data: card,
-                                          delay: const Duration(milliseconds: 500),
-                                          feedback: Material(
-                                            elevation: 8,
-                                            child: SizedBox(
-                                              width: controller.lanes.length <= 3
-                                                  ? (MediaQuery.of(context).size.width / controller.lanes.length) - 16
-                                                  : 334,
-                                              child: JobCardTile(
-                                                card: card,
-                                                onTap: () => _showCardDetails(context, card),
-                                              ),
-                                            ),
-                                          ),
-                                          childWhenDragging: Opacity(
-                                            opacity: 0.3,
-                                            child: JobCardTile(
-                                              card: card,
-                                              onTap: () => _showCardDetails(context, card),
-                                            ),
-                                          ),
-                                          child: JobCardTile(
-                                            card: card,
-                                            onTap: () => _showCardDetails(context, card),
-                                          ),
-                                        ),
-                                      )).toList(),
-                                    ),
-                                  ],
-                                  onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
-                                    // Handle reordering within the same lane
-                                    if (oldListIndex == newListIndex) {
-                                      controller.onReorderInLane(
-                                        laneId: lane.id,
-                                        oldIndex: oldItemIndex,
-                                        newIndex: newItemIndex,
-                                      );
-                                    }
-                                  },
-                                  onListReorder: (int oldListIndex, int newListIndex) {
-                                    // Not used for single list
-                                  },
-                                  axis: Axis.vertical,
-                                  listWidth: double.infinity,
-                                  listPadding: EdgeInsets.zero,
-                                  listDecoration: const BoxDecoration(),
-                                ),
-                              ),
-
-                            ],
-                          ),
-                        ),
-                        // Lane Footer
-                        Container(
-                          padding: const EdgeInsets.all(AppTheme.spacing16),
-                          child: Center(
-                            child: TextButton.icon(
-                              onPressed: () => _showAddCardDialog(
-                                context,
-                                controller,
-                                lane.id,
-                              ),
-                              icon: const Icon(
-                                Icons.add,
-                                size: AppTheme.iconSize16,
-                              ),
-                              label: const Text('เพิ่ม Job Card'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppTheme.figmaOrange,
-                                textStyle: const TextStyle(
-                                  fontSize: AppTheme.fontSize10,
-                                  fontFamily: AppFont.family,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            );
-          }).toList(),
+        if (oldListIndex == newListIndex) {
+          // Reorder within the same lane
+          controller.onReorderInLane(
+            laneId: fromLane.id,
+            oldIndex: oldItemIndex,
+            newIndex: newItemIndex,
+          );
+        } else {
+          // Move card to a different lane
+          controller.onMoveCard(
+            cardId: card.id,
+            fromLaneId: fromLane.id,
+            toLaneId: toLane.id,
+            toIndex: newItemIndex,
+          );
+        }
+      },
+      onListReorder: (int oldListIndex, int newListIndex) {
+        // Not implemented: Reordering lanes
+      },
+      axis: Axis.horizontal,
+      listWidth: controller.lanes.length <= 3
+          ? MediaQuery.of(context).size.width / controller.lanes.length
+          : 350,
+      listDraggingWidth: 250,
+      listPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
+      listDecoration: BoxDecoration(
+        color: AppTheme.laneBackground,
+        borderRadius: BorderRadius.circular(AppTheme.radius8),
+        border: Border.all(
+          color: AppTheme.borderGrey,
+          width: 1,
         ),
       ),
+      itemDragHandle: const DragHandle(
+        verticalAlignment: DragHandleVerticalAlignment.top,
+        child: Icon(Icons.drag_indicator, color: Colors.grey),
+      ),
     );
+  }
+
+  List<DragAndDropList> _buildLanes(BoardController controller) {
+    return controller.lanes.map((lane) {
+      return DragAndDropList(
+        header: LaneHeader(
+          lane: lane,
+          onMenuTap: () => _showLaneMenu(context, controller, lane),
+        ),
+        footer: Container(
+          padding: const EdgeInsets.all(AppTheme.spacing16),
+          child: Center(
+            child: TextButton.icon(
+              onPressed: () => _showAddCardDialog(
+                context,
+                controller,
+                lane.id,
+              ),
+              icon: const Icon(
+                Icons.add,
+                size: AppTheme.iconSize16,
+              ),
+              label: const Text('เพิ่ม Job Card'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.figmaOrange,
+                textStyle: const TextStyle(
+                  fontSize: AppTheme.fontSize10,
+                  fontFamily: AppFont.family,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
+          ),
+        ),
+        children: _buildCards(controller, lane),
+      );
+    }).toList();
+  }
+
+  List<DragAndDropItem> _buildCards(BoardController controller, Lane lane) {
+    return lane.cards.map((card) {
+      return DragAndDropItem(
+        child: JobCardTile(
+          card: card,
+          onTap: () => _showCardDetails(context, card),
+        ),
+      );
+    }).toList();
   }
 
   void _showAddCardDialog(
