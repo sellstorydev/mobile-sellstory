@@ -675,9 +675,9 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-    Widget _buildBoard(BuildContext context, BoardController controller) {
+  Widget _buildBoard(BuildContext context, BoardController controller) {
     final ScrollController horizontalScrollController = ScrollController();
-    
+
     return BoardAutoScrollWrapper(
       horizontalController: horizontalScrollController,
       config: const DragAutoScrollConfig(
@@ -691,173 +691,160 @@ class _BoardPageState extends State<BoardPage> {
         scrollDirection: Axis.horizontal,
         physics: const AlwaysScrollableScrollPhysics(),
         child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: controller.lanes.asMap().entries.map((entry) {
-          final laneIndex = entry.key;
-          final lane = entry.value;
-          
-          return SizedBox(
-            width: controller.lanes.length <= 3 
-                ? MediaQuery.of(context).size.width / controller.lanes.length
-                : 350, // Fixed width สำหรับ lane มากกว่า 3
-            child: DragTarget<JobCard>(
-              onWillAccept: (data) => data != null,
-              onAccept: (card) {
-                // Handle dropping card from another lane
-                final fromLaneIndex = controller.lanes.indexWhere((l) => l.cards.contains(card));
-                if (fromLaneIndex != -1 && fromLaneIndex != laneIndex) {
-                  final fromLane = controller.lanes[fromLaneIndex];
-                  controller.onMoveCard(
-                    cardId: card.id,
-                    fromLaneId: fromLane.id,
-                    toLaneId: lane.id,
-                    toIndex: lane.cards.length,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: controller.lanes.asMap().entries.map((entry) {
+            final laneIndex = entry.key;
+            final lane = entry.value;
+
+            return SizedBox(
+              width: controller.lanes.length <= 3
+                  ? MediaQuery.of(context).size.width / controller.lanes.length
+                  : 350, // Fixed width สำหรับ lane มากกว่า 3
+              child: DragTarget<JobCard>(
+                onWillAccept: (data) => data != null,
+                onAccept: (card) {
+                  // Handle dropping card from another lane
+                  final fromLaneIndex = controller.lanes.indexWhere(
+                    (l) => l.cards.contains(card),
                   );
-                }
-              },
-              builder: (context, candidateData, rejectedData) {
-                final bool hasCandidate = candidateData.isNotEmpty;
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
-                  decoration: BoxDecoration(
-                    color: hasCandidate 
-                        ? AppTheme.primaryOrange.withOpacity(0.1) 
-                        : AppTheme.laneBackground,
-                    border: Border.all(
-                      color: hasCandidate 
-                          ? AppTheme.primaryOrange 
-                          : AppTheme.borderGrey, 
-                      width: hasCandidate ? 2 : 1,
+                  if (fromLaneIndex != -1 && fromLaneIndex != laneIndex) {
+                    final fromLane = controller.lanes[fromLaneIndex];
+                    controller.onMoveCard(
+                      cardId: card.id,
+                      fromLaneId: fromLane.id,
+                      toLaneId: lane.id,
+                      toIndex: lane.cards.length,
+                    );
+                  }
+                },
+                builder: (context, candidateData, rejectedData) {
+                  final bool hasCandidate = candidateData.isNotEmpty;
+                  return Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacing4,
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      // Lane Header
-                      LaneHeader(
-                        lane: lane,
-                        onMenuTap: () => _showLaneMenu(context, controller, lane),
+                    decoration: BoxDecoration(
+                      color: hasCandidate
+                          ? AppTheme.primaryOrange.withOpacity(0.1)
+                          : AppTheme.laneBackground,
+                      border: Border.all(
+                        color: hasCandidate
+                            ? AppTheme.primaryOrange
+                            : AppTheme.borderGrey,
+                        width: hasCandidate ? 2 : 1,
                       ),
-                                              // Cards Container with ScrollView - Lock vertical scroll here
+                    ),
+                    child: Column(
+                      children: [
+                        // Lane Header
+                        LaneHeader(
+                          lane: lane,
+                          onMenuTap: () =>
+                              _showLaneMenu(context, controller, lane),
+                        ),
+                        // Cards Container with ScrollView - Lock vertical scroll here
                         Expanded(
                           child: Stack(
                             children: [
                               NotificationListener<ScrollNotification>(
                                 onNotification: (scrollNotification) {
-                                  // Block vertical scroll during drag
-                                  if (scrollNotification is ScrollStartNotification) {
-                                    // Allow scroll only if not dragging
+                                  // Allow auto-scroll during drag
+                                  if (scrollNotification is ScrollUpdateNotification) {
+                                    // Auto-scroll will be handled by DragAndDropLists
                                     return false;
                                   }
                                   return false;
                                 },
-                                child: DragAndDropLists(
+                                                                child: DragAndDropLists(
                                   children: [
                                     DragAndDropList(
-                                      children: lane.cards.map((card) {
-                                  return DragAndDropItem(
-                                    child: LongPressDraggable<JobCard>(
-                                      data: card,
-                                      delay: const Duration(milliseconds: 500),
-                                      feedback: Material(
-                                        elevation: 8,
-                                        child: SizedBox(
-                                          width: controller.lanes.length <= 3 
-                                              ? (MediaQuery.of(context).size.width / controller.lanes.length) - 16
-                                              : 334, // 350 - 16 margin
+                                      children: lane.cards.map((card) => DragAndDropItem(
+                                        child: LongPressDraggable<JobCard>(
+                                          data: card,
+                                          delay: const Duration(milliseconds: 500),
+                                          feedback: Material(
+                                            elevation: 8,
+                                            child: SizedBox(
+                                              width: controller.lanes.length <= 3
+                                                  ? (MediaQuery.of(context).size.width / controller.lanes.length) - 16
+                                                  : 334,
+                                              child: JobCardTile(
+                                                card: card,
+                                                onTap: () => _showCardDetails(context, card),
+                                              ),
+                                            ),
+                                          ),
+                                          childWhenDragging: Opacity(
+                                            opacity: 0.3,
+                                            child: JobCardTile(
+                                              card: card,
+                                              onTap: () => _showCardDetails(context, card),
+                                            ),
+                                          ),
                                           child: JobCardTile(
                                             card: card,
                                             onTap: () => _showCardDetails(context, card),
                                           ),
                                         ),
-                                      ),
-                                      childWhenDragging: Opacity(
-                                        opacity: 0.3,
-                                        child: JobCardTile(
-                                          card: card,
-                                          onTap: () => _showCardDetails(context, card),
-                                        ),
-                                      ),
-                                      child: JobCardTile(
-                                        card: card,
-                                        onTap: () => _showCardDetails(context, card),
-                                      ),
+                                      )).toList(),
                                     ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                            onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
-                              // Handle reordering within the same lane
-                              if (oldListIndex == newListIndex) {
-                                controller.onReorderInLane(
-                                  laneId: lane.id,
-                                  oldIndex: oldItemIndex,
-                                  newIndex: newItemIndex,
-                                );
-                              }
-                            },
-                            onListReorder: (int oldListIndex, int newListIndex) {
-                              // Not used for single list
-                            },
-                            axis: Axis.vertical,
-                            listWidth: double.infinity,
-                            listPadding: EdgeInsets.zero,
-                                                              listDecoration: const BoxDecoration(),
+                                  ],
+                                  onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
+                                    // Handle reordering within the same lane
+                                    if (oldListIndex == newListIndex) {
+                                      controller.onReorderInLane(
+                                        laneId: lane.id,
+                                        oldIndex: oldItemIndex,
+                                        newIndex: newItemIndex,
+                                      );
+                                    }
+                                  },
+                                  onListReorder: (int oldListIndex, int newListIndex) {
+                                    // Not used for single list
+                                  },
+                                  axis: Axis.vertical,
+                                  listWidth: double.infinity,
+                                  listPadding: EdgeInsets.zero,
+                                  listDecoration: const BoxDecoration(),
                                 ),
                               ),
-                              // Drop zone indicator
-                              if (hasCandidate)
-                                Positioned.fill(
-                                  child: Container(
-                                    margin: const EdgeInsets.all(AppTheme.spacing8),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.primaryOrange.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: AppTheme.primaryOrange,
-                                        width: 2,
-                                        style: BorderStyle.solid,
-                                      ),
-                                    ),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.add_circle_outline,
-                                        size: 48,
-                                        color: AppTheme.primaryOrange,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+
                             ],
                           ),
                         ),
-                      // Lane Footer
-                      Container(
-                        padding: const EdgeInsets.all(AppTheme.spacing16),
-                        child: Center(
-                          child: TextButton.icon(
-                            onPressed: () =>
-                                _showAddCardDialog(context, controller, lane.id),
-                            icon: const Icon(Icons.add, size: AppTheme.iconSize16),
-                            label: const Text('เพิ่ม Job Card'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppTheme.figmaOrange,
-                              textStyle: const TextStyle(
-                                fontSize: AppTheme.fontSize10,
-                                fontFamily: AppFont.family,
-                                fontWeight: FontWeight.w400,
+                        // Lane Footer
+                        Container(
+                          padding: const EdgeInsets.all(AppTheme.spacing16),
+                          child: Center(
+                            child: TextButton.icon(
+                              onPressed: () => _showAddCardDialog(
+                                context,
+                                controller,
+                                lane.id,
+                              ),
+                              icon: const Icon(
+                                Icons.add,
+                                size: AppTheme.iconSize16,
+                              ),
+                              label: const Text('เพิ่ม Job Card'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.figmaOrange,
+                                textStyle: const TextStyle(
+                                  fontSize: AppTheme.fontSize10,
+                                  fontFamily: AppFont.family,
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          );
-        }).toList(),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
