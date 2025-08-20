@@ -673,73 +673,148 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-  Widget _buildBoard(BuildContext context, BoardController controller) {
-    return DragAndDropLists(
-      children: controller.lanes.map((lane) {
-        return DragAndDropList(
-          header: LaneHeader(
-            lane: lane,
-            onMenuTap: () => _showLaneMenu(context, controller, lane),
-          ),
-          children: lane.cards.map((card) {
-            return DragAndDropItem(
-              child: JobCardTile(
-                card: card,
-                onTap: () => _showCardDetails(context, card),
-              ),
-            );
-          }).toList(),
-          footer: Container(
-            padding: const EdgeInsets.all(AppTheme.spacing16),
-            child: Center(
-              child: TextButton.icon(
-                onPressed: () =>
-                    _showAddCardDialog(context, controller, lane.id),
-                icon: const Icon(Icons.add, size: AppTheme.iconSize16),
-                label: const Text('เพิ่ม Job Card'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.figmaOrange,
-                  textStyle: const TextStyle(
-                    fontSize: AppTheme.fontSize10,
-                    fontFamily: AppFont.family,
-                    fontWeight: FontWeight.w400,
+    Widget _buildBoard(BuildContext context, BoardController controller) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: controller.lanes.asMap().entries.map((entry) {
+          final laneIndex = entry.key;
+          final lane = entry.value;
+          
+          return SizedBox(
+            width: controller.lanes.length <= 3 
+                ? MediaQuery.of(context).size.width / controller.lanes.length
+                : 350, // Fixed width สำหรับ lane มากกว่า 3
+            child: DragTarget<JobCard>(
+              onWillAccept: (data) => data != null,
+              onAccept: (card) {
+                // Handle dropping card from another lane
+                final fromLaneIndex = controller.lanes.indexWhere((l) => l.cards.contains(card));
+                if (fromLaneIndex != -1 && fromLaneIndex != laneIndex) {
+                  final fromLane = controller.lanes[fromLaneIndex];
+                  controller.onMoveCard(
+                    cardId: card.id,
+                    fromLaneId: fromLane.id,
+                    toLaneId: lane.id,
+                    toIndex: lane.cards.length,
+                  );
+                }
+              },
+              builder: (context, candidateData, rejectedData) {
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.laneBackground,
+                    border: Border.all(
+                      color: candidateData.isNotEmpty 
+                          ? AppTheme.primaryOrange 
+                          : AppTheme.borderGrey, 
+                      width: candidateData.isNotEmpty ? 2 : 1,
+                    ),
                   ),
-                ),
-              ),
+                  child: Column(
+                    children: [
+                      // Lane Header
+                      LaneHeader(
+                        lane: lane,
+                        onMenuTap: () => _showLaneMenu(context, controller, lane),
+                      ),
+                      // Cards Container with ScrollView - Lock vertical scroll here
+                      Expanded(
+                        child: NotificationListener<ScrollNotification>(
+                          onNotification: (scrollNotification) {
+                            // Block vertical scroll during drag
+                            if (scrollNotification is ScrollStartNotification) {
+                              // Allow scroll only if not dragging
+                              return false;
+                            }
+                            return false;
+                          },
+                          child: DragAndDropLists(
+                            children: [
+                              DragAndDropList(
+                                children: lane.cards.map((card) {
+                                  return DragAndDropItem(
+                                    child: LongPressDraggable<JobCard>(
+                                      data: card,
+                                      delay: const Duration(milliseconds: 500),
+                                      feedback: Material(
+                                        elevation: 8,
+                                        child: SizedBox(
+                                          width: controller.lanes.length <= 3 
+                                              ? (MediaQuery.of(context).size.width / controller.lanes.length) - 16
+                                              : 334, // 350 - 16 margin
+                                          child: JobCardTile(
+                                            card: card,
+                                            onTap: () => _showCardDetails(context, card),
+                                          ),
+                                        ),
+                                      ),
+                                      childWhenDragging: Opacity(
+                                        opacity: 0.3,
+                                        child: JobCardTile(
+                                          card: card,
+                                          onTap: () => _showCardDetails(context, card),
+                                        ),
+                                      ),
+                                      child: JobCardTile(
+                                        card: card,
+                                        onTap: () => _showCardDetails(context, card),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                            onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
+                              // Handle reordering within the same lane
+                              if (oldListIndex == newListIndex) {
+                                controller.onReorderInLane(
+                                  laneId: lane.id,
+                                  oldIndex: oldItemIndex,
+                                  newIndex: newItemIndex,
+                                );
+                              }
+                            },
+                            onListReorder: (int oldListIndex, int newListIndex) {
+                              // Not used for single list
+                            },
+                            axis: Axis.vertical,
+                            listWidth: double.infinity,
+                            listPadding: EdgeInsets.zero,
+                            listDecoration: const BoxDecoration(),
+                          ),
+                        ),
+                      ),
+                      // Lane Footer
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.spacing16),
+                        child: Center(
+                          child: TextButton.icon(
+                            onPressed: () =>
+                                _showAddCardDialog(context, controller, lane.id),
+                            icon: const Icon(Icons.add, size: AppTheme.iconSize16),
+                            label: const Text('เพิ่ม Job Card'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppTheme.figmaOrange,
+                              textStyle: const TextStyle(
+                                fontSize: AppTheme.fontSize10,
+                                fontFamily: AppFont.family,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          ),
-        );
-      }).toList(),
-      onItemReorder:
-          (
-            int oldItemIndex,
-            int oldListIndex,
-            int newItemIndex,
-            int newListIndex,
-          ) {
-            final fromLane = controller.lanes[oldListIndex];
-            final toLane = controller.lanes[newListIndex];
-            final card = fromLane.cards[oldItemIndex];
-
-            controller.onMoveCard(
-              cardId: card.id,
-              fromLaneId: fromLane.id,
-              toLaneId: toLane.id,
-              toIndex: newItemIndex,
-            );
-          },
-      onListReorder: (int oldListIndex, int newListIndex) {
-        // Handle lane reordering if needed
-      },
-      axis: Axis.horizontal,
-      listWidth: 360,
-      listPadding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing8,
-      ), // เพิ่มระยะห่างระหว่าง lane
-      listDecoration: BoxDecoration(
-        color: AppTheme.laneBackground,
-        borderRadius: BorderRadius.zero, // เอา border radius ออกให้ชนขอบจอ
-        border: Border.all(color: AppTheme.borderGrey, width: 1),
+          );
+        }).toList(),
       ),
     );
   }
