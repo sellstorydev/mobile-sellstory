@@ -33,6 +33,8 @@ class AddCardUseCase {
       amount: amount,
       laneId: laneId,
       order: lane.cards.length, // Add to the end
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
 
     // Add card to lane

@@ -15,6 +15,7 @@ void main() {
       testLane = Lane(
         id: 'lane1',
         title: 'Test Lane',
+        boardId: 'board1',
         order: 0,
         cards: [
           JobCard(
@@ -25,6 +26,8 @@ void main() {
             amount: 1000.0,
             laneId: 'lane1',
             order: 0,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
           ),
           JobCard(
             id: 'JC002',
@@ -34,6 +37,8 @@ void main() {
             amount: 2000.0,
             laneId: 'lane1',
             order: 1,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
           ),
           JobCard(
             id: 'JC003',
@@ -43,6 +48,8 @@ void main() {
             amount: 3000.0,
             laneId: 'lane1',
             order: 2,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
           ),
         ],
       );

@@ -3,12 +3,14 @@ import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
+import '../../../core/utils/firebase_test.dart';
 import '../../../domain/entities/job_card.dart';
 import '../../../domain/entities/lane.dart';
 import '../controller/board_controller.dart';
 import '../presenter/board_presenter.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/lane_header.dart';
+import '../../debug/firebase_debug_page.dart';
 
 class BoardPage extends StatefulWidget {
   const BoardPage({super.key});
@@ -21,9 +23,7 @@ class _BoardPageState extends State<BoardPage> {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<BoardController>(
-      init: BoardController(
-        presenter: Get.find<BoardPresenter>(),
-      ),
+      init: BoardController(presenter: Get.find<BoardPresenter>()),
       builder: (controller) {
         return Scaffold(
           backgroundColor: Colors.white,
@@ -33,7 +33,9 @@ class _BoardPageState extends State<BoardPage> {
               Container(
                 width: double.infinity,
                 height: AppTheme.statusBarHeight,
-                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing28,
+                ),
                 decoration: const BoxDecoration(
                   gradient: AppTheme.statusBarGradient,
                 ),
@@ -51,12 +53,22 @@ class _BoardPageState extends State<BoardPage> {
                       ),
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(width: AppTheme.iconSize16, height: AppTheme.iconSize16),
+                        const SizedBox(
+                          width: AppTheme.iconSize16,
+                          height: AppTheme.iconSize16,
+                        ),
                         Container(width: AppTheme.spacing2),
-                        Container(width: AppTheme.iconSize14, height: AppTheme.iconSize14),
+                        const SizedBox(
+                          width: AppTheme.iconSize14,
+                          height: AppTheme.iconSize14,
+                        ),
                         Container(width: AppTheme.spacing2),
-                        Container(width: AppTheme.iconSize14, height: AppTheme.iconSize14),
+                        const SizedBox(
+                          width: AppTheme.iconSize14,
+                          height: AppTheme.iconSize14,
+                        ),
                         Container(width: AppTheme.spacing2),
                         const Text(
                           '100%',
@@ -68,7 +80,10 @@ class _BoardPageState extends State<BoardPage> {
                           ),
                         ),
                         Container(width: AppTheme.spacing2),
-                        Container(width: AppTheme.iconSize16, height: AppTheme.iconSize14),
+                        const SizedBox(
+                          width: AppTheme.iconSize16,
+                          height: AppTheme.iconSize14,
+                        ),
                       ],
                     ),
                   ],
@@ -78,14 +93,16 @@ class _BoardPageState extends State<BoardPage> {
               Container(
                 width: double.infinity,
                 height: AppTheme.headerHeight,
-                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing20),
-                decoration: BoxDecoration(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing20,
+                ),
+                decoration: const BoxDecoration(
                   color: AppTheme.backgroundWhite,
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.shadowColor,
                       blurRadius: AppTheme.spacing8,
-                      offset: const Offset(0, 1),
+                      offset: Offset(0, 1),
                       spreadRadius: 0,
                     ),
                   ],
@@ -101,7 +118,9 @@ class _BoardPageState extends State<BoardPage> {
                           height: AppTheme.iconSize20 * 2,
                           decoration: BoxDecoration(
                             gradient: AppTheme.logoGradient,
-                            borderRadius: BorderRadius.circular(AppTheme.radius8),
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radius8,
+                            ),
                           ),
                           child: const Center(
                             child: Text(
@@ -129,13 +148,16 @@ class _BoardPageState extends State<BoardPage> {
                               ),
                             ),
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
                                   width: AppTheme.iconSize16,
                                   height: AppTheme.iconSize16,
                                   decoration: BoxDecoration(
                                     color: AppTheme.figmaYellow,
-                                    borderRadius: BorderRadius.circular(AppTheme.radius4),
+                                    borderRadius: BorderRadius.circular(
+                                      AppTheme.radius4,
+                                    ),
                                   ),
                                 ),
                                 Container(width: AppTheme.spacing2),
@@ -147,6 +169,7 @@ class _BoardPageState extends State<BoardPage> {
                                     fontFamily: AppFont.family,
                                     fontWeight: FontWeight.w400,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 Container(width: AppTheme.spacing4),
                                 Transform.rotate(
@@ -164,23 +187,411 @@ class _BoardPageState extends State<BoardPage> {
                       ],
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
+                        const SizedBox(
                           width: AppTheme.iconSize24,
                           height: AppTheme.iconSize24,
-                          child: const Icon(Icons.calendar_today, size: AppTheme.iconSize20),
+                          child: Icon(
+                            Icons.calendar_today,
+                            size: AppTheme.iconSize20,
+                          ),
                         ),
                         Container(width: AppTheme.spacing16),
-                        Container(
+                        const SizedBox(
                           width: AppTheme.iconSize24,
                           height: AppTheme.iconSize24,
-                          child: const Icon(Icons.monitor, size: AppTheme.iconSize20),
+                          child: Icon(
+                            Icons.chat_bubble_outline,
+                            size: AppTheme.iconSize20,
+                          ),
                         ),
                         Container(width: AppTheme.spacing16),
-                        Container(
+                        const SizedBox(
                           width: AppTheme.iconSize24,
                           height: AppTheme.iconSize24,
-                          child: const Icon(Icons.notifications, size: AppTheme.iconSize20),
+                          child: Icon(
+                            Icons.notifications_none,
+                            size: AppTheme.iconSize20,
+                          ),
+                        ),
+                        Container(width: AppTheme.spacing16),
+                        // Firebase Test Button
+                        GestureDetector(
+                          onTap: () =>
+                              FirebaseTest.showConnectionStatus(context),
+                          child: Container(
+                            width: AppTheme.iconSize24,
+                            height: AppTheme.iconSize24,
+                            decoration: BoxDecoration(
+                              color: AppTheme.figmaOrange,
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radius8,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.cloud_done,
+                              color: Colors.white,
+                              size: AppTheme.iconSize20,
+                            ),
+                          ),
+                        ),
+                        Container(width: AppTheme.spacing8),
+                        // Firebase Debug Page Button
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const FirebaseDebugPage(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: AppTheme.iconSize24,
+                            height: AppTheme.iconSize24,
+                            decoration: BoxDecoration(
+                              color: AppTheme.figmaGreen,
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radius8,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.bug_report,
+                              color: Colors.white,
+                              size: AppTheme.iconSize20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Search and Filter Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing20,
+                  vertical: AppTheme.spacing16,
+                ),
+                decoration: const BoxDecoration(
+                  color: AppTheme.backgroundWhite,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.shadowColor,
+                      blurRadius: AppTheme.spacing4,
+                      offset: Offset(0, 2),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Search Bar with Filter
+                    Row(
+                      children: [
+                        // Search Bar
+                        Expanded(
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppTheme.backgroundGrey,
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radius12,
+                              ),
+                              border: Border.all(
+                                color: AppTheme.borderGrey,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: AppTheme.iconSize20,
+                                  height: AppTheme.iconSize20,
+                                  margin: const EdgeInsets.only(
+                                    left: AppTheme.spacing12,
+                                  ),
+                                  child: const Icon(
+                                    Icons.search,
+                                    color: AppTheme.textGrey,
+                                    size: AppTheme.iconSize20,
+                                  ),
+                                ),
+                                const Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: AppTheme.spacing12,
+                                    ),
+                                    child: TextField(
+                                      decoration: InputDecoration(
+                                        hintText: 'ค้นหา Job Card...',
+                                        hintStyle: TextStyle(
+                                          color: AppTheme.textGrey,
+                                          fontSize: AppTheme.fontSize14,
+                                          fontFamily: AppFont.family,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Container(width: AppTheme.spacing12),
+                        // Filter Button
+                        Container(
+                          height: 44,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacing16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.figmaOrange,
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radius12,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.figmaOrange.withValues(
+                                  alpha: 0.3,
+                                ),
+                                blurRadius: AppTheme.spacing8,
+                                offset: const Offset(0, 2),
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.filter_list,
+                                color: Colors.white,
+                                size: AppTheme.iconSize20,
+                              ),
+                              Container(width: AppTheme.spacing8),
+                              const Text(
+                                'ตัวกรอง',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: AppTheme.fontSize14,
+                                  fontFamily: AppFont.family,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Summary Cards Section - Single Row
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing20,
+                  vertical: AppTheme.spacing16,
+                ),
+                decoration: const BoxDecoration(
+                  color: AppTheme.backgroundWhite,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.shadowColor,
+                      blurRadius: AppTheme.spacing4,
+                      offset: Offset(0, 2),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Summary Cards - Single Row
+                    Row(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        // Sales Summary Card
+                        Expanded(
+                          child: Container(
+                            height: 80,
+                            padding: const EdgeInsets.all(AppTheme.spacing12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radius12,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: AppTheme.iconSize20,
+                                      height: AppTheme.iconSize20,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.figmaOrange,
+                                        borderRadius: BorderRadius.circular(
+                                          AppTheme.radius8,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.attach_money,
+                                        color: Colors.white,
+                                        size: AppTheme.iconSize14,
+                                      ),
+                                    ),
+                                    Container(width: AppTheme.spacing8),
+                                    const Expanded(
+                                      child: Text(
+                                        'สรุปยอดขาย',
+                                        style: TextStyle(
+                                          color: AppTheme.figmaOrange,
+                                          fontSize: AppTheme.fontSize12,
+                                          fontFamily: AppFont.family,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(height: AppTheme.spacing8),
+                                const Text(
+                                  '48 รายการ',
+                                  style: TextStyle(
+                                    color: AppTheme.textDark,
+                                    fontSize: AppTheme.fontSize14,
+                                    fontFamily: AppFont.family,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Container(width: AppTheme.spacing12),
+                        // Completed Jobs Card
+                        Expanded(
+                          child: Container(
+                            height: 80,
+                            padding: const EdgeInsets.all(AppTheme.spacing12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radius12,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'สำเร็จ',
+                                  style: TextStyle(
+                                    color: AppTheme.textDark,
+                                    fontSize: AppTheme.fontSize12,
+                                    fontFamily: AppFont.family,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Container(height: AppTheme.spacing8),
+                                const Text(
+                                  '฿9,605,000,000',
+                                  style: TextStyle(
+                                    color: AppTheme.figmaGreen,
+                                    fontSize: AppTheme.fontSize14,
+                                    fontFamily: AppFont.family,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Container(width: AppTheme.spacing12),
+                        // In Progress Card
+                        Expanded(
+                          child: Container(
+                            height: 80,
+                            padding: const EdgeInsets.all(AppTheme.spacing12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radius12,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'กำลังดำเนินการ',
+                                  style: TextStyle(
+                                    color: AppTheme.textDark,
+                                    fontSize: AppTheme.fontSize12,
+                                    fontFamily: AppFont.family,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Container(height: AppTheme.spacing8),
+                                const Text(
+                                  '฿4,318,000,000',
+                                  style: TextStyle(
+                                    color: AppTheme.figmaYellow,
+                                    fontSize: AppTheme.fontSize14,
+                                    fontFamily: AppFont.family,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Container(width: AppTheme.spacing12),
+                        // Unsuccessful Jobs Card
+                        Expanded(
+                          child: Container(
+                            height: 80,
+                            padding: const EdgeInsets.all(AppTheme.spacing12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radius12,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'ไม่สำเร็จ',
+                                  style: TextStyle(
+                                    color: AppTheme.textDark,
+                                    fontSize: AppTheme.fontSize12,
+                                    fontFamily: AppFont.family,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Container(height: AppTheme.spacing8),
+                                const Text(
+                                  '฿4,159,000,432',
+                                  style: TextStyle(
+                                    color: AppTheme.figmaRed,
+                                    fontSize: AppTheme.fontSize14,
+                                    fontFamily: AppFont.family,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -239,14 +650,14 @@ class _BoardPageState extends State<BoardPage> {
           floatingActionButton: Container(
             width: AppTheme.fabSize,
             height: AppTheme.fabSize,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: AppTheme.fabGradient,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.fabShadowColor,
                   blurRadius: AppTheme.spacing4,
-                  offset: const Offset(0.75, 3),
+                  offset: Offset(0.75, 3),
                   spreadRadius: 0,
                 ),
               ],
@@ -282,7 +693,8 @@ class _BoardPageState extends State<BoardPage> {
             padding: const EdgeInsets.all(AppTheme.spacing16),
             child: Center(
               child: TextButton.icon(
-                onPressed: () => _showAddCardDialog(context, controller, lane.id),
+                onPressed: () =>
+                    _showAddCardDialog(context, controller, lane.id),
                 icon: const Icon(Icons.add, size: AppTheme.iconSize16),
                 label: const Text('เพิ่ม Job Card'),
                 style: TextButton.styleFrom(
@@ -298,48 +710,56 @@ class _BoardPageState extends State<BoardPage> {
           ),
         );
       }).toList(),
-      onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
-        final fromLane = controller.lanes[oldListIndex];
-        final toLane = controller.lanes[newListIndex];
-        final card = fromLane.cards[oldItemIndex];
-        
-        controller.onMoveCard(
-          cardId: card.id,
-          fromLaneId: fromLane.id,
-          toLaneId: toLane.id,
-          toIndex: newItemIndex,
-        );
-      },
+      onItemReorder:
+          (
+            int oldItemIndex,
+            int oldListIndex,
+            int newItemIndex,
+            int newListIndex,
+          ) {
+            final fromLane = controller.lanes[oldListIndex];
+            final toLane = controller.lanes[newListIndex];
+            final card = fromLane.cards[oldItemIndex];
+
+            controller.onMoveCard(
+              cardId: card.id,
+              fromLaneId: fromLane.id,
+              toLaneId: toLane.id,
+              toIndex: newItemIndex,
+            );
+          },
       onListReorder: (int oldListIndex, int newListIndex) {
         // Handle lane reordering if needed
       },
       axis: Axis.horizontal,
       listWidth: 360,
-      listPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing8), // เพิ่มระยะห่างระหว่าง lane
+      listPadding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing8,
+      ), // เพิ่มระยะห่างระหว่าง lane
       listDecoration: BoxDecoration(
         color: AppTheme.laneBackground,
         borderRadius: BorderRadius.zero, // เอา border radius ออกให้ชนขอบจอ
-        border: Border.all(
-          color: AppTheme.borderGrey,
-          width: 1,
-        ),
+        border: Border.all(color: AppTheme.borderGrey, width: 1),
       ),
     );
   }
 
-
-
-  void _showAddCardDialog(BuildContext context, BoardController controller, [String? laneId]) {
+  void _showAddCardDialog(
+    BuildContext context,
+    BoardController controller, [
+    String? laneId,
+  ]) {
     final titleController = TextEditingController();
     final assigneeController = TextEditingController();
     final amountController = TextEditingController();
     String selectedLaneId = laneId ?? controller.lanes.first.id;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add New Card'),
         content: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -370,9 +790,7 @@ class _BoardPageState extends State<BoardPage> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: selectedLaneId,
-                decoration: const InputDecoration(
-                  labelText: 'Lane',
-                ),
+                decoration: const InputDecoration(labelText: 'Lane'),
                 items: controller.lanes.map((lane) {
                   return DropdownMenuItem(
                     value: lane.id,
@@ -416,7 +834,11 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-  void _showLaneMenu(BuildContext context, BoardController controller, Lane lane) {
+  void _showLaneMenu(
+    BuildContext context,
+    BoardController controller,
+    Lane lane,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -433,7 +855,10 @@ class _BoardPageState extends State<BoardPage> {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: AppTheme.errorRed),
-              title: const Text('Delete Lane', style: TextStyle(color: AppTheme.errorRed)),
+              title: const Text(
+                'Delete Lane',
+                style: TextStyle(color: AppTheme.errorRed),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
               },

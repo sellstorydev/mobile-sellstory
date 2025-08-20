@@ -12,14 +12,7 @@ class BrandedLogo extends StatelessWidget {
         Container(
           width: 80,
           height: 80,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(context).primaryColor,
-              width: 2,
-            ),
-          ),
+          decoration: const BoxDecoration(color: Colors.white),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Image.asset(

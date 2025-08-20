@@ -31,25 +31,25 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // SellStory Logo
-            Container(
+            SizedBox(
               width: 80,
               height: 80,
-              child: const Image(
+              child: Image(
                 image: AssetImage('assets/sellstory_logo.png'),
                 width: 80,
                 height: 80,
                 fit: BoxFit.contain,
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
+            SizedBox(height: 16),
+            Text(
               'SellStory',
               style: TextStyle(
                 fontSize: 24,

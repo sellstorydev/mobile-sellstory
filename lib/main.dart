@@ -7,24 +7,51 @@ import 'firebase_options.dart';
 import 'app/app.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/i18n/locale_controller.dart';
+import 'core/services/logger_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize Logger Service first
+  Get.put(LoggerService(), permanent: true);
+  LoggerService.to.info('Application starting...');
+  
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    LoggerService.to.firebase('Firebase initialized successfully');
+  } catch (e) {
+    LoggerService.to.failure('Failed to initialize Firebase', e);
+  }
   
   // Initialize GetStorage
-  await GetStorage.init();
+  try {
+    await GetStorage.init();
+    LoggerService.to.cache('GetStorage initialized successfully');
+  } catch (e) {
+    LoggerService.to.failure('Failed to initialize GetStorage', e);
+  }
   
   // Setup dependency injection
-  SellStoryApp.setupDependencies();
+  try {
+    SellStoryApp.setupDependencies();
+    LoggerService.to.di('Dependency injection setup completed');
+  } catch (e) {
+    LoggerService.to.failure('Failed to setup dependency injection', e);
+  }
   
   // Register theme and locale controllers
-  Get.put(ThemeController(), permanent: true);
-  Get.put(LocaleController(), permanent: true);
+  try {
+    Get.put(ThemeController(), permanent: true);
+    Get.put(LocaleController(), permanent: true);
+    LoggerService.to.config('Theme and locale controllers registered');
+  } catch (e) {
+    LoggerService.to.failure('Failed to register controllers', e);
+  }
+  
+  LoggerService.to.success('Application initialization completed');
   
   runApp(
     DevicePreview(

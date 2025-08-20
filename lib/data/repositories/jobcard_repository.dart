@@ -22,6 +22,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
     final newLane = Lane(
       id: 'new',
       title: 'New',
+      boardId: 'board1',
       order: 0,
       cards: [
         JobCard(
@@ -33,6 +34,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 15000.0,
           laneId: 'new',
           order: 0,
+          createdAt: now,
+          updatedAt: now,
         ),
         JobCard(
           id: 'JC002',
@@ -43,6 +46,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 25000.0,
           laneId: 'new',
           order: 1,
+          createdAt: now,
+          updatedAt: now,
         ),
         JobCard(
           id: 'JC003',
@@ -53,6 +58,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 8000.0,
           laneId: 'new',
           order: 2,
+          createdAt: now,
+          updatedAt: now,
         ),
       ],
     );
@@ -60,6 +67,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
     final doingLane = Lane(
       id: 'doing',
       title: 'Doing',
+      boardId: 'board1',
       order: 1,
       cards: [
         JobCard(
@@ -71,6 +79,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 12000.0,
           laneId: 'doing',
           order: 0,
+          createdAt: now,
+          updatedAt: now,
         ),
         JobCard(
           id: 'JC005',
@@ -81,6 +91,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 5000.0,
           laneId: 'doing',
           order: 1,
+          createdAt: now,
+          updatedAt: now,
         ),
       ],
     );
@@ -88,6 +100,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
     final reviewLane = Lane(
       id: 'review',
       title: 'Review',
+      boardId: 'board1',
       order: 2,
       cards: [
         JobCard(
@@ -99,6 +112,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 18000.0,
           laneId: 'review',
           order: 0,
+          createdAt: now,
+          updatedAt: now,
         ),
         JobCard(
           id: 'JC007',
@@ -109,6 +124,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 22000.0,
           laneId: 'review',
           order: 1,
+          createdAt: now,
+          updatedAt: now,
         ),
         JobCard(
           id: 'JC008',
@@ -119,6 +136,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 6000.0,
           laneId: 'review',
           order: 2,
+          createdAt: now,
+          updatedAt: now,
         ),
       ],
     );
@@ -126,6 +145,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
     final doneLane = Lane(
       id: 'done',
       title: 'Done',
+      boardId: 'board1',
       order: 3,
       cards: [
         JobCard(
@@ -137,6 +157,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 3000.0,
           laneId: 'done',
           order: 0,
+          createdAt: now,
+          updatedAt: now,
         ),
         JobCard(
           id: 'JC010',
@@ -147,6 +169,8 @@ class InMemoryJobCardRepository implements JobCardRepository {
           amount: 4000.0,
           laneId: 'done',
           order: 1,
+          createdAt: now,
+          updatedAt: now,
         ),
       ],
     );

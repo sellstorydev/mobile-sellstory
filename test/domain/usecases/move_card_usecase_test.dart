@@ -20,18 +20,22 @@ void main() {
         amount: 1000.0,
         laneId: 'lane1',
         order: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
       lanes = [
         Lane(
           id: 'lane1',
           title: 'Lane 1',
+          boardId: 'board1',
           order: 0,
           cards: [testCard],
         ),
         Lane(
           id: 'lane2',
           title: 'Lane 2',
+          boardId: 'board1',
           order: 1,
           cards: [],
         ),
@@ -64,6 +68,8 @@ void main() {
         amount: 2000.0,
         laneId: 'lane2',
         order: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
       lanes[1] = lanes[1].copyWith(cards: [existingCard]);
 

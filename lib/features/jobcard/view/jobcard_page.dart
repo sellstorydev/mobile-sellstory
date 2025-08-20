@@ -23,14 +23,14 @@ class JobCardPage extends StatelessWidget {
               right: 0,
               child: _buildBottomNavigationBar(),
             ),
-            
+
             // Floating Action Button
             Positioned(
               right: 16,
               bottom: 96,
               child: _buildFloatingActionButton(),
             ),
-            
+
             // Main Content with Status Bar and Header
             Positioned(
               left: 0,
@@ -96,11 +96,11 @@ class JobCardPage extends StatelessWidget {
           ),
           Row(
             children: [
-              Container(width: 18, height: 18),
+              const SizedBox(width: 18, height: 18),
               Container(width: 4),
-              Container(width: 16, height: 17),
+              const SizedBox(width: 16, height: 17),
               Container(width: 4),
-              Container(width: 16, height: 17),
+              const SizedBox(width: 16, height: 17),
               Container(width: 4),
               const Text(
                 '100%',
@@ -112,7 +112,7 @@ class JobCardPage extends StatelessWidget {
                 ),
               ),
               Container(width: 4),
-              Container(width: 18, height: 17),
+              const SizedBox(width: 18, height: 17),
             ],
           ),
         ],
@@ -188,14 +188,14 @@ class JobCardPage extends StatelessWidget {
             children: [
               // Calendar/Filter Icon
               GestureDetector(
-                onTap: () {
-                  // TODO: Add filter functionality
-                },
+                onTap: () {},
                 child: Container(
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                    ),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
@@ -208,14 +208,14 @@ class JobCardPage extends StatelessWidget {
               Container(width: 24),
               // Search Icon
               GestureDetector(
-                onTap: () {
-                  // TODO: Add search functionality
-                },
+                onTap: () {},
                 child: Container(
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                    ),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
@@ -228,14 +228,14 @@ class JobCardPage extends StatelessWidget {
               Container(width: 24),
               // More Options Icon
               GestureDetector(
-                onTap: () {
-                  // TODO: Add menu functionality
-                },
+                onTap: () {},
                 child: Container(
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                    ),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
@@ -270,7 +270,7 @@ class JobCardPage extends StatelessWidget {
         children: [
           // Job Card - Active Tab
           Expanded(
-            child: Container(
+            child: SizedBox(
               height: 67,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -316,22 +316,18 @@ class JobCardPage extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // รายการคำสั่งซื้อ
           Expanded(
             child: Container(
               height: 67,
               padding: const EdgeInsets.only(top: 2, bottom: 8),
-              child: Column(
+              child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.list_alt,
-                    size: 28,
-                    color: Color(0xFFB3B3B3),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  Icon(Icons.list_alt, size: 28, color: Color(0xFFB3B3B3)),
+                  SizedBox(height: 4),
+                  Text(
                     'รายการคำสั่งซื้อ',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -345,22 +341,18 @@ class JobCardPage extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // ลูกค้า
           Expanded(
             child: Container(
               height: 67,
               padding: const EdgeInsets.only(top: 2, bottom: 8),
-              child: Column(
+              child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.people,
-                    size: 28,
-                    color: Color(0xFFB3B3B3),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  Icon(Icons.people, size: 28, color: Color(0xFFB3B3B3)),
+                  SizedBox(height: 4),
+                  Text(
                     'ลูกค้า',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -374,22 +366,18 @@ class JobCardPage extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // สินค้า
           Expanded(
             child: Container(
               height: 67,
               padding: const EdgeInsets.only(top: 2, bottom: 8),
-              child: Column(
+              child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.inventory_2,
-                    size: 28,
-                    color: Color(0xFFB3B3B3),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  Icon(Icons.inventory_2, size: 28, color: Color(0xFFB3B3B3)),
+                  SizedBox(height: 4),
+                  Text(
                     'สินค้า',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -403,22 +391,18 @@ class JobCardPage extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // อื่น ๆ
           Expanded(
             child: Container(
               height: 67,
               padding: const EdgeInsets.only(top: 2, bottom: 8),
-              child: Column(
+              child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.more_horiz,
-                    size: 28,
-                    color: Color(0xFFB3B3B3),
-                  ),
-                  const SizedBox(width: 4),
-                  const Text(
+                  Icon(Icons.more_horiz, size: 28, color: Color(0xFFB3B3B3)),
+                  SizedBox(width: 4),
+                  Text(
                     'อื่น ๆ',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -439,9 +423,7 @@ class JobCardPage extends StatelessWidget {
 
   Widget _buildFloatingActionButton() {
     return GestureDetector(
-      onTap: () {
-        // TODO: Add functionality for FAB
-      },
+      onTap: () {},
       child: Container(
         width: 48,
         height: 48,
@@ -458,11 +440,7 @@ class JobCardPage extends StatelessWidget {
           ),
           shape: BoxShape.circle,
         ),
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 24,
-        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 24),
       ),
     );
   }
