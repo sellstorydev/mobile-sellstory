@@ -13,17 +13,17 @@ class LoggerService extends GetxService {
   }
   
   void _initializeLogger() {
-    _logger = Logger(
-      printer: PrettyPrinter(
-        methodCount: 2,
-        errorMethodCount: 8,
-        lineLength: 120,
-        colors: true,
-        printEmojis: true,
-        printTime: true,
-      ),
-      level: Level.debug,
-    );
+          _logger = Logger(
+        printer: PrettyPrinter(
+          methodCount: 2,
+          errorMethodCount: 8,
+          lineLength: 120,
+          colors: true,
+          printEmojis: true,
+          dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+        ),
+        level: Level.debug,
+      );
   }
   
   // Debug level logging
@@ -51,9 +51,9 @@ class LoggerService extends GetxService {
     _logger.f(message, error: error, stackTrace: stackTrace);
   }
   
-  // Verbose level logging
-  void verbose(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.v(message, error: error, stackTrace: stackTrace);
+  // Trace level logging (replaces verbose)
+  void trace(String message, [dynamic error, StackTrace? stackTrace]) {
+    _logger.t(message, error: error, stackTrace: stackTrace);
   }
   
   // Success logging (custom)
@@ -270,7 +270,7 @@ class LoggerService extends GetxService {
         lineLength: 120,
         colors: true,
         printEmojis: true,
-        printTime: true,
+        dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
       ),
       level: level,
     );
@@ -281,7 +281,7 @@ class LoggerService extends GetxService {
     if (enabled) {
       setLevel(Level.debug);
     } else {
-      setLevel(Level.nothing);
+      setLevel(Level.off);
     }
   }
 }

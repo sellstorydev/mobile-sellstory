@@ -9,7 +9,6 @@ class FirebaseTest {
       final firestore = FirebaseFirestore.instance;
       
       // ทดสอบการอ่านข้อมูลจาก collection
-      final testDoc = await firestore.collection('test').doc('connection_test').get();
       
       // ทดสอบการเขียนข้อมูล
       await firestore.collection('test').doc('connection_test').set({

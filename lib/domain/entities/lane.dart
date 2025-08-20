@@ -1,5 +1,4 @@
 import 'job_card.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Lane {
   final String id;

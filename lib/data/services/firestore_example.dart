@@ -3,6 +3,7 @@ import 'firestore_service.dart';
 import '../../domain/entities/board.dart';
 import '../../domain/entities/lane.dart';
 import '../../domain/entities/job_card.dart';
+import '../../core/services/logger_service.dart';
 
 class FirestoreExample {
   final FirestoreService _firestoreService = Get.find<FirestoreService>();
@@ -23,7 +24,7 @@ class FirestoreExample {
       board.toMap(),
     );
     
-    print('Created board with ID: ${boardId.id}');
+    LoggerService.to.info('Created board with ID: ${boardId.id}');
     return boardId.id;
   }
   
@@ -47,7 +48,7 @@ class FirestoreExample {
       );
       
       laneIds.add(laneId.id);
-      print('Created lane "${laneTitles[i]}" with ID: ${laneId.id}');
+      LoggerService.to.info('Created lane "${laneTitles[i]}" with ID: ${laneId.id}');
     }
     
     return laneIds;
@@ -98,7 +99,7 @@ class FirestoreExample {
       );
       
       cardIds.add(cardId.id);
-      print('Created card "${cards[i]['title']}" with ID: ${cardId.id}');
+      LoggerService.to.info('Created card "${cards[i]['title']}" with ID: ${cardId.id}');
     }
     
     return cardIds;
@@ -112,13 +113,13 @@ class FirestoreExample {
         queryBuilder: (query) => query.where('userId', isEqualTo: userId),
       );
       
-      print('Found ${snapshot.docs.length} boards for user $userId:');
+      LoggerService.to.info('Found ${snapshot.docs.length} boards for user $userId:');
       for (final doc in snapshot.docs) {
         final board = Board.fromMap(doc.data(), doc.id);
-        print('- ${board.title} (ID: ${board.id})');
+        LoggerService.to.info('- ${board.title} (ID: ${board.id})');
       }
     } catch (e) {
-      print('Error reading boards: $e');
+      LoggerService.to.error('Error reading boards: $e');
     }
   }
   
@@ -129,14 +130,14 @@ class FirestoreExample {
       queryBuilder: (query) => query.where('userId', isEqualTo: userId),
     ).listen(
       (snapshot) {
-        print('Real-time update: ${snapshot.docs.length} boards');
+        LoggerService.to.info('Real-time update: ${snapshot.docs.length} boards');
         for (final doc in snapshot.docs) {
           final board = Board.fromMap(doc.data(), doc.id);
-          print('- ${board.title} (ID: ${board.id})');
+          LoggerService.to.info('- ${board.title} (ID: ${board.id})');
         }
       },
       onError: (error) {
-        print('Error in stream: $error');
+        LoggerService.to.error('Error in stream: $error');
       },
     );
   }
@@ -149,9 +150,9 @@ class FirestoreExample {
         'title': 'Updated Card Title',
         'updatedAt': DateTime.now(),
       });
-      print('Card updated successfully');
+      LoggerService.to.success('Card updated successfully');
     } catch (e) {
-      print('Error updating card: $e');
+      LoggerService.to.error('Error updating card: $e');
     }
   }
   
@@ -160,15 +161,15 @@ class FirestoreExample {
     try {
       final cardRef = _firestoreService.cardsCollection.doc(cardId);
       await _firestoreService.deleteDocument(cardRef);
-      print('Card deleted successfully');
+      LoggerService.to.success('Card deleted successfully');
     } catch (e) {
-      print('Error deleting card: $e');
+      LoggerService.to.error('Error deleting card: $e');
     }
   }
   
   // Example: Complete workflow
   Future<void> runCompleteExample(String userId) async {
-    print('=== Starting Firestore Example ===');
+    LoggerService.to.info('=== Starting Firestore Example ===');
     
     // Create a board
     final boardId = await createExampleBoard(userId);
@@ -187,6 +188,6 @@ class FirestoreExample {
     // Start real-time stream
     streamUserBoards(userId);
     
-    print('=== Firestore Example Complete ===');
+    LoggerService.to.info('=== Firestore Example Complete ===');
   }
 }
