@@ -675,13 +675,41 @@ class _BoardPageState extends State<BoardPage> {
 
   Widget _buildBoard(BuildContext context, BoardController controller) {
     return DragAndDropLists(
-      children: _buildLanes(controller),
-      onItemReorder: (
-        int oldItemIndex,
-        int oldListIndex,
-        int newItemIndex,
-        int newListIndex,
-      ) {
+      children: controller.lanes.map((lane) {
+        return DragAndDropList(
+          header: LaneHeader(
+            lane: lane,
+            onMenuTap: () => _showLaneMenu(context, controller, lane),
+          ),
+          footer: Container(
+            padding: const EdgeInsets.all(AppTheme.spacing16),
+            child: Center(
+              child: TextButton.icon(
+                onPressed: () => _showAddCardDialog(context, controller, lane.id),
+                icon: const Icon(Icons.add, size: AppTheme.iconSize16),
+                label: const Text('เพิ่ม Job Card'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.figmaOrange,
+                  textStyle: const TextStyle(
+                    fontSize: AppTheme.fontSize10,
+                    fontFamily: AppFont.family,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          children: lane.cards.map((card) {
+            return DragAndDropItem(
+              child: JobCardTile(
+                card: card,
+                onTap: () => _showCardDetails(context, card),
+              ),
+            );
+          }).toList(),
+        );
+      }).toList(),
+      onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
         final fromLane = controller.lanes[oldListIndex];
         final toLane = controller.lanes[newListIndex];
         final card = fromLane.cards[oldItemIndex];
@@ -710,70 +738,15 @@ class _BoardPageState extends State<BoardPage> {
       listWidth: controller.lanes.length <= 3
           ? MediaQuery.of(context).size.width / controller.lanes.length
           : 350,
-      listDraggingWidth: 250,
       listPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
       listDecoration: BoxDecoration(
         color: AppTheme.laneBackground,
-        borderRadius: BorderRadius.circular(AppTheme.radius8),
-        border: Border.all(
-          color: AppTheme.borderGrey,
-          width: 1,
-        ),
-      ),
-      itemDragHandle: const DragHandle(
-        verticalAlignment: DragHandleVerticalAlignment.top,
-        child: Icon(Icons.drag_indicator, color: Colors.grey),
+        border: Border.all(color: AppTheme.borderGrey, width: 1),
       ),
     );
   }
 
-  List<DragAndDropList> _buildLanes(BoardController controller) {
-    return controller.lanes.map((lane) {
-      return DragAndDropList(
-        header: LaneHeader(
-          lane: lane,
-          onMenuTap: () => _showLaneMenu(context, controller, lane),
-        ),
-        footer: Container(
-          padding: const EdgeInsets.all(AppTheme.spacing16),
-          child: Center(
-            child: TextButton.icon(
-              onPressed: () => _showAddCardDialog(
-                context,
-                controller,
-                lane.id,
-              ),
-              icon: const Icon(
-                Icons.add,
-                size: AppTheme.iconSize16,
-              ),
-              label: const Text('เพิ่ม Job Card'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.figmaOrange,
-                textStyle: const TextStyle(
-                  fontSize: AppTheme.fontSize10,
-                  fontFamily: AppFont.family,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-          ),
-        ),
-        children: _buildCards(controller, lane),
-      );
-    }).toList();
-  }
 
-  List<DragAndDropItem> _buildCards(BoardController controller, Lane lane) {
-    return lane.cards.map((card) {
-      return DragAndDropItem(
-        child: JobCardTile(
-          card: card,
-          onTap: () => _showCardDetails(context, card),
-        ),
-      );
-    }).toList();
-  }
 
   void _showAddCardDialog(
     BuildContext context,
