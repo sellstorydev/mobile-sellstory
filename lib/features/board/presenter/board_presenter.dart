@@ -1,5 +1,7 @@
 import '../../../core/services/logger_service.dart';
-import '../../../data/repositories/jobcard_repository.dart';
+import '../../../data/repositories/firestore_repository.dart';
+import '../../../domain/entities/lane.dart';
+import '../../../domain/entities/job_card.dart';
 import '../../../domain/usecases/add_card_usecase.dart';
 import '../../../domain/usecases/add_lane_usecase.dart';
 import '../../../domain/usecases/move_card_usecase.dart';
@@ -8,7 +10,7 @@ import '../contract/board_view.dart';
 import '../state/board_state.dart';
 
 class BoardPresenter {
-  final JobCardRepository _repository;
+  final FirestoreRepository _repository;
   final MoveCardUseCase _moveCardUseCase;
   final ReorderCardInLaneUseCase _reorderCardInLaneUseCase;
   final AddCardUseCase _addCardUseCase;
@@ -17,17 +19,11 @@ class BoardPresenter {
   BoardView? _view;
   BoardState _currentState = const BoardState(lanes: []);
 
-  BoardPresenter({
-    required JobCardRepository repository,
-    required MoveCardUseCase moveCardUseCase,
-    required ReorderCardInLaneUseCase reorderCardInLaneUseCase,
-    required AddCardUseCase addCardUseCase,
-    required AddLaneUseCase addLaneUseCase,
-  }) : _repository = repository,
-       _moveCardUseCase = moveCardUseCase,
-       _reorderCardInLaneUseCase = reorderCardInLaneUseCase,
-       _addCardUseCase = addCardUseCase,
-       _addLaneUseCase = addLaneUseCase;
+  BoardPresenter(this._view, this._repository)
+      : _moveCardUseCase = MoveCardUseCase(),
+        _reorderCardInLaneUseCase = ReorderCardInLaneUseCase(),
+        _addCardUseCase = AddCardUseCase(),
+        _addLaneUseCase = AddLaneUseCase();
 
   void attachView(BoardView view) {
     LoggerService.to.lifecycle('BoardPresenter', 'View attached');
@@ -39,20 +35,22 @@ class BoardPresenter {
     _view = null;
   }
 
-  Future<void> load() async {
-    LoggerService.to.methodEntry('BoardPresenter.load');
+  Future<void> load(String workspaceId) async {
+    LoggerService.to.methodEntry('BoardPresenter.load', {'workspaceId': workspaceId});
     _view?.showLoading(true);
     
     try {
-      final lanes = await _repository.getLanes();
-      LoggerService.to.business('Loaded ${lanes.length} lanes from repository');
-      
-      _currentState = _currentState.copyWith(
-        lanes: lanes,
-        isLoading: false,
-        error: null,
-      );
-      _view?.render(_currentState);
+      // Listen to lanes stream
+      _repository.getLanesStream(workspaceId).listen((lanes) {
+        LoggerService.to.business('Loaded ${lanes.length} lanes from repository');
+        
+        _currentState = _currentState.copyWith(
+          lanes: lanes,
+          isLoading: false,
+          error: null,
+        );
+        _view?.render(_currentState);
+      });
     } catch (e) {
       LoggerService.to.error('Failed to load lanes', e);
       _currentState = _currentState.copyWith(
@@ -66,12 +64,14 @@ class BoardPresenter {
   }
 
   Future<void> onMoveCard({
+    required String workspaceId,
     required String cardId,
     required String fromLaneId,
     required String toLaneId,
     required int toIndex,
   }) async {
     LoggerService.to.methodEntry('BoardPresenter.onMoveCard', {
+      'workspaceId': workspaceId,
       'cardId': cardId,
       'fromLaneId': fromLaneId,
       'toLaneId': toLaneId,
@@ -94,19 +94,20 @@ class BoardPresenter {
       _view?.render(_currentState);
       
       // Persist to repository
-      await _repository.updateLanes(updatedLanes);
-      LoggerService.to.database('Lanes updated in repository');
+      await _repository.moveCard(workspaceId, cardId, fromLaneId, toLaneId, toIndex);
+      LoggerService.to.database('Card moved in repository');
     } catch (e) {
       LoggerService.to.error('Failed to move card', e);
       _view?.showError('Failed to move card: ${e.toString()}');
       // Reload to revert optimistic update
-      await load();
+      await load(workspaceId);
     }
     
     LoggerService.to.methodExit('BoardPresenter.onMoveCard');
   }
 
   Future<void> onReorderInLane({
+    required String workspaceId,
     required String laneId,
     required int oldIndex,
     required int newIndex,
@@ -124,36 +125,35 @@ class BoardPresenter {
       _view?.render(_currentState);
       
       // Persist to repository
-      await _repository.updateLanes(updatedLanes);
+      await _repository.reorderCardsInLane(workspaceId, laneId, updatedLanes.firstWhere((l) => l.id == laneId).cards.map((c) => c.id).toList());
     } catch (e) {
       _view?.showError('Failed to reorder card: ${e.toString()}');
       // Reload to revert optimistic update
-      await load();
+      await load(workspaceId);
     }
   }
 
-  Future<void> onAddLane(String title, String boardId) async {
+  Future<void> onAddLane(String workspaceId, String title) async {
     try {
-      final updatedLanes = _addLaneUseCase.execute(
-        lanes: _currentState.lanes,
+      final newLane = Lane(
+        id: '',
         title: title,
-        boardId: boardId,
+        boardId: workspaceId,
+        order: _currentState.lanes.length,
+        cards: [],
       );
       
-      // Optimistic update
-      _currentState = _currentState.copyWith(lanes: updatedLanes);
-      _view?.render(_currentState);
+      // Create lane in repository
+      final laneId = await _repository.createLane(workspaceId, newLane);
       
-      // Persist to repository
-      await _repository.updateLanes(updatedLanes);
+      LoggerService.to.business('Lane created successfully');
     } catch (e) {
       _view?.showError('Failed to add lane: ${e.toString()}');
-      // Reload to revert optimistic update
-      await load();
     }
   }
 
   Future<void> onAddCard({
+    required String workspaceId,
     required String laneId,
     required String title,
     required String assignee,
@@ -162,26 +162,25 @@ class BoardPresenter {
     DateTime? dueDate,
   }) async {
     try {
-      final updatedLanes = _addCardUseCase.execute(
-        lanes: _currentState.lanes,
-        laneId: laneId,
+      final newCard = JobCard(
+        id: '',
         title: title,
         assignee: assignee,
+        dueDate: dueDate,
         badges: badges,
         amount: amount,
-        dueDate: dueDate,
+        laneId: laneId,
+        order: _currentState.lanes.firstWhere((l) => l.id == laneId).cards.length,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
       
-      // Optimistic update
-      _currentState = _currentState.copyWith(lanes: updatedLanes);
-      _view?.render(_currentState);
+      // Create card in repository
+      final cardId = await _repository.createCard(workspaceId, newCard);
       
-      // Persist to repository
-      await _repository.updateLanes(updatedLanes);
+      LoggerService.to.business('Card created successfully');
     } catch (e) {
       _view?.showError('Failed to add card: ${e.toString()}');
-      // Reload to revert optimistic update
-      await load();
     }
   }
 }

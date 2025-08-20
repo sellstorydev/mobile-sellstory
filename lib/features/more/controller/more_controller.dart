@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/services/firebase_auth_service.dart';
+import '../../../core/di/locator.dart';
 
 class MoreController extends GetxController {
   final FirebaseAuthService _authService = Get.find<FirebaseAuthService>();
@@ -26,6 +27,10 @@ class MoreController extends GetxController {
     try {
       isLoading.value = true;
       await _authService.signOut();
+      
+      // Reset dependencies to prevent issues after logout
+      Locator.resetDependencies();
+      
       Get.offAllNamed('/login');
     } catch (e) {
       Get.snackbar(

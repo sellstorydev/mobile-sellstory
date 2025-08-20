@@ -1,769 +1,340 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/constants/app_font.dart';
-import '../../../core/utils/firebase_test.dart';
-import '../../../domain/entities/job_card.dart';
-import '../../../domain/entities/lane.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../controller/board_controller.dart';
-import '../presenter/board_presenter.dart';
 import '../widgets/job_card_tile.dart';
-import '../widgets/lane_header.dart';
-import '../../debug/firebase_debug_page.dart';
+import '../widgets/board_auto_scroll_wrapper.dart';
+import '../../../../core/services/logger_service.dart';
+import '../../../domain/entities/lane.dart';
 
 class BoardPage extends StatefulWidget {
-  const BoardPage({super.key});
+  const BoardPage({Key? key}) : super(key: key);
 
   @override
   State<BoardPage> createState() => _BoardPageState();
 }
 
 class _BoardPageState extends State<BoardPage> {
+  final BoardController _controller = Get.find<BoardController>();
+  final LoggerService _logger = Get.find<LoggerService>();
+
+  @override
+  void initState() {
+    super.initState();
+    _logger.methodEntry('BoardPage.initState');
+    
+    // Initialize with current user (you can get this from your auth service)
+    _initializeWithCurrentUser();
+    
+    _logger.methodExit('BoardPage.initState');
+  }
+
+  Future<void> _initializeWithCurrentUser() async {
+    try {
+      // Get current user ID from Firebase Auth
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        _logger.error('No authenticated user found');
+        return;
+      }
+      
+      final String currentUserId = currentUser.uid;
+      _logger.devTools('Initializing board with user', {
+        'userId': currentUserId,
+        'email': currentUser.email,
+        'displayName': currentUser.displayName,
+      });
+      
+      await _controller.initializeWithUser(currentUserId);
+      
+      // Load user's assigned cards
+      await _controller.loadUserAssignedCards();
+    } catch (e) {
+      _logger.error('Failed to initialize board page', e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<BoardController>(
-      init: BoardController(presenter: Get.find<BoardPresenter>()),
-      builder: (controller) {
-        return Scaffold(
-          backgroundColor: Colors.white,
-          body: Column(
-            children: [
-              // Status Bar
-              Container(
-                width: double.infinity,
-                height: AppTheme.statusBarHeight,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing28,
+    return Scaffold(
+      appBar: AppBar(
+        title: Obx(() => Text(_controller.currentWorkspaceName.value.isNotEmpty 
+          ? _controller.currentWorkspaceName.value 
+          : 'Board')),
+        actions: [
+          // Workspace selector
+          Obx(() {
+            if (_controller.hasWorkspaces) {
+              return PopupMenuButton<String>(
+                onSelected: (workspaceId) {
+                  _controller.switchWorkspace(workspaceId);
+                },
+                itemBuilder: (context) => _controller.availableWorkspaces
+                    .map((workspace) => PopupMenuItem<String>(
+                          value: workspace['id'] as String,
+                          child: Text(workspace['name'] as String),
+                        ))
+                    .toList(),
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Icon(Icons.workspace_premium),
                 ),
-                decoration: const BoxDecoration(
-                  gradient: AppTheme.statusBarGradient,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
-                      '9:41',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: AppTheme.fontSize14,
-                        fontFamily: AppFont.family,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: AppTheme.iconSize16,
-                          height: AppTheme.iconSize16,
-                        ),
-                        Container(width: AppTheme.spacing2),
-                        const SizedBox(
-                          width: AppTheme.iconSize14,
-                          height: AppTheme.iconSize14,
-                        ),
-                        Container(width: AppTheme.spacing2),
-                        const SizedBox(
-                          width: AppTheme.iconSize14,
-                          height: AppTheme.iconSize14,
-                        ),
-                        Container(width: AppTheme.spacing2),
-                        const Text(
-                          '100%',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: AppTheme.fontSize12,
-                            fontFamily: AppFont.family,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing2),
-                        const SizedBox(
-                          width: AppTheme.iconSize16,
-                          height: AppTheme.iconSize14,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Header
-              Container(
-                width: double.infinity,
-                height: AppTheme.headerHeight,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing20,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppTheme.backgroundWhite,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.shadowColor,
-                      blurRadius: AppTheme.spacing8,
-                      offset: Offset(0, 1),
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: AppTheme.iconSize20 * 2,
-                          height: AppTheme.iconSize20 * 2,
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.logoGradient,
-                            borderRadius: BorderRadius.circular(
-                              AppTheme.radius8,
-                            ),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'S',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: AppTheme.fontSize20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing8),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Job Card',
-                              style: TextStyle(
-                                color: AppTheme.textDark,
-                                fontSize: AppTheme.fontSize20,
-                                fontFamily: AppFont.family,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: AppTheme.iconSize16,
-                                  height: AppTheme.iconSize16,
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.figmaYellow,
-                                    borderRadius: BorderRadius.circular(
-                                      AppTheme.radius4,
-                                    ),
-                                  ),
-                                ),
-                                Container(width: AppTheme.spacing2),
-                                const Text(
-                                  'ชื่อบอร์ด 1',
-                                  style: TextStyle(
-                                    color: AppTheme.textMedium,
-                                    fontSize: AppTheme.fontSize12,
-                                    fontFamily: AppFont.family,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Container(width: AppTheme.spacing4),
-                                Transform.rotate(
-                                  angle: 1.57,
-                                  child: const Icon(
-                                    Icons.keyboard_arrow_down,
-                                    size: AppTheme.iconSize16,
-                                    color: AppTheme.textMedium,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: AppTheme.iconSize24,
-                          height: AppTheme.iconSize24,
-                          child: Icon(
-                            Icons.calendar_today,
-                            size: AppTheme.iconSize20,
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing16),
-                        const SizedBox(
-                          width: AppTheme.iconSize24,
-                          height: AppTheme.iconSize24,
-                          child: Icon(
-                            Icons.chat_bubble_outline,
-                            size: AppTheme.iconSize20,
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing16),
-                        const SizedBox(
-                          width: AppTheme.iconSize24,
-                          height: AppTheme.iconSize24,
-                          child: Icon(
-                            Icons.notifications_none,
-                            size: AppTheme.iconSize20,
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing16),
-                        // Firebase Test Button
-                        GestureDetector(
-                          onTap: () =>
-                              FirebaseTest.showConnectionStatus(context),
-                          child: Container(
-                            width: AppTheme.iconSize24,
-                            height: AppTheme.iconSize24,
-                            decoration: BoxDecoration(
-                              color: AppTheme.figmaOrange,
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radius8,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.cloud_done,
-                              color: Colors.white,
-                              size: AppTheme.iconSize20,
-                            ),
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing8),
-                        // Firebase Debug Page Button
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const FirebaseDebugPage(),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            width: AppTheme.iconSize24,
-                            height: AppTheme.iconSize24,
-                            decoration: BoxDecoration(
-                              color: AppTheme.figmaGreen,
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radius8,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.bug_report,
-                              color: Colors.white,
-                              size: AppTheme.iconSize20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Search and Filter Section
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing20,
-                  vertical: AppTheme.spacing16,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppTheme.backgroundWhite,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.shadowColor,
-                      blurRadius: AppTheme.spacing4,
-                      offset: Offset(0, 2),
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Search Bar with Filter
-                    Row(
-                      children: [
-                        // Search Bar
-                        Expanded(
-                          child: Container(
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: AppTheme.backgroundGrey,
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radius12,
-                              ),
-                              border: Border.all(
-                                color: AppTheme.borderGrey,
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: AppTheme.iconSize20,
-                                  height: AppTheme.iconSize20,
-                                  margin: const EdgeInsets.only(
-                                    left: AppTheme.spacing12,
-                                  ),
-                                  child: const Icon(
-                                    Icons.search,
-                                    color: AppTheme.textGrey,
-                                    size: AppTheme.iconSize20,
-                                  ),
-                                ),
-                                const Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: AppTheme.spacing12,
-                                    ),
-                                    child: TextField(
-                                      decoration: InputDecoration(
-                                        hintText: 'ค้นหา Job Card...',
-                                        hintStyle: TextStyle(
-                                          color: AppTheme.textGrey,
-                                          fontSize: AppTheme.fontSize14,
-                                          fontFamily: AppFont.family,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing12),
-                        // Filter Button
-                        Container(
-                          height: 44,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.spacing16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.figmaOrange,
-                            borderRadius: BorderRadius.circular(
-                              AppTheme.radius12,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.figmaOrange.withValues(
-                                  alpha: 0.3,
-                                ),
-                                blurRadius: AppTheme.spacing8,
-                                offset: const Offset(0, 2),
-                                spreadRadius: 0,
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.filter_list,
-                                color: Colors.white,
-                                size: AppTheme.iconSize20,
-                              ),
-                              Container(width: AppTheme.spacing8),
-                              const Text(
-                                'ตัวกรอง',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: AppTheme.fontSize14,
-                                  fontFamily: AppFont.family,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Summary Cards Section - Single Row
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing20,
-                  vertical: AppTheme.spacing16,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppTheme.backgroundWhite,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.shadowColor,
-                      blurRadius: AppTheme.spacing4,
-                      offset: Offset(0, 2),
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Summary Cards - Single Row
-                    Row(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        // Sales Summary Card
-                        Expanded(
-                          child: Container(
-                            height: 80,
-                            padding: const EdgeInsets.all(AppTheme.spacing12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radius12,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: AppTheme.iconSize20,
-                                      height: AppTheme.iconSize20,
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.figmaOrange,
-                                        borderRadius: BorderRadius.circular(
-                                          AppTheme.radius8,
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.attach_money,
-                                        color: Colors.white,
-                                        size: AppTheme.iconSize14,
-                                      ),
-                                    ),
-                                    Container(width: AppTheme.spacing8),
-                                    const Expanded(
-                                      child: Text(
-                                        'สรุปยอดขาย',
-                                        style: TextStyle(
-                                          color: AppTheme.figmaOrange,
-                                          fontSize: AppTheme.fontSize12,
-                                          fontFamily: AppFont.family,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Container(height: AppTheme.spacing8),
-                                const Text(
-                                  '48 รายการ',
-                                  style: TextStyle(
-                                    color: AppTheme.textDark,
-                                    fontSize: AppTheme.fontSize14,
-                                    fontFamily: AppFont.family,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing12),
-                        // Completed Jobs Card
-                        Expanded(
-                          child: Container(
-                            height: 80,
-                            padding: const EdgeInsets.all(AppTheme.spacing12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radius12,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'สำเร็จ',
-                                  style: TextStyle(
-                                    color: AppTheme.textDark,
-                                    fontSize: AppTheme.fontSize12,
-                                    fontFamily: AppFont.family,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Container(height: AppTheme.spacing8),
-                                const Text(
-                                  '฿9,605,000,000',
-                                  style: TextStyle(
-                                    color: AppTheme.figmaGreen,
-                                    fontSize: AppTheme.fontSize14,
-                                    fontFamily: AppFont.family,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing12),
-                        // In Progress Card
-                        Expanded(
-                          child: Container(
-                            height: 80,
-                            padding: const EdgeInsets.all(AppTheme.spacing12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radius12,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'กำลังดำเนินการ',
-                                  style: TextStyle(
-                                    color: AppTheme.textDark,
-                                    fontSize: AppTheme.fontSize12,
-                                    fontFamily: AppFont.family,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Container(height: AppTheme.spacing8),
-                                const Text(
-                                  '฿4,318,000,000',
-                                  style: TextStyle(
-                                    color: AppTheme.figmaYellow,
-                                    fontSize: AppTheme.fontSize14,
-                                    fontFamily: AppFont.family,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(width: AppTheme.spacing12),
-                        // Unsuccessful Jobs Card
-                        Expanded(
-                          child: Container(
-                            height: 80,
-                            padding: const EdgeInsets.all(AppTheme.spacing12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radius12,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'ไม่สำเร็จ',
-                                  style: TextStyle(
-                                    color: AppTheme.textDark,
-                                    fontSize: AppTheme.fontSize12,
-                                    fontFamily: AppFont.family,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Container(height: AppTheme.spacing8),
-                                const Text(
-                                  '฿4,159,000,432',
-                                  style: TextStyle(
-                                    color: AppTheme.figmaRed,
-                                    fontSize: AppTheme.fontSize14,
-                                    fontFamily: AppFont.family,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Padding between header and content
-              Container(
-                height: AppTheme.spacing16,
-                color: AppTheme.backgroundGrey,
-              ),
-              // Main Content
-              Expanded(
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primaryOrange,
-                      ),
-                    );
-                  }
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+        ],
+      ),
+      body: Obx(() {
+        if (_controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-                  if (controller.error?.value.isNotEmpty == true) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: AppTheme.errorRed,
-                          ),
-                          Container(height: AppTheme.spacing16),
-                          Text(
-                            'Error: ${controller.error?.value}',
-                            style: const TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: AppTheme.fontSize16,
-                            ),
-                          ),
-                          Container(height: AppTheme.spacing16),
-                          ElevatedButton(
-                            onPressed: () => controller.load(),
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return _buildBoard(context, controller);
-                }),
-              ),
-            ],
-          ),
-          floatingActionButton: Container(
-            width: AppTheme.fabSize,
-            height: AppTheme.fabSize,
-            decoration: const BoxDecoration(
-              gradient: AppTheme.fabGradient,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.fabShadowColor,
-                  blurRadius: AppTheme.spacing4,
-                  offset: Offset(0.75, 3),
-                  spreadRadius: 0,
+        if (_controller.error.value.isNotEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  _controller.error.value,
+                  style: const TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => _controller.load(),
+                  child: const Text('Retry'),
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.add,
-              color: Colors.white,
-              size: AppTheme.iconSize24,
+          );
+        }
+
+        if (!_controller.isInitialized.value) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Initializing board...'),
+              ],
             ),
-          ),
-        );
-      },
+          );
+        }
+
+        if (_controller.lanes.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                const Text(
+                  'No lanes found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Create your first lane to get started',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddLaneDialog(),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Lane'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return _buildBoard();
+      }),
+      floatingActionButton: Obx(() {
+        if (_controller.lanes.isNotEmpty) {
+          return FloatingActionButton(
+            onPressed: () => _showAddCardDialog(),
+            child: const Icon(Icons.add),
+          );
+        }
+        return const SizedBox.shrink();
+      }),
     );
   }
 
-  Widget _buildBoard(BuildContext context, BoardController controller) {
-    return DragAndDropLists(
-      children: controller.lanes.map((lane) {
-        return DragAndDropList(
-          header: LaneHeader(
-            lane: lane,
-            onMenuTap: () => _showLaneMenu(context, controller, lane),
-          ),
-          footer: Container(
-            padding: const EdgeInsets.all(AppTheme.spacing16),
-            child: Center(
-              child: TextButton.icon(
-                onPressed: () => _showAddCardDialog(context, controller, lane.id),
-                icon: const Icon(Icons.add, size: AppTheme.iconSize16),
-                label: const Text('เพิ่ม Job Card'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.figmaOrange,
-                  textStyle: const TextStyle(
-                    fontSize: AppTheme.fontSize10,
-                    fontFamily: AppFont.family,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
+  Widget _buildBoard() {
+    return BoardAutoScrollWrapper(
+      child: DragAndDropLists(
+        onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
+          _handleCardReorder(oldItemIndex, oldListIndex, newItemIndex, newListIndex);
+        },
+        onListReorder: (int oldListIndex, int newListIndex) {
+          _handleLaneReorder(oldListIndex, newListIndex);
+        },
+        axis: Axis.horizontal,
+        listWidth: 300,
+        listPadding: const EdgeInsets.all(8),
+        listDragHandle: DragHandle(
+          child: Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: const Icon(Icons.drag_handle, size: 16),
           ),
-          children: lane.cards.map((card) {
-            return DragAndDropItem(
-              child: JobCardTile(
-                card: card,
-                onTap: () => _showCardDetails(context, card),
-              ),
-            );
-          }).toList(),
-        );
-      }).toList(),
-      onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
-        final fromLane = controller.lanes[oldListIndex];
-        final toLane = controller.lanes[newListIndex];
-        final card = fromLane.cards[oldItemIndex];
-
-        if (oldListIndex == newListIndex) {
-          // Reorder within the same lane
-          controller.onReorderInLane(
-            laneId: fromLane.id,
-            oldIndex: oldItemIndex,
-            newIndex: newItemIndex,
-          );
-        } else {
-          // Move card to a different lane
-          controller.onMoveCard(
-            cardId: card.id,
-            fromLaneId: fromLane.id,
-            toLaneId: toLane.id,
-            toIndex: newItemIndex,
-          );
-        }
-      },
-      onListReorder: (int oldListIndex, int newListIndex) {
-        // Not implemented: Reordering lanes
-      },
-      axis: Axis.horizontal,
-      listWidth: controller.lanes.length <= 3
-          ? MediaQuery.of(context).size.width / controller.lanes.length
-          : 350,
-      listPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
-      listDecoration: BoxDecoration(
-        color: AppTheme.laneBackground,
-        border: Border.all(color: AppTheme.borderGrey, width: 1),
+        ),
+                 children: _controller.lanes.map((lane) {
+           final laneData = lane as Lane;
+           return DragAndDropList(
+             header: _buildLaneHeader(laneData),
+             children: laneData.cards.map((card) {
+               return DragAndDropItem(
+                 child: JobCardTile(card: card),
+               );
+             }).toList(),
+           );
+         }).toList(),
       ),
     );
   }
 
+  Widget _buildLaneHeader(Lane lane) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  lane.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${lane.cardCount} cards',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (lane.totalAmount > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '\$${lane.totalAmount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: Colors.green[800],
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
+  void _handleCardReorder(int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
+    try {
+      final oldLane = _controller.lanes[oldListIndex];
+      final newLane = _controller.lanes[newListIndex];
+      final card = oldLane.cards[oldItemIndex];
 
-  void _showAddCardDialog(
-    BuildContext context,
-    BoardController controller, [
-    String? laneId,
-  ]) {
-    final titleController = TextEditingController();
-    final assigneeController = TextEditingController();
-    final amountController = TextEditingController();
-    String selectedLaneId = laneId ?? controller.lanes.first.id;
+      _logger.userAction('Card reordered', {
+        'cardId': card.id,
+        'fromLaneId': oldLane.id,
+        'toLaneId': newLane.id,
+        'fromIndex': oldItemIndex,
+        'toIndex': newItemIndex,
+      });
+
+      _controller.onMoveCard(
+        cardId: card.id,
+        fromLaneId: oldLane.id,
+        toLaneId: newLane.id,
+        toIndex: newItemIndex,
+      );
+    } catch (e) {
+      _logger.error('Failed to handle card reorder', e);
+    }
+  }
+
+  void _handleLaneReorder(int oldListIndex, int newListIndex) {
+    // Implement lane reordering if needed
+    _logger.userAction('Lane reordered', {
+      'fromIndex': oldListIndex,
+      'toIndex': newListIndex,
+    });
+  }
+
+  void _showAddLaneDialog() {
+    final TextEditingController titleController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Lane'),
+        content: TextField(
+          controller: titleController,
+          decoration: const InputDecoration(
+            labelText: 'Lane Title',
+            hintText: 'Enter lane title...',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (titleController.text.trim().isNotEmpty) {
+                _controller.onAddLane(titleController.text.trim());
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddCardDialog() {
+    final TextEditingController titleController = TextEditingController();
+    final TextEditingController assigneeController = TextEditingController();
+    final TextEditingController amountController = TextEditingController();
+    String selectedLaneId = _controller.lanes.first.id;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add New Card'),
         content: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -779,7 +350,7 @@ class _BoardPageState extends State<BoardPage> {
                 controller: assigneeController,
                 decoration: const InputDecoration(
                   labelText: 'Assignee',
-                  hintText: 'Enter assignee name...',
+                  hintText: 'Enter assignee...',
                 ),
               ),
               const SizedBox(height: 16),
@@ -794,13 +365,16 @@ class _BoardPageState extends State<BoardPage> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: selectedLaneId,
-                decoration: const InputDecoration(labelText: 'Lane'),
-                items: controller.lanes.map((lane) {
-                  return DropdownMenuItem(
-                    value: lane.id,
-                    child: Text(lane.title),
-                  );
-                }).toList(),
+                decoration: const InputDecoration(
+                  labelText: 'Lane',
+                ),
+                                 items: _controller.lanes.map((lane) {
+                   final laneData = lane as Lane;
+                   return DropdownMenuItem<String>(
+                     value: laneData.id,
+                     child: Text(laneData.title),
+                   );
+                 }).toList(),
                 onChanged: (value) {
                   if (value != null) {
                     selectedLaneId = value;
@@ -817,90 +391,17 @@ class _BoardPageState extends State<BoardPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (titleController.text.isNotEmpty &&
-                  assigneeController.text.isNotEmpty &&
-                  amountController.text.isNotEmpty) {
+              if (titleController.text.trim().isNotEmpty) {
                 final amount = double.tryParse(amountController.text) ?? 0.0;
-                controller.onAddCard(
+                _controller.onAddCard(
                   laneId: selectedLaneId,
-                  title: titleController.text,
-                  assignee: assigneeController.text,
-                  badges: ['New'],
-                  amount: amount,
+                  title: titleController.text.trim(),
+                  assignee: assigneeController.text.trim(),
                 );
                 Navigator.of(context).pop();
               }
             },
             child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLaneMenu(
-    BuildContext context,
-    BoardController controller,
-    Lane lane,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit Lane'),
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete, color: AppTheme.errorRed),
-              title: const Text(
-                'Delete Lane',
-                style: TextStyle(color: AppTheme.errorRed),
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showCardDetails(BuildContext context, JobCard card) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(card.id),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Title: ${card.title}'),
-            const SizedBox(height: 8),
-            Text('Assignee: ${card.assignee}'),
-            const SizedBox(height: 8),
-            Text('Amount: ฿${card.amount.toStringAsFixed(2)}'),
-            if (card.dueDate != null) ...[
-              const SizedBox(height: 8),
-              Text('Due Date: ${card.dueDate!.toString().split(' ')[0]}'),
-            ],
-            if (card.badges.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('Badges: ${card.badges.join(', ')}'),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
           ),
         ],
       ),

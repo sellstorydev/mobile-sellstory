@@ -9,19 +9,54 @@ class FirestoreService extends GetxService {
   // Get Firestore instance
   FirebaseFirestore get firestore => _firestore;
   
-  // Collection references
+  // Collection references - Updated to match actual Firestore structure
   CollectionReference<Map<String, dynamic>> get usersCollection => 
       _firestore.collection('users');
   
-  CollectionReference<Map<String, dynamic>> get boardsCollection => 
-      _firestore.collection('boards');
+  CollectionReference<Map<String, dynamic>> get workspacesCollection => 
+      _firestore.collection('workspaces');
   
-  CollectionReference<Map<String, dynamic>> get lanesCollection => 
-      _firestore.collection('lanes');
+  // Get workspace-specific collections
+  CollectionReference<Map<String, dynamic>> getWorkspaceLanesCollection(String workspaceId) => 
+      _firestore.collection('workspaces').doc(workspaceId).collection('lanes');
   
-  CollectionReference<Map<String, dynamic>> get cardsCollection => 
-      _firestore.collection('cards');
+  CollectionReference<Map<String, dynamic>> getWorkspaceCardsCollection(String workspaceId) => 
+      _firestore.collection('workspaces').doc(workspaceId).collection('cards');
   
+  CollectionReference<Map<String, dynamic>> getWorkspaceCustomersCollection(String workspaceId) => 
+      _firestore.collection('workspaces').doc(workspaceId).collection('customers');
+  
+  CollectionReference<Map<String, dynamic>> getWorkspaceBoardsCollection(String workspaceId) => 
+      _firestore.collection('workspaces').doc(workspaceId).collection('boards');
+  
+  // Get user's workspaces
+  Future<List<Map<String, dynamic>>> getUserWorkspaces(String userId) async {
+    try {
+      final userDoc = await usersCollection.doc(userId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        final workspaces = userData['workspaces'] as List<dynamic>? ?? [];
+        return workspaces.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to get user workspaces: $e');
+    }
+  }
+  
+  // Get workspace by ID
+  Future<Map<String, dynamic>?> getWorkspace(String workspaceId) async {
+    try {
+      final doc = await workspacesCollection.doc(workspaceId).get();
+      if (doc.exists) {
+        return doc.data();
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get workspace: $e');
+    }
+  }
+
   // Generic CRUD operations
   Future<DocumentReference<Map<String, dynamic>>> addDocument(
     CollectionReference<Map<String, dynamic>> collection,

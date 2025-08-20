@@ -1,50 +1,48 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import '../../../core/services/logger_service.dart';
 import 'firestore_service.dart';
-import '../../domain/entities/board.dart';
-import '../../domain/entities/lane.dart';
-import '../../domain/entities/job_card.dart';
-import '../../core/services/logger_service.dart';
 
 class FirestoreExample {
-  final FirestoreService _firestoreService = Get.find<FirestoreService>();
-  
-  // Example: Create a new board
-  Future<String> createExampleBoard(String userId) async {
-    final board = Board(
-      id: '',
-      title: 'My First Board',
-      userId: userId,
-      lanes: [],
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+  static final FirestoreService _firestoreService = Get.find<FirestoreService>();
+
+  // Example: Create a workspace
+  static Future<String> createExampleWorkspace() async {
+    final workspaceData = {
+      'name': 'Example Workspace',
+      'ownerId': 'user123',
+      'createdAt': FieldValue.serverTimestamp(),
+      'members': {
+        'user123': 'owner',
+      },
+    };
+    
+    final docRef = await _firestoreService.addDocument(
+      _firestoreService.workspacesCollection,
+      workspaceData,
     );
     
-    final boardId = await _firestoreService.addDocument(
-      _firestoreService.boardsCollection,
-      board.toMap(),
-    );
-    
-    LoggerService.to.info('Created board with ID: ${boardId.id}');
-    return boardId.id;
+    LoggerService.to.info('Created workspace with ID: ${docRef.id}');
+    return docRef.id;
   }
   
-  // Example: Create lanes for a board
-  Future<List<String>> createExampleLanes(String boardId) async {
+  // Example: Create lanes for a workspace
+  static Future<List<String>> createExampleLanes(String workspaceId) async {
     final laneTitles = ['To Do', 'In Progress', 'Done'];
     final laneIds = <String>[];
     
     for (int i = 0; i < laneTitles.length; i++) {
-      final lane = Lane(
-        id: '',
-        title: laneTitles[i],
-        boardId: boardId,
-        order: i,
-        cards: [],
-      );
+      final laneData = {
+        'name': laneTitles[i],
+        'order': i,
+        'workspaceId': workspaceId,
+        'cards': [],
+        'hasMoreCards': false,
+      };
       
       final laneId = await _firestoreService.addDocument(
-        _firestoreService.lanesCollection,
-        lane.toMap(),
+        _firestoreService.getWorkspaceLanesCollection(workspaceId),
+        laneData,
       );
       
       laneIds.add(laneId.id);
@@ -55,7 +53,7 @@ class FirestoreExample {
   }
   
   // Example: Create cards for a lane
-  Future<List<String>> createExampleCards(String laneId) async {
+  static Future<List<String>> createExampleCards(String workspaceId, String laneId) async {
     final cards = [
       {
         'title': 'Design UI Mockups',
@@ -80,22 +78,21 @@ class FirestoreExample {
     final cardIds = <String>[];
     
     for (int i = 0; i < cards.length; i++) {
-      final card = JobCard(
-        id: '',
-        title: cards[i]['title'] as String,
-        assignee: cards[i]['assignee'] as String,
-        dueDate: DateTime.now().add(Duration(days: 7 + i)),
-        badges: List<String>.from(cards[i]['badges'] as List),
-        amount: cards[i]['amount'] as double,
-        laneId: laneId,
-        order: i,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+      final cardData = {
+        'title': cards[i]['title'] as String,
+        'assignee': cards[i]['assignee'] as String,
+        'dueDate': Timestamp.fromDate(DateTime.now().add(Duration(days: 7 + i))),
+        'badges': List<String>.from(cards[i]['badges'] as List),
+        'amount': cards[i]['amount'] as double,
+        'laneId': laneId,
+        'order': i,
+        'createdAt': Timestamp.fromDate(DateTime.now()),
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      };
       
       final cardId = await _firestoreService.addDocument(
-        _firestoreService.cardsCollection,
-        card.toMap(),
+        _firestoreService.getWorkspaceCardsCollection(workspaceId),
+        cardData,
       );
       
       cardIds.add(cardId.id);
@@ -105,51 +102,36 @@ class FirestoreExample {
     return cardIds;
   }
   
-  // Example: Read all boards for a user
-  Future<void> readUserBoards(String userId) async {
+  // Example: Read all workspaces for a user
+  static Future<void> readUserWorkspaces(String userId) async {
     try {
-      final snapshot = await _firestoreService.getDocuments(
-        _firestoreService.boardsCollection,
-        queryBuilder: (query) => query.where('userId', isEqualTo: userId),
-      );
+      final workspaces = await _firestoreService.getUserWorkspaces(userId);
       
-      LoggerService.to.info('Found ${snapshot.docs.length} boards for user $userId:');
-      for (final doc in snapshot.docs) {
-        final board = Board.fromMap(doc.data(), doc.id);
-        LoggerService.to.info('- ${board.title} (ID: ${board.id})');
+      LoggerService.to.info('Found ${workspaces.length} workspaces for user $userId:');
+      for (final workspace in workspaces) {
+        LoggerService.to.info('- ${workspace['name']} (ID: ${workspace['id']})');
       }
     } catch (e) {
-      LoggerService.to.error('Error reading boards: $e');
+      LoggerService.to.error('Error reading workspaces: $e');
     }
   }
   
-  // Example: Stream boards in real-time
-  void streamUserBoards(String userId) {
-    _firestoreService.getDocumentsStream(
-      _firestoreService.boardsCollection,
-      queryBuilder: (query) => query.where('userId', isEqualTo: userId),
-    ).listen(
-      (snapshot) {
-        LoggerService.to.info('Real-time update: ${snapshot.docs.length} boards');
-        for (final doc in snapshot.docs) {
-          final board = Board.fromMap(doc.data(), doc.id);
-          LoggerService.to.info('- ${board.title} (ID: ${board.id})');
-        }
-      },
-      onError: (error) {
-        LoggerService.to.error('Error in stream: $error');
-      },
+  // Example: Real-time listener for workspaces
+  static Stream<QuerySnapshot> listenToWorkspaces() {
+    return _firestoreService.getDocumentsStream(
+      _firestoreService.workspacesCollection,
     );
   }
   
   // Example: Update a card
-  Future<void> updateCardExample(String cardId) async {
+  static Future<void> updateCardExample(String workspaceId, String cardId) async {
     try {
-      final cardRef = _firestoreService.cardsCollection.doc(cardId);
+      final cardRef = _firestoreService.getWorkspaceCardsCollection(workspaceId).doc(cardId);
       await _firestoreService.updateDocument(cardRef, {
         'title': 'Updated Card Title',
-        'updatedAt': DateTime.now(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
+      
       LoggerService.to.success('Card updated successfully');
     } catch (e) {
       LoggerService.to.error('Error updating card: $e');
@@ -157,37 +139,39 @@ class FirestoreExample {
   }
   
   // Example: Delete a card
-  Future<void> deleteCardExample(String cardId) async {
+  static Future<void> deleteCardExample(String workspaceId, String cardId) async {
     try {
-      final cardRef = _firestoreService.cardsCollection.doc(cardId);
+      final cardRef = _firestoreService.getWorkspaceCardsCollection(workspaceId).doc(cardId);
       await _firestoreService.deleteDocument(cardRef);
+      
       LoggerService.to.success('Card deleted successfully');
     } catch (e) {
       LoggerService.to.error('Error deleting card: $e');
     }
   }
   
-  // Example: Complete workflow
-  Future<void> runCompleteExample(String userId) async {
+  // Example: Run the complete example
+  static Future<void> runCompleteExample() async {
     LoggerService.to.info('=== Starting Firestore Example ===');
     
-    // Create a board
-    final boardId = await createExampleBoard(userId);
-    
-    // Create lanes
-    final laneIds = await createExampleLanes(boardId);
-    
-    // Create cards in the first lane
-    if (laneIds.isNotEmpty) {
-      await createExampleCards(laneIds[0]);
+    try {
+      // Create workspace
+      final workspaceId = await createExampleWorkspace();
+      
+      // Create lanes
+      final laneIds = await createExampleLanes(workspaceId);
+      
+      // Create cards for the first lane
+      if (laneIds.isNotEmpty) {
+        await createExampleCards(workspaceId, laneIds[0]);
+      }
+      
+      // Read user workspaces
+      await readUserWorkspaces('user123');
+      
+      LoggerService.to.info('=== Firestore Example Complete ===');
+    } catch (e) {
+      LoggerService.to.error('Error in complete example: $e');
     }
-    
-    // Read all boards
-    await readUserBoards(userId);
-    
-    // Start real-time stream
-    streamUserBoards(userId);
-    
-    LoggerService.to.info('=== Firestore Example Complete ===');
   }
 }

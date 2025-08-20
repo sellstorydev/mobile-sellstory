@@ -122,6 +122,42 @@ lib/
 
 ---
 
+## 🛠️ Debugging & Logging
+
+### Quick Commands
+
+```bash
+# รันแอพใน debug mode พร้อม logging
+./scripts/run_debug.sh
+
+# เปิด Dart DevTools
+./scripts/open_devtools.sh
+
+# รันแอพแบบปกติ
+flutter run --debug
+```
+
+### 📊 Logging Features
+
+- **Real-time logging** ใน Dart DevTools Console
+- **Structured data logging** สำหรับ debugging
+- **Performance profiling** และ memory usage tracking
+- **Dependency injection logging** สำหรับ troubleshooting
+- **User action tracking** และ state management logging
+
+### 🎯 Log Types
+
+- 🛠️ **DevTools Logs**: สำหรับ debugging ใน DevTools
+- 📱 **Console Logs**: สำหรับ general console output
+- 🔍 **Debug Logs**: สำหรับ detailed debugging
+- ⏱️ **Performance Logs**: สำหรับ performance analysis
+- 💾 **Memory Logs**: สำหรับ memory usage tracking
+
+### 📖 รายละเอียดเพิ่มเติม
+ดูคู่มือฉบับเต็มได้ที่: [docs/LOGGING_GUIDE.md](docs/LOGGING_GUIDE.md)
+
+---
+
 ## Setup Instructions
 
 ### 1. Install Dependencies

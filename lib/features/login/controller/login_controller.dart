@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/services/firebase_auth_service.dart';
+import '../../../core/di/locator.dart';
 
 class LoginController extends GetxController {
   final FirebaseAuthService _authService = Get.find<FirebaseAuthService>();
@@ -38,6 +39,10 @@ class LoginController extends GetxController {
     try {
       isLoading.value = true;
       await _authService.signInWithEmail(identity.value, password.value);
+      
+      // Ensure dependencies are properly setup after login
+      Locator.setup();
+      
       Get.offAllNamed('/shell');
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
@@ -59,6 +64,10 @@ class LoginController extends GetxController {
     try {
       isLoading.value = true;
       await _authService.signInWithGoogle();
+      
+      // Ensure dependencies are properly setup after login
+      Locator.setup();
+      
       Get.offAllNamed('/shell');
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);

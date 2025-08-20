@@ -13,17 +13,18 @@ class LoggerService extends GetxService {
   }
   
   void _initializeLogger() {
-          _logger = Logger(
-        printer: PrettyPrinter(
-          methodCount: 2,
-          errorMethodCount: 8,
-          lineLength: 120,
-          colors: true,
-          printEmojis: true,
-          dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-        ),
-        level: Level.debug,
-      );
+    _logger = Logger(
+      printer: PrettyPrinter(
+        methodCount: 3, // เพิ่ม method count เพื่อให้เห็น stack trace มากขึ้น
+        errorMethodCount: 10, // เพิ่ม error method count
+        lineLength: 150, // เพิ่ม line length
+        colors: true,
+        printEmojis: true,
+        dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+      ),
+      level: Level.debug, // ตั้งเป็น debug level เพื่อให้เห็น log ทั้งหมด
+      output: ConsoleOutput(), // ใช้ ConsoleOutput เพื่อให้ log ปรากฏใน DevTools
+    );
   }
   
   // Debug level logging
@@ -265,15 +266,46 @@ class LoggerService extends GetxService {
   void setLevel(Level level) {
     _logger = Logger(
       printer: PrettyPrinter(
-        methodCount: 2,
-        errorMethodCount: 8,
-        lineLength: 120,
+        methodCount: 3,
+        errorMethodCount: 10,
+        lineLength: 150,
         colors: true,
         printEmojis: true,
         dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
       ),
       level: level,
+      output: ConsoleOutput(),
     );
+  }
+  
+  // DevTools specific logging methods
+  void devTools(String message, [Map<String, dynamic>? data]) {
+    final dataStr = data != null ? ' | Data: $data' : '';
+    _logger.i('🛠️ DevTools: $message$dataStr');
+  }
+  
+  // Log for Dart DevTools Console
+  void console(String message, [dynamic data]) {
+    final dataStr = data != null ? ' | $data' : '';
+    _logger.d('📱 Console: $message$dataStr');
+  }
+  
+  // Log for debugging with structured data
+  void debugStructured(String message, Map<String, dynamic> data) {
+    _logger.d('🔍 Debug [$message]: $data');
+  }
+  
+  // Log for performance profiling
+  void profile(String operation, Duration duration, [Map<String, dynamic>? context]) {
+    final ctx = context != null ? ' | Context: $context' : '';
+    _logger.i('⏱️ Profile [$operation]: ${duration.inMilliseconds}ms$ctx');
+  }
+  
+  // Log for memory profiling
+  void memoryProfile(String component, int currentBytes, int peakBytes) {
+    final currentMB = (currentBytes / 1024 / 1024).toStringAsFixed(2);
+    final peakMB = (peakBytes / 1024 / 1024).toStringAsFixed(2);
+    _logger.i('💾 Memory [$component]: Current: ${currentMB}MB, Peak: ${peakMB}MB');
   }
   
   // Enable/disable logging

@@ -15,6 +15,11 @@ void main() async {
   // Initialize Logger Service first
   Get.put(LoggerService(), permanent: true);
   LoggerService.to.info('Application starting...');
+  LoggerService.to.devTools('SellStory App Starting', {
+    'version': '1.0.0',
+    'timestamp': DateTime.now().toIso8601String(),
+    'platform': 'mobile',
+  });
   
   // Initialize Firebase
   try {
@@ -36,10 +41,20 @@ void main() async {
   
   // Setup dependency injection
   try {
+    LoggerService.to.devTools('Setting up dependencies...');
     SellStoryApp.setupDependencies();
     LoggerService.to.di('Dependency injection setup completed');
+    LoggerService.to.devTools('Dependencies setup completed', {
+      'timestamp': DateTime.now().toIso8601String(),
+      'status': 'success',
+    });
   } catch (e) {
     LoggerService.to.failure('Failed to setup dependency injection', e);
+    LoggerService.to.devTools('Dependencies setup failed', {
+      'error': e.toString(),
+      'timestamp': DateTime.now().toIso8601String(),
+      'status': 'failed',
+    });
   }
   
   // Register theme and locale controllers
