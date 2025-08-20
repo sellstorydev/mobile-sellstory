@@ -122,6 +122,7 @@ flutter:
     - assets/splash_logo.png
     - assets/sellstory_logo.png
     - assets/google_icon.png
+    - assets/icons/
 
   # Custom fonts
   fonts:

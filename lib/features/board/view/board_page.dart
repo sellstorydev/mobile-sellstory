@@ -10,6 +10,8 @@ import '../controller/board_controller.dart';
 import '../presenter/board_presenter.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/lane_header.dart';
+import '../widgets/board_auto_scroll_wrapper.dart';
+import '../config/drag_config.dart';
 import '../../debug/firebase_debug_page.dart';
 
 class BoardPage extends StatefulWidget {
@@ -674,10 +676,21 @@ class _BoardPageState extends State<BoardPage> {
   }
 
     Widget _buildBoard(BuildContext context, BoardController controller) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Row(
+    final ScrollController horizontalScrollController = ScrollController();
+    
+    return BoardAutoScrollWrapper(
+      horizontalController: horizontalScrollController,
+      config: const DragAutoScrollConfig(
+        edgeExtent: 50.0,
+        velocityScalar: 100.0,
+        maxStep: 20.0,
+        tick: Duration(milliseconds: 50),
+      ),
+      child: SingleChildScrollView(
+        controller: horizontalScrollController,
+        scrollDirection: Axis.horizontal,
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: controller.lanes.asMap().entries.map((entry) {
           final laneIndex = entry.key;
@@ -703,15 +716,18 @@ class _BoardPageState extends State<BoardPage> {
                 }
               },
               builder: (context, candidateData, rejectedData) {
+                final bool hasCandidate = candidateData.isNotEmpty;
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
                   decoration: BoxDecoration(
-                    color: AppTheme.laneBackground,
+                    color: hasCandidate 
+                        ? AppTheme.primaryOrange.withOpacity(0.1) 
+                        : AppTheme.laneBackground,
                     border: Border.all(
-                      color: candidateData.isNotEmpty 
+                      color: hasCandidate 
                           ? AppTheme.primaryOrange 
                           : AppTheme.borderGrey, 
-                      width: candidateData.isNotEmpty ? 2 : 1,
+                      width: hasCandidate ? 2 : 1,
                     ),
                   ),
                   child: Column(
@@ -721,21 +737,23 @@ class _BoardPageState extends State<BoardPage> {
                         lane: lane,
                         onMenuTap: () => _showLaneMenu(context, controller, lane),
                       ),
-                      // Cards Container with ScrollView - Lock vertical scroll here
-                      Expanded(
-                        child: NotificationListener<ScrollNotification>(
-                          onNotification: (scrollNotification) {
-                            // Block vertical scroll during drag
-                            if (scrollNotification is ScrollStartNotification) {
-                              // Allow scroll only if not dragging
-                              return false;
-                            }
-                            return false;
-                          },
-                          child: DragAndDropLists(
+                                              // Cards Container with ScrollView - Lock vertical scroll here
+                        Expanded(
+                          child: Stack(
                             children: [
-                              DragAndDropList(
-                                children: lane.cards.map((card) {
+                              NotificationListener<ScrollNotification>(
+                                onNotification: (scrollNotification) {
+                                  // Block vertical scroll during drag
+                                  if (scrollNotification is ScrollStartNotification) {
+                                    // Allow scroll only if not dragging
+                                    return false;
+                                  }
+                                  return false;
+                                },
+                                child: DragAndDropLists(
+                                  children: [
+                                    DragAndDropList(
+                                      children: lane.cards.map((card) {
                                   return DragAndDropItem(
                                     child: LongPressDraggable<JobCard>(
                                       data: card,
@@ -784,10 +802,35 @@ class _BoardPageState extends State<BoardPage> {
                             axis: Axis.vertical,
                             listWidth: double.infinity,
                             listPadding: EdgeInsets.zero,
-                            listDecoration: const BoxDecoration(),
+                                                              listDecoration: const BoxDecoration(),
+                                ),
+                              ),
+                              // Drop zone indicator
+                              if (hasCandidate)
+                                Positioned.fill(
+                                  child: Container(
+                                    margin: const EdgeInsets.all(AppTheme.spacing8),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryOrange.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppTheme.primaryOrange,
+                                        width: 2,
+                                        style: BorderStyle.solid,
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.add_circle_outline,
+                                        size: 48,
+                                        color: AppTheme.primaryOrange,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                      ),
                       // Lane Footer
                       Container(
                         padding: const EdgeInsets.all(AppTheme.spacing16),
@@ -815,6 +858,7 @@ class _BoardPageState extends State<BoardPage> {
             ),
           );
         }).toList(),
+        ),
       ),
     );
   }
