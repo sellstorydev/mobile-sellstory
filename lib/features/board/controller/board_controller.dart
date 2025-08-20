@@ -129,7 +129,7 @@ class BoardController extends GetxController implements BoardView {
 
   @override
   void render(BoardState state) {
-    LoggerService.to.state('Board state updated', {
+    LoggerService.to.systemEvent('Board state updated', {
       'lanesCount': state.lanes.length,
       'isLoading': state.isLoading,
       'hasError': state.error?.isNotEmpty ?? false,
