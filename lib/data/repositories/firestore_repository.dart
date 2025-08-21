@@ -147,6 +147,8 @@ class FirestoreRepository {
           order: cardData['order'] ?? 0,
           createdAt: DateTime.fromMillisecondsSinceEpoch(cardData['createdAt'] ?? 0),
           updatedAt: DateTime.fromMillisecondsSinceEpoch(cardData['updatedAt'] ?? 0),
+          customer: cardData['customer'] ?? '',
+          updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
         );
       }).toList();
     } catch (e) {
@@ -239,6 +241,8 @@ class FirestoreRepository {
             order: cardData['order'] ?? 0,
             createdAt: DateTime.fromMillisecondsSinceEpoch(cardData['createdAt'] ?? 0),
             updatedAt: DateTime.fromMillisecondsSinceEpoch(cardData['updatedAt'] ?? 0),
+            customer: cardData['customer'] ?? '',
+            updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
           );
       }).toList();
         _logger.systemEvent('User assigned cards loaded', {

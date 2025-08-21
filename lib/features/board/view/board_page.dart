@@ -6,6 +6,7 @@ import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
 import '../../../domain/entities/lane.dart';
+import 'user_cards_page.dart';
 
 class BoardPage extends StatefulWidget {
   const BoardPage({super.key});
@@ -16,6 +17,7 @@ class BoardPage extends StatefulWidget {
 
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
+  bool _showListView = false; // Toggle between list and board view
 
   @override
   void initState() {
@@ -55,6 +57,16 @@ class _BoardPageState extends State<BoardPage> {
           ? _controller.currentWorkspaceName.value 
           : 'Board')),
         actions: [
+          // View toggle button
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _showListView = !_showListView;
+              });
+            },
+            icon: Icon(_showListView ? Icons.dashboard : Icons.list),
+            tooltip: _showListView ? 'Switch to Board View' : 'Switch to List View',
+          ),
           // Workspace selector
           Obx(() {
             if (_controller.hasWorkspaces) {
@@ -78,77 +90,11 @@ class _BoardPageState extends State<BoardPage> {
           }),
         ],
       ),
-      body: Obx(() {
-        if (_controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (_controller.error.value.isNotEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-                const SizedBox(height: 16),
-                Text(
-                  _controller.error.value,
-                  style: const TextStyle(fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => _controller.load(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        if (!_controller.isInitialized.value) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Initializing board...'),
-              ],
-            ),
-          );
-        }
-
-        if (_controller.lanes.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                const Text(
-                  'No lanes found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Create your first lane to get started',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddLaneDialog(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Lane'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return _buildBoard();
-      }),
+      body: _showListView 
+        ? const UserCardsPage() 
+        : _buildBoardView(),
       floatingActionButton: Obx(() {
-        if (_controller.lanes.isNotEmpty) {
+        if (_controller.lanes.isNotEmpty && !_showListView) {
           return FloatingActionButton(
             onPressed: () => _showAddCardDialog(),
             child: const Icon(Icons.add),
@@ -157,6 +103,78 @@ class _BoardPageState extends State<BoardPage> {
         return const SizedBox.shrink();
       }),
     );
+  }
+
+  Widget _buildBoardView() {
+    return Obx(() {
+      if (_controller.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (_controller.error.value.isNotEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+              const SizedBox(height: 16),
+              Text(
+                _controller.error.value,
+                style: const TextStyle(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _controller.load(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (!_controller.isInitialized.value) {
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Initializing board...'),
+            ],
+          ),
+        );
+      }
+
+      if (_controller.lanes.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              const Text(
+                'No lanes found',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Create your first lane to get started',
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => _showAddLaneDialog(),
+                icon: const Icon(Icons.add),
+                label: const Text('Add Lane'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return _buildBoard();
+    });
   }
 
   Widget _buildBoard() {

@@ -14,16 +14,17 @@ class JobCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isOverdue = card.dueDate != null && 
-        card.dueDate!.isBefore(DateTime.now());
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.2),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -32,242 +33,151 @@ class JobCardTile extends StatelessWidget {
             ),
           ],
         ),
-        child: Stack(
-          children: [
-            // Overdue banner
-            if (isOverdue)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.errorRed,
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'Overdue',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with title and menu button
+              Row(
                 children: [
-                  // Badges
-                  if (card.badges.isNotEmpty) ...[
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: card.badges.take(3).map((badge) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _getBadgeColor(badge),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            badge,
-                            style: TextStyle(
-                              color: _getBadgeTextColor(badge),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  Expanded(
+                    child: Text(
+                      card.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                  
-                  // Job Card ID and Priority
-                  Row(
-                    children: [
-                      Text(
-                        card.customId.isNotEmpty ? card.customId : card.id,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(card.status),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        card.status,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
                   ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Card title
-                  Text(
-                    card.title,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.textPrimary,
+                  IconButton(
+                    onPressed: () {
+                      // TODO: Show card menu options
+                    },
+                    icon: const Icon(
+                      Icons.more_vert,
+                      size: 20,
+                      color: AppTheme.textSecondary,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Due date
-                  if (card.dueDate != null) ...[
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.access_time,
-                          size: 16,
-                          color: AppTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDate(card.dueDate!),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: isOverdue ? AppTheme.errorRed : AppTheme.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  
-                  // Assignee info
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.1),
-                        child: Text(
-                          _getInitials(card.assignee),
-                          style: const TextStyle(
-                            color: AppTheme.primaryOrange,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          card.assignee,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
                 ],
               ),
-            ),
-            
-            // Amount badge (only show if amount > 0)
-            if (card.amount > 0)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.infoBlue,
-                    borderRadius: BorderRadius.circular(16),
+              
+              const SizedBox(height: 12),
+              
+              // Card ID
+              if (card.customId.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const Text(
+                      '#',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      card.customId,
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+              
+              // Status with clock icon
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: AppTheme.textSecondary,
                   ),
-                  child: Text(
-                    '฿${card.amount.toStringAsFixed(2)}',
+                  const SizedBox(width: 4),
+                  Text(
+                    card.status,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textSecondary,
+                      fontSize: 14,
                     ),
                   ),
-                ),
+                ],
               ),
-          ],
+              
+              const SizedBox(height: 8),
+              
+              // Assignee with profile picture
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 12,
+                    backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                    child: Text(
+                      _getInitials(card.updatedByDisplayName.isNotEmpty 
+                        ? card.updatedByDisplayName 
+                        : card.assignee),
+                      style: const TextStyle(
+                        color: AppTheme.primaryOrange,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      card.updatedByDisplayName.isNotEmpty 
+                        ? card.updatedByDisplayName 
+                        : card.assignee,
+                      style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 8),
+              
+              // Customer with group icon
+              if (card.customer.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.group,
+                      size: 16,
+                      color: AppTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        card.customer,
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  Color _getBadgeColor(String badge) {
-    final colors = {
-      'High Priority': Colors.red[100]!,
-      'Design': Colors.purple[100]!,
-      'Development': Colors.blue[100]!,
-      'Marketing': Colors.green[100]!,
-      'Testing': Colors.orange[100]!,
-      'Security': Colors.red[100]!,
-      'Content': Colors.pink[100]!,
-      'Planning': Colors.indigo[100]!,
-      'Setup': Colors.teal[100]!,
-      'Complete': Colors.green[100]!,
-    };
-    return colors[badge] ?? Colors.grey[100]!;
-  }
-
-  Color _getBadgeTextColor(String badge) {
-    final colors = {
-      'High Priority': Colors.red[700]!,
-      'Design': Colors.purple[700]!,
-      'Development': Colors.blue[700]!,
-      'Marketing': Colors.green[700]!,
-      'Testing': Colors.orange[700]!,
-      'Security': Colors.red[700]!,
-      'Content': Colors.pink[700]!,
-      'Planning': Colors.indigo[700]!,
-      'Setup': Colors.teal[700]!,
-      'Complete': Colors.green[700]!,
-    };
-    return colors[badge] ?? Colors.grey[700]!;
-  }
-
-  Color _getStatusColor(String status) {
-    final colors = {
-      'Pending': Colors.orange,
-      'In Progress': Colors.blue,
-      'Done': Colors.green,
-      'To Do': Colors.grey,
-      'Review': Colors.purple,
-      'Testing': Colors.teal,
-    };
-    return colors[status] ?? Colors.grey;
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day} ${_getMonthName(date.month)} ${date.year}';
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return months[month - 1];
   }
 
   String _getInitials(String name) {
@@ -276,6 +186,8 @@ class JobCardTile extends StatelessWidget {
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    return name.length >= 2 
+      ? name.substring(0, 2).toUpperCase()
+      : name.toUpperCase();
   }
 }

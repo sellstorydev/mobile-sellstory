@@ -16,6 +16,8 @@ class JobCard {
   final int order;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String customer; // Add customer field
+  final String updatedByDisplayName; // Add display name field
 
   JobCard({
     required this.id,
@@ -33,6 +35,8 @@ class JobCard {
     required this.order,
     required this.createdAt,
     required this.updatedAt,
+    this.customer = '',
+    this.updatedByDisplayName = '',
   });
 
   JobCard copyWith({
@@ -51,6 +55,8 @@ class JobCard {
     int? order,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? customer,
+    String? updatedByDisplayName,
   }) {
     return JobCard(
       id: id ?? this.id,
@@ -68,6 +74,8 @@ class JobCard {
       order: order ?? this.order,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      customer: customer ?? this.customer,
+      updatedByDisplayName: updatedByDisplayName ?? this.updatedByDisplayName,
     );
   }
 
@@ -88,6 +96,8 @@ class JobCard {
       'order': order,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'customer': customer,
+      'updatedByDisplayName': updatedByDisplayName,
     };
   }
 
@@ -107,8 +117,12 @@ class JobCard {
       boardId: map['boardId'] ?? '',
       workspaceId: map['workspaceId'] ?? '',
       order: map['order'] ?? 0,
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? 
+                 DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
+      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? 
+                 DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
+      customer: map['customer'] ?? '',
+      updatedByDisplayName: map['updatedByDisplayName'] ?? '',
     );
   }
 
@@ -130,7 +144,9 @@ class JobCard {
         other.workspaceId == workspaceId &&
         other.order == order &&
         other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+        other.updatedAt == updatedAt &&
+        other.customer == customer &&
+        other.updatedByDisplayName == updatedByDisplayName;
   }
 
   @override
@@ -149,11 +165,13 @@ class JobCard {
         workspaceId.hashCode ^
         order.hashCode ^
         createdAt.hashCode ^
-        updatedAt.hashCode;
+        updatedAt.hashCode ^
+        customer.hashCode ^
+        updatedByDisplayName.hashCode;
   }
 
   @override
   String toString() {
-    return 'JobCard(id: $id, title: $title, description: $description, assignee: $assignee, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'JobCard(id: $id, title: $title, description: $description, assignee: $assignee, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName)';
   }
 }
