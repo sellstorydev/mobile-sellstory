@@ -85,15 +85,11 @@ class _BoardPageState extends State<BoardPage> {
         ],
       ),
       body: _buildBoardView(),
-      floatingActionButton: Obx(() {
-        if (_controller.lanes.isNotEmpty) {
-          return FloatingActionButton(
-            onPressed: () => _showAddCardDialog(_controller.lanes.first as Lane),
-            child: const Icon(Icons.add),
-          );
-        }
-        return const SizedBox.shrink();
-      }),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddLaneDialog(),
+        child: const Icon(Icons.add),
+        tooltip: 'Add New Lane',
+      ),
     );
   }
 
@@ -314,19 +310,78 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   void _showAddLaneDialog() {
-    final TextEditingController titleController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController orderController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add New Lane'),
-        content: TextField(
-          controller: titleController,
-          decoration: const InputDecoration(
-            labelText: 'Lane Title',
-            hintText: 'Enter lane title...',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Lane Name *',
+                  hintText: 'Enter lane name...',
+                  prefixIcon: Icon(Icons.label),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: orderController,
+                decoration: const InputDecoration(
+                  labelText: 'Order',
+                  hintText: 'Enter order (optional)',
+                  prefixIcon: Icon(Icons.sort),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue[600], size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Lane Structure',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• boardId: Auto-generated\n'
+                      '• workspaceId: Current workspace\n'
+                      '• name: Lane name\n'
+                      '• order: Position in board\n'
+                      '• cards: Empty array\n'
+                      '• hasMoreCards: false',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          autofocus: true,
         ),
         actions: [
           TextButton(
@@ -335,12 +390,28 @@ class _BoardPageState extends State<BoardPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (titleController.text.trim().isNotEmpty) {
-                _controller.onAddLane(titleController.text.trim());
+              if (nameController.text.trim().isNotEmpty) {
+                final order = orderController.text.trim().isNotEmpty 
+                    ? int.tryParse(orderController.text.trim()) ?? _controller.lanes.length
+                    : _controller.lanes.length;
+                
+                print('🔄 Adding new lane:');
+                print('  - Name: ${nameController.text.trim()}');
+                print('  - Order: $order');
+                
+                _controller.onAddLane(nameController.text.trim());
                 Navigator.of(context).pop();
+              } else {
+                // Show error for required fields
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Lane name is required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
-            child: const Text('Add'),
+            child: const Text('Add Lane'),
           ),
         ],
       ),

@@ -33,8 +33,8 @@ class FirestoreRepository {
       for (final workspaceItem in workspacesList) {
         try {
           final workspaceData = workspaceItem as Map<String, dynamic>;
-          final workspaceId = workspaceData['id'] as String;
-          final workspaceName = workspaceData['name'] as String;
+          final workspaceId = workspaceData['id'] as String? ?? '';
+          final workspaceName = workspaceData['name'] as String? ?? 'Untitled Workspace';
           
           print('📋 Processing workspace: $workspaceName ($workspaceId)');
           
@@ -85,9 +85,9 @@ class FirestoreRepository {
         for (final laneDoc in lanesSnapshot.docs) {
           final laneData = laneDoc.data();
           final laneId = laneDoc.id;
-          final laneTitle = laneData['name'] as String;
+          final laneTitle = laneData['name'] as String? ?? 'Untitled Lane';
           final laneOrder = laneData['order'] as int? ?? 0;
-          final boardId = laneData['boardId'] as String;
+          final boardId = laneData['boardId'] as String? ?? '';
           
           print('📋 Processing lane: $laneTitle ($laneId)');
           
@@ -409,17 +409,36 @@ class FirestoreRepository {
     }
   }
   
-  // Create lane
+  // Create a new lane
   Future<String> createLane(String workspaceId, Lane lane) async {
     try {
       _logger.methodEntry('FirestoreRepository.createLane', {
         'workspaceId': workspaceId,
-        'laneTitle': lane.title
+        'laneTitle': lane.title,
       });
+      
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
-      final docRef = await _firestoreService.addDocument(lanesCollection, lane.toMap());
+      
+      // Get base lane data from toMap()
+      final laneData = lane.toMap();
+      
+      // Add missing fields to match backup structure
+      laneData['workspaceId'] = workspaceId;
+      laneData['name'] = lane.title; // Use 'name' instead of 'title' to match backup
+      laneData['cards'] = [];
+      laneData['hasMoreCards'] = false;
+      
+      print('🔄 Creating lane with data:');
+      print('  - Name: ${lane.title}');
+      print('  - Order: ${lane.order}');
+      print('  - Board ID: ${lane.boardId}');
+      
+      final docRef = await lanesCollection.add(laneData);
+      
+      _logger.database('Lane created in repository');
       _logger.methodExit('FirestoreRepository.createLane', {'laneId': docRef.id});
-    return docRef.id;
+      
+      return docRef.id;
     } catch (e) {
       _logger.error('Failed to create lane', e);
       rethrow;
