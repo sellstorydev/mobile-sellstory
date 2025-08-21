@@ -130,13 +130,14 @@ class FirestoreRepository {
         
         final cards = cardsSnapshot.docs.map((doc) {
           final cardData = doc.data();
-          print('📋 Processing card: ${cardData['title']} (${doc.id})');
+          print('📋 Processing card: ${cardData['title']} (${doc.id}) - Status: ${cardData['status']}');
           
           // Map Firestore data to JobCard entity
           return JobCard(
             id: doc.id,
             title: cardData['title'] ?? '',
             assignee: cardData['assignedTo'] ?? '',
+            status: cardData['status'] ?? 'To Do',
             dueDate: null, // Not in current data structure
             badges: [], // Not in current data structure
             amount: 0.0, // Not in current data structure
@@ -174,13 +175,14 @@ class FirestoreRepository {
       
       final cards = cardsSnapshot.docs.map((doc) {
         final cardData = doc.data();
-        print('📋 Processing card: ${cardData['title']} (${doc.id})');
+        print('📋 Processing card: ${cardData['title']} (${doc.id}) - Status: ${cardData['status']}');
         
         // Map Firestore data to JobCard entity
         return JobCard(
           id: doc.id,
           title: cardData['title'] ?? '',
           assignee: cardData['assignedTo'] ?? '',
+          status: cardData['status'] ?? 'To Do',
           dueDate: null, // Not in current data structure
           badges: [], // Not in current data structure
           amount: 0.0, // Not in current data structure
@@ -218,12 +220,13 @@ class FirestoreRepository {
         
         final cards = cardsSnapshot.docs.map((doc) {
           final cardData = doc.data();
-          print('📋 Processing card: ${cardData['title']} (${doc.id})');
+          print('📋 Processing card: ${cardData['title']} (${doc.id}) - Status: ${cardData['status']}');
           
           return JobCard(
             id: doc.id,
             title: cardData['title'] ?? '',
             assignee: cardData['assignedTo'] ?? '',
+            status: cardData['status'] ?? 'To Do',
             dueDate: null,
             badges: [],
             amount: 0.0,
@@ -312,13 +315,32 @@ class FirestoreRepository {
       return _firestoreService.getDocumentsStream(
         cardsCollection,
         queryBuilder: (query) => query
-            .where('laneId', isEqualTo: laneId)
-            .orderBy('order', descending: false),
+            .where('laneId', isEqualTo: laneId),
       ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
           final cardData = doc.data();
-          return JobCard.fromMap(cardData, doc.id);
+          return JobCard(
+            id: doc.id,
+            title: cardData['title'] ?? '',
+            assignee: cardData['assignedTo'] ?? '',
+            status: cardData['status'] ?? 'To Do',
+            dueDate: null,
+            badges: [],
+            amount: 0.0,
+            laneId: cardData['laneId'] ?? '',
+            boardId: cardData['boardId'] ?? '',
+            workspaceId: workspaceId,
+            order: cardData['order'] ?? 0,
+            createdAt: _parseTimestamp(cardData['createdAt']),
+            updatedAt: _parseTimestamp(cardData['updatedAt']),
+            customer: cardData['customer'] ?? '',
+            updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
+          );
         }).toList();
+        
+        // Sort cards by order after fetching
+        cards.sort((a, b) => a.order.compareTo(b.order));
+        
         _logger.systemEvent('Lane cards loaded', {
           'workspaceId': workspaceId,
           'laneId': laneId,
@@ -353,6 +375,7 @@ class FirestoreRepository {
             id: doc.id,
             title: cardData['title'] ?? '',
             assignee: cardData['assignedTo'] ?? '',
+            status: cardData['status'] ?? 'To Do',
             dueDate: null, // Not in current data structure
             badges: [], // Not in current data structure
             amount: 0.0, // Not in current data structure

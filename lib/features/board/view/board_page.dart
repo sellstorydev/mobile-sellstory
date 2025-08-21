@@ -190,11 +190,12 @@ class _BoardPageState extends State<BoardPage> {
           _handleCardReorder(oldItemIndex, oldListIndex, newItemIndex, newListIndex);
         },
         onListReorder: (int oldListIndex, int newListIndex) {
-          // Lane reordering disabled
+          // Lane reordering disabled - do nothing
         },
         axis: Axis.horizontal,
         listWidth: 300,
         listPadding: const EdgeInsets.all(8),
+        listDragHandle: null, // Disable lane drag handle
         children: _controller.lanes.map((lane) {
           final laneData = lane as Lane;
           return DragAndDropList(
