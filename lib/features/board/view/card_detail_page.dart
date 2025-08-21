@@ -30,20 +30,45 @@ class _CardDetailPageState extends State<CardDetailPage> {
   String _selectedStatus = 'To Do';
   bool _isEditing = false;
   bool _isLoading = false;
+  
+  // Current card data (will be updated from controller)
+  late JobCard _currentCard;
 
   @override
   void initState() {
     super.initState();
+    _currentCard = widget.card;
     _initializeControllers();
+    
+    // Add a small delay to ensure controller is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshCardData();
+    });
+  }
+
+  // Refresh card data from controller
+  void _refreshCardData() {
+    try {
+      final latestCard = _getLatestCardData();
+      if (latestCard != null) {
+        print('🔄 CardDetailPage._refreshCardData - Refreshing card data');
+        setState(() {
+          _currentCard = latestCard;
+          _initializeControllers();
+        });
+      }
+    } catch (e) {
+      print('❌ Error refreshing card data: $e');
+    }
   }
 
   void _initializeControllers() {
-    _titleController = TextEditingController(text: widget.card.title);
-    _descriptionController = TextEditingController(text: widget.card.description);
-    _assigneeController = TextEditingController(text: widget.card.assignee);
-    _customerController = TextEditingController(text: widget.card.customer);
-    _customIdController = TextEditingController(text: widget.card.customId);
-    _selectedStatus = widget.card.status;
+    _titleController = TextEditingController(text: _currentCard.title);
+    _descriptionController = TextEditingController(text: _currentCard.description);
+    _assigneeController = TextEditingController(text: _currentCard.assignee);
+    _customerController = TextEditingController(text: _currentCard.customer);
+    _customIdController = TextEditingController(text: _currentCard.customId);
+    _selectedStatus = _currentCard.status;
   }
 
   @override
@@ -56,52 +81,114 @@ class _CardDetailPageState extends State<CardDetailPage> {
     super.dispose();
   }
 
+  // Helper method to get the latest card data from controller
+  JobCard? _getLatestCardData() {
+    try {
+      // Check if controller is ready
+      if (!_controller.isInitialized.value) {
+        print('⚠️ CardDetailPage._getLatestCardData - Controller not initialized yet');
+        return null;
+      }
+      
+      final lanes = _controller.lanes;
+      if (lanes.isEmpty) {
+        print('⚠️ CardDetailPage._getLatestCardData - No lanes available yet');
+        return null;
+      }
+      
+      for (final lane in lanes) {
+        final card = lane.cards.firstWhereOrNull((c) => c.id == widget.card.id);
+        if (card != null) {
+          print('✅ CardDetailPage._getLatestCardData - Found card: ${card.title}');
+          return card;
+        }
+      }
+      
+      print('⚠️ CardDetailPage._getLatestCardData - Card not found in any lane');
+      return null;
+    } catch (e) {
+      print('❌ Error getting latest card data: $e');
+      return null;
+    }
+  }
+
+  // Update current card data from controller
+  void _updateCurrentCard() {
+    final latestCard = _getLatestCardData();
+    if (latestCard != null && latestCard != _currentCard) {
+      print('🔄 CardDetailPage._updateCurrentCard - Updating card data:');
+      print('  - Old Custom ID: ${_currentCard.customId}');
+      print('  - New Custom ID: ${latestCard.customId}');
+      print('  - Old Title: ${_currentCard.title}');
+      print('  - New Title: ${latestCard.title}');
+      
+      setState(() {
+        _currentCard = latestCard;
+        if (!_isEditing) {
+          _initializeControllers();
+        }
+      });
+    } else if (latestCard == null) {
+      print('ℹ️ CardDetailPage._updateCurrentCard - No update needed, using original card data');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Card' : 'Card Details'),
-        actions: [
-          if (!_isEditing)
-            IconButton(
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-              icon: const Icon(Icons.edit),
-              tooltip: 'Edit Card',
-            ),
-          if (_isEditing) ...[
-            IconButton(
-              onPressed: _cancelEdit,
-              icon: const Icon(Icons.close),
-              tooltip: 'Cancel',
-            ),
-            IconButton(
-              onPressed: _saveChanges,
-              icon: const Icon(Icons.save),
-              tooltip: 'Save Changes',
-            ),
-          ],
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildCardHeader(),
-                  const SizedBox(height: 24),
-                  _buildCardDetails(),
-                  const SizedBox(height: 24),
-                  _buildCardMetadata(),
-                ],
+    // Listen to controller state changes
+    return Obx(() {
+      try {
+        _updateCurrentCard();
+      } catch (e) {
+        print('❌ Error in CardDetailPage build: $e');
+        // Continue with current card data if there's an error
+      }
+      
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? 'Edit Card' : 'Card Details'),
+          actions: [
+            if (!_isEditing)
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isEditing = true;
+                  });
+                },
+                icon: const Icon(Icons.edit),
+                tooltip: 'Edit Card',
               ),
-            ),
-    );
+            if (_isEditing) ...[
+              IconButton(
+                onPressed: _cancelEdit,
+                icon: const Icon(Icons.close),
+                tooltip: 'Cancel',
+              ),
+              IconButton(
+                onPressed: _saveChanges,
+                icon: const Icon(Icons.save),
+                tooltip: 'Save Changes',
+              ),
+            ],
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildCardHeader(),
+                    const SizedBox(height: 24),
+                    _buildCardDetails(),
+                    const SizedBox(height: 24),
+                    _buildCardMetadata(),
+                  ],
+                ),
+              ),
+      );
+    });
   }
 
   Widget _buildCardHeader() {
@@ -127,7 +214,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
                           ),
                         )
                       : Text(
-                          widget.card.title,
+                          _currentCard.title,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -138,11 +225,11 @@ class _CardDetailPageState extends State<CardDetailPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(widget.card.status),
+                      color: _getStatusColor(_currentCard.status),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      widget.card.status,
+                      _currentCard.status,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -152,10 +239,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
                   ),
               ],
             ),
-            if (widget.card.customId.isNotEmpty) ...[
+            if (_currentCard.customId.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                '#${widget.card.customId}',
+                '#${_currentCard.customId}',
                 style: TextStyle(
                   color: Colors.grey[600],
                   fontSize: 14,
@@ -207,7 +294,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
                         });
                       },
                     )
-                  : Text(widget.card.status),
+                  : Text(_currentCard.status),
             ),
             
             const SizedBox(height: 16),
@@ -223,7 +310,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
                         hintText: 'Enter assignee',
                       ),
                     )
-                  : Text(widget.card.assignee),
+                  : Text(_currentCard.assignee),
             ),
             
             const SizedBox(height: 16),
@@ -239,7 +326,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
                         hintText: 'Enter customer',
                       ),
                     )
-                  : Text(widget.card.customer),
+                  : Text(_currentCard.customer),
             ),
             
             const SizedBox(height: 16),
@@ -255,7 +342,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
                         hintText: 'Enter custom ID',
                       ),
                     )
-                  : Text(widget.card.customId),
+                  : Text(_currentCard.customId),
             ),
             
             const SizedBox(height: 16),
@@ -273,9 +360,9 @@ class _CardDetailPageState extends State<CardDetailPage> {
                       ),
                     )
                   : Text(
-                      widget.card.description.isEmpty ? 'No description' : widget.card.description,
+                      _currentCard.description.isEmpty ? 'No description' : _currentCard.description,
                       style: TextStyle(
-                        color: widget.card.description.isEmpty ? Colors.grey : null,
+                        color: _currentCard.description.isEmpty ? Colors.grey : null,
                       ),
                     ),
             ),
@@ -301,15 +388,15 @@ class _CardDetailPageState extends State<CardDetailPage> {
             ),
             const SizedBox(height: 16),
             
-            _buildMetadataRow('Card ID', widget.card.id),
-            _buildMetadataRow('Lane ID', widget.card.laneId),
-            _buildMetadataRow('Board ID', widget.card.boardId),
-            _buildMetadataRow('Workspace ID', widget.card.workspaceId),
-            _buildMetadataRow('Order', widget.card.order.toString()),
-            _buildMetadataRow('Created', _formatDate(widget.card.createdAt)),
-            _buildMetadataRow('Updated', _formatDate(widget.card.updatedAt)),
-            if (widget.card.updatedByDisplayName.isNotEmpty)
-              _buildMetadataRow('Updated By', widget.card.updatedByDisplayName),
+            _buildMetadataRow('Card ID', _currentCard.id),
+            _buildMetadataRow('Lane ID', _currentCard.laneId),
+            _buildMetadataRow('Board ID', _currentCard.boardId),
+            _buildMetadataRow('Workspace ID', _currentCard.workspaceId),
+            _buildMetadataRow('Order', _currentCard.order.toString()),
+            _buildMetadataRow('Created', _formatDate(_currentCard.createdAt)),
+            _buildMetadataRow('Updated', _formatDate(_currentCard.updatedAt)),
+            if (_currentCard.updatedByDisplayName.isNotEmpty)
+              _buildMetadataRow('Updated By', _currentCard.updatedByDisplayName),
           ],
         ),
       ),
@@ -423,9 +510,9 @@ class _CardDetailPageState extends State<CardDetailPage> {
 
     try {
       print('🔄 CardDetailPage._saveChanges - Original card data:');
-      print('  - Custom ID: ${widget.card.customId}');
-      print('  - Title: ${widget.card.title}');
-      print('  - Status: ${widget.card.status}');
+      print('  - Custom ID: ${_currentCard.customId}');
+      print('  - Title: ${_currentCard.title}');
+      print('  - Status: ${_currentCard.status}');
       
       print('🔄 CardDetailPage._saveChanges - Form data:');
       print('  - Custom ID: ${_customIdController.text.trim()}');
@@ -433,7 +520,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
       print('  - Status: $_selectedStatus');
       
       // Create updated card
-      final updatedCard = widget.card.copyWith(
+      final updatedCard = _currentCard.copyWith(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         assignee: _assigneeController.text.trim(),
@@ -455,6 +542,9 @@ class _CardDetailPageState extends State<CardDetailPage> {
         _isEditing = false;
         _isLoading = false;
       });
+
+      // Refresh card data after successful update
+      _refreshCardData();
 
       Get.snackbar(
         'Success',
