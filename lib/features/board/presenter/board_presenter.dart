@@ -173,33 +173,87 @@ class BoardPresenter {
     }
   }
 
+  // Add new card
   Future<void> onAddCard({
     required String workspaceId,
     required String laneId,
     required String title,
-    required String assignee,
+    String? assignee,
   }) async {
+    LoggerService.to.methodEntry('BoardPresenter.onAddCard', {
+      'workspaceId': workspaceId,
+      'laneId': laneId,
+      'title': title,
+      'assignee': assignee,
+    });
+    
     try {
-      final newCard = JobCard(
-        id: '',
+      final updatedLanes = _addCardUseCase.execute(
+        lanes: _currentState.lanes,
+        laneId: laneId,
         title: title,
-        assignee: assignee,
+        assignee: assignee ?? '',
         badges: [],
         amount: 0.0,
-        laneId: laneId,
-        boardId: workspaceId,
-        workspaceId: workspaceId,
-        order: _currentState.lanes.firstWhere((l) => l.id == laneId).cards.length,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
       );
       
-      // Create card in repository
-      final cardId = await _repository.createCard(workspaceId, newCard);
+      LoggerService.to.business('Card added successfully');
       
-      LoggerService.to.business('Card created successfully');
+      // Optimistic update
+      _currentState = _currentState.copyWith(lanes: updatedLanes);
+      _view?.render(_currentState);
+      
+      // Persist to repository
+      await _repository.addCard(workspaceId, laneId, title, assignee ?? '');
+      LoggerService.to.database('Card added to repository');
     } catch (e) {
+      LoggerService.to.error('Failed to add card', e);
       _view?.showError('Failed to add card: ${e.toString()}');
+      // Reload to revert optimistic update
+      await load(workspaceId);
     }
+    
+    LoggerService.to.methodExit('BoardPresenter.onAddCard');
+  }
+
+  // Update card
+  Future<void> onUpdateCard({
+    required String workspaceId,
+    required JobCard card,
+  }) async {
+    LoggerService.to.methodEntry('BoardPresenter.onUpdateCard', {
+      'workspaceId': workspaceId,
+      'cardId': card.id,
+      'title': card.title,
+    });
+    
+    try {
+      // Optimistic update
+      final updatedLanes = _currentState.lanes.map((lane) {
+        final cardIndex = lane.cards.indexWhere((c) => c.id == card.id);
+        if (cardIndex != -1) {
+          final updatedCards = List<JobCard>.from(lane.cards);
+          updatedCards[cardIndex] = card;
+          return lane.copyWith(cards: updatedCards);
+        }
+        return lane;
+      }).toList();
+      
+      _currentState = _currentState.copyWith(lanes: updatedLanes);
+      _view?.render(_currentState);
+      
+      LoggerService.to.business('Card updated successfully');
+      
+      // Persist to repository
+      await _repository.updateCard(workspaceId, card);
+      LoggerService.to.database('Card updated in repository');
+    } catch (e) {
+      LoggerService.to.error('Failed to update card', e);
+      _view?.showError('Failed to update card: ${e.toString()}');
+      // Reload to revert optimistic update
+      await load(workspaceId);
+    }
+    
+    LoggerService.to.methodExit('BoardPresenter.onUpdateCard');
   }
 }

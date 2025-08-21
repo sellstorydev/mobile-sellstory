@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
+import '../../../../app/routes.dart';
 
 class JobCardTile extends StatelessWidget {
   final JobCard card;
   final VoidCallback? onTap;
 
-  const JobCardTile({super.key, required this.card, this.onTap});
+  const JobCardTile({
+    super.key,
+    required this.card,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: onTap ?? () {
+        // Navigate to card detail page
+        Get.toNamed(AppRoutes.cardDetail, arguments: card);
+      },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -47,11 +56,24 @@ class JobCardTile extends StatelessWidget {
                       ),
                     ),
                   ),
+                  IconButton(
+                    onPressed: () {
+                      // Navigate to card detail page
+                      Get.toNamed(AppRoutes.cardDetail, arguments: card);
+                    },
+                    icon: const Icon(
+                      Icons.more_vert,
+                      size: 20,
+                      color: AppTheme.textSecondary,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ],
               ),
-
+              
               const SizedBox(height: 12),
-
+              
               // Card ID
               if (card.customId.isNotEmpty) ...[
                 Row(
@@ -74,7 +96,7 @@ class JobCardTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
               ],
-
+              
               // Status with clock icon
               Row(
                 children: [
@@ -93,23 +115,19 @@ class JobCardTile extends StatelessWidget {
                   ),
                 ],
               ),
-
+              
               const SizedBox(height: 8),
-
+              
               // Assignee with profile picture
               Row(
                 children: [
                   CircleAvatar(
                     radius: 12,
-                    backgroundColor: AppTheme.primaryOrange.withValues(
-                      alpha: 0.1,
-                    ),
+                    backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.1),
                     child: Text(
-                      _getInitials(
-                        card.updatedByDisplayName.isNotEmpty
-                            ? card.updatedByDisplayName
-                            : card.assignee,
-                      ),
+                      _getInitials(card.updatedByDisplayName.isNotEmpty 
+                        ? card.updatedByDisplayName 
+                        : card.assignee),
                       style: const TextStyle(
                         color: AppTheme.primaryOrange,
                         fontSize: 12,
@@ -120,9 +138,9 @@ class JobCardTile extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      card.updatedByDisplayName.isNotEmpty
-                          ? card.updatedByDisplayName
-                          : card.assignee,
+                      card.updatedByDisplayName.isNotEmpty 
+                        ? card.updatedByDisplayName 
+                        : card.assignee,
                       style: const TextStyle(
                         color: AppTheme.textPrimary,
                         fontSize: 14,
@@ -134,9 +152,9 @@ class JobCardTile extends StatelessWidget {
                   ),
                 ],
               ),
-
+              
               const SizedBox(height: 8),
-
+              
               // Customer with group icon
               if (card.customer.isNotEmpty) ...[
                 Row(
@@ -174,8 +192,8 @@ class JobCardTile extends StatelessWidget {
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-    return name.length >= 2
-        ? name.substring(0, 2).toUpperCase()
-        : name.toUpperCase();
+    return name.length >= 2 
+      ? name.substring(0, 2).toUpperCase()
+      : name.toUpperCase();
   }
 }

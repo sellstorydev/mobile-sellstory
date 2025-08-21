@@ -226,6 +226,21 @@ class BoardController extends GetxController implements BoardView {
     );
   }
 
+  // Update card
+  Future<void> updateCard(JobCard updatedCard) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for updating card');
+      return;
+    }
+    
+    print('🔄 Updating card: ${updatedCard.id}');
+    
+    await _presenter.onUpdateCard(
+      workspaceId: currentWorkspaceId.value,
+      card: updatedCard,
+    );
+  }
+
   // Getters for UI
   bool get hasWorkspaces => userWorkspaces.isNotEmpty;
   List<Map<String, dynamic>> get availableWorkspaces => userWorkspaces;

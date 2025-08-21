@@ -471,17 +471,52 @@ class FirestoreRepository {
       rethrow;
     }
   }
-  
+
+  // Add card (simplified version)
+  Future<void> addCard(String workspaceId, String laneId, String title, String assignee) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.addCard', {
+        'workspaceId': workspaceId,
+        'laneId': laneId,
+        'title': title,
+        'assignee': assignee
+      });
+      
+      final card = JobCard(
+        id: '',
+        title: title,
+        assignee: assignee,
+        badges: [],
+        amount: 0.0,
+        laneId: laneId,
+        workspaceId: workspaceId,
+        order: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      
+      await createCard(workspaceId, card);
+      _logger.methodExit('FirestoreRepository.addCard');
+    } catch (e) {
+      _logger.error('Failed to add card', e);
+      rethrow;
+    }
+  }
+
   // Update card
-  Future<void> updateCard(String workspaceId, String cardId, Map<String, dynamic> data) async {
+  Future<void> updateCard(String workspaceId, JobCard card) async {
     try {
       _logger.methodEntry('FirestoreRepository.updateCard', {
         'workspaceId': workspaceId,
-        'cardId': cardId
+        'cardId': card.id,
+        'title': card.title
       });
+      
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      final docRef = cardsCollection.doc(cardId);
-      await _firestoreService.updateDocument(docRef, data);
+      final docRef = cardsCollection.doc(card.id);
+      
+      await _firestoreService.updateDocument(docRef, card.toMap());
+      
       _logger.methodExit('FirestoreRepository.updateCard');
     } catch (e) {
       _logger.error('Failed to update card', e);

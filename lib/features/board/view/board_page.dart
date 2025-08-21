@@ -6,7 +6,6 @@ import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
 import '../../../domain/entities/lane.dart';
-import 'user_cards_page.dart';
 
 class BoardPage extends StatefulWidget {
   const BoardPage({super.key});
@@ -17,7 +16,6 @@ class BoardPage extends StatefulWidget {
 
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
-  bool _showListView = false; // Toggle between list and board view
 
   @override
   void initState() {
@@ -63,16 +61,6 @@ class _BoardPageState extends State<BoardPage> {
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh data',
           ),
-          // View toggle button
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _showListView = !_showListView;
-              });
-            },
-            icon: Icon(_showListView ? Icons.dashboard : Icons.list),
-            tooltip: _showListView ? 'Switch to Board View' : 'Switch to List View',
-          ),
           // Workspace selector
           Obx(() {
             if (_controller.hasWorkspaces) {
@@ -96,11 +84,9 @@ class _BoardPageState extends State<BoardPage> {
           }),
         ],
       ),
-      body: _showListView 
-        ? const UserCardsPage() 
-        : _buildBoardView(),
+      body: _buildBoardView(),
       floatingActionButton: Obx(() {
-        if (_controller.lanes.isNotEmpty && !_showListView) {
+        if (_controller.lanes.isNotEmpty) {
           return FloatingActionButton(
             onPressed: () => _showAddCardDialog(),
             child: const Icon(Icons.add),

@@ -4,6 +4,7 @@ import '../features/login/view/login_page.dart';
 import '../features/shell/shell_page.dart';
 import '../features/board/view/board_page.dart';
 import '../features/board/view/user_cards_page.dart';
+import '../features/board/view/card_detail_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -11,6 +12,7 @@ class AppRoutes {
   static const String shell = '/shell';
   static const String board = '/board';
   static const String userCards = '/user-cards';
+  static const String cardDetail = '/card-detail';
 
   static final routes = [
     GetPage(
@@ -32,6 +34,10 @@ class AppRoutes {
     GetPage(
       name: userCards,
       page: () => const UserCardsPage(),
+    ),
+    GetPage(
+      name: cardDetail,
+      page: () => CardDetailPage(card: Get.arguments),
     ),
   ];
 }
