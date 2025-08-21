@@ -515,7 +515,18 @@ class FirestoreRepository {
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
       final docRef = cardsCollection.doc(card.id);
       
-      await _firestoreService.updateDocument(docRef, card.toMap());
+      final cardData = card.toMap();
+      
+      // Debug logging
+      print('🔄 Sending card data to Firebase:');
+      print('  - customId: ${cardData['customId']}');
+      print('  - assignedTo: ${cardData['assignedTo']}');
+      print('  - status: ${cardData['status']}');
+      print('  - customer: ${cardData['customer']}');
+      print('  - title: ${cardData['title']}');
+      
+      // Use merge option to prevent overwriting existing fields
+      await docRef.set(cardData, SetOptions(merge: true));
       
       _logger.methodExit('FirestoreRepository.updateCard');
     } catch (e) {

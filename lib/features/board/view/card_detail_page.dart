@@ -394,6 +394,29 @@ class _CardDetailPageState extends State<CardDetailPage> {
   }
 
   Future<void> _saveChanges() async {
+    // Validate required fields
+    if (_titleController.text.trim().isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Title is required',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (_customIdController.text.trim().isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Custom ID is required',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -409,6 +432,16 @@ class _CardDetailPageState extends State<CardDetailPage> {
         status: _selectedStatus,
         updatedAt: DateTime.now(),
       );
+
+      // Debug logging
+      print('🔄 Updating card with data:');
+      print('  - ID: ${updatedCard.id}');
+      print('  - Title: ${updatedCard.title}');
+      print('  - Custom ID: ${updatedCard.customId}');
+      print('  - Status: ${updatedCard.status}');
+      print('  - Assignee: ${updatedCard.assignee}');
+      print('  - Customer: ${updatedCard.customer}');
+      print('  - Description: ${updatedCard.description}');
 
       // Update card using controller
       await _controller.updateCard(updatedCard);
@@ -429,6 +462,8 @@ class _CardDetailPageState extends State<CardDetailPage> {
       setState(() {
         _isLoading = false;
       });
+
+      print('❌ Error updating card: $e');
 
       Get.snackbar(
         'Error',

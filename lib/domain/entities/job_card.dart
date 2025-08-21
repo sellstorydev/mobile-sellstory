@@ -84,7 +84,7 @@ class JobCard {
     return {
       'title': title,
       'description': description,
-      'assignee': assignee,
+      'assignedTo': assignee, // Map to 'assignedTo' to match Firebase structure
       'status': status,
       'customId': customId,
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
@@ -98,6 +98,15 @@ class JobCard {
       'updatedAt': Timestamp.fromDate(updatedAt),
       'customer': customer,
       'updatedByDisplayName': updatedByDisplayName,
+      // Add missing fields to prevent data loss
+      'customFields': [],
+      'expenses': [],
+      'todos': [],
+      'notes': [],
+      'watchers': [],
+      'company': null,
+      'updatedBy': assignee, // Use assignee as updatedBy
+      'createdBy': assignee, // Use assignee as createdBy
     };
   }
 
