@@ -422,6 +422,16 @@ class _CardDetailPageState extends State<CardDetailPage> {
     });
 
     try {
+      print('🔄 CardDetailPage._saveChanges - Original card data:');
+      print('  - Custom ID: ${widget.card.customId}');
+      print('  - Title: ${widget.card.title}');
+      print('  - Status: ${widget.card.status}');
+      
+      print('🔄 CardDetailPage._saveChanges - Form data:');
+      print('  - Custom ID: ${_customIdController.text.trim()}');
+      print('  - Title: ${_titleController.text.trim()}');
+      print('  - Status: $_selectedStatus');
+      
       // Create updated card
       final updatedCard = widget.card.copyWith(
         title: _titleController.text.trim(),
@@ -433,15 +443,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
         updatedAt: DateTime.now(),
       );
 
-      // Debug logging
-      print('🔄 Updating card with data:');
-      print('  - ID: ${updatedCard.id}');
-      print('  - Title: ${updatedCard.title}');
+      print('🔄 CardDetailPage._saveChanges - Updated card data:');
       print('  - Custom ID: ${updatedCard.customId}');
+      print('  - Title: ${updatedCard.title}');
       print('  - Status: ${updatedCard.status}');
-      print('  - Assignee: ${updatedCard.assignee}');
-      print('  - Customer: ${updatedCard.customer}');
-      print('  - Description: ${updatedCard.description}');
 
       // Update card using controller
       await _controller.updateCard(updatedCard);

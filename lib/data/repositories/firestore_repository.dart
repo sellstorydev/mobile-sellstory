@@ -130,7 +130,7 @@ class FirestoreRepository {
         
         final cards = cardsSnapshot.docs.map((doc) {
           final cardData = doc.data();
-          print('📋 Processing card: ${cardData['title']} (${doc.id}) - Status: ${cardData['status']}');
+          print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
           
           // Map Firestore data to JobCard entity
           return JobCard(
@@ -138,6 +138,7 @@ class FirestoreRepository {
             title: cardData['title'] ?? '',
             assignee: cardData['assignedTo'] ?? '',
             status: cardData['status'] ?? 'To Do',
+            customId: cardData['customId'] ?? '',
             dueDate: null, // Not in current data structure
             badges: [], // Not in current data structure
             amount: 0.0, // Not in current data structure
@@ -175,7 +176,7 @@ class FirestoreRepository {
       
       final cards = cardsSnapshot.docs.map((doc) {
         final cardData = doc.data();
-        print('📋 Processing card: ${cardData['title']} (${doc.id}) - Status: ${cardData['status']}');
+        print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
         
         // Map Firestore data to JobCard entity
         return JobCard(
@@ -183,6 +184,7 @@ class FirestoreRepository {
           title: cardData['title'] ?? '',
           assignee: cardData['assignedTo'] ?? '',
           status: cardData['status'] ?? 'To Do',
+          customId: cardData['customId'] ?? '',
           dueDate: null, // Not in current data structure
           badges: [], // Not in current data structure
           amount: 0.0, // Not in current data structure
@@ -220,13 +222,14 @@ class FirestoreRepository {
         
         final cards = cardsSnapshot.docs.map((doc) {
           final cardData = doc.data();
-          print('📋 Processing card: ${cardData['title']} (${doc.id}) - Status: ${cardData['status']}');
+          print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
           
           return JobCard(
             id: doc.id,
             title: cardData['title'] ?? '',
             assignee: cardData['assignedTo'] ?? '',
             status: cardData['status'] ?? 'To Do',
+            customId: cardData['customId'] ?? '',
             dueDate: null,
             badges: [],
             amount: 0.0,
@@ -324,6 +327,7 @@ class FirestoreRepository {
             title: cardData['title'] ?? '',
             assignee: cardData['assignedTo'] ?? '',
             status: cardData['status'] ?? 'To Do',
+            customId: cardData['customId'] ?? '',
             dueDate: null,
             badges: [],
             amount: 0.0,
@@ -376,6 +380,7 @@ class FirestoreRepository {
             title: cardData['title'] ?? '',
             assignee: cardData['assignedTo'] ?? '',
             status: cardData['status'] ?? 'To Do',
+            customId: cardData['customId'] ?? '',
             dueDate: null, // Not in current data structure
             badges: [], // Not in current data structure
             amount: 0.0, // Not in current data structure

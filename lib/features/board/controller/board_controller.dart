@@ -233,12 +233,20 @@ class BoardController extends GetxController implements BoardView {
       return;
     }
     
-    print('🔄 Updating card: ${updatedCard.id}');
+    print('🔄 BoardController.updateCard - Card data:');
+    print('  - ID: ${updatedCard.id}');
+    print('  - Title: ${updatedCard.title}');
+    print('  - Custom ID: ${updatedCard.customId}');
+    print('  - Status: ${updatedCard.status}');
+    print('  - Assignee: ${updatedCard.assignee}');
+    print('  - Customer: ${updatedCard.customer}');
     
     await _presenter.onUpdateCard(
       workspaceId: currentWorkspaceId.value,
       card: updatedCard,
     );
+    
+    print('✅ BoardController.updateCard completed');
   }
 
   // Getters for UI
@@ -260,6 +268,15 @@ class BoardController extends GetxController implements BoardView {
 
   @override
   void render(BoardState state) {
+    print('🔄 BoardController.render - Updating UI with new state:');
+    print('  - Lanes count: ${state.lanes.length}');
+    for (final lane in state.lanes) {
+      print('  - Lane: ${lane.title} (${lane.cards.length} cards)');
+      for (final card in lane.cards) {
+        print('    - Card: ${card.title} (ID: ${card.id}, Custom ID: ${card.customId})');
+      }
+    }
+    
     this.lanes.value = state.lanes;
     isLoading.value = state.isLoading;
     error.value = state.error ?? '';

@@ -16,6 +16,15 @@ class JobCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Debug logging to track card data
+    print('🔄 JobCardTile.build - Card data:');
+    print('  - ID: ${card.id}');
+    print('  - Title: ${card.title}');
+    print('  - Custom ID: ${card.customId} (length: ${card.customId.length})');
+    print('  - Status: ${card.status}');
+    print('  - Assignee: ${card.assignee}');
+    print('  - Customer: ${card.customer}');
+    
     return GestureDetector(
       onTap: onTap ?? () {
         // Navigate to card detail page
@@ -93,6 +102,23 @@ class JobCardTile extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+              ] else ...[
+                // Debug: Show when custom ID is empty
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'DEBUG: No Custom ID',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
               ],
