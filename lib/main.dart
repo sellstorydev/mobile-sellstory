@@ -34,7 +34,7 @@ void main() async {
   // Initialize GetStorage
   try {
     await GetStorage.init();
-    LoggerService.to.cache('GetStorage initialized successfully');
+    LoggerService.to.cache('GetS torage initialized successfully');
   } catch (e) {
     LoggerService.to.failure('Failed to initialize GetStorage', e);
   }

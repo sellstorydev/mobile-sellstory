@@ -6,6 +6,7 @@ import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
 import '../../../domain/entities/lane.dart';
+import '../../chat/view/chat_center_page.dart'; // Add this import
 
 class BoardPage extends StatefulWidget {
   const BoardPage({super.key});
@@ -55,6 +56,19 @@ class _BoardPageState extends State<BoardPage> {
           ? _controller.currentWorkspaceName.value 
           : 'Board')),
         actions: [
+          // Chat button
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatCenterPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.chat_bubble_outline),
+            tooltip: 'Chat Center',
+          ),
           // Refresh button
           IconButton(
             onPressed: () => _controller.refresh(),

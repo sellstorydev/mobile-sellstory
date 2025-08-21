@@ -103,14 +103,15 @@ class FirestoreService extends GetxService {
       throw Exception('Failed to get document: $e');
     }
   }
-  
+
+
   Stream<QuerySnapshot<Map<String, dynamic>>> getDocumentsStream(
     CollectionReference<Map<String, dynamic>> collection, {
     Query<Map<String, dynamic>> Function(Query<Map<String, dynamic>> query)? queryBuilder,
   }) {
     try {
       Query<Map<String, dynamic>> query = collection;
-      if (queryBuilder != null) {
+      if (queryBuilder != null ) {
         query = queryBuilder(query);
       }
       return query.snapshots();
@@ -153,6 +154,144 @@ class FirestoreService extends GetxService {
       return await _firestore.runTransaction(updateFunction);
     } catch (e) {
       throw Exception('Failed to run transaction: $e');
+    }
+  }
+
+  // Chat-related methods - Updated for workspace-based chatrooms
+
+  // ===== Firestore refs =====
+  CollectionReference<Map<String, dynamic>> getChatroomsCollection(String workspaceId) =>
+      _firestore.collection('workspaces').doc(workspaceId).collection('chatrooms');
+
+  CollectionReference<Map<String, dynamic>> getChatroomMessagesCollection({
+    required String workspaceId,
+    required String chatroomId,
+  }) =>
+      _firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('chatrooms')
+          .doc(chatroomId)
+          .collection('messages');
+
+  // ===== Queries =====
+
+
+  // เดิมชื่อ getConversationsForUser เปลี่ยนให้สื่อความเป็น workspace แทน
+  Future<List<Map<String, dynamic>>> getChatroomsForWorkspace(String workspaceId) async {
+    try {
+      final qs = await getChatroomsCollection(workspaceId)
+          .where('is_deleted', isEqualTo: 'N') // ตรงกับ field ในรูป
+          .orderBy('last_message_info.last_upd', descending: true) // แก้ไข: last_upd อยู่ใน last_message_info
+          .get();
+
+      return qs.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+
+        // ดึงข้อมูลจาก last_message_info
+        final lastMessageInfo = data['last_message_info'] as Map<String, dynamic>? ?? {};
+
+        // map fields ให้เข้ากับ widget เดิมของคุณ
+        data['name'] = data['name'] ?? data['customerName'] ?? lastMessageInfo['who_name'] ?? 'Unknown';
+        data['type'] = (data['dialog_type']?.toString().toUpperCase() == 'GROUP') ? 'group' : 'direct';
+        data['lastMessage'] = lastMessageInfo['message'] ?? data['message'] ?? '';
+        data['avatarUrl'] = data['avatar']; // ถ้ามี
+        data['status'] = data['chatroom_status'] ?? 'active';
+        data['unreadCount'] = int.tryParse(data['count']?.toString() ?? '0') ?? 0;
+        data['isOnline'] = (data['bot_status'] == 'Y');
+        data['sourceType'] = data['source_type'] ?? 'unknown';
+        data['isPinned'] = data['chat_pin'] == 'Y';
+        data['isNew'] = data['is_new'] == 'Y';
+
+        // แปลงเวลา (รองรับทั้ง String ISO และ Timestamp เผื่ออนาคต)
+        DateTime? parseDate(dynamic v) {
+          if (v == null) return null;
+          if (v is Timestamp) return v.toDate();
+          if (v is String) {
+            try { return DateTime.parse(v); } catch (_) {}
+          }
+          return null;
+        }
+
+        // ใช้ last_upd จาก last_message_info แทน
+        data['lastMessageAt'] = parseDate(lastMessageInfo['last_upd']);
+        data['createdAt'] = parseDate(data['created']);
+
+        return data;
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to get chatrooms: $e');
+    }
+  }
+
+  // ใช้ดึงข้อความของห้อง
+  Future<QuerySnapshot<Map<String, dynamic>>> getMessages({
+    required String workspaceId,
+    required String chatroomId,
+    int limit = 50,
+  }) {
+    return getChatroomMessagesCollection(workspaceId: workspaceId, chatroomId: chatroomId)
+        .orderBy('msg_timestamp', descending: true) // จากรูปเป็น string/epoch; ปรับตามจริง
+        .limit(limit)
+        .get();
+  }
+
+  // Mark chatroom as read - updated for workspace structure
+  Future<void> markChatroomAsRead(String workspaceId, String chatroomId) async {
+    try {
+      await getChatroomsCollection(workspaceId).doc(chatroomId).update({
+        'count': '0', // Reset count to 0 for read
+        'is_new': 'N', // Mark as not new
+      });
+    } catch (e) {
+      throw Exception('Failed to mark chatroom as read: $e');
+    }
+  }
+
+  // Legacy method for backward compatibility - now properly gets workspace ID
+  Future<List<Map<String, dynamic>>> getConversationsForUser(String userId) async {
+    try {
+      // Get user's current workspace ID instead of using userId directly
+      final userWorkspaces = await getUserWorkspaces(userId);
+
+      if (userWorkspaces.isEmpty) {
+        throw Exception('User has no workspaces');
+      }
+
+      // Get the first workspace or current active workspace
+      // You might want to add logic to get the current active workspace
+      final currentWorkspaceId = userWorkspaces.first['id'] as String? ?? userWorkspaces.first['workspaceId'] as String?;
+
+      if (currentWorkspaceId == null) {
+        throw Exception('No valid workspace ID found');
+      }
+
+      return getChatroomsForWorkspace(currentWorkspaceId);
+    } catch (e) {
+      throw Exception('Failed to get conversations for user: $e');
+    }
+  }
+
+  // Legacy method for backward compatibility - now uses proper workspace structure
+  Future<void> markConversationAsRead(String conversationId, String userId) async {
+    try {
+      // Get user's current workspace ID
+      final userWorkspaces = await getUserWorkspaces(userId);
+
+      if (userWorkspaces.isEmpty) {
+        throw Exception('User has no workspaces');
+      }
+
+      final currentWorkspaceId = userWorkspaces.first['id'] as String? ?? userWorkspaces.first['workspaceId'] as String?;
+
+      if (currentWorkspaceId == null) {
+        throw Exception('No valid workspace ID found');
+      }
+
+      return markChatroomAsRead(currentWorkspaceId, conversationId);
+    } catch (e) {
+      throw Exception('Failed to mark conversation as read: $e');
     }
   }
 }
