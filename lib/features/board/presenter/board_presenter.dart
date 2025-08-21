@@ -40,7 +40,7 @@ class BoardPresenter {
     _view?.showLoading(true);
     
     try {
-      // Listen to lanes stream
+      // Listen to both lanes and cards streams for real-time updates
       _repository.getLanesStream(workspaceId).listen((lanes) {
         LoggerService.to.business('Loaded ${lanes.length} lanes from repository');
         
@@ -50,6 +50,27 @@ class BoardPresenter {
           error: null,
         );
         _view?.render(_currentState);
+      });
+
+      // Also listen to all cards for immediate updates when cards are moved
+      _repository.getAllCardsStream(workspaceId).listen((allCards) {
+        LoggerService.to.business('All cards updated: ${allCards.length} cards');
+        
+        // Update current state with new card data
+        if (_currentState.lanes.isNotEmpty) {
+          final updatedLanes = _currentState.lanes.map((lane) {
+            final laneCards = allCards.where((card) => card.laneId == lane.id).toList();
+            laneCards.sort((a, b) => a.order.compareTo(b.order));
+            return lane.copyWith(cards: laneCards);
+          }).toList();
+          
+          _currentState = _currentState.copyWith(
+            lanes: updatedLanes,
+            isLoading: false,
+            error: null,
+          );
+          _view?.render(_currentState);
+        }
       });
     } catch (e) {
       LoggerService.to.error('Failed to load lanes', e);

@@ -103,6 +103,29 @@ class BoardController extends GetxController implements BoardView {
       error.value = 'Failed to load board data';
     }
   }
+
+  // Manual refresh method
+  Future<void> refresh() async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for refresh');
+      return;
+    }
+    
+    try {
+      print('🔄 Manual refresh triggered for workspace: ${currentWorkspaceId.value}');
+      isLoading.value = true;
+      
+      // Force reload data
+      await _presenter.load(currentWorkspaceId.value);
+      
+      print('✅ Manual refresh completed - ${lanes.length} lanes');
+    } catch (e) {
+      print('❌ Failed to refresh board data: $e');
+      error.value = 'Failed to refresh board data';
+    } finally {
+      isLoading.value = false;
+    }
+  }
   
   // Load user's assigned cards
   Future<void> loadUserAssignedCards() async {

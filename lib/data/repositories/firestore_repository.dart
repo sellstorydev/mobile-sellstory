@@ -69,15 +69,13 @@ class FirestoreRepository {
     }
   }
   
-    // Get lanes for a specific workspace
+  // Get lanes for a specific workspace with real-time updates
   Stream<List<Lane>> getLanesStream(String workspaceId) {
     try {
-      print('🔄 Getting lanes for workspace: $workspaceId');
-      
-      // Get lanes directly from lanes subcollection
+      print('🔄 Getting lanes stream for workspace: $workspaceId');
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
       
-    return _firestoreService.getDocumentsStream(
+      return _firestoreService.getDocumentsStream(
         lanesCollection,
         queryBuilder: (query) => query.orderBy('order', descending: false),
       ).asyncMap((lanesSnapshot) async {
@@ -93,8 +91,8 @@ class FirestoreRepository {
           
           print('📋 Processing lane: $laneTitle ($laneId)');
           
-          // Get cards for this lane
-          final cards = await _getCardsForLane(workspaceId, laneId);
+          // Get cards for this lane using stream
+          final cards = await _getCardsStreamForLane(workspaceId, laneId).first;
           
           lanes.add(Lane(
             id: laneId,
@@ -108,7 +106,7 @@ class FirestoreRepository {
         // Sort lanes by order
         lanes.sort((a, b) => a.order.compareTo(b.order));
         
-        print('✅ Lanes loaded from Firestore: ${lanes.length} lanes');
+        print('✅ Lanes updated from Firestore: ${lanes.length} lanes');
         
         return lanes;
       });
@@ -118,18 +116,63 @@ class FirestoreRepository {
     }
   }
   
-  // Helper method to get cards for a specific lane
+  // Helper method to get cards stream for a specific lane
+  Stream<List<JobCard>> _getCardsStreamForLane(String workspaceId, String laneId) {
+    try {
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+      
+      return _firestoreService.getDocumentsStream(
+        cardsCollection,
+        queryBuilder: (query) => query
+            .where('laneId', isEqualTo: laneId),
+      ).map((cardsSnapshot) {
+        print('📋 Found ${cardsSnapshot.docs.length} cards for lane: $laneId');
+        
+        final cards = cardsSnapshot.docs.map((doc) {
+          final cardData = doc.data();
+          print('📋 Processing card: ${cardData['title']} (${doc.id})');
+          
+          // Map Firestore data to JobCard entity
+          return JobCard(
+            id: doc.id,
+            title: cardData['title'] ?? '',
+            assignee: cardData['assignedTo'] ?? '',
+            dueDate: null, // Not in current data structure
+            badges: [], // Not in current data structure
+            amount: 0.0, // Not in current data structure
+            laneId: cardData['laneId'] ?? '',
+            boardId: cardData['boardId'] ?? '',
+            workspaceId: workspaceId,
+            order: cardData['order'] ?? 0,
+            createdAt: _parseTimestamp(cardData['createdAt']),
+            updatedAt: _parseTimestamp(cardData['updatedAt']),
+            customer: cardData['customer'] ?? '',
+            updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
+          );
+        }).toList();
+        
+        // Sort cards by order after fetching
+        cards.sort((a, b) => a.order.compareTo(b.order));
+        
+        return cards;
+      });
+    } catch (e) {
+      print('❌ Failed to get cards stream for lane $laneId: $e');
+      return Stream.value([]);
+    }
+  }
+  
+  // Helper method to get cards for a specific lane (for backward compatibility)
   Future<List<JobCard>> _getCardsForLane(String workspaceId, String laneId) async {
     try {
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
       final cardsSnapshot = await cardsCollection
           .where('laneId', isEqualTo: laneId)
-          .orderBy('order', descending: false)
           .get();
       
       print('📋 Found ${cardsSnapshot.docs.length} cards for lane: $laneId');
       
-      return cardsSnapshot.docs.map((doc) {
+      final cards = cardsSnapshot.docs.map((doc) {
         final cardData = doc.data();
         print('📋 Processing card: ${cardData['title']} (${doc.id})');
         
@@ -145,16 +188,93 @@ class FirestoreRepository {
           boardId: cardData['boardId'] ?? '',
           workspaceId: workspaceId,
           order: cardData['order'] ?? 0,
-          createdAt: DateTime.fromMillisecondsSinceEpoch(cardData['createdAt'] ?? 0),
-          updatedAt: DateTime.fromMillisecondsSinceEpoch(cardData['updatedAt'] ?? 0),
+          createdAt: _parseTimestamp(cardData['createdAt']),
+          updatedAt: _parseTimestamp(cardData['updatedAt']),
           customer: cardData['customer'] ?? '',
           updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
         );
       }).toList();
+      
+      // Sort cards by order after fetching
+      cards.sort((a, b) => a.order.compareTo(b.order));
+      
+      return cards;
     } catch (e) {
       print('❌ Failed to get cards for lane $laneId: $e');
       return [];
     }
+  }
+  
+  // Get all cards for a workspace with real-time updates
+  Stream<List<JobCard>> getAllCardsStream(String workspaceId) {
+    try {
+      print('🔄 Getting all cards stream for workspace: $workspaceId');
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+      
+      return _firestoreService.getDocumentsStream(
+        cardsCollection,
+      ).map((cardsSnapshot) {
+        print('📋 Found ${cardsSnapshot.docs.length} cards in workspace');
+        
+        final cards = cardsSnapshot.docs.map((doc) {
+          final cardData = doc.data();
+          print('📋 Processing card: ${cardData['title']} (${doc.id})');
+          
+          return JobCard(
+            id: doc.id,
+            title: cardData['title'] ?? '',
+            assignee: cardData['assignedTo'] ?? '',
+            dueDate: null,
+            badges: [],
+            amount: 0.0,
+            laneId: cardData['laneId'] ?? '',
+            boardId: cardData['boardId'] ?? '',
+            workspaceId: workspaceId,
+            order: cardData['order'] ?? 0,
+            createdAt: _parseTimestamp(cardData['createdAt']),
+            updatedAt: _parseTimestamp(cardData['updatedAt']),
+            customer: cardData['customer'] ?? '',
+            updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
+          );
+        }).toList();
+        
+        // Sort cards by order after fetching
+        cards.sort((a, b) => a.order.compareTo(b.order));
+        
+        print('✅ All cards updated from Firestore: ${cards.length} cards');
+        return cards;
+      });
+    } catch (e) {
+      print('❌ Failed to get all cards stream: $e');
+      rethrow;
+    }
+  }
+  
+  // Helper method to parse timestamp from different formats
+  DateTime _parseTimestamp(dynamic timestamp) {
+    if (timestamp == null) {
+      return DateTime.now();
+    }
+    
+    if (timestamp is Timestamp) {
+      return timestamp.toDate();
+    }
+    
+    if (timestamp is int) {
+      return DateTime.fromMillisecondsSinceEpoch(timestamp);
+    }
+    
+    if (timestamp is String) {
+      try {
+        return DateTime.parse(timestamp);
+      } catch (e) {
+        print('❌ Failed to parse timestamp string: $timestamp');
+        return DateTime.now();
+      }
+    }
+    
+    print('❌ Unknown timestamp format: ${timestamp.runtimeType}');
+    return DateTime.now();
   }
   
   // Get cards for a specific workspace
@@ -224,8 +344,7 @@ class FirestoreRepository {
     return _firestoreService.getDocumentsStream(
         cardsCollection,
       queryBuilder: (query) => query
-            .where('assignedTo', isEqualTo: userId)
-          .orderBy('order', descending: false),
+            .where('assignedTo', isEqualTo: userId),
     ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
           final cardData = doc.data();
@@ -239,12 +358,16 @@ class FirestoreRepository {
             amount: 0.0, // Not in current data structure
             laneId: cardData['laneId'] ?? '',
             order: cardData['order'] ?? 0,
-            createdAt: DateTime.fromMillisecondsSinceEpoch(cardData['createdAt'] ?? 0),
-            updatedAt: DateTime.fromMillisecondsSinceEpoch(cardData['updatedAt'] ?? 0),
+            createdAt: _parseTimestamp(cardData['createdAt']),
+            updatedAt: _parseTimestamp(cardData['updatedAt']),
             customer: cardData['customer'] ?? '',
             updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
           );
       }).toList();
+      
+      // Sort cards by order after fetching
+      cards.sort((a, b) => a.order.compareTo(b.order));
+      
         _logger.systemEvent('User assigned cards loaded', {
           'workspaceId': workspaceId,
           'userId': userId,

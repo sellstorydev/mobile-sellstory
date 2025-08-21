@@ -57,6 +57,12 @@ class _BoardPageState extends State<BoardPage> {
           ? _controller.currentWorkspaceName.value 
           : 'Board')),
         actions: [
+          // Refresh button
+          IconButton(
+            onPressed: () => _controller.refresh(),
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh data',
+          ),
           // View toggle button
           IconButton(
             onPressed: () {
@@ -184,22 +190,11 @@ class _BoardPageState extends State<BoardPage> {
           _handleCardReorder(oldItemIndex, oldListIndex, newItemIndex, newListIndex);
         },
         onListReorder: (int oldListIndex, int newListIndex) {
-          _handleLaneReorder(oldListIndex, newListIndex);
+          // Lane reordering disabled
         },
         axis: Axis.horizontal,
         listWidth: 300,
         listPadding: const EdgeInsets.all(8),
-        listDragHandle: DragHandle(
-          child: Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.drag_handle, size: 16),
-          ),
-        ),
         children: _controller.lanes.map((lane) {
           final laneData = lane as Lane;
           return DragAndDropList(
@@ -284,11 +279,6 @@ class _BoardPageState extends State<BoardPage> {
     } catch (e) {
       print('❌ Failed to handle card reorder: $e');
     }
-  }
-
-  void _handleLaneReorder(int oldListIndex, int newListIndex) {
-    // Implement lane reordering if needed
-    print('🔄 Lane reordered from index $oldListIndex to $newListIndex');
   }
 
   void _showAddLaneDialog() {
