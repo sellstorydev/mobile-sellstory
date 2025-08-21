@@ -88,7 +88,7 @@ class _BoardPageState extends State<BoardPage> {
       floatingActionButton: Obx(() {
         if (_controller.lanes.isNotEmpty) {
           return FloatingActionButton(
-            onPressed: () => _showAddCardDialog(),
+            onPressed: () => _showAddCardDialog(_controller.lanes.first as Lane),
             child: const Icon(Icons.add),
           );
         }
@@ -186,11 +186,17 @@ class _BoardPageState extends State<BoardPage> {
           final laneData = lane as Lane;
           return DragAndDropList(
             header: _buildLaneHeader(laneData),
-            children: laneData.cards.map((card) {
-              return DragAndDropItem(
-                child: JobCardTile(card: card),
-              );
-            }).toList(),
+            children: [
+              ...laneData.cards.map((card) {
+                return DragAndDropItem(
+                  child: JobCardTile(card: card),
+                );
+              }).toList(),
+              // Add card button at the bottom of each lane
+              DragAndDropItem(
+                child: _buildAddCardButton(laneData),
+              ),
+            ],
           );
         }).toList(),
       ),
@@ -249,6 +255,45 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
+  Widget _buildAddCardButton(Lane lane) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: InkWell(
+        onTap: () => _showAddCardDialog(lane),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add,
+                size: 20,
+                color: Colors.orange[600],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Add a card',
+                style: TextStyle(
+                  color: Colors.orange[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _handleCardReorder(int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
     try {
       final oldLane = _controller.lanes[oldListIndex] as Lane;
@@ -302,55 +347,36 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-  void _showAddCardDialog() {
+
+
+  void _showAddCardDialog(Lane lane) {
     final TextEditingController titleController = TextEditingController();
     final TextEditingController assigneeController = TextEditingController();
-    String selectedLaneId = _controller.lanes.first.id;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add New Card'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Card Title',
-                  hintText: 'Enter card title...',
-                ),
+        title: Text('Add Card to ${lane.title}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: 'Card Title *',
+                hintText: 'Enter card title...',
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: assigneeController,
-                decoration: const InputDecoration(
-                  labelText: 'Assignee',
-                  hintText: 'Enter assignee...',
-                ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: assigneeController,
+              decoration: const InputDecoration(
+                labelText: 'Assignee',
+                hintText: 'Enter assignee...',
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedLaneId,
-                decoration: const InputDecoration(
-                  labelText: 'Lane',
-                ),
-                items: _controller.lanes.map((lane) {
-                  final laneData = lane as Lane;
-                  return DropdownMenuItem<String>(
-                    value: laneData.id,
-                    child: Text(laneData.title),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    selectedLaneId = value;
-                  }
-                },
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -361,14 +387,22 @@ class _BoardPageState extends State<BoardPage> {
             onPressed: () {
               if (titleController.text.trim().isNotEmpty) {
                 _controller.onAddCard(
-                  laneId: selectedLaneId,
+                  laneId: lane.id,
                   title: titleController.text.trim(),
                   assignee: assigneeController.text.trim(),
                 );
                 Navigator.of(context).pop();
+              } else {
+                // Show error for required fields
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Title is required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
-            child: const Text('Add'),
+            child: const Text('Add Card'),
           ),
         ],
       ),
