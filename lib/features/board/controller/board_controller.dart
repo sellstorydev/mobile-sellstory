@@ -21,6 +21,8 @@ class BoardController extends GetxController implements BoardView {
   final RxList<Lane> lanes = <Lane>[].obs;
   final RxList<JobCard> userAssignedCards = <JobCard>[].obs;
   final RxList<Board> boards = <Board>[].obs;
+  final RxString currentBoardId = ''.obs;
+  final RxString currentBoardName = ''.obs;
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
   final RxBool isInitialized = false.obs;
@@ -59,8 +61,13 @@ class BoardController extends GetxController implements BoardView {
         
         print('✅ User initialized with workspace: ${firstWorkspace['name']}');
         
-        // Load data for the selected workspace
-        await load();
+        // Load boards for the selected workspace
+        await getBoards();
+        
+        // Auto-select first board if available
+        if (boards.isNotEmpty) {
+          await switchBoard(boards.first.id);
+        }
       } else {
         print('⚠️ No workspaces found for user: $userId');
         error.value = 'No workspaces found for this user';
@@ -80,9 +87,17 @@ class BoardController extends GetxController implements BoardView {
       // Clear current data
       lanes.clear();
       userAssignedCards.clear();
+      boards.clear();
+      currentBoardId.value = '';
+      currentBoardName.value = '';
       
-      // Load data for the new workspace
-      await load();
+      // Load boards for the new workspace
+      await getBoards();
+      
+      // Auto-select first board if available
+      if (boards.isNotEmpty) {
+        await switchBoard(boards.first.id);
+      }
       
       print('✅ Workspace switched successfully');
     } catch (e) {
@@ -90,17 +105,46 @@ class BoardController extends GetxController implements BoardView {
       error.value = 'Failed to switch workspace';
     }
   }
+
+  // Switch board
+  Future<void> switchBoard(String boardId) async {
+    try {
+      print('🔄 Switching to board: $boardId');
+      currentBoardId.value = boardId;
+      
+      // Find board name
+      final board = boards.firstWhere((b) => b.id == boardId);
+      currentBoardName.value = board.name;
+      
+      // Clear current lanes and cards
+      lanes.clear();
+      userAssignedCards.clear();
+      
+      // Load lanes and cards for the selected board
+      await load();
+      
+      print('✅ Board switched successfully');
+    } catch (e) {
+      print('❌ Failed to switch board: $e');
+      error.value = 'Failed to switch board';
+    }
+  }
   
-  // Load data for current workspace
+  // Load data for current workspace and board
   Future<void> load() async {
     if (currentWorkspaceId.value.isEmpty) {
       print('⚠️ No workspace selected for loading');
       return;
     }
+
+    if (currentBoardId.value.isEmpty) {
+      print('⚠️ No board selected for loading');
+      return;
+    }
     
     try {
-      print('🔄 Loading board data for workspace: ${currentWorkspaceId.value}');
-      await _presenter.load(currentWorkspaceId.value);
+      print('🔄 Loading board data for workspace: ${currentWorkspaceId.value}, board: ${currentBoardId.value}');
+      await _presenter.load(currentWorkspaceId.value, currentBoardId.value);
       print('✅ Board data loaded successfully - ${lanes.length} lanes');
     } catch (e) {
       print('❌ Failed to load board data: $e');
@@ -114,13 +158,18 @@ class BoardController extends GetxController implements BoardView {
       print('⚠️ No workspace selected for refresh');
       return;
     }
+
+    if (currentBoardId.value.isEmpty) {
+      print('⚠️ No board selected for refresh');
+      return;
+    }
     
     try {
-      print('🔄 Manual refresh triggered for workspace: ${currentWorkspaceId.value}');
+      print('🔄 Manual refresh triggered for workspace: ${currentWorkspaceId.value}, board: ${currentBoardId.value}');
       isLoading.value = true;
       
       // Force reload data
-      await _presenter.load(currentWorkspaceId.value);
+      await _presenter.load(currentWorkspaceId.value, currentBoardId.value);
       
       print('✅ Manual refresh completed - ${lanes.length} lanes');
     } catch (e) {

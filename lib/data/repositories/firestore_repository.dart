@@ -482,14 +482,20 @@ class FirestoreRepository {
   }
   
   // Get lanes for a specific workspace with real-time updates
-  Stream<List<Lane>> getLanesStream(String workspaceId) {
+  Stream<List<Lane>> getLanesStream(String workspaceId, {String? boardId}) {
     try {
       print('🔄 Getting lanes stream for workspace: $workspaceId');
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
       
       return _firestoreService.getDocumentsStream(
         lanesCollection,
-        queryBuilder: (query) => query.orderBy('order', descending: false),
+        queryBuilder: (query) {
+          var filteredQuery = query.orderBy('order', descending: false);
+          if (boardId != null && boardId.isNotEmpty) {
+            filteredQuery = filteredQuery.where('boardId', isEqualTo: boardId);
+          }
+          return filteredQuery;
+        },
       ).asyncMap((lanesSnapshot) async {
         print('📋 Found ${lanesSnapshot.docs.length} lanes in workspace');
         final lanes = <Lane>[];
@@ -622,13 +628,19 @@ class FirestoreRepository {
   }
   
   // Get all cards for a workspace with real-time updates
-  Stream<List<JobCard>> getAllCardsStream(String workspaceId) {
+  Stream<List<JobCard>> getAllCardsStream(String workspaceId, {String? boardId}) {
     try {
       print('🔄 Getting all cards stream for workspace: $workspaceId');
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
       
       return _firestoreService.getDocumentsStream(
         cardsCollection,
+        queryBuilder: (query) {
+          if (boardId != null && boardId.isNotEmpty) {
+            return query.where('boardId', isEqualTo: boardId);
+          }
+          return query;
+        },
       ).map((cardsSnapshot) {
         print('📋 Found ${cardsSnapshot.docs.length} cards in workspace');
         

@@ -82,6 +82,54 @@ class _BoardPageState extends State<BoardPage> {
             }
             return const SizedBox.shrink();
           }),
+          // Board Selector
+          Obx(() {
+            if (_controller.hasWorkspaces && _controller.boards.isNotEmpty) {
+              return PopupMenuButton<String>(
+                onSelected: (boardId) {
+                  _controller.switchBoard(boardId);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.view_column),
+                      const SizedBox(width: 4),
+                      Text(
+                        _controller.currentBoardName.value.isNotEmpty
+                            ? _controller.currentBoardName.value
+                            : 'Select Board',
+                      ),
+                      const Icon(Icons.arrow_drop_down),
+                    ],
+                  ),
+                ),
+                itemBuilder: (context) => [
+                  ..._controller.boards.map((board) {
+                    return PopupMenuItem<String>(
+                      value: board.id,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.view_column,
+                            color: board.id == _controller.currentBoardId.value
+                                ? AppTheme.primaryOrange
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(board.name)),
+                          if (board.id == _controller.currentBoardId.value)
+                            const Icon(Icons.check, color: AppTheme.primaryOrange),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          }),
           // Refresh button
           IconButton(
             onPressed: () => _initializeWithCurrentUser(),
