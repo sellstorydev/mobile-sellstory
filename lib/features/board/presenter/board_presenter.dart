@@ -241,6 +241,7 @@ class BoardPresenter {
     
     try {
       // Optimistic update
+      _hasOptimisticUpdates = true;
       final updatedLanes = _currentState.lanes.map((lane) {
         final cardIndex = lane.cards.indexWhere((c) => c.id == card.id);
         if (cardIndex != -1) {
@@ -261,11 +262,15 @@ class BoardPresenter {
       await _repository.updateCard(workspaceId, card);
       LoggerService.to.database('Card updated in repository');
       
+      // Reset optimistic update flag
+      _hasOptimisticUpdates = false;
+      
       print('✅ Card update completed successfully');
     } catch (e) {
       LoggerService.to.error('Failed to update card', e);
       _view?.showError('Failed to update card: ${e.toString()}');
-      // Reload to revert optimistic update
+      // Reset optimistic update flag and reload to revert optimistic update
+      _hasOptimisticUpdates = false;
       await load(workspaceId);
       print('❌ Card update failed: $e');
     }
@@ -353,4 +358,5 @@ class BoardPresenter {
     
     LoggerService.to.methodExit('BoardPresenter.onDeleteLane');
   }
+
 }

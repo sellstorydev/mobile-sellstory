@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../services/firestore_service.dart';
 import '../../domain/entities/lane.dart';
 import '../../domain/entities/job_card.dart';
+import '../../domain/entities/customer.dart';
 import '../../core/services/logger_service.dart';
 
 class FirestoreRepository {
@@ -975,6 +976,59 @@ class FirestoreRepository {
       _logger.methodExit('FirestoreRepository.updateCard');
     } catch (e) {
       _logger.error('Failed to update card', e);
+      rethrow;
+    }
+  }
+
+  // Get customers for workspace
+  Future<List<Customer>> getCustomers(String workspaceId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getCustomers', {
+        'workspaceId': workspaceId
+      });
+      
+      print('🔄 FirestoreRepository.getCustomers:');
+      print('  - Workspace ID: $workspaceId');
+      
+      final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
+      final querySnapshot = await _firestoreService.getDocuments(customersCollection);
+      
+      final customers = querySnapshot.docs.map((doc) {
+        return Customer.fromMap(doc.data(), doc.id);
+      }).toList();
+      
+      print('✅ Customers loaded successfully - ${customers.length} customers');
+      _logger.methodExit('FirestoreRepository.getCustomers', {'count': customers.length});
+      return customers;
+    } catch (e) {
+      print('❌ Failed to get customers: $e');
+      _logger.error('Failed to get customers', e);
+      rethrow;
+    }
+  }
+
+  // Get customers stream for workspace
+  Stream<List<Customer>> getCustomersStream(String workspaceId) {
+    try {
+      _logger.methodEntry('FirestoreRepository.getCustomersStream', {
+        'workspaceId': workspaceId
+      });
+      
+      print('🔄 FirestoreRepository.getCustomersStream:');
+      print('  - Workspace ID: $workspaceId');
+      
+      final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
+      return _firestoreService.getDocumentsStream(customersCollection).map((querySnapshot) {
+        final customers = querySnapshot.docs.map((doc) {
+          return Customer.fromMap(doc.data(), doc.id);
+        }).toList();
+        
+        print('✅ Customers stream updated - ${customers.length} customers');
+        return customers;
+      });
+    } catch (e) {
+      print('❌ Failed to get customers stream: $e');
+      _logger.error('Failed to get customers stream', e);
       rethrow;
     }
   }

@@ -18,6 +18,16 @@ class JobCard {
   final DateTime updatedAt;
   final String customer; // Add customer field
   final String updatedByDisplayName; // Add display name field
+  final String? customerId; // Add customer ID field
+  final String? company; // Add company field
+  final String? hashtag; // Add hashtag field
+  final List<Map<String, dynamic>> expenses; // Add expenses field
+  final List<Map<String, dynamic>> todos; // Add todos field
+  final List<Map<String, dynamic>> notes; // Add notes field
+  final List<String> watchers; // Add watchers field
+  final List<Map<String, dynamic>> customFields; // Add custom fields
+  final String createdBy; // Add created by field
+  final String updatedBy; // Add updated by field
 
   JobCard({
     required this.id,
@@ -37,6 +47,16 @@ class JobCard {
     required this.updatedAt,
     this.customer = '',
     this.updatedByDisplayName = '',
+    this.customerId,
+    this.company,
+    this.hashtag,
+    this.expenses = const [],
+    this.todos = const [],
+    this.notes = const [],
+    this.watchers = const [],
+    this.customFields = const [],
+    this.createdBy = '',
+    this.updatedBy = '',
   });
 
   JobCard copyWith({
@@ -57,6 +77,16 @@ class JobCard {
     DateTime? updatedAt,
     String? customer,
     String? updatedByDisplayName,
+    String? customerId,
+    String? company,
+    String? hashtag,
+    List<Map<String, dynamic>>? expenses,
+    List<Map<String, dynamic>>? todos,
+    List<Map<String, dynamic>>? notes,
+    List<String>? watchers,
+    List<Map<String, dynamic>>? customFields,
+    String? createdBy,
+    String? updatedBy,
   }) {
     return JobCard(
       id: id ?? this.id,
@@ -74,9 +104,19 @@ class JobCard {
       order: order ?? this.order,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      customer: customer ?? this.customer,
-      updatedByDisplayName: updatedByDisplayName ?? this.updatedByDisplayName,
-    );
+              customer: customer ?? this.customer,
+        updatedByDisplayName: updatedByDisplayName ?? this.updatedByDisplayName,
+        customerId: customerId ?? this.customerId,
+        company: company ?? this.company,
+        hashtag: hashtag ?? this.hashtag,
+        expenses: expenses ?? this.expenses,
+        todos: todos ?? this.todos,
+        notes: notes ?? this.notes,
+        watchers: watchers ?? this.watchers,
+        customFields: customFields ?? this.customFields,
+        createdBy: createdBy ?? this.createdBy,
+        updatedBy: updatedBy ?? this.updatedBy,
+      );
   }
 
   // Convert to Map for Firestore
@@ -98,15 +138,16 @@ class JobCard {
       'updatedAt': Timestamp.fromDate(updatedAt),
       'customer': customer,
       'updatedByDisplayName': updatedByDisplayName,
-      // Add missing fields to prevent data loss
-      'customFields': [],
-      'expenses': [],
-      'todos': [],
-      'notes': [],
-      'watchers': [],
-      'company': null,
-      'updatedBy': assignee, // Use assignee as updatedBy
-      'createdBy': assignee, // Use assignee as createdBy
+      'customerId': customerId,
+      'company': company,
+      'hashtag': hashtag,
+      'expenses': expenses,
+      'todos': todos,
+      'notes': notes,
+      'watchers': watchers,
+      'customFields': customFields,
+      'createdBy': createdBy,
+      'updatedBy': updatedBy,
     };
   }
 
@@ -132,6 +173,16 @@ class JobCard {
                  DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
       customer: map['customer'] ?? '',
       updatedByDisplayName: map['updatedByDisplayName'] ?? '',
+      customerId: map['customerId'],
+      company: map['company'],
+      hashtag: map['hashtag'],
+      expenses: List<Map<String, dynamic>>.from(map['expenses'] ?? []),
+      todos: List<Map<String, dynamic>>.from(map['todos'] ?? []),
+      notes: List<Map<String, dynamic>>.from(map['notes'] ?? []),
+      watchers: List<String>.from(map['watchers'] ?? []),
+      customFields: List<Map<String, dynamic>>.from(map['customFields'] ?? []),
+      createdBy: map['createdBy'] ?? '',
+      updatedBy: map['updatedBy'] ?? '',
     );
   }
 
@@ -155,7 +206,17 @@ class JobCard {
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt &&
         other.customer == customer &&
-        other.updatedByDisplayName == updatedByDisplayName;
+        other.updatedByDisplayName == updatedByDisplayName &&
+        other.customerId == customerId &&
+        other.company == company &&
+        other.hashtag == hashtag &&
+        other.expenses == expenses &&
+        other.todos == todos &&
+        other.notes == notes &&
+        other.watchers == watchers &&
+        other.customFields == customFields &&
+        other.createdBy == createdBy &&
+        other.updatedBy == updatedBy;
   }
 
   @override
@@ -176,11 +237,21 @@ class JobCard {
         createdAt.hashCode ^
         updatedAt.hashCode ^
         customer.hashCode ^
-        updatedByDisplayName.hashCode;
+        updatedByDisplayName.hashCode ^
+        customerId.hashCode ^
+        company.hashCode ^
+        hashtag.hashCode ^
+        expenses.hashCode ^
+        todos.hashCode ^
+        notes.hashCode ^
+        watchers.hashCode ^
+        customFields.hashCode ^
+        createdBy.hashCode ^
+        updatedBy.hashCode;
   }
 
   @override
   String toString() {
-    return 'JobCard(id: $id, title: $title, description: $description, assignee: $assignee, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName)';
+    return 'JobCard(id: $id, title: $title, description: $description, assignee: $assignee, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName, customerId: $customerId, company: $company, hashtag: $hashtag, expenses: $expenses, todos: $todos, notes: $notes, watchers: $watchers, customFields: $customFields, createdBy: $createdBy, updatedBy: $updatedBy)';
   }
 }

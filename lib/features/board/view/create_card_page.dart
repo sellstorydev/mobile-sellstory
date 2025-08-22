@@ -58,10 +58,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    _initializeData().then((_) {
+      setState(() {});
+    });
   }
 
-  void _initializeData() {
+  Future<void> _initializeData() async {
     // Set default values
     _titleController.text = 'New Card';
     _assigneeController.text = 'BK bew kiw';
@@ -70,7 +72,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     _generateJobId();
     
     // Load available options
-    _loadAvailableOptions();
+    await _loadAvailableOptions();
     
     // Set default lane if provided
     if (widget.laneId != null) {
@@ -78,7 +80,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     }
   }
 
-  void _loadAvailableOptions() {
+  Future<void> _loadAvailableOptions() async {
     // Load boards
     _availableBoards = [
       {'id': 'board1', 'name': 'My First Board'},
@@ -99,11 +101,20 @@ class _CreateCardPageState extends State<CreateCardPage> {
       _selectedLane = _availableLanes.first['id'];
     }
     
-    // Load customers
-    _availableCustomers = [
-      {'id': 'customer1', 'name': 'Customer A'},
-      {'id': 'customer2', 'name': 'Customer B'},
-    ];
+    // Load customers from Firestore
+    try {
+      print('🔄 Loading customers from Firestore...');
+      final customers = await _controller.getCustomers();
+      _availableCustomers = customers.map((customer) => {
+        'id': customer.id,
+        'name': customer.name,
+        'customId': customer.customId,
+      }).toList();
+      print('✅ Customers loaded: ${_availableCustomers.length} customers');
+    } catch (e) {
+      print('❌ Failed to load customers: $e');
+      _availableCustomers = [];
+    }
     
     // Load companies
     _availableCompanies = [
@@ -369,10 +380,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
+                isExpanded: true,
                 items: _availableBoards.map((board) {
                   return DropdownMenuItem<String>(
                     value: board['id'],
-                    child: Text(board['name']),
+                    child: Text(
+                      board['name'],
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -404,10 +420,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
+                isExpanded: true,
                 items: _availableLanes.map((lane) {
                   return DropdownMenuItem<String>(
                     value: lane['id'],
-                    child: Text(lane['name']),
+                    child: Text(
+                      lane['name'],
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -496,10 +517,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
+                isExpanded: true,
                 items: _availableCustomers.map((customer) {
                   return DropdownMenuItem<String>(
                     value: customer['id'],
-                    child: Text(customer['name']),
+                    child: Text(
+                      customer['name'],
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -510,16 +536,19 @@ class _CreateCardPageState extends State<CreateCardPage> {
               ),
             ),
             const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                // TODO: Implement new customer functionality
-              },
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('New Customer'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            SizedBox(
+              height: 48, // Match dropdown height
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // TODO: Implement new customer functionality
+                },
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('New'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                ),
               ),
             ),
           ],
@@ -550,10 +579,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
                    border: OutlineInputBorder(),
                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                  ),
+                 isExpanded: true,
                  items: _availableCompanies.map((company) {
                    return DropdownMenuItem<String>(
                      value: company['id'],
-                     child: Text(company['name']),
+                     child: Text(
+                       company['name'],
+                       overflow: TextOverflow.ellipsis,
+                       style: const TextStyle(fontSize: 14),
+                     ),
                    );
                  }).toList(),
                  onChanged: (value) {
@@ -564,16 +598,19 @@ class _CreateCardPageState extends State<CreateCardPage> {
                ),
             ),
             const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                // TODO: Implement new company functionality
-              },
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('New Company'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            SizedBox(
+              height: 48, // Match dropdown height
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // TODO: Implement new company functionality
+                },
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('New'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                ),
               ),
             ),
           ],

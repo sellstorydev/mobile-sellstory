@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../domain/entities/lane.dart';
 import '../../../domain/entities/job_card.dart';
+import '../../../domain/entities/customer.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../presenter/board_presenter.dart';
 import '../contract/board_view.dart';
@@ -295,6 +296,25 @@ class BoardController extends GetxController implements BoardView {
   // Getters for UI
   bool get hasWorkspaces => userWorkspaces.isNotEmpty;
   List<Map<String, dynamic>> get availableWorkspaces => userWorkspaces;
+
+  // Get customers for current workspace
+  Future<List<Customer>> getCustomers() async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for getting customers');
+      return [];
+    }
+    
+    try {
+      print('🔄 Getting customers for workspace: ${currentWorkspaceId.value}');
+      final customers = await _repository.getCustomers(currentWorkspaceId.value);
+      print('✅ Customers loaded successfully - ${customers.length} customers');
+      return customers;
+    } catch (e) {
+      print('❌ Failed to get customers: $e');
+      error.value = 'Failed to get customers';
+      return [];
+    }
+  }
 
   // BoardView implementation
   @override
