@@ -46,6 +46,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   List<Map<String, dynamic>> _availableLanes = [];
   List<Map<String, dynamic>> _availableCustomers = [];
   List<Map<String, dynamic>> _availableCompanies = [];
+  List<Map<String, dynamic>> _availableUsers = [];
   
   // Status options
   final List<Map<String, dynamic>> _statusOptions = [
@@ -99,6 +100,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
       _selectedLane = _availableLanes.first['id'];
     }
     
+    // Load users from current workspace
+    await _loadWorkspaceUsers();
+    
     // Load customers from Firestore
     try {
       print('🔄 Loading customers from Firestore...');
@@ -133,6 +137,41 @@ class _CreateCardPageState extends State<CreateCardPage> {
         {'id': 'none', 'name': 'None'},
       ];
       _selectedCompany = 'none';
+    }
+  }
+
+  Future<void> _loadWorkspaceUsers() async {
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value;
+      if (workspaceId.isEmpty) {
+        print('⚠️ No workspace selected for loading users');
+        _availableUsers = [];
+        return;
+      }
+
+      print('🔄 Loading users for workspace: $workspaceId');
+      
+      // Get users from the workspace
+      final users = await _controller.getWorkspaceUsers(workspaceId);
+      
+      // Map users and remove duplicates based on uid
+      final userMap = <String, Map<String, dynamic>>{};
+      for (final user in users) {
+        final uid = user['uid'] as String? ?? '';
+        if (uid.isNotEmpty && !userMap.containsKey(uid)) {
+          userMap[uid] = {
+            'id': uid,
+            'name': user['displayName'] ?? user['email'] ?? 'Unknown User',
+            'email': user['email'] ?? '',
+          };
+        }
+      }
+      _availableUsers = userMap.values.toList();
+      
+      print('✅ Loaded ${_availableUsers.length} users for workspace');
+    } catch (e) {
+      print('❌ Failed to load workspace users: $e');
+      _availableUsers = [];
     }
   }
 
@@ -499,13 +538,29 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _assigneeController,
+        DropdownButtonFormField<String>(
+          value: _assigneeController.text.isNotEmpty ? _assigneeController.text : null,
           decoration: const InputDecoration(
+            hintText: 'Select an assignee',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            suffixIcon: Icon(Icons.arrow_drop_down),
           ),
+          isExpanded: true,
+          items: _availableUsers.map((user) {
+            return DropdownMenuItem<String>(
+              value: user['id'],
+              child: Text(
+                user['name'],
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _assigneeController.text = value ?? '';
+            });
+          },
         ),
       ],
     );

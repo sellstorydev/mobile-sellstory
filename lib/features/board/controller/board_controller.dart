@@ -387,6 +387,20 @@ class BoardController extends GetxController implements BoardView {
     }
   }
 
+  // Get users for a specific workspace
+  Future<List<Map<String, dynamic>>> getWorkspaceUsers(String workspaceId) async {
+    try {
+      print('🔄 Getting users for workspace: $workspaceId');
+      final users = await _repository.getWorkspaceUsers(workspaceId);
+      print('✅ Users loaded: ${users.length} users');
+      return users;
+    } catch (e) {
+      print('❌ Failed to get workspace users: $e');
+      error.value = 'Failed to load workspace users';
+      return [];
+    }
+  }
+
   // Create card with full data
   Future<String> createCard(JobCard card) async {
     if (currentWorkspaceId.value.isEmpty) {

@@ -1202,6 +1202,52 @@ class FirestoreRepository {
     }
   }
 
+  // Get users for a specific workspace
+  Future<List<Map<String, dynamic>>> getWorkspaceUsers(String workspaceId) async {
+    try {
+      print('🔄 Getting users for workspace: $workspaceId');
+      
+      // Get all users from the users collection
+      final usersCollection = _firestoreService.usersCollection;
+      final usersSnapshot = await usersCollection.get();
+      
+      print('📋 Found ${usersSnapshot.docs.length} total users');
+      
+      final userList = <Map<String, dynamic>>[];
+      
+      for (final userDoc in usersSnapshot.docs) {
+        final userData = userDoc.data();
+        final workspaces = userData['workspaces'] as List<dynamic>? ?? [];
+        
+        // Check if user belongs to the specified workspace
+        final belongsToWorkspace = workspaces.any((workspace) {
+          if (workspace is Map<String, dynamic>) {
+            return workspace['id'] == workspaceId;
+          }
+          return false;
+        });
+        
+        if (belongsToWorkspace) {
+          userList.add({
+            'uid': userData['uid'] ?? '',
+            'email': userData['email'] ?? '',
+            'displayName': userData['displayName'] ?? '',
+            'role': workspaces.firstWhere(
+              (w) => w is Map<String, dynamic> && w['id'] == workspaceId,
+              orElse: () => {'role': 'member'}
+            )['role'] ?? 'member',
+          });
+        }
+      }
+      
+      print('✅ Users loaded for workspace: ${userList.length} users');
+      return userList;
+    } catch (e) {
+      print('❌ Failed to get workspace users: $e');
+      rethrow;
+    }
+  }
+
   // Create board
   Future<String> createBoard(String workspaceId, String name, String createdBy) async {
     try {

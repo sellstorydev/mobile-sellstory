@@ -80,10 +80,8 @@ class _EditCardPageState extends State<EditCardPage> {
       'name': lane.title,
     }).toList();
     
-    // Load assignees - will be implemented with auth service
-    _availableAssignees = [
-      {'id': 'current-user', 'name': 'Current User'},
-    ];
+    // Load assignees from workspace users
+    await _loadWorkspaceUsers();
     
     // Load customers from Firestore
     try {
@@ -117,6 +115,40 @@ class _EditCardPageState extends State<EditCardPage> {
       _availableCompanies = [
         {'id': 'none', 'name': 'None'},
       ];
+    }
+  }
+
+  Future<void> _loadWorkspaceUsers() async {
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value;
+      if (workspaceId.isEmpty) {
+        print('⚠️ No workspace selected for loading users');
+        _availableAssignees = [];
+        return;
+      }
+
+      print('🔄 Loading users for workspace: $workspaceId');
+      
+      // Get users from the workspace
+      final users = await _controller.getWorkspaceUsers(workspaceId);
+      // Map users and remove duplicates based on uid
+      final userMap = <String, Map<String, dynamic>>{};
+      for (final user in users) {
+        final uid = user['uid'] as String? ?? '';
+        if (uid.isNotEmpty && !userMap.containsKey(uid)) {
+          userMap[uid] = {
+            'id': uid,
+            'name': user['displayName'] ?? user['email'] ?? 'Unknown User',
+            'email': user['email'] ?? '',
+          };
+        }
+      }
+      _availableAssignees = userMap.values.toList();
+      
+      print('✅ Loaded ${_availableAssignees.length} users for workspace');
+    } catch (e) {
+      print('❌ Failed to load workspace users: $e');
+      _availableAssignees = [];
     }
   }
 
