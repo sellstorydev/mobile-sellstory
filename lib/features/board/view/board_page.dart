@@ -42,6 +42,29 @@ class _BoardPageState extends State<BoardPage> {
     }
   }
 
+  void _handleMenuAction(String value) {
+    switch (value) {
+      case 'board_management':
+        Get.toNamed('/board-management');
+        break;
+      case 'refresh':
+        _initializeWithCurrentUser();
+        break;
+      case 'edit_workspace':
+        _navigateToEditWorkspace();
+        break;
+      default:
+        if (value.startsWith('board_')) {
+          final boardId = value.substring(6); // Remove 'board_' prefix
+          _controller.switchBoard(boardId);
+        } else if (value.startsWith('workspace_')) {
+          final workspaceId = value.substring(10); // Remove 'workspace_' prefix
+          _controller.switchWorkspace(workspaceId);
+        }
+        break;
+    }
+  }
+
   Future<void> _initializeWithCurrentUser() async {
     try {
       // Get current user ID from Firebase Auth
@@ -67,123 +90,131 @@ class _BoardPageState extends State<BoardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() => Text(_controller.currentWorkspaceName.value.isNotEmpty 
-          ? _controller.currentWorkspaceName.value 
-          : 'Board')),
+        title: Obx(() {
+          if (_controller.hasWorkspaces) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _controller.currentWorkspaceName.value.isNotEmpty 
+                    ? _controller.currentWorkspaceName.value 
+                    : 'Board',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                if (_controller.currentBoardName.value.isNotEmpty)
+                  Text(
+                    _controller.currentBoardName.value,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+              ],
+            );
+          }
+          return const Text('Board');
+        }),
         actions: [
-          // Board Management button
+          // Main Menu Button - combines all actions
           Obx(() {
             if (_controller.hasWorkspaces) {
-              return IconButton(
-                onPressed: () => Get.toNamed('/board-management'),
-                icon: const Icon(Icons.dashboard),
-                tooltip: 'Board Management',
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-          // Board Selector
-          Obx(() {
-            if (_controller.hasWorkspaces && _controller.boards.isNotEmpty) {
               return PopupMenuButton<String>(
-                onSelected: (boardId) {
-                  _controller.switchBoard(boardId);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.view_column),
-                      const SizedBox(width: 4),
-                      Text(
-                        _controller.currentBoardName.value.isNotEmpty
-                            ? _controller.currentBoardName.value
-                            : 'Select Board',
-                      ),
-                      const Icon(Icons.arrow_drop_down),
-                    ],
-                  ),
+                onSelected: (value) => _handleMenuAction(value),
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Icon(Icons.more_vert),
                 ),
                 itemBuilder: (context) => [
-                  ..._controller.boards.map((board) {
-                    return PopupMenuItem<String>(
-                      value: board.id,
+                  // Board Management
+                  PopupMenuItem<String>(
+                    value: 'board_management',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.dashboard, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Board Management'),
+                      ],
+                    ),
+                  ),
+                  // Board Selector
+                  if (_controller.boards.isNotEmpty) ...[
+                    const PopupMenuDivider(),
+                    ..._controller.boards.map((board) {
+                      return PopupMenuItem<String>(
+                        value: 'board_${board.id}',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.view_column,
+                              size: 20,
+                              color: board.id == _controller.currentBoardId.value
+                                  ? AppTheme.primaryOrange
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(board.name)),
+                            if (board.id == _controller.currentBoardId.value)
+                              const Icon(Icons.check, color: AppTheme.primaryOrange),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                  // Workspace Selector
+                  if (_controller.availableWorkspaces.isNotEmpty) ...[
+                    const PopupMenuDivider(),
+                    ..._controller.availableWorkspaces.map((workspace) {
+                      return PopupMenuItem<String>(
+                        value: 'workspace_${workspace['id']}',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.workspace_premium,
+                              size: 20,
+                              color: workspace['id'] == _controller.currentWorkspaceId.value
+                                  ? AppTheme.primaryOrange
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(workspace['name'] as String)),
+                            if (workspace['id'] == _controller.currentWorkspaceId.value)
+                              const Icon(Icons.check, color: AppTheme.primaryOrange),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    const PopupMenuDivider(),
+                    PopupMenuItem<String>(
+                      value: 'edit_workspace',
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.view_column,
-                            color: board.id == _controller.currentBoardId.value
-                                ? AppTheme.primaryOrange
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(board.name)),
-                          if (board.id == _controller.currentBoardId.value)
-                            const Icon(Icons.check, color: AppTheme.primaryOrange),
+                          const Icon(Icons.edit, size: 20),
+                          const SizedBox(width: 12),
+                          const Text('Edit Workspace'),
                         ],
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ],
+                  // Refresh
+                  const PopupMenuDivider(),
+                  PopupMenuItem<String>(
+                    value: 'refresh',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.refresh, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Refresh'),
+                      ],
+                    ),
+                  ),
                 ],
               );
-            }
-            return const SizedBox.shrink();
-          }),
-          // Refresh button
-          IconButton(
-            onPressed: () => _initializeWithCurrentUser(),
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh data',
-          ),
-          // Add Workspace button - show when no workspaces
-          Obx(() {
-            if (!_controller.hasWorkspaces) {
+            } else {
+              // Show only Add Workspace when no workspaces
               return IconButton(
                 onPressed: () => _navigateToCreateWorkspace(),
                 icon: const Icon(Icons.add),
                 tooltip: 'Add Workspace',
               );
             }
-            return const SizedBox.shrink();
-          }),
-          // Workspace selector - only show if user has workspaces
-          Obx(() {
-            if (_controller.hasWorkspaces && _controller.availableWorkspaces.isNotEmpty) {
-              return PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit_workspace') {
-                    _navigateToEditWorkspace();
-                  } else {
-                    _controller.switchWorkspace(value);
-                  }
-                },
-                itemBuilder: (context) => [
-                  ..._controller.availableWorkspaces
-                      .map((workspace) => PopupMenuItem<String>(
-                            value: workspace['id'] as String,
-                            child: Text(workspace['name'] as String),
-                          ))
-                      .toList(),
-                  const PopupMenuDivider(),
-                  PopupMenuItem<String>(
-                    value: 'edit_workspace',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.edit, size: 16),
-                        const SizedBox(width: 8),
-                        const Text('Edit Workspace'),
-                      ],
-                    ),
-                  ),
-                ],
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.workspace_premium),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
           }),
         ],
       ),
