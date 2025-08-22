@@ -80,10 +80,9 @@ class _EditCardPageState extends State<EditCardPage> {
       'name': lane.title,
     }).toList();
     
-    // Load assignees
+    // Load assignees - will be implemented with auth service
     _availableAssignees = [
-      {'id': 'user1', 'name': 'U User'},
-      {'id': 'user2', 'name': 'BK bew kiw'},
+      {'id': 'current-user', 'name': 'Current User'},
     ];
     
     // Load customers from Firestore
@@ -132,7 +131,7 @@ class _EditCardPageState extends State<EditCardPage> {
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {
-              // TODO: Add menu options
+              // Menu options will be implemented later
             },
           ),
           PopupMenuButton<String>(
@@ -148,7 +147,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
             ),
             onSelected: (value) {
-              // TODO: Add watcher functionality
+              // Watcher functionality will be implemented later
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -332,9 +331,9 @@ class _EditCardPageState extends State<EditCardPage> {
                 SizedBox(
                   height: 48, // Match dropdown height
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Add new customer
-                    },
+                                    onPressed: () {
+                  // Add new customer functionality will be implemented later
+                },
                     icon: const Icon(Icons.add, size: 16),
                     label: const Text('New'),
                     style: ElevatedButton.styleFrom(
@@ -381,9 +380,9 @@ class _EditCardPageState extends State<EditCardPage> {
                 SizedBox(
                   height: 48, // Match dropdown height
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Add new company
-                    },
+                                    onPressed: () {
+                  // Add new company functionality will be implemented later
+                },
                     icon: const Icon(Icons.add, size: 16),
                     label: const Text('New'),
                     style: ElevatedButton.styleFrom(
@@ -885,7 +884,7 @@ class _EditCardPageState extends State<EditCardPage> {
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
-                    // TODO: Add comment functionality
+                    // Comment functionality will be implemented later
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryOrange,

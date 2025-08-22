@@ -908,10 +908,63 @@ class FirestoreRepository {
         'workspaceId': workspaceId,
         'cardTitle': card.title
       });
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      final docRef = await _firestoreService.addDocument(cardsCollection, card.toMap());
-      _logger.methodExit('FirestoreRepository.createCard', {'cardId': docRef.id});
-      return docRef.id;
+
+      // Use Firestore transaction to ensure atomic counter increment and card creation
+      final cardId = await _firestoreService.runTransaction<String>((transaction) async {
+        // Get workspace document to read current counter
+        final workspaceRef = _firestoreService.workspacesCollection.doc(workspaceId);
+        final workspaceDoc = await transaction.get(workspaceRef);
+        
+        if (!workspaceDoc.exists) {
+          throw Exception('Workspace not found: $workspaceId');
+        }
+
+        final workspaceData = workspaceDoc.data()!;
+        
+        // Get current counter value
+        int currentCounter = 1; // Default counter
+        try {
+          final companyProfile = workspaceData['companyProfile'] as Map<String, dynamic>?;
+          final lastUsedCounters = companyProfile?['lastUsedCounters'] as Map<String, dynamic>?;
+          final jobCardCounter = lastUsedCounters?['jobCard'];
+          
+          if (jobCardCounter is int) {
+            currentCounter = jobCardCounter + 1;
+          } else if (jobCardCounter is String) {
+            currentCounter = (int.tryParse(jobCardCounter) ?? 0) + 1;
+          }
+        } catch (e) {
+          print('⚠️ Error reading counter, using default: $e');
+          currentCounter = 1;
+        }
+
+        // Generate Job ID with counter
+        final now = DateTime.now();
+        final dateStr = '${now.day.toString().padLeft(2, '0')}${now.month.toString().padLeft(2, '0')}${now.year.toString().substring(2)}';
+        final jobId = 'JB-$dateStr-${currentCounter.toString().padLeft(4, '0')}';
+
+        // Create card document
+        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+        final cardDocRef = cardsCollection.doc();
+        final cardData = card.copyWith(
+          id: cardDocRef.id,
+          customId: jobId,
+        ).toMap();
+
+        // Set card document
+        transaction.set(cardDocRef, cardData);
+
+        // Update workspace counter
+        transaction.update(workspaceRef, {
+          'companyProfile.lastUsedCounters.jobCard': currentCounter,
+        });
+
+        print('✅ Created card with Job ID: $jobId (counter: $currentCounter)');
+        return cardDocRef.id;
+      });
+
+      _logger.methodExit('FirestoreRepository.createCard', {'cardId': cardId});
+      return cardId;
     } catch (e) {
       _logger.error('Failed to create card', e);
       rethrow;

@@ -336,6 +336,25 @@ class BoardController extends GetxController implements BoardView {
     }
   }
 
+  // Create card with full data
+  Future<String> createCard(JobCard card) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for creating card');
+      throw Exception('No workspace selected');
+    }
+    
+    try {
+      print('🔄 Creating card in workspace: ${currentWorkspaceId.value}');
+      final cardId = await _repository.createCard(currentWorkspaceId.value, card);
+      print('✅ Card created successfully with ID: $cardId');
+      return cardId;
+    } catch (e) {
+      print('❌ Failed to create card: $e');
+      error.value = 'Failed to create card';
+      rethrow;
+    }
+  }
+
   // BoardView implementation
   @override
   void showLoading(bool isLoading) {
