@@ -60,8 +60,8 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
         duration: const Duration(seconds: 3),
       );
 
-      // Navigate back to board page and refresh data
-      Get.offAllNamed('/board');
+      // Navigate back to shell page (which contains the board page with bottom navigation)
+      Get.offAllNamed('/shell');
       
       // Refresh board controller after navigation
       try {

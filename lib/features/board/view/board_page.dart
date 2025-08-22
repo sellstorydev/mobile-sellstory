@@ -77,9 +77,20 @@ class _BoardPageState extends State<BoardPage> {
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh data',
           ),
-          // Workspace selector
+          // Add Workspace button - show when no workspaces
           Obx(() {
-            if (_controller.hasWorkspaces) {
+            if (!_controller.hasWorkspaces) {
+              return IconButton(
+                onPressed: () => _navigateToCreateWorkspace(),
+                icon: const Icon(Icons.add),
+                tooltip: 'Add Workspace',
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          // Workspace selector - only show if user has workspaces
+          Obx(() {
+            if (_controller.hasWorkspaces && _controller.availableWorkspaces.isNotEmpty) {
               return PopupMenuButton<String>(
                 onSelected: (value) {
                   if (value == 'edit_workspace') {
@@ -118,11 +129,17 @@ class _BoardPageState extends State<BoardPage> {
         ],
       ),
       body: _buildBoardView(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddOptionsDialog(),
-        child: const Icon(Icons.add),
-        tooltip: 'Add New Item',
-      ),
+      floatingActionButton: Obx(() {
+        // Only show FAB if user has workspaces
+        if (_controller.hasWorkspaces) {
+          return FloatingActionButton(
+            onPressed: () => _showAddOptionsDialog(),
+            child: const Icon(Icons.add),
+            tooltip: 'Add New Item',
+          );
+        }
+        return const SizedBox.shrink(); // Hide FAB when no workspaces
+      }),
     );
   }
 
@@ -205,6 +222,15 @@ class _BoardPageState extends State<BoardPage> {
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'You can also use the + button in the top right corner',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
