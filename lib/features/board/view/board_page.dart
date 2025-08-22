@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
+import '../widgets/lane_header.dart';
 import '../../../domain/entities/lane.dart';
 
 class BoardPage extends StatefulWidget {
@@ -24,6 +25,20 @@ class _BoardPageState extends State<BoardPage> {
     
     // Initialize with current user
     _initializeWithCurrentUser();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh data when returning to this page
+    _refreshDataIfNeeded();
+  }
+
+  void _refreshDataIfNeeded() {
+    // Check if we need to refresh data (e.g., after creating new workspace)
+    if (_controller.currentWorkspaceId.value.isEmpty && !_controller.isLoading.value) {
+      _initializeWithCurrentUser();
+    }
   }
 
   Future<void> _initializeWithCurrentUser() async {
@@ -57,7 +72,7 @@ class _BoardPageState extends State<BoardPage> {
         actions: [
           // Refresh button
           IconButton(
-            onPressed: () => _controller.refresh(),
+            onPressed: () => _initializeWithCurrentUser(),
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh data',
           ),
@@ -86,9 +101,9 @@ class _BoardPageState extends State<BoardPage> {
       ),
       body: _buildBoardView(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddLaneDialog(),
+        onPressed: () => _showAddOptionsDialog(),
         child: const Icon(Icons.add),
-        tooltip: 'Add New Lane',
+        tooltip: 'Add New Item',
       ),
     );
   }
@@ -200,53 +215,49 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildLaneHeader(Lane lane) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  lane.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${lane.cards.length} cards',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+    return LaneHeader(
+      lane: lane,
+      onCreateCard: () => _navigateToCreateCardWithLane(lane),
+      onMenuTap: () => _showLaneMenu(lane),
+    );
+  }
+
+  void _navigateToCreateCardWithLane(Lane lane) {
+    Get.toNamed(
+      '/create-card',
+      parameters: {
+        'laneId': lane.id,
+        'workspaceId': _controller.currentWorkspaceId.value,
+      },
+    );
+  }
+
+  void _showLaneMenu(Lane lane) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit Lane'),
+              onTap: () {
+                Navigator.of(context).pop();
+                // TODO: Implement edit lane functionality
+              },
             ),
-          ),
-          if (lane.totalAmount > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '\$${lane.totalAmount.toStringAsFixed(2)}',
-                style: TextStyle(
-                  color: Colors.green[800],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text('Delete Lane'),
+              onTap: () {
+                Navigator.of(context).pop();
+                // TODO: Implement delete lane functionality
+              },
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -418,7 +429,67 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
+  void _showAddOptionsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Item'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.view_column),
+              title: const Text('Add New Lane'),
+              subtitle: const Text('Create a new column in the board'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showAddLaneDialog();
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.note_add),
+              title: const Text('Create New Card'),
+              subtitle: const Text('Create a new card with full details'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _navigateToCreateCard();
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.workspace_premium),
+              title: const Text('Add New Workspace'),
+              subtitle: const Text('Create a new workspace with boards'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _navigateToCreateWorkspace();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
 
+  void _navigateToCreateCard() {
+    Get.toNamed(
+      '/create-card',
+      parameters: {
+        'workspaceId': _controller.currentWorkspaceId.value,
+      },
+    );
+  }
+
+  void _navigateToCreateWorkspace() {
+    Get.toNamed('/create-workspace');
+  }
 
   void _showAddCardDialog(Lane lane) {
     final TextEditingController titleController = TextEditingController();

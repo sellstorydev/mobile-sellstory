@@ -5,11 +5,13 @@ import '../../../domain/entities/lane.dart';
 class LaneHeader extends StatelessWidget {
   final Lane lane;
   final VoidCallback? onMenuTap;
+  final VoidCallback? onCreateCard;
 
   const LaneHeader({
     super.key,
     required this.lane,
     this.onMenuTap,
+    this.onCreateCard,
   });
 
   @override
@@ -77,6 +79,26 @@ class LaneHeader extends StatelessWidget {
               color: AppTheme.textPrimary,
             ),
           ),
+          
+          Container(width: AppTheme.spacing8),
+          
+          // Create card button
+          if (onCreateCard != null)
+            GestureDetector(
+              onTap: onCreateCard,
+              child: Container(
+                padding: const EdgeInsets.all(AppTheme.spacing4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange,
+                  borderRadius: BorderRadius.circular(AppTheme.radius4),
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: AppTheme.iconSize16,
+                ),
+              ),
+            ),
           
           Container(width: AppTheme.spacing8),
           

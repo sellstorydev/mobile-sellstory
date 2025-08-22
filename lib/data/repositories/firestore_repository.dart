@@ -9,6 +9,252 @@ class FirestoreRepository {
   final FirestoreService _firestoreService = Get.find<FirestoreService>();
   final LoggerService _logger = Get.find<LoggerService>();
   
+  // Create workspace with default structure
+  Future<void> createWorkspace({
+    required String name,
+    required String ownerId,
+    required String ownerEmail,
+    required String ownerDisplayName,
+  }) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.createWorkspace', {
+        'name': name,
+        'ownerId': ownerId,
+      });
+
+      // Generate workspace ID
+      final workspaceId = FirebaseFirestore.instance.collection('workspaces').doc().id;
+      final boardId = FirebaseFirestore.instance.collection('boards').doc().id;
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      // Create workspace document
+      final workspaceData = {
+        'name': name,
+        'ownerId': ownerId,
+        'members': {
+          ownerId: 'owner',
+        },
+        'createdAt': now,
+        'companyProfile': {
+          'roles': [
+            {
+              'id': 'owner',
+              'name': 'Owner',
+              'permissions': ['*'],
+            },
+            {
+              'id': 'admin',
+              'name': 'Admin',
+              'permissions': [
+                'jobcard:view:all',
+                'jobcard:create',
+                'jobcard:edit:all',
+                'jobcard:delete:all',
+                'jobcard:move',
+                'customer:view:all',
+                'customer:create',
+                'customer:edit:all',
+                'customer:delete',
+                'customer:import',
+                'company:view',
+                'company:create',
+                'company:edit:all',
+                'company:delete',
+                'company:import',
+                'product:view',
+                'product:create',
+                'product:edit:all',
+                'product:delete',
+                'product:import',
+                'user:manage',
+                'settings:board:manage',
+                'settings:company:manage',
+                'settings:id:manage',
+                'settings:catalog:manage',
+                'settings:roles:manage',
+              ],
+            },
+            {
+              'id': 'member',
+              'name': 'Member',
+              'permissions': [
+                'jobcard:view:assigned',
+                'jobcard:create',
+              ],
+            },
+          ],
+          'idGenerationRules': {
+            'customer': {
+              'prefix': 'CUS',
+              'dateFormat': 'YYMMDD',
+              'separator': '-',
+              'minLength': 4,
+              'generationMode': 'auto-editable',
+            },
+            'company': {
+              'prefix': 'COM',
+              'dateFormat': 'YYMMDD',
+              'separator': '-',
+              'minLength': 4,
+              'generationMode': 'auto-editable',
+            },
+            'product': {
+              'prefix': 'P',
+              'dateFormat': 'YYMMDD',
+              'separator': '-',
+              'minLength': 4,
+              'generationMode': 'auto-editable',
+            },
+            'jobCard': {
+              'prefix': 'JB',
+              'dateFormat': 'YYMMDD',
+              'separator': '-',
+              'minLength': 4,
+              'generationMode': 'auto-editable',
+            },
+            'quotation': {
+              'prefix': 'EST',
+              'dateFormat': 'YYMMDD',
+              'separator': '-',
+              'minLength': 4,
+              'generationMode': 'auto-editable',
+            },
+            'invoice': {
+              'prefix': 'INV',
+              'dateFormat': 'YYMMDD',
+              'separator': '-',
+              'minLength': 4,
+              'generationMode': 'auto-editable',
+            },
+            'receipt': {
+              'prefix': 'RE',
+              'dateFormat': 'YYMMDD',
+              'separator': '-',
+              'minLength': 4,
+              'generationMode': 'auto-editable',
+            },
+          },
+          'lastUsedCounters': {
+            'customer': 0,
+            'company': 0,
+            'product': 0,
+            'jobCard': 0,
+            'quotation': 0,
+            'invoice': 0,
+            'receipt': 0,
+          },
+          'customerCustomFieldTemplate': [],
+          'todoTemplates': [],
+          'customerSources': [],
+          'hashtagSettings': {
+            'isEnabled': true,
+            'mode': 'global',
+            'masterList': [],
+            'automation': {
+              'autoCreateFromChat': false,
+            },
+          },
+          'catalogSettings': {
+            'isPublished': false,
+            'enableAddToCart': true,
+          },
+        },
+      };
+
+      // Create board document
+      final boardData = {
+        'name': 'My First Board',
+        'workspaceId': workspaceId,
+        'createdBy': ownerId,
+        'members': [
+          {
+            'uid': ownerId,
+            'email': ownerEmail,
+            'displayName': ownerDisplayName,
+            'photoURL': null,
+            'role': 'owner',
+            'language': 'en',
+            'workspaces': [],
+          },
+        ],
+        'memberUids': [ownerId],
+        'lanes': [],
+      };
+
+      // Create default lanes
+      final defaultLanes = [
+        {'name': 'To Do', 'order': 0},
+        {'name': 'In Progress', 'order': 1},
+        {'name': 'Done', 'order': 2},
+      ];
+
+      // Use batch write to create all documents atomically
+      final batch = FirebaseFirestore.instance.batch();
+
+      // Add workspace document
+      final workspaceRef = FirebaseFirestore.instance.collection('workspaces').doc(workspaceId);
+      batch.set(workspaceRef, workspaceData);
+
+      // Add board document
+      final boardRef = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('boards')
+          .doc(boardId);
+      batch.set(boardRef, boardData);
+
+      // Add default lanes
+      for (final laneData in defaultLanes) {
+        final laneId = FirebaseFirestore.instance.collection('lanes').doc().id;
+        final laneRef = FirebaseFirestore.instance
+            .collection('workspaces')
+            .doc(workspaceId)
+            .collection('lanes')
+            .doc(laneId);
+        
+        batch.set(laneRef, {
+          'boardId': boardId,
+          'workspaceId': workspaceId,
+          'name': laneData['name'],
+          'order': laneData['order'],
+          'cards': [],
+          'hasMoreCards': false,
+        });
+      }
+
+      // Update user document to add workspace reference
+      final userRef = FirebaseFirestore.instance.collection('users').doc(ownerId);
+      batch.update(userRef, {
+        'workspaces': FieldValue.arrayUnion([
+          {
+            'id': workspaceId,
+            'name': name,
+            'role': 'owner',
+          },
+        ]),
+      });
+
+      // Commit the batch
+      await batch.commit();
+
+      // Verify workspace was created successfully
+      final createdWorkspace = await _firestoreService.workspacesCollection.doc(workspaceId).get();
+      if (!createdWorkspace.exists) {
+        throw Exception('Failed to create workspace - document not found after creation');
+      }
+
+      _logger.methodExit('FirestoreRepository.createWorkspace', {
+        'workspaceId': workspaceId,
+        'boardId': boardId,
+        'workspaceName': name,
+        'verification': 'success',
+      });
+    } catch (e) {
+      _logger.error('Failed to create workspace', e);
+      rethrow;
+    }
+  }
+
   // Get user's workspaces
   Future<List<Map<String, dynamic>>> getUserWorkspaces(String userId) async {
     try {
