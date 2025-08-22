@@ -249,6 +249,49 @@ class BoardController extends GetxController implements BoardView {
     print('✅ BoardController.updateCard completed');
   }
 
+  // Update lane
+  Future<void> updateLane({
+    required String laneId,
+    required String title,
+    required int order,
+  }) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for updating lane');
+      return;
+    }
+    
+    print('🔄 BoardController.updateLane - Lane data:');
+    print('  - ID: $laneId');
+    print('  - Title: $title');
+    print('  - Order: $order');
+    
+    await _presenter.onUpdateLane(
+      workspaceId: currentWorkspaceId.value,
+      laneId: laneId,
+      title: title,
+      order: order,
+    );
+    
+    print('✅ BoardController.updateLane completed');
+  }
+
+  // Delete lane
+  Future<void> deleteLane({required String laneId}) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for deleting lane');
+      return;
+    }
+    
+    print('🔄 BoardController.deleteLane - Lane ID: $laneId');
+    
+    await _presenter.onDeleteLane(
+      workspaceId: currentWorkspaceId.value,
+      laneId: laneId,
+    );
+    
+    print('✅ BoardController.deleteLane completed');
+  }
+
   // Getters for UI
   bool get hasWorkspaces => userWorkspaces.isNotEmpty;
   List<Map<String, dynamic>> get availableWorkspaces => userWorkspaces;

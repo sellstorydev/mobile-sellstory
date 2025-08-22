@@ -268,4 +268,80 @@ class BoardPresenter {
     
     LoggerService.to.methodExit('BoardPresenter.onUpdateCard');
   }
+
+  // Update lane
+  Future<void> onUpdateLane({
+    required String workspaceId,
+    required String laneId,
+    required String title,
+    required int order,
+  }) async {
+    LoggerService.to.methodEntry('BoardPresenter.onUpdateLane', {
+      'workspaceId': workspaceId,
+      'laneId': laneId,
+      'title': title,
+      'order': order,
+    });
+    
+    try {
+      // Optimistic update
+      final updatedLanes = _currentState.lanes.map((lane) {
+        if (lane.id == laneId) {
+          return lane.copyWith(title: title, order: order);
+        }
+        return lane;
+      }).toList();
+      
+      _currentState = _currentState.copyWith(lanes: updatedLanes);
+      _view?.render(_currentState);
+      
+      LoggerService.to.business('Lane updated successfully');
+      
+      // Persist to repository
+      await _repository.updateLane(workspaceId, laneId, {
+        'title': title,
+        'order': order,
+      });
+      LoggerService.to.database('Lane updated in repository');
+    } catch (e) {
+      LoggerService.to.error('Failed to update lane', e);
+      _view?.showError('Failed to update lane: ${e.toString()}');
+      // Reload to revert optimistic update
+      await load(workspaceId);
+    }
+    
+    LoggerService.to.methodExit('BoardPresenter.onUpdateLane');
+  }
+
+  // Delete lane
+  Future<void> onDeleteLane({
+    required String workspaceId,
+    required String laneId,
+  }) async {
+    LoggerService.to.methodEntry('BoardPresenter.onDeleteLane', {
+      'workspaceId': workspaceId,
+      'laneId': laneId,
+    });
+    
+    try {
+      // Optimistic update
+      final updatedLanes = _currentState.lanes.where((lane) => lane.id != laneId).toList();
+      
+      _currentState = _currentState.copyWith(lanes: updatedLanes);
+      _view?.render(_currentState);
+      
+      LoggerService.to.business('Lane deleted successfully');
+      
+      // Persist to repository
+      await _repository.deleteLane(workspaceId, laneId);
+      LoggerService.to.database('Lane deleted from repository');
+    } catch (e) {
+      LoggerService.to.error('Failed to delete lane', e);
+      _view?.showError('Failed to delete lane: ${e.toString()}');
+      // Reload to revert optimistic update
+      await load(workspaceId);
+    }
+    
+    LoggerService.to.methodExit('BoardPresenter.onDeleteLane');
+  }
 }

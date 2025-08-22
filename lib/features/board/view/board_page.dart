@@ -347,7 +347,7 @@ class _BoardPageState extends State<BoardPage> {
               title: const Text('Edit Lane'),
               onTap: () {
                 Navigator.of(context).pop();
-                // TODO: Implement edit lane functionality
+                _showEditLaneDialog(lane);
               },
             ),
             ListTile(
@@ -355,7 +355,7 @@ class _BoardPageState extends State<BoardPage> {
               title: const Text('Delete Lane'),
               onTap: () {
                 Navigator.of(context).pop();
-                // TODO: Implement delete lane functionality
+                _showDeleteLaneConfirmation(lane);
               },
             ),
           ],
@@ -607,6 +607,116 @@ class _BoardPageState extends State<BoardPage> {
         },
       );
     }
+  }
+
+  void _showEditLaneDialog(Lane lane) {
+    final TextEditingController nameController = TextEditingController(text: lane.title);
+    final TextEditingController orderController = TextEditingController(text: lane.order.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Lane: ${lane.title}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Lane Name *',
+                  hintText: 'Enter lane name...',
+                  prefixIcon: Icon(Icons.label),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: orderController,
+                decoration: const InputDecoration(
+                  labelText: 'Order',
+                  hintText: 'Enter order (optional)',
+                  prefixIcon: Icon(Icons.sort),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.trim().isNotEmpty) {
+                final newOrder = int.tryParse(orderController.text.trim()) ?? lane.order;
+                _controller.updateLane(
+                  laneId: lane.id,
+                  title: nameController.text.trim(),
+                  order: newOrder,
+                );
+                Navigator.of(context).pop();
+                
+                Get.snackbar(
+                  'Success',
+                  'Lane updated successfully',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Lane name is required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Update Lane'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteLaneConfirmation(Lane lane) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Lane'),
+        content: Text(
+          'Are you sure you want to delete "${lane.title}"? This action cannot be undone and will also delete all cards in this lane.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _controller.deleteLane(laneId: lane.id);
+              
+              Get.snackbar(
+                'Success',
+                'Lane deleted successfully',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAddCardDialog(Lane lane) {
