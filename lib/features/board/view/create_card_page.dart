@@ -235,7 +235,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         badges: [], // Will be populated later
         amount: 0.0,
         laneId: _selectedLane,
-        boardId: _selectedBoard,
+        boardId: _controller.currentBoardId.value,
         workspaceId: widget.workspaceId ?? _controller.currentWorkspaceId.value,
         order: 0, // Will be set by the system
         createdAt: DateTime.now(),
@@ -268,8 +268,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         colorText: Colors.white,
       );
 
-      // Navigate back
-      Get.back();
+      // Navigate back to board page
+      Get.offAllNamed('/board');
     } catch (e) {
       _showError('Failed to create card: ${e.toString()}');
     } finally {

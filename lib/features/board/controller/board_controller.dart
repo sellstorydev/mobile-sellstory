@@ -412,6 +412,10 @@ class BoardController extends GetxController implements BoardView {
       print('🔄 Creating card in workspace: ${currentWorkspaceId.value}');
       final cardId = await _repository.createCard(currentWorkspaceId.value, card);
       print('✅ Card created successfully with ID: $cardId');
+      
+      // Refresh board data to show the new card
+      await refresh();
+      
       return cardId;
     } catch (e) {
       print('❌ Failed to create card: $e');

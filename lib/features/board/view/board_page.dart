@@ -40,6 +40,9 @@ class _BoardPageState extends State<BoardPage> {
     // Check if we need to refresh data (e.g., after creating new workspace)
     if (_controller.currentWorkspaceId.value.isEmpty && !_controller.isLoading.value) {
       _initializeWithCurrentUser();
+    } else if (_controller.currentWorkspaceId.value.isNotEmpty && _controller.currentBoardId.value.isNotEmpty) {
+      // Refresh board data when returning to this page
+      _controller.refresh();
     }
   }
 
