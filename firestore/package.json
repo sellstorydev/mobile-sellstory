@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "firestore-export-import": "^1.6.0"
+  }
+}

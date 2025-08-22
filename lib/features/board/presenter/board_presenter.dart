@@ -227,6 +227,14 @@ class BoardPresenter {
       'title': card.title,
     });
     
+    print('🔄 BoardPresenter.onUpdateCard - Card data:');
+    print('  - ID: ${card.id}');
+    print('  - Title: ${card.title}');
+    print('  - Custom ID: ${card.customId}');
+    print('  - Status: ${card.status}');
+    print('  - Assignee: ${card.assignee}');
+    print('  - Customer: ${card.customer}');
+    
     try {
       // Optimistic update
       final updatedLanes = _currentState.lanes.map((lane) {
@@ -234,6 +242,7 @@ class BoardPresenter {
         if (cardIndex != -1) {
           final updatedCards = List<JobCard>.from(lane.cards);
           updatedCards[cardIndex] = card;
+          print('✅ Updated card in lane: ${lane.title}');
           return lane.copyWith(cards: updatedCards);
         }
         return lane;
@@ -247,11 +256,14 @@ class BoardPresenter {
       // Persist to repository
       await _repository.updateCard(workspaceId, card);
       LoggerService.to.database('Card updated in repository');
+      
+      print('✅ Card update completed successfully');
     } catch (e) {
       LoggerService.to.error('Failed to update card', e);
       _view?.showError('Failed to update card: ${e.toString()}');
       // Reload to revert optimistic update
       await load(workspaceId);
+      print('❌ Card update failed: $e');
     }
     
     LoggerService.to.methodExit('BoardPresenter.onUpdateCard');

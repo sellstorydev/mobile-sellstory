@@ -99,15 +99,11 @@ class _BoardPageState extends State<BoardPage> {
         ],
       ),
       body: _buildBoardView(),
-      floatingActionButton: Obx(() {
-        if (_controller.lanes.isNotEmpty) {
-          return FloatingActionButton(
-            onPressed: () => _showAddCardDialog(),
-            child: const Icon(Icons.add),
-          );
-        }
-        return const SizedBox.shrink();
-      }),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddLaneDialog(),
+        child: const Icon(Icons.add),
+        tooltip: 'Add New Lane',
+      ),
     );
   }
 
@@ -200,11 +196,17 @@ class _BoardPageState extends State<BoardPage> {
           final laneData = lane as Lane;
           return DragAndDropList(
             header: _buildLaneHeader(laneData),
-            children: laneData.cards.map((card) {
-              return DragAndDropItem(
-                child: JobCardTile(card: card),
-              );
-            }).toList(),
+            children: [
+              ...laneData.cards.map((card) {
+                return DragAndDropItem(
+                  child: JobCardTile(card: card),
+                );
+              }).toList(),
+              // Add card button at the bottom of each lane
+              DragAndDropItem(
+                child: _buildAddCardButton(laneData),
+              ),
+            ],
           );
         }).toList(),
       ),
@@ -263,6 +265,45 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
+  Widget _buildAddCardButton(Lane lane) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: InkWell(
+        onTap: () => _showAddCardDialog(lane),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add,
+                size: 20,
+                color: Colors.orange[600],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Add a card',
+                style: TextStyle(
+                  color: Colors.orange[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _handleCardReorder(int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
     try {
       final oldLane = _controller.lanes[oldListIndex] as Lane;
@@ -283,85 +324,75 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   void _showAddLaneDialog() {
-    final TextEditingController titleController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController orderController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add New Lane'),
-        content: TextField(
-          controller: titleController,
-          decoration: const InputDecoration(
-            labelText: 'Lane Title',
-            hintText: 'Enter lane title...',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (titleController.text.trim().isNotEmpty) {
-                _controller.onAddLane(titleController.text.trim());
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddCardDialog() {
-    final TextEditingController titleController = TextEditingController();
-    final TextEditingController assigneeController = TextEditingController();
-    String selectedLaneId = _controller.lanes.first.id;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Card'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: titleController,
+                controller: nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Card Title',
-                  hintText: 'Enter card title...',
+                  labelText: 'Lane Name *',
+                  hintText: 'Enter lane name...',
+                  prefixIcon: Icon(Icons.label),
                 ),
+                autofocus: true,
               ),
               const SizedBox(height: 16),
               TextField(
-                controller: assigneeController,
+                controller: orderController,
                 decoration: const InputDecoration(
-                  labelText: 'Assignee',
-                  hintText: 'Enter assignee...',
+                  labelText: 'Order',
+                  hintText: 'Enter order (optional)',
+                  prefixIcon: Icon(Icons.sort),
                 ),
+                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedLaneId,
-                decoration: const InputDecoration(
-                  labelText: 'Lane',
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
                 ),
-                items: _controller.lanes.map((lane) {
-                  final laneData = lane as Lane;
-                  return DropdownMenuItem<String>(
-                    value: laneData.id,
-                    child: Text(laneData.title),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    selectedLaneId = value;
-                  }
-                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue[600], size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Lane Structure',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• boardId: Auto-generated\n'
+                      '• workspaceId: Current workspace\n'
+                      '• name: Lane name\n'
+                      '• order: Position in board\n'
+                      '• cards: Empty array\n'
+                      '• hasMoreCards: false',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -373,16 +404,90 @@ class _BoardPageState extends State<BoardPage> {
           ),
           ElevatedButton(
             onPressed: () {
+              if (nameController.text.trim().isNotEmpty) {
+                final order = orderController.text.trim().isNotEmpty 
+                    ? int.tryParse(orderController.text.trim()) ?? _controller.lanes.length
+                    : _controller.lanes.length;
+                
+                print('🔄 Adding new lane:');
+                print('  - Name: ${nameController.text.trim()}');
+                print('  - Order: $order');
+                
+                _controller.onAddLane(nameController.text.trim());
+                Navigator.of(context).pop();
+              } else {
+                // Show error for required fields
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Lane name is required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Add Lane'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  void _showAddCardDialog(Lane lane) {
+    final TextEditingController titleController = TextEditingController();
+    final TextEditingController assigneeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add Card to ${lane.title}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: 'Card Title *',
+                hintText: 'Enter card title...',
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: assigneeController,
+              decoration: const InputDecoration(
+                labelText: 'Assignee',
+                hintText: 'Enter assignee...',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
               if (titleController.text.trim().isNotEmpty) {
                 _controller.onAddCard(
-                  laneId: selectedLaneId,
+                  laneId: lane.id,
                   title: titleController.text.trim(),
                   assignee: assigneeController.text.trim(),
                 );
                 Navigator.of(context).pop();
+              } else {
+                // Show error for required fields
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Title is required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
-            child: const Text('Add'),
+            child: const Text('Add Card'),
           ),
         ],
       ),

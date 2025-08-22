@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Local artifacts
+backup.json
+
+# Service account keys (do NOT commit secrets)
+kanbanflowkey.json
+*.service-account.json
+
+# macOS
+.DS_Store
