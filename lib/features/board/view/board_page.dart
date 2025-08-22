@@ -71,6 +71,17 @@ class _BoardPageState extends State<BoardPage> {
           ? _controller.currentWorkspaceName.value 
           : 'Board')),
         actions: [
+          // Board Management button
+          Obx(() {
+            if (_controller.hasWorkspaces) {
+              return IconButton(
+                onPressed: () => Get.toNamed('/board-management'),
+                icon: const Icon(Icons.dashboard),
+                tooltip: 'Board Management',
+              );
+            }
+            return const SizedBox.shrink();
+          }),
           // Refresh button
           IconButton(
             onPressed: () => _initializeWithCurrentUser(),

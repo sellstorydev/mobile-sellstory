@@ -3,6 +3,7 @@ import '../../../domain/entities/lane.dart';
 import '../../../domain/entities/job_card.dart';
 import '../../../domain/entities/customer.dart';
 import '../../../domain/entities/company.dart';
+import '../../../domain/entities/board.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../presenter/board_presenter.dart';
 import '../contract/board_view.dart';
@@ -19,6 +20,7 @@ class BoardController extends GetxController implements BoardView {
   final RxList<Map<String, dynamic>> userWorkspaces = <Map<String, dynamic>>[].obs;
   final RxList<Lane> lanes = <Lane>[].obs;
   final RxList<JobCard> userAssignedCards = <JobCard>[].obs;
+  final RxList<Board> boards = <Board>[].obs;
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
   final RxBool isInitialized = false.obs;
@@ -351,6 +353,95 @@ class BoardController extends GetxController implements BoardView {
     } catch (e) {
       print('❌ Failed to create card: $e');
       error.value = 'Failed to create card';
+      rethrow;
+    }
+  }
+
+  // Get boards for current workspace
+  Future<List<Board>> getBoards() async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for getting boards');
+      return [];
+    }
+    
+    try {
+      print('🔄 Getting boards for workspace: ${currentWorkspaceId.value}');
+      final boardsList = await _repository.getBoards(currentWorkspaceId.value);
+      boards.value = boardsList;
+      print('✅ Boards loaded successfully - ${boardsList.length} boards');
+      return boardsList;
+    } catch (e) {
+      print('❌ Failed to get boards: $e');
+      error.value = 'Failed to get boards';
+      return [];
+    }
+  }
+
+  // Create board
+  Future<String> createBoard(String name) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for creating board');
+      throw Exception('No workspace selected');
+    }
+    
+    try {
+      print('🔄 Creating board in workspace: ${currentWorkspaceId.value}');
+      final boardId = await _repository.createBoard(
+        currentWorkspaceId.value, 
+        name, 
+        currentUserId.value,
+      );
+      print('✅ Board created successfully with ID: $boardId');
+      
+      // Refresh boards list
+      await getBoards();
+      
+      return boardId;
+    } catch (e) {
+      print('❌ Failed to create board: $e');
+      error.value = 'Failed to create board';
+      rethrow;
+    }
+  }
+
+  // Update board
+  Future<void> updateBoard(String boardId, String newName) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for updating board');
+      throw Exception('No workspace selected');
+    }
+    
+    try {
+      print('🔄 Updating board: $boardId');
+      await _repository.updateBoard(currentWorkspaceId.value, boardId, newName);
+      print('✅ Board updated successfully');
+      
+      // Refresh boards list
+      await getBoards();
+    } catch (e) {
+      print('❌ Failed to update board: $e');
+      error.value = 'Failed to update board';
+      rethrow;
+    }
+  }
+
+  // Delete board
+  Future<void> deleteBoard(String boardId) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for deleting board');
+      throw Exception('No workspace selected');
+    }
+    
+    try {
+      print('🔄 Deleting board: $boardId');
+      await _repository.deleteBoard(currentWorkspaceId.value, boardId);
+      print('✅ Board deleted successfully');
+      
+      // Refresh boards list
+      await getBoards();
+    } catch (e) {
+      print('❌ Failed to delete board: $e');
+      error.value = 'Failed to delete board';
       rethrow;
     }
   }

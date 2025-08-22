@@ -5,6 +5,7 @@ import '../../domain/entities/lane.dart';
 import '../../domain/entities/job_card.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/company.dart';
+import '../../domain/entities/board.dart';
 import '../../core/services/logger_service.dart';
 
 class FirestoreRepository {
@@ -1134,6 +1135,204 @@ class FirestoreRepository {
     } catch (e) {
       print('❌ Failed to get companies stream: $e');
       _logger.error('Failed to get companies stream', e);
+      rethrow;
+    }
+  }
+
+  // Get boards for workspace
+  Future<List<Board>> getBoards(String workspaceId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getBoards', {
+        'workspaceId': workspaceId
+      });
+      
+      print('🔄 FirestoreRepository.getBoards:');
+      print('  - Workspace ID: $workspaceId');
+      
+      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
+      final querySnapshot = await _firestoreService.getDocuments(boardsCollection);
+      final boards = querySnapshot.docs.map((doc) {
+        return Board.fromMap(doc.data(), doc.id);
+      }).toList();
+      
+      print('✅ Boards loaded successfully - ${boards.length} boards');
+      return boards;
+    } catch (e) {
+      print('❌ Failed to get boards: $e');
+      _logger.error('Failed to get boards', e);
+      rethrow;
+    }
+  }
+
+  // Get boards stream for workspace
+  Stream<List<Board>> getBoardsStream(String workspaceId) {
+    try {
+      _logger.methodEntry('FirestoreRepository.getBoardsStream', {
+        'workspaceId': workspaceId
+      });
+      
+      print('🔄 FirestoreRepository.getBoardsStream:');
+      print('  - Workspace ID: $workspaceId');
+      
+      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
+      return _firestoreService.getDocumentsStream(boardsCollection).map((querySnapshot) {
+        final boards = querySnapshot.docs.map((doc) {
+          return Board.fromMap(doc.data(), doc.id);
+        }).toList();
+        
+        print('✅ Boards stream updated - ${boards.length} boards');
+        return boards;
+      });
+    } catch (e) {
+      print('❌ Failed to get boards stream: $e');
+      _logger.error('Failed to get boards stream', e);
+      rethrow;
+    }
+  }
+
+  // Create board
+  Future<String> createBoard(String workspaceId, String name, String createdBy) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.createBoard', {
+        'workspaceId': workspaceId,
+        'name': name,
+        'createdBy': createdBy
+      });
+
+      // Use Firestore transaction to ensure atomic board creation with default lanes
+      final boardId = await _firestoreService.runTransaction<String>((transaction) async {
+        // Create board document
+        final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
+        final boardDocRef = boardsCollection.doc();
+        
+        final boardData = {
+          'name': name,
+          'workspaceId': workspaceId,
+          'createdBy': createdBy,
+          'members': [
+            {
+              'uid': createdBy,
+              'email': 'mobile-user@example.com',
+              'displayName': 'Mobile User',
+              'photoURL': null,
+              'role': 'owner',
+              'language': 'en',
+              'workspaces': [],
+            },
+          ],
+          'memberUids': [createdBy],
+          'lanes': [],
+          'createdAt': Timestamp.fromDate(DateTime.now()),
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        };
+
+        // Set board document
+        transaction.set(boardDocRef, boardData);
+
+        // Create default lanes
+        final defaultLanes = [
+          {'name': 'To Do', 'order': 0},
+          {'name': 'In Progress', 'order': 1},
+          {'name': 'Done', 'order': 2},
+        ];
+
+        final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
+        for (final laneData in defaultLanes) {
+          final laneId = FirebaseFirestore.instance.collection('lanes').doc().id;
+          final laneRef = lanesCollection.doc(laneId);
+          
+          transaction.set(laneRef, {
+            'boardId': boardDocRef.id,
+            'workspaceId': workspaceId,
+            'name': laneData['name'],
+            'order': laneData['order'],
+            'cards': [],
+            'hasMoreCards': false,
+            'createdAt': Timestamp.fromDate(DateTime.now()),
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          });
+        }
+
+        print('✅ Created board with ID: ${boardDocRef.id}');
+        return boardDocRef.id;
+      });
+
+      _logger.methodExit('FirestoreRepository.createBoard', {'boardId': boardId});
+      return boardId;
+    } catch (e) {
+      _logger.error('Failed to create board', e);
+      rethrow;
+    }
+  }
+
+  // Update board
+  Future<void> updateBoard(String workspaceId, String boardId, String newName) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.updateBoard', {
+        'workspaceId': workspaceId,
+        'boardId': boardId,
+        'newName': newName
+      });
+
+      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
+      final boardRef = boardsCollection.doc(boardId);
+      
+      await _firestoreService.updateDocument(boardRef, {
+        'name': newName,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+
+      print('✅ Updated board: $boardId with new name: $newName');
+      _logger.methodExit('FirestoreRepository.updateBoard');
+    } catch (e) {
+      _logger.error('Failed to update board', e);
+      rethrow;
+    }
+  }
+
+  // Delete board
+  Future<void> deleteBoard(String workspaceId, String boardId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.deleteBoard', {
+        'workspaceId': workspaceId,
+        'boardId': boardId
+      });
+
+      // Use Firestore transaction to ensure atomic deletion
+      await _firestoreService.runTransaction<void>((transaction) async {
+        // Delete board document
+        final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
+        final boardRef = boardsCollection.doc(boardId);
+        transaction.delete(boardRef);
+
+        // Delete all lanes in this board
+        final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
+        final lanesQuery = await _firestoreService.getDocuments(
+          lanesCollection,
+          queryBuilder: (query) => query.where('boardId', isEqualTo: boardId),
+        );
+        
+        for (final laneDoc in lanesQuery.docs) {
+          transaction.delete(laneDoc.reference);
+        }
+
+        // Delete all cards in this board
+        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+        final cardsQuery = await _firestoreService.getDocuments(
+          cardsCollection,
+          queryBuilder: (query) => query.where('boardId', isEqualTo: boardId),
+        );
+        
+        for (final cardDoc in cardsQuery.docs) {
+          transaction.delete(cardDoc.reference);
+        }
+
+        print('✅ Deleted board: $boardId with all lanes and cards');
+      });
+
+      _logger.methodExit('FirestoreRepository.deleteBoard');
+    } catch (e) {
+      _logger.error('Failed to delete board', e);
       rethrow;
     }
   }

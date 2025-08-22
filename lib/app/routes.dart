@@ -9,6 +9,9 @@ import '../features/board/view/create_card_page.dart';
 import '../features/board/view/create_workspace_page.dart';
 import '../features/board/view/edit_workspace_page.dart';
 import '../features/board/view/edit_card_page.dart';
+import '../features/board/view/create_board_page.dart';
+import '../features/board/view/edit_board_page.dart';
+import '../features/board/view/board_management_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -19,6 +22,9 @@ class AppRoutes {
   static const String cardDetail = '/card-detail';
   static const String createCard = '/create-card';
   static const String editCard = '/edit-card';
+  static const String createBoard = '/create-board';
+  static const String editBoard = '/edit-board';
+  static const String boardManagement = '/board-management';
   static const String createWorkspace = '/create-workspace';
   static const String editWorkspace = '/edit-workspace';
 
@@ -58,6 +64,18 @@ class AppRoutes {
     GetPage(
       name: editCard,
       page: () => EditCardPage(card: Get.arguments['card']),
+    ),
+    GetPage(
+      name: createBoard,
+      page: () => const CreateBoardPage(),
+    ),
+    GetPage(
+      name: editBoard,
+      page: () => EditBoardPage(board: Get.arguments['board']),
+    ),
+    GetPage(
+      name: boardManagement,
+      page: () => const BoardManagementPage(),
     ),
     GetPage(
       name: createWorkspace,
