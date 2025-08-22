@@ -4,6 +4,7 @@ import '../services/logger_service.dart';
 import '../../data/repositories/jobcard_repository.dart';
 import '../../data/repositories/firestore_repository.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/services/chat_service.dart'; // เพิ่มการ import ChatService
 import '../../domain/usecases/add_card_usecase.dart';
 import '../../domain/usecases/add_lane_usecase.dart';
 import '../../domain/usecases/move_card_usecase.dart';
@@ -30,6 +31,7 @@ class Locator {
     
     // Services
     Get.lazyPut<FirestoreService>(() => FirestoreService(), fenix: true);
+    Get.lazyPut<ChatService>(() => ChatService(), fenix: true); // เพิ่ม ChatService
 
     // Repositories
     Get.lazyPut<JobCardRepository>(() => InMemoryJobCardRepository(), fenix: true);
@@ -48,7 +50,7 @@ class Locator {
     if (kDebugMode) {
       logger?.devTools('Locator.setup() completed', {
         'timestamp': DateTime.now().toIso8601String(),
-        'services_count': 9, // Updated count
+        'services_count': 10, // Updated count
       });
     }
   }

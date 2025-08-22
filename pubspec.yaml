@@ -72,6 +72,18 @@ dependencies:
   # Device preview for testing different screen sizes and orientations
   device_preview: ^1.3.1
 
+  # HTTP client for API calls
+  http: ^1.1.0
+
+  # Image picker for chat attachments
+  image_picker: ^1.0.4
+
+  # File picker for chat attachments
+  file_picker: ^6.1.1
+
+  # URL launcher for opening links
+  url_launcher: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

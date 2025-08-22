@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart'; // Add this import
-import 'package:get/get.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../controller/chat_screen_controller.dart';
+import '../../../data/services/chat_service.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/chat_input.dart';
 
@@ -23,22 +23,20 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  late final ChatScreenController _controller;
   final ScrollController _scrollController = ScrollController();
+  final ChatService _chatService = ChatService.to;
+  bool _isLoading = false;
+  String? _error;
+
+  String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
+  String get _chatroomName => widget.conversationData['name'] ?? 'แชท';
+  String? get _avatarUrl => widget.conversationData['avatar'];
+  String get _sourceType => widget.conversationData['source_type'] ?? 'unknown';
 
   @override
   void initState() {
     super.initState();
-    _controller = Get.put(ChatScreenController());
-    _initializeChat();
-  }
-
-  void _initializeChat() {
-    _controller.initializeChat(
-      conversationId: widget.conversationId,
-      workspaceId: widget.workspaceId,
-      conversationData: widget.conversationData,
-    );
+    _markAsRead();
   }
 
   @override
@@ -47,92 +45,146 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  void _markAsRead() async {
+    // อัพเดท count เป็น 0 เมื่อเข้าแชท
+    try {
+      await _chatService.getChatroomsCollection(widget.workspaceId)
+          .doc(widget.conversationId)
+          .update({'count': '0'});
+    } catch (e) {
+      print('Error marking as read: $e');
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
+    }
+  }
+
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _chatService.sendTextMessage(
+        workspaceId: widget.workspaceId,
+        chatroomId: widget.conversationId,
+        platform: _sourceType,
+        text: text.trim(),
+        sender: {
+          'id': _currentUserId,
+          'name': FirebaseAuth.instance.currentUser?.displayName ?? 'User',
+          'avatar': FirebaseAuth.instance.currentUser?.photoURL,
+        },
+      );
+
+      _scrollToBottom();
+    } catch (e) {
+      setState(() => _error = 'ส่งข้อความไม่สำเร็จ: $e');
+      _showErrorSnackBar(_error!);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _sendImageMessage(String imageUrl) async {
+    setState(() => _isLoading = true);
+    try {
+      await _chatService.sendImageMessage(
+        workspaceId: widget.workspaceId,
+        chatroomId: widget.conversationId,
+        platform: _sourceType,
+        imageUrl: imageUrl,
+        sender: {
+          'id': _currentUserId,
+          'name': FirebaseAuth.instance.currentUser?.displayName ?? 'User',
+          'avatar': FirebaseAuth.instance.currentUser?.photoURL,
+        },
+      );
+
+      _scrollToBottom();
+    } catch (e) {
+      setState(() => _error = 'ส่งรูปภาพไม่สำเร็จ: $e');
+      _showErrorSnackBar(_error!);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _sendFileMessage(String fileUrl, String fileName) async {
+    setState(() => _isLoading = true);
+    try {
+      await _chatService.sendFileMessage(
+        workspaceId: widget.workspaceId,
+        chatroomId: widget.conversationId,
+        platform: _sourceType,
+        fileUrl: fileUrl,
+        fileName: fileName,
+        sender: {
+          'id': _currentUserId,
+          'name': FirebaseAuth.instance.currentUser?.displayName ?? 'User',
+          'avatar': FirebaseAuth.instance.currentUser?.photoURL,
+        },
+      );
+
+      _scrollToBottom();
+    } catch (e) {
+      setState(() => _error = 'ส่งไฟล์ไม่สำเร็จ: $e');
+      _showErrorSnackBar(_error!);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final conversationName = widget.conversationData['name'] ?? 'Unknown';
-    final isOnline = widget.conversationData['isOnline'] ?? false;
-    final sourceType = widget.conversationData['sourceType'] ?? 'unknown';
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Row(
           children: [
-            // Avatar
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundImage: widget.conversationData['avatarUrl'] != null
-                      ? NetworkImage(widget.conversationData['avatarUrl'])
-                      : null,
-                  child: widget.conversationData['avatarUrl'] == null
-                      ? Text(
-                          _getInitials(conversationName),
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        )
-                      : null,
-                ),
-                if (isOnline)
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            if (_avatarUrl != null)
+              CircleAvatar(
+                radius: 18,
+                backgroundImage: NetworkImage(_avatarUrl!),
+              )
+            else
+              CircleAvatar(
+                radius: 18,
+                child: Text(_chatroomName.substring(0, 1).toUpperCase()),
+              ),
             const SizedBox(width: 12),
-            // Name and status
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          conversationName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (sourceType == 'line')
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade600,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'LINE',
-                            style: TextStyle(color: Colors.white, fontSize: 10),
-                          ),
-                        ),
-                    ],
+                  Text(
+                    _chatroomName,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    isOnline ? 'ออนไลน์' : 'ออฟไลน์',
+                    _sourceType.toUpperCase(),
                     style: TextStyle(
                       fontSize: 12,
-                      color: isOnline ? Colors.green : Colors.grey,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -142,209 +194,213 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.phone, color: Colors.black),
-            onPressed: () {
-              // TODO: Implement call functionality
-            },
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
-            onSelected: (value) {
-              switch (value) {
-                case 'info':
-                  _showConversationInfo();
-                  break;
-                case 'pin':
-                  _controller.togglePin();
-                  break;
-                case 'mute':
-                  _controller.toggleMute();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'info', child: Text('ข้อมูลแชท')),
-              PopupMenuItem(
-                value: 'pin',
-                child: Text(widget.conversationData['isPinned'] == true ? 'ยกเลิกปักหมุด' : 'ปักหมุด'),
-              ),
-              const PopupMenuItem(value: 'mute', child: Text('ปิดการแจ้งเตือน')),
-            ],
+            icon: const Icon(Icons.info_outline),
+            onPressed: () => _showChatInfo(),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Messages list
-          Expanded(child: _buildMessagesList()),
-
-          // Input area
-          _buildInputArea(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessagesList() {
-    return Obx(() {
-      if (_controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      if (_controller.error.value.isNotEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-              const SizedBox(height: 16),
-              Text(_controller.error.value),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => _controller.loadMessages(),
-                child: const Text('ลองใหม่'),
+          // Error display
+          if (_error != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              color: Colors.red.shade100,
+              child: Text(
+                _error!,
+                style: TextStyle(color: Colors.red.shade800),
+                textAlign: TextAlign.center,
               ),
-            ],
-          ),
-        );
-      }
+            ),
 
-      final messages = _controller.messages;
+          // Messages list
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _chatService.getMessagesStream(
+                workspaceId: widget.workspaceId,
+                chatroomId: widget.conversationId,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-      if (messages.isEmpty) {
-        return const Center(
-          child: Text(
-            'ยังไม่มีข้อความในแชทนี้',
-            style: TextStyle(color: Colors.grey),
-          ),
-        );
-      }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                        const SizedBox(height: 16),
+                        Text('เกิดข้อผิดพลาด: ${snapshot.error}'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => setState(() {}),
+                          child: const Text('ลองใหม่'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-      return ListView.builder(
-        controller: _scrollController,
-        reverse: true,
-        padding: const EdgeInsets.all(16),
-        itemCount: messages.length,
-        itemBuilder: (context, index) {
-          final message = messages[index];
-          return MessageBubble(
-            message: message,
-            currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
-          );
-        },
-      );
-    });
-  }
+                final messages = snapshot.data?.docs ?? [];
 
-  Widget _buildInputArea() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
-      ),
-      child: ChatInput(
-        onSendMessage: (message) => _controller.sendMessage(message),
-        onSendImage: () => _controller.sendImage(),
-        onSendFile: () => _controller.sendFile(),
-      ),
-    );
-  }
-
-  void _showConversationInfo() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          maxChildSize: 0.9,
-          minChildSize: 0.5,
-          builder: (context, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration:  BoxDecoration(
+                if (messages.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'ยังไม่มีข้อความในแชทนี้\nเริ่มต้นการสนทนาได้เลย!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
                         color: Colors.grey,
-                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'ข้อมูลแชท',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildInfoItem('ชื่อ', widget.conversationData['name'] ?? 'Unknown'),
-                  _buildInfoItem('ประเภท', widget.conversationData['sourceType'] ?? 'Unknown'),
-                  _buildInfoItem('สถานะ', widget.conversationData['status'] ?? 'Unknown'),
-                  _buildInfoItem('สร้างเมื่อ', _formatDate(widget.conversationData['createdAt'])),
-                  _buildInfoItem('อัพเดทล่าสุด', _formatDate(widget.conversationData['lastMessageAt'])),
-                  if (widget.conversationData['salespersonName'] != null)
-                    _buildInfoItem('พนักงานขาย', widget.conversationData['salespersonName']),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+                  );
+                }
 
-  Widget _buildInfoItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+                // Auto scroll to bottom when new message arrives
+                SchedulerBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollController.hasClients) {
+                    _scrollController.animateTo(
+                      _scrollController.position.maxScrollExtent,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                    );
+                  }
+                });
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length,
+                  reverse: true, // Show newest at bottom
+                  itemBuilder: (context, index) {
+                    final messageData = messages[index].data() as Map<String, dynamic>;
+                    final messageId = messages[index].id;
+
+                    return MessageBubble(
+                      messageId: messageId,
+                      messageData: messageData,
+                      isFromCurrentUser: _isMessageFromCurrentUser(messageData),
+                    );
+                  },
+                );
+              },
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+
+          // Loading indicator
+          if (_isLoading)
+            Container(
+              padding: const EdgeInsets.all(8),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('กำลังส่งข้อความ...'),
+                ],
+              ),
             ),
+
+          // Input area
+          ChatInput(
+            onSendText: _sendMessage,
+            onSendImage: _sendImageMessage,
+            onSendFile: (fileUrl, fileName) => _sendFileMessage(fileUrl, fileName),
+            enabled: !_isLoading,
           ),
         ],
       ),
     );
   }
 
-  String _getInitials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) {
-      return parts.first.isNotEmpty ? parts.first[0].toUpperCase() : '?';
-    }
-    return (parts[0].isNotEmpty ? parts[0][0] : '') +
-           (parts[1].isNotEmpty ? parts[1][0] : '');
+  bool _isMessageFromCurrentUser(Map<String, dynamic> messageData) {
+    // Check if message is from current user
+    final senderId = messageData['sender']?['id'] as String?;
+    return senderId == _currentUserId;
   }
 
-  String _formatDate(dynamic date) {
-    if (date == null) return 'ไม่ทราบ';
-    if (date is DateTime) {
-      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    }
-    return date.toString();
+  void _showChatInfo() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (_avatarUrl != null)
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundImage: NetworkImage(_avatarUrl!),
+                    )
+                  else
+                    CircleAvatar(
+                      radius: 32,
+                      child: Text(_chatroomName.substring(0, 1).toUpperCase()),
+                    ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _chatroomName,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'แพลตฟอร์ม: ${_sourceType.toUpperCase()}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          'สถานะ: ${widget.conversationData['chatroom_status'] ?? 'ไม่ระบุ'}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.info),
+                title: const Text('รายละเอียดแชท'),
+                subtitle: Text('ID: ${widget.conversationId}'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.business),
+                title: const Text('Workspace'),
+                subtitle: Text('ID: ${widget.workspaceId}'),
+              ),
+              if (widget.conversationData['customerName'] != null)
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: const Text('ลูกค้า'),
+                  subtitle: Text(widget.conversationData['customerName']),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
