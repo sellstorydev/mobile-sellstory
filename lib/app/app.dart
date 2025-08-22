@@ -23,7 +23,7 @@ class SellStoryApp extends StatelessWidget {
       return GetMaterialApp(
         title: 'SellStory',
         theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
+        // darkTheme: AppTheme.darkTheme,
         themeMode: themeController.mode.value,
         translations: AppTranslations(),
         locale: localeController.locale.value,

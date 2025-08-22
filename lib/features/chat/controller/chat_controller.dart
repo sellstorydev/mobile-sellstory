@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import '../../../data/services/firestore_service.dart';
 import '../../../core/services/logger_service.dart';
@@ -18,6 +20,9 @@ class ChatController extends GetxController {
   String? _currentUserId;
   String? _currentWorkspaceId;
 
+  // Subscription for realtime updates
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatroomsSub;
+
   @override
   void onInit() {
     super.onInit();
@@ -30,13 +35,13 @@ class ChatController extends GetxController {
     _logger.info('Current user set: $userId');
   }
 
-  void _getCurrentWorkspaceId() async {
+  Future<void> _getCurrentWorkspaceId() async {
     if (_currentUserId == null) return;
 
     try {
       // First try to get workspace ID from user's lastActiveWorkspaceId
       final userData = await _firestoreService.getDocument(
-        _firestoreService.usersCollection.doc(_currentUserId!)
+          _firestoreService.usersCollection.doc(_currentUserId!)
       );
 
       if (userData != null && userData['lastActiveWorkspaceId'] != null && userData['lastActiveWorkspaceId'].toString().isNotEmpty) {
@@ -82,36 +87,85 @@ class ChatController extends GetxController {
     }
   }
 
-  Future<void> loadConversations() async {
-
-
+  // Start realtime listener for chatrooms in current workspace
+  Future<void> startRealtime() async {
     if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
-      _getCurrentWorkspaceId(); // Try to get it again
-
+      await _getCurrentWorkspaceId();
       if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
         error.value = 'No workspace selected';
-        _logger.warning('Cannot load conversations: no workspace ID available');
         return;
       }
     }
 
+    // If already listening, restart
+    await stopRealtime();
+
+    isLoading.value = true;
+    error.value = '';
+
     try {
-      isLoading.value = true;
-      error.value = '';
+      final col = _firestoreService.getChatroomsCollection(_currentWorkspaceId!);
+      _chatroomsSub = _firestoreService.getDocumentsStream(
+        col,
+        queryBuilder: (q) => q
+            .where('is_deleted', isEqualTo: 'N')
+            .orderBy('last_message_info.last_upd', descending: true),
+      ).listen((qs) {
+        final items = qs.docs.map((doc) {
+          final data = Map<String, dynamic>.from(doc.data());
+          data['id'] = doc.id;
 
-      _logger.info('Loading chatrooms for workspace: $_currentWorkspaceId');
+          final lastMessageInfo = data['last_message_info'] as Map<String, dynamic>? ?? {};
 
-      final result = await _firestoreService.getChatroomsForWorkspace(_currentWorkspaceId!);
-      conversations.value = result;
+          data['name'] = data['name'] ?? data['customerName'] ?? lastMessageInfo['who_name'] ?? 'Unknown';
+          data['type'] = (data['dialog_type']?.toString().toUpperCase() == 'GROUP') ? 'group' : 'direct';
+          data['lastMessage'] = lastMessageInfo['message'] ?? data['message'] ?? '';
+          data['avatarUrl'] = data['avatar'];
+          data['status'] = data['chatroom_status'] ?? 'active';
+          data['unreadCount'] = int.tryParse(data['count']?.toString() ?? '0') ?? 0;
+          data['isOnline'] = (data['bot_status'] == 'Y');
+          data['sourceType'] = data['source_type'] ?? 'unknown';
+          data['isPinned'] = data['chat_pin'] == 'Y';
+          data['isNew'] = data['is_new'] == 'Y';
 
-      _logger.success('Loaded ${result.length} chatrooms');
+          DateTime? parseDate(dynamic v) {
+            if (v == null) return null;
+            if (v is Timestamp) return v.toDate();
+            if (v is String) {
+              try { return DateTime.parse(v); } catch (_) {}
+            }
+            return null;
+          }
+
+          data['lastMessageAt'] = parseDate(lastMessageInfo['last_upd']);
+          data['createdAt'] = parseDate(data['created']);
+
+          return data;
+        }).toList();
+
+        conversations.value = items;
+        isLoading.value = false;
+        error.value = '';
+      }, onError: (e) {
+        isLoading.value = false;
+        error.value = 'Failed to get realtime chatrooms: $e';
+      });
     } catch (e) {
-      error.value = 'Failed to load chatrooms: $e';
-      _logger.failure('Failed to load chatrooms', e);
-    } finally {
       isLoading.value = false;
+      error.value = 'Failed to start realtime: $e';
     }
   }
+
+  Future<void> stopRealtime() async {
+    await _chatroomsSub?.cancel();
+    _chatroomsSub = null;
+  }
+
+  Future<void> loadConversations() async {
+    // Preserve for compatibility: switch to realtime
+    await startRealtime();
+  }
+
 
   void updateSearchQuery(String query) {
     searchQuery.value = query;
@@ -119,7 +173,12 @@ class ChatController extends GetxController {
 
   void setFilter(String filter) {
     activeFilter.value = filter;
-    loadConversations(); // Reload with new filter
+    // No server reload; filter is applied client-side on conversations stream
+  }
+
+  void refresh() {
+    // Restart stream to force refresh if needed
+    startRealtime();
   }
 
   List<Map<String, dynamic>> get filteredConversations {
@@ -144,7 +203,7 @@ class ChatController extends GetxController {
           final unreadCount = int.tryParse(conv['count']?.toString() ?? '0') ?? 0;
           return unreadCount > 0;
         case 'assigned':
-          // You might need to add assignedUsers field or use a different logic
+        // You might need to add assignedUsers field or use a different logic
           return conv['chatroom_status'] == 'assigned';
         case 'inProgress':
           return conv['chatroom_status'] == 'in_progress' || conv['chatroom_status'] == 'active';
@@ -160,26 +219,33 @@ class ChatController extends GetxController {
           return true;
       }
     }).toList();
-
-    // Sort by last message time or pinned status
     filtered.sort((a, b) {
-      // Prioritize pinned chats
-      final aPinned = a['chat_pin'] == 'Y';
-      final bPinned = b['chat_pin'] == 'Y';
-
-      if (aPinned && !bPinned) return -1;
-      if (!aPinned && bPinned) return 1;
-
-      // Then sort by last message time
       final aTime = a['lastMessageAt'] as DateTime?;
       final bTime = b['lastMessageAt'] as DateTime?;
-
-      if (aTime == null && bTime == null) return 0;
-      if (aTime == null) return 1;
-      if (bTime == null) return -1;
-
-      return bTime.compareTo(aTime);
+      final aVal = aTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bVal = bTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bVal.compareTo(aVal);
     });
+
+    // Sort strictly by latest message time (descending)
+    // filtered.sort((a, b) {
+    //   // Prioritize pinned chats
+    //   final aPinned = a['chat_pin'] == 'Y';
+    //   final bPinned = b['chat_pin'] == 'Y';
+    //
+    //   if (aPinned && !bPinned) return -1;
+    //   if (!aPinned && bPinned) return 1;
+    //
+    //   // Then sort by last message time
+    //   final aTime = a['lastMessageAt'] as DateTime?;
+    //   final bTime = b['lastMessageAt'] as DateTime?;
+    //
+    //   if (aTime == null && bTime == null) return 0;
+    //   if (aTime == null) return 1;
+    //   if (bTime == null) return -1;
+    //
+    //   return bTime.compareTo(aTime);
+    // });
 
     return filtered;
   }
@@ -203,10 +269,6 @@ class ChatController extends GetxController {
     }
   }
 
-  void refresh() {
-    loadConversations();
-  }
-
   // Add method to get current workspace ID for ChatScreen
   String? getCurrentWorkspaceId() {
     return _currentWorkspaceId;
@@ -215,6 +277,7 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     _logger.info('ChatController disposed');
+    stopRealtime();
     super.onClose();
   }
 }

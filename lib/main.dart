@@ -56,7 +56,8 @@ void main() async {
       'status': 'failed',
     });
   }
-  
+
+
   // Register theme and locale controllers
   try {
     Get.put(ThemeController(), permanent: true);
@@ -69,9 +70,6 @@ void main() async {
   LoggerService.to.success('Application initialization completed');
   
   runApp(
-    DevicePreview(
-      enabled: true, // Enable device preview
-      builder: (context) => const SellStoryApp(),
-    ),
+      const SellStoryApp()
   );
 }

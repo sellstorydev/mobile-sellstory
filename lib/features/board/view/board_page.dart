@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../chat/view/chat_center_page.dart';
 import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
@@ -117,6 +118,19 @@ class _BoardPageState extends State<BoardPage> {
           return const Text('Board');
         }),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatCenterPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.chat_bubble_outline),
+            tooltip: 'Chat Center',
+          ),
+
           // Main Menu Button - combines all actions
           Obx(() {
             if (_controller.hasWorkspaces) {

@@ -49,7 +49,8 @@ class LoginPage extends StatelessWidget {
                             TextFormField(
                               onChanged: controller.onIdentityChanged,
                               keyboardType: TextInputType.emailAddress,
-                              style: const TextStyle(color: Colors.black), // Added black text color
+                              style: const TextStyle(color: Colors.black),
+
                               decoration: InputDecoration(
                                 hintText: 'กรอกอีเมล',
                                 filled: true,

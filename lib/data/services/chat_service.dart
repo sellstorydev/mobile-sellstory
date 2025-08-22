@@ -8,7 +8,7 @@ class ChatService extends GetxService {
   static ChatService get to => Get.find();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _baseApiUrl = 'http://10.1.3.69:3000';
+  final String _baseApiUrl = 'https://workspace.sellstory.me';
 
   // ===== Firestore refs =====
   CollectionReference<Map<String, dynamic>> getChatroomsCollection(String workspaceId) =>
@@ -182,8 +182,11 @@ class ChatService extends GetxService {
 
       final responseData = json.decode(response.body);
 
-      if (response.statusCode == 200) {
-        return responseData;
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        return {
+          'success': true,
+          'messageId': responseData['messageId'],
+        };
       } else {
         throw Exception(responseData['error'] ?? 'Failed to send message');
       }
@@ -217,6 +220,7 @@ class ChatService extends GetxService {
     required String chatroomId,
     required String platform,
     required String imageUrl,
+    String? text,
     Map<String, dynamic>? sender,
   }) {
     return sendMessage(
@@ -226,6 +230,7 @@ class ChatService extends GetxService {
       message: {
         'type': 'image',
         'imageUrl': imageUrl,
+        if (text != null && text.isNotEmpty) 'text': text,
       },
       sender: sender,
     );
@@ -236,6 +241,7 @@ class ChatService extends GetxService {
     required String chatroomId,
     required String platform,
     required String videoUrl,
+    String? text,
     Map<String, dynamic>? sender,
   }) {
     return sendMessage(
@@ -245,6 +251,26 @@ class ChatService extends GetxService {
       message: {
         'type': 'video',
         'videoUrl': videoUrl,
+        if (text != null && text.isNotEmpty) 'text': text,
+      },
+      sender: sender,
+    );
+  }
+
+  Future<Map<String, dynamic>> sendAudioMessage({
+    required String workspaceId,
+    required String chatroomId,
+    required String platform,
+    required String audioUrl,
+    Map<String, dynamic>? sender,
+  }) {
+    return sendMessage(
+      workspaceId: workspaceId,
+      chatroomId: chatroomId,
+      platform: platform,
+      message: {
+        'type': 'audio',
+        'audioUrl': audioUrl,
       },
       sender: sender,
     );
@@ -266,6 +292,31 @@ class ChatService extends GetxService {
         'type': 'file',
         'fileUrl': fileUrl,
         'fileName': fileName,
+      },
+      sender: sender,
+    );
+  }
+
+  Future<Map<String, dynamic>> sendStickerMessage({
+    required String workspaceId,
+    required String chatroomId,
+    required String platform,
+    required String stickerId,
+    required String stickerPackageId,
+    Map<String, dynamic>? sender,
+  }) {
+    if (platform.toLowerCase() != 'line') {
+      throw Exception('Stickers are only supported on LINE platform');
+    }
+
+    return sendMessage(
+      workspaceId: workspaceId,
+      chatroomId: chatroomId,
+      platform: platform,
+      message: {
+        'type': 'sticker',
+        'stickerId': stickerId,
+        'stickerPackageId': stickerPackageId,
       },
       sender: sender,
     );
