@@ -116,13 +116,26 @@ class _CreateCardPageState extends State<CreateCardPage> {
       _availableCustomers = [];
     }
     
-    // Load companies
-    _availableCompanies = [
-      {'id': 'none', 'name': 'None'},
-      {'id': 'company1', 'name': 'Company A'},
-      {'id': 'company2', 'name': 'Company B'},
-    ];
-    _selectedCompany = 'none';
+    // Load companies from Firestore
+    try {
+      print('🔄 Loading companies from Firestore...');
+      final companies = await _controller.getCompanies();
+      _availableCompanies = [
+        {'id': 'none', 'name': 'None'},
+        ...companies.map((company) => {
+          'id': company.id,
+          'name': company.name,
+        }).toList(),
+      ];
+      _selectedCompany = 'none';
+      print('✅ Companies loaded: ${_availableCompanies.length - 1} companies');
+    } catch (e) {
+      print('❌ Failed to load companies: $e');
+      _availableCompanies = [
+        {'id': 'none', 'name': 'None'},
+      ];
+      _selectedCompany = 'none';
+    }
   }
 
   void _generateJobId() {

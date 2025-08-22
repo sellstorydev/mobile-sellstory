@@ -40,7 +40,7 @@
     "L6dX9rN9poTdmnBZqH7u6GDCuTy1": {
       "uid": "L6dX9rN9poTdmnBZqH7u6GDCuTy1",
       "lastSeen": 1755832739514,
-      "activeBoardId": null
+      "activeBoardId": "KuEveIXGxlt5GN88u231"
     },
     "P1KD66OlTATf2pNwGZcN55asMru2": {
       "uid": "P1KD66OlTATf2pNwGZcN55asMru2",
@@ -61,6 +61,11 @@
       "activeBoardId": null,
       "lastSeen": 1755604239486
     },
+    "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3": {
+      "uid": "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3",
+      "lastSeen": 1755851368230,
+      "activeBoardId": null
+    },
     "gnb3DkUmCZgAuC7YlcjVn60v9D52": {
       "uid": "gnb3DkUmCZgAuC7YlcjVn60v9D52",
       "lastSeen": 1755707138024,
@@ -73,7 +78,8 @@
     },
     "jaeaXRqlI1fIdikZfRTnyfGICLx1": {
       "uid": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
-      "activeBoardId": "IPSDQd0itAtzrFj9Qlnp"
+      "lastSeen": 1755851300587,
+      "activeBoardId": null
     },
     "kZ2NVHgTO5RNf40bXrAAnhRZBit1": {
       "uid": "kZ2NVHgTO5RNf40bXrAAnhRZBit1",
@@ -3480,6 +3486,20 @@
         {
           "id": "oyuN66CRncX5st77TxVh",
           "name": "ss21 ss21's Workspace",
+          "role": "member"
+        }
+      ]
+    },
+    "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3": {
+      "uid": "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3",
+      "email": "binn6@test.com",
+      "displayName": "binn6",
+      "photoURL": null,
+      "language": "en",
+      "workspaces": [
+        {
+          "id": "hTq2B2NjsEH6CVuQ7Szb",
+          "name": "binn5 binn5's Workspace",
           "role": "member"
         }
       ]
@@ -12599,12 +12619,24 @@
               "is_deleted": "N",
               "dialog_type": "NORMAL",
               "who_name": "IG User 127761",
-              "message": "[Template: Unknown]",
-              "last_upd": "2025-08-22T08:08:11.185Z",
-              "msg_timestamp": "1755850091185"
+              "last_upd": "2025-08-22T08:29:56.414Z",
+              "message": "[ข้อความเสียง]",
+              "msg_timestamp": "1755851396414"
             },
             "subCollection": {
               "workspaces/9KTrtUEyUq8rFlkVM3pA/chatrooms/1277617936940259/messages": {
+                "1U9gu7jqrMdAPsXF9KWS": {
+                  "timestamp": 1755851396414,
+                  "sender": {
+                    "type": "user",
+                    "id": "1277617936940259",
+                    "name": "IG User 127761"
+                  },
+                  "type": "audio",
+                  "text": "[ข้อความเสียง]",
+                  "fileUrl": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2F9KTrtUEyUq8rFlkVM3pA%2Fchat_attachments%2F1277617936940259%2F1755851399812-fb_audio_1755851399812_1277617936940259.mp4?alt=media&token=b3b8a768-6ad0-44d0-bd35-7a0ae20d98b7",
+                  "fileName": "fb_audio_1755851399812_1277617936940259.mp4"
+                },
                 "1kmcmO3XeJIn2WRknfGs": {
                   "timestamp": 1755849528122,
                   "sender": {
@@ -12666,6 +12698,16 @@
                   },
                   "type": "text",
                   "text": "[Template: Unknown]"
+                },
+                "ZYRZ2ahxekUumgbzAn2y": {
+                  "timestamp": 1755850851936,
+                  "sender": {
+                    "type": "user",
+                    "id": "1277617936940259",
+                    "name": "IG User 127761"
+                  },
+                  "type": "text",
+                  "text": "Ma"
                 },
                 "dI3VutpxpzdJI0yLl3Qg": {
                   "timestamp": 1755850091185,
@@ -12813,15 +12855,15 @@
             "is_new": "N",
             "customerId": null,
             "customerName": null,
-            "count": "1",
             "last_message_info": {
               "is_deleted": "N",
               "dialog_type": "NORMAL",
-              "who_name": "Jo",
-              "last_upd": "2025-08-22T07:59:36.597Z",
-              "message": "sdf",
-              "msg_timestamp": "1755849576597"
+              "who_name": "Mobile User",
+              "last_upd": "2025-08-22T08:27:58.963Z",
+              "message": "jdjd",
+              "msg_timestamp": "1755851278963"
             },
+            "count": "0",
             "subCollection": {
               "workspaces/9KTrtUEyUq8rFlkVM3pA/chatrooms/U8fda1378e3b8c7e440b3a68649200cfc/messages": {
                 "0g0johyaXkiHh01RnvFg": {
@@ -12899,6 +12941,17 @@
                   },
                   "type": "text",
                   "text": "ฟหก"
+                },
+                "BTmbiV8c7Bxx6Ycq6Jcg": {
+                  "timestamp": 1755851278963,
+                  "sender": {
+                    "type": "agent",
+                    "id": "oeWxZNrhSUZYJYCh0XqfHqeUaum1",
+                    "name": "Mobile User",
+                    "avatar": null
+                  },
+                  "type": "text",
+                  "text": "jdjd"
                 },
                 "BbboxAcvKfyHWSARq2DY": {
                   "timestamp": 1755848416881,
@@ -13015,6 +13068,16 @@
                   "type": "text",
                   "text": "adadf"
                 },
+                "TJF8gXVXETWHxHlVGpMO": {
+                  "timestamp": 1755850335500,
+                  "sender": {
+                    "type": "agent",
+                    "id": "oeWxZNrhSUZYJYCh0XqfHqeUaum1",
+                    "name": "joe2"
+                  },
+                  "type": "text",
+                  "text": "หฟกด"
+                },
                 "VFDuxHAZGSBl1YtP7br8": {
                   "timestamp": 1755844677140,
                   "sender": {
@@ -13058,6 +13121,17 @@
                   },
                   "type": "text",
                   "text": "หกด"
+                },
+                "bvRISbjwZy3kk1FTk6LR": {
+                  "timestamp": 1755850816027,
+                  "sender": {
+                    "type": "agent",
+                    "id": "oeWxZNrhSUZYJYCh0XqfHqeUaum1",
+                    "name": "Mobile User",
+                    "avatar": null
+                  },
+                  "type": "image",
+                  "imageUrl": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2F9KTrtUEyUq8rFlkVM3pA%2Fchatrooms%2FU8fda1378e3b8c7e440b3a68649200cfc%2Fimages%2F1755850813844.jpg?alt=media&token=bc0a2363-8c9d-494d-b047-34b7597243a7"
                 },
                 "cQPyCNNHcGtRvpxwmgST": {
                   "timestamp": 1755842455522,
@@ -15451,6 +15525,18 @@
             "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
             "timestamp": 1755575766997
           },
+          "8HoOH6p3ziUbKwdtGPTZ": {
+            "level": "INFO",
+            "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
+            "context": "SEND_MESSAGE",
+            "chatroomId": "U8fda1378e3b8c7e440b3a68649200cfc",
+            "message": "Attempting to send message",
+            "data": {
+              "messageType": "text",
+              "senderType": "agent"
+            },
+            "timestamp": 1755850334468
+          },
           "8HsNvDzGnkP7dseVXgzE": {
             "level": "DEBUG",
             "context": "LINE_CONNECTION",
@@ -16302,6 +16388,18 @@
             "chatroomId": "U8fda1378e3b8c7e440b3a68649200cfc",
             "message": "Message sent and saved successfully.",
             "timestamp": 1755767239101
+          },
+          "AglOPzj5d5haUfOJzL40": {
+            "level": "INFO",
+            "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
+            "context": "SEND_MESSAGE",
+            "chatroomId": "U8fda1378e3b8c7e440b3a68649200cfc",
+            "message": "Attempting to send message",
+            "data": {
+              "messageType": "image",
+              "senderType": "agent"
+            },
+            "timestamp": 1755850815266
           },
           "AiEGYiUOUpQLURTj6nhM": {
             "level": "DEBUG",
@@ -17733,6 +17831,14 @@
             },
             "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
             "timestamp": 1755802683013
+          },
+          "FtrwlpeWS3MJDyICDPTa": {
+            "level": "INFO",
+            "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
+            "context": "SEND_MESSAGE",
+            "chatroomId": "U8fda1378e3b8c7e440b3a68649200cfc",
+            "message": "Message sent and saved successfully.",
+            "timestamp": 1755850816085
           },
           "Fwarsd4d7ywv3TSuc9bz": {
             "level": "INFO",
@@ -23493,6 +23599,14 @@
             "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
             "timestamp": 1755591106144
           },
+          "agzbVz46Rsq2unXhkpGy": {
+            "level": "INFO",
+            "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
+            "context": "SEND_MESSAGE",
+            "chatroomId": "U8fda1378e3b8c7e440b3a68649200cfc",
+            "message": "Message sent and saved successfully.",
+            "timestamp": 1755850335573
+          },
           "ahMSyYVzU4NBazQswatc": {
             "level": "INFO",
             "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
@@ -25458,6 +25572,18 @@
             "message": "Message sent and saved successfully.",
             "timestamp": 1755708380987
           },
+          "j7vPK2wrBUssaQFaEdSJ": {
+            "level": "INFO",
+            "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
+            "context": "SEND_MESSAGE",
+            "chatroomId": "1277617936940259",
+            "message": "Attempting to send message",
+            "data": {
+              "messageType": "text",
+              "senderType": "agent"
+            },
+            "timestamp": 1755850964779
+          },
           "j8pUrqoCdmLi4R9aElHD": {
             "level": "INFO",
             "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
@@ -26656,6 +26782,18 @@
               "messageCount": 1
             },
             "timestamp": 1755689826020
+          },
+          "nGRgJi1hI7jQHo1Uyfzm": {
+            "level": "INFO",
+            "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
+            "context": "SEND_MESSAGE",
+            "chatroomId": "U8fda1378e3b8c7e440b3a68649200cfc",
+            "message": "Attempting to send message",
+            "data": {
+              "messageType": "text",
+              "senderType": "agent"
+            },
+            "timestamp": 1755851277876
           },
           "nKVkK6RccVN82h6ZmrFu": {
             "level": "ERROR",
@@ -29895,6 +30033,14 @@
             "message": "Message sent successfully.",
             "timestamp": 1755678668087
           },
+          "z3zRMjbVzWLpLwRdBSkB": {
+            "level": "INFO",
+            "workspaceId": "9KTrtUEyUq8rFlkVM3pA",
+            "context": "SEND_MESSAGE",
+            "chatroomId": "U8fda1378e3b8c7e440b3a68649200cfc",
+            "message": "Message sent and saved successfully.",
+            "timestamp": 1755851279023
+          },
           "z4KaiSTKP3KXrB30oxBr": {
             "level": "DEBUG",
             "context": "LINE_CONNECTION",
@@ -30371,7 +30517,7 @@
           "quotation": 16,
           "company": 8,
           "invoice": 31,
-          "jobCard": 33
+          "jobCard": 37
         }
       },
       "subCollection": {
@@ -30729,6 +30875,21 @@
               "to": "August 21st, 2025"
             }
           },
+          "WfLoZNc42Ot7Q5WidKqN": {
+            "boardId": "clzfnegQsF4baZ5vT0eN",
+            "workspaceId": "DgQUIYI2kxQKBftycbm1",
+            "userId": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "userDisplayName": "binn2 binn2",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1755850214984,
+            "details": {
+              "cardId": "SbFaGvTkdvo418ITP1jG",
+              "cardTitle": "New Card",
+              "laneId": "KnFAMeOj3AHxzzYSOL6u",
+              "laneName": "To Do"
+            }
+          },
           "YLN41OUChzla4rGuCQV4": {
             "boardId": "clzfnegQsF4baZ5vT0eN",
             "workspaceId": "DgQUIYI2kxQKBftycbm1",
@@ -30889,6 +31050,21 @@
               "sourceLaneName": "To Do",
               "destinationLaneId": "CJxREQiW95BBxe1hFI0B",
               "destinationLaneName": "In Progress"
+            }
+          },
+          "nkTJVZWQtxzWfAIVlemh": {
+            "boardId": "clzfnegQsF4baZ5vT0eN",
+            "workspaceId": "DgQUIYI2kxQKBftycbm1",
+            "userId": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "userDisplayName": "binn2 binn2",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1755850385073,
+            "details": {
+              "cardId": "dWiFdrbUhtkcBB5Lgq3S",
+              "cardTitle": "New Card",
+              "laneId": "CJxREQiW95BBxe1hFI0B",
+              "laneName": "In Progress"
             }
           },
           "q8POl2dVpIkyaJVLyDVA": {
@@ -31458,6 +31634,37 @@
             "customId": "JB-250821-0015",
             "order": 10
           },
+          "A8GnTo5nASuLVc9cv2p0": {
+            "boardId": "UhZxhwvmgUOYjiBT79qV",
+            "workspaceId": "DgQUIYI2kxQKBftycbm1",
+            "laneId": "2J1eoIGtnm8hWhJ0aaPU",
+            "title": "New Job",
+            "description": "",
+            "status": "Pending",
+            "assignedTo": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "startDate": 1754326800000,
+            "endDate": 1754326800000,
+            "customFields": [],
+            "todos": [],
+            "expenses": [],
+            "attachments": [],
+            "hashtags": [],
+            "notes": [],
+            "createdBy": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "updatedBy": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "updatedByDisplayName": "binn2 binn2",
+            "customer": "binn test add",
+            "customerId": "2sshyc74R9tnouKugnts",
+            "company": {
+              "value": "newcompa",
+              "id": "4IVlQwe95VOGEGpMFB66",
+              "label": "Main"
+            },
+            "customId": "JB-250822-0036",
+            "createdAt": 1755850370643,
+            "updatedAt": 1755850370644,
+            "order": 3
+          },
           "C2TdmlQIdnE8vAx5e76l": {
             "boardId": "clzfnegQsF4baZ5vT0eN",
             "laneId": "CJxREQiW95BBxe1hFI0B",
@@ -31528,6 +31735,30 @@
             "order": 3,
             "laneId": "CJxREQiW95BBxe1hFI0B",
             "updatedAt": 1755766206122
+          },
+          "SbFaGvTkdvo418ITP1jG": {
+            "boardId": "clzfnegQsF4baZ5vT0eN",
+            "laneId": "KnFAMeOj3AHxzzYSOL6u",
+            "workspaceId": "DgQUIYI2kxQKBftycbm1",
+            "title": "New Card",
+            "description": "",
+            "customFields": [],
+            "status": "Pending",
+            "expenses": [],
+            "todos": [],
+            "notes": [],
+            "assignedTo": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "customer": "Tanin",
+            "watchers": [],
+            "customerId": "25pGAJvFWj7CCvTmXr9o",
+            "company": null,
+            "updatedBy": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "updatedByDisplayName": "binn2 binn2",
+            "createdBy": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "customId": "JB-250822-0034",
+            "createdAt": 1755850214906,
+            "updatedAt": 1755850214906,
+            "order": 13
           },
           "SbXJRZJKiSdauzoXPlGF": {
             "boardId": "clzfnegQsF4baZ5vT0eN",
@@ -31619,6 +31850,33 @@
             "customId": "JB-250822-0032",
             "order": 11
           },
+          "WNc7UjTKqNpQFSBvGZmb": {
+            "boardId": "UhZxhwvmgUOYjiBT79qV",
+            "workspaceId": "DgQUIYI2kxQKBftycbm1",
+            "laneId": "2J1eoIGtnm8hWhJ0aaPU",
+            "title": "New Job",
+            "description": "",
+            "status": "Pending",
+            "assignedTo": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "startDate": 1754240400000,
+            "endDate": 1754240400000,
+            "customFields": [],
+            "todos": [],
+            "expenses": [],
+            "attachments": [],
+            "hashtags": [],
+            "notes": [],
+            "createdBy": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "updatedBy": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "updatedByDisplayName": "binn2 binn2",
+            "customer": "Tanin",
+            "customerId": "25pGAJvFWj7CCvTmXr9o",
+            "company": null,
+            "customId": "JB-250822-0035",
+            "createdAt": 1755850366380,
+            "updatedAt": 1755850366380,
+            "order": 2
+          },
           "WvkR9qszhmRqoxrQ3RRw": {
             "boardId": "clzfnegQsF4baZ5vT0eN",
             "laneId": "KnFAMeOj3AHxzzYSOL6u",
@@ -31700,6 +31958,34 @@
             "order": 3,
             "id": "d3JYeUSYwKOvja6ika2Q",
             "updatedAt": 1755753913803
+          },
+          "dWiFdrbUhtkcBB5Lgq3S": {
+            "boardId": "clzfnegQsF4baZ5vT0eN",
+            "laneId": "CJxREQiW95BBxe1hFI0B",
+            "workspaceId": "DgQUIYI2kxQKBftycbm1",
+            "title": "New Card",
+            "description": "",
+            "customFields": [],
+            "status": "Pending",
+            "expenses": [],
+            "todos": [],
+            "notes": [],
+            "assignedTo": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "customer": "binn test add",
+            "watchers": [],
+            "customerId": "2sshyc74R9tnouKugnts",
+            "company": {
+              "value": "newcompa",
+              "id": "4IVlQwe95VOGEGpMFB66",
+              "label": "Main"
+            },
+            "updatedBy": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "updatedByDisplayName": "binn2 binn2",
+            "createdBy": "WhQaEdCYuuX3moK6qqyuqrmkbEB2",
+            "customId": "JB-250822-0037",
+            "createdAt": 1755850385003,
+            "updatedAt": 1755850385003,
+            "order": 10
           },
           "dXh8UZ0uOLPLWalPcAtv": {
             "boardId": "clzfnegQsF4baZ5vT0eN",
@@ -100530,18 +100816,18 @@
             "displayName": "OaT V.1",
             "salespersonId": "J4vrRZKlC2bZO2wrYmum1lTtuRD3",
             "salespersonName": "sale cha",
-            "customerId": null,
-            "customerName": null,
             "pinnedAt": null,
-            "count": "1",
             "last_message_info": {
               "is_deleted": "N",
               "dialog_type": "NORMAL",
-              "who_name": "Test Company",
-              "message": "[รูป 1]",
-              "last_upd": "2025-08-22T08:06:52.673Z",
-              "msg_timestamp": "1755850012673"
+              "who_name": "OaT",
+              "last_upd": "2025-08-22T08:10:13.317Z",
+              "message": "[Image]",
+              "msg_timestamp": "1755850213317"
             },
+            "count": "0",
+            "customerId": null,
+            "customerName": null,
             "subCollection": {
               "workspaces/cXMvvAgl45mP0eOLW0iG/chatrooms/U0e869e386fc59add2b2d905b2696b8e2/messages": {
                 "0c4pcw16tJPtB8QE0OFN": {
@@ -100835,6 +101121,19 @@
                   },
                   "type": "text",
                   "text": "2"
+                },
+                "KvhLbEjMUrAzhKiZ7A0C": {
+                  "timestamp": 1755850213317,
+                  "sender": {
+                    "type": "user",
+                    "id": "U0e869e386fc59add2b2d905b2696b8e2",
+                    "name": "OaT",
+                    "avatar": "https://sprofile.line-scdn.net/0hnLbGuUnvMWNPPiW8Pm9PHD9uMglsT2hxY1orDS47Z1ZxCXcyNg96UCg7bAcnCn8yNFssDSluPFZDLUYFUWjNV0gObFJzCH4zYVl6gQ"
+                  },
+                  "type": "image",
+                  "imageUrl": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FcXMvvAgl45mP0eOLW0iG%2Fchat_attachments%2FU0e869e386fc59add2b2d905b2696b8e2%2F1755850215405-575490232552783925.jpg?alt=media&token=d4f6f221-8459-4cc2-9ab0-26b8e39440e4",
+                  "text": "[Image]",
+                  "fileName": "575490232552783925.jpg"
                 },
                 "LDuBcMbcG6Jz2LlWKZtJ": {
                   "timestamp": 1755847525713,
@@ -106456,7 +106755,7 @@
           "customer": 6,
           "company": 5,
           "quotation": 1,
-          "jobCard": 18
+          "jobCard": 22
         }
       },
       "subCollection": {
@@ -106566,6 +106865,21 @@
               "fieldName": "To-do list"
             },
             "workspaceId": "f3lVPIJXX3U6ZOxnK93V"
+          },
+          "DaBpATfrzrKWn2iveVDr": {
+            "boardId": "LL1gHssKk6gHziWFzVo9",
+            "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
+            "userId": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "userDisplayName": "tewry",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1755850388963,
+            "details": {
+              "cardId": "HzKvlMAMu8Vl4pZDopBh",
+              "cardTitle": "CCCC#2",
+              "laneId": "ECXgfn2PSuCjeUYSc7nj",
+              "laneName": "LANENY"
+            }
           },
           "Eh5acvGux6F3peGJsDfH": {
             "boardId": "LL1gHssKk6gHziWFzVo9",
@@ -106739,6 +107053,21 @@
               "destinationLaneName": "Done"
             }
           },
+          "UMMc285Cj1shEigukMP8": {
+            "boardId": "LL1gHssKk6gHziWFzVo9",
+            "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
+            "userId": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "userDisplayName": "tewry",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1755851049638,
+            "details": {
+              "cardId": "axwn7B4qw0kcokG3WbbY",
+              "cardTitle": "FFFFF",
+              "laneId": "ECXgfn2PSuCjeUYSc7nj",
+              "laneName": "LANENY"
+            }
+          },
           "VhiFVbg3RBDC8eCZ8Osp": {
             "boardId": "LL1gHssKk6gHziWFzVo9",
             "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
@@ -106893,6 +107222,21 @@
               "to": "New CardTest"
             }
           },
+          "hkmiiFQkH0iBNPxFRLVw": {
+            "boardId": "LL1gHssKk6gHziWFzVo9",
+            "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
+            "userId": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "userDisplayName": "tewry",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1755850340488,
+            "details": {
+              "cardId": "zDJqfzXPAkQf6u9dKSCO",
+              "cardTitle": "CCCCC#1",
+              "laneId": "ECXgfn2PSuCjeUYSc7nj",
+              "laneName": "LANENY"
+            }
+          },
           "id9Ht0qpeGqRwlwXpSLs": {
             "boardId": "LL1gHssKk6gHziWFzVo9",
             "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
@@ -107015,6 +107359,21 @@
               "fieldName": "Hashtag",
               "from": "",
               "to": "#Test #ASCASC #sADCAWDC #xzc #vfevef #ASCASCASxcvxcngngfnertrt"
+            }
+          },
+          "s27HWHAStvJFa5TyAfKO": {
+            "boardId": "LL1gHssKk6gHziWFzVo9",
+            "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
+            "userId": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "userDisplayName": "tewry",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1755850582535,
+            "details": {
+              "cardId": "KVZrETMr2qh2umJtXgCm",
+              "cardTitle": "VVWSEW",
+              "laneId": "ECXgfn2PSuCjeUYSc7nj",
+              "laneName": "LANENY"
             }
           },
           "thcjtTIehrHRxr3EmxtW": {
@@ -108006,6 +108365,106 @@
             "updatedAt": 1755682869219,
             "order": 7
           },
+          "HzKvlMAMu8Vl4pZDopBh": {
+            "boardId": "LL1gHssKk6gHziWFzVo9",
+            "laneId": "ECXgfn2PSuCjeUYSc7nj",
+            "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
+            "title": "CCCC#2",
+            "description": "",
+            "customFields": [
+              {
+                "id": "cf-1755850376063-0.3378489027599598",
+                "name": "Test",
+                "type": "select",
+                "value": "",
+                "options": [
+                  "123\\n456\\789"
+                ]
+              },
+              {
+                "id": "cf-1755850376063-0.9916341273432314",
+                "name": "VEryogood",
+                "type": "text",
+                "value": "",
+                "options": []
+              },
+              {
+                "id": "cf-1755850376063-0.6818019175775025",
+                "name": "Hello",
+                "type": "number",
+                "value": "",
+                "options": []
+              }
+            ],
+            "status": "Pending",
+            "expenses": [],
+            "todos": [],
+            "notes": [],
+            "assignedTo": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "customer": "BugTew",
+            "watchers": [],
+            "customerId": "4pfP6VTHtAuc8DRDyGpL",
+            "company": {
+              "label": "Main",
+              "id": "XdxlvzZJabh4CQQNrO5m",
+              "value": "Test"
+            },
+            "updatedBy": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "updatedByDisplayName": "tewry",
+            "createdBy": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "customId": "JB-250822-0020",
+            "order": 2
+          },
+          "KVZrETMr2qh2umJtXgCm": {
+            "boardId": "LL1gHssKk6gHziWFzVo9",
+            "laneId": "ECXgfn2PSuCjeUYSc7nj",
+            "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
+            "title": "VVWSEW",
+            "description": "",
+            "customFields": [
+              {
+                "id": "cf-1755850574085-0.6493344066196992",
+                "name": "Test",
+                "type": "select",
+                "value": "",
+                "options": [
+                  "123\\n456\\789"
+                ]
+              },
+              {
+                "id": "cf-1755850574085-0.6918198466900416",
+                "name": "VEryogood",
+                "type": "text",
+                "value": "",
+                "options": []
+              },
+              {
+                "id": "cf-1755850574085-0.12622406680372422",
+                "name": "Hello",
+                "type": "number",
+                "value": "",
+                "options": []
+              }
+            ],
+            "status": "Pending",
+            "expenses": [],
+            "todos": [],
+            "notes": [],
+            "assignedTo": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "customer": "BugTew",
+            "watchers": [],
+            "customerId": "4pfP6VTHtAuc8DRDyGpL",
+            "company": {
+              "id": "XdxlvzZJabh4CQQNrO5m",
+              "value": "Test",
+              "label": "Main"
+            },
+            "updatedBy": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "updatedByDisplayName": "tewry",
+            "createdBy": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "customId": "JB-250822-0021",
+            "order": 3
+          },
           "KwH2liXay22qUTNEqHMu": {
             "boardId": "LL1gHssKk6gHziWFzVo9",
             "laneId": "lpZf7GjBvqha3Q3OxUjN",
@@ -108269,6 +108728,58 @@
             "order": 1,
             "updatedAt": 1755838156329
           },
+          "axwn7B4qw0kcokG3WbbY": {
+            "boardId": "LL1gHssKk6gHziWFzVo9",
+            "laneId": "ECXgfn2PSuCjeUYSc7nj",
+            "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
+            "title": "FFFFF",
+            "description": "",
+            "customFields": [
+              {
+                "id": "cf-1755851043931-0.17729724343063658",
+                "name": "Test",
+                "type": "select",
+                "value": "",
+                "options": [
+                  "123\\n456\\789"
+                ]
+              },
+              {
+                "id": "cf-1755851043931-0.6781397993958461",
+                "name": "VEryogood",
+                "type": "text",
+                "value": "",
+                "options": []
+              },
+              {
+                "id": "cf-1755851043931-0.14275784997571506",
+                "name": "Hello",
+                "type": "number",
+                "value": "",
+                "options": []
+              }
+            ],
+            "status": "Pending",
+            "expenses": [],
+            "todos": [],
+            "notes": [],
+            "assignedTo": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "customer": "BugTew",
+            "watchers": [],
+            "customerId": "4pfP6VTHtAuc8DRDyGpL",
+            "company": {
+              "id": "XdxlvzZJabh4CQQNrO5m",
+              "label": "Main",
+              "value": "Test"
+            },
+            "updatedBy": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "updatedByDisplayName": "tewry",
+            "createdBy": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "createdAt": 1755851048540,
+            "updatedAt": 1755851048540,
+            "customId": "JB-250822-0022",
+            "order": 4
+          },
           "bjpg73A2eRq8okXMEnWP": {
             "notes": [],
             "todos": [],
@@ -108409,6 +108920,56 @@
             ],
             "updatedAt": 1755682869219,
             "order": 6
+          },
+          "zDJqfzXPAkQf6u9dKSCO": {
+            "boardId": "LL1gHssKk6gHziWFzVo9",
+            "laneId": "ECXgfn2PSuCjeUYSc7nj",
+            "workspaceId": "f3lVPIJXX3U6ZOxnK93V",
+            "title": "CCCCC#1",
+            "description": "",
+            "customFields": [
+              {
+                "id": "cf-1755850333110-0.8125021291890201",
+                "name": "Test",
+                "type": "select",
+                "value": "",
+                "options": [
+                  "123\\n456\\789"
+                ]
+              },
+              {
+                "id": "cf-1755850333110-0.33912228162811386",
+                "name": "VEryogood",
+                "type": "text",
+                "value": "",
+                "options": []
+              },
+              {
+                "id": "cf-1755850333110-0.28221986393208887",
+                "name": "Hello",
+                "type": "number",
+                "value": "",
+                "options": []
+              }
+            ],
+            "status": "Pending",
+            "expenses": [],
+            "todos": [],
+            "notes": [],
+            "assignedTo": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "customer": "BugTew",
+            "watchers": [],
+            "customerId": "4pfP6VTHtAuc8DRDyGpL",
+            "company": {
+              "id": "XdxlvzZJabh4CQQNrO5m",
+              "value": "Test",
+              "label": "Main"
+            },
+            "updatedBy": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "updatedByDisplayName": "tewry",
+            "createdBy": "heTgIT3gEOg6MicWMOaZAhd1O4k2",
+            "customId": "JB-250822-0019",
+            "order": 1
           }
         },
         "workspaces/f3lVPIJXX3U6ZOxnK93V/companies": {
@@ -109737,9 +110298,9 @@
           "invoice": 0,
           "receipt": 0,
           "product": 3,
-          "company": 3,
           "customer": 16,
-          "jobCard": 15
+          "jobCard": 15,
+          "company": 6
         }
       },
       "subCollection": {
@@ -110530,6 +111091,75 @@
               "mbIlj8XclI7SUZ13Qari"
             ]
           },
+          "8cjT8jQBsHeZxZAL7AxC": {
+            "name": "2",
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "workspaceId": "fsIY4b8MLqjcdPwRv6GK",
+            "customId": "COM-250822-0004",
+            "createdAt": 1755850495034,
+            "updatedAt": 1755850495034,
+            "createdBy": "L6dX9rN9poTdmnBZqH7u6GDCuTy1",
+            "updatedBy": "L6dX9rN9poTdmnBZqH7u6GDCuTy1"
+          },
+          "9TkBfGNCnIbhr6gusNZ6": {
+            "name": "3",
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "workspaceId": "fsIY4b8MLqjcdPwRv6GK",
+            "customId": "COM-250822-0006",
+            "createdAt": 1755850551462,
+            "updatedAt": 1755850551462,
+            "createdBy": "L6dX9rN9poTdmnBZqH7u6GDCuTy1",
+            "updatedBy": "L6dX9rN9poTdmnBZqH7u6GDCuTy1"
+          },
+          "Q0zzM5l9oO7vC5vPyJME": {
+            "name": "2",
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "workspaceId": "fsIY4b8MLqjcdPwRv6GK",
+            "customId": "COM-250822-0005",
+            "createdAt": 1755850526876,
+            "updatedAt": 1755850526876,
+            "createdBy": "L6dX9rN9poTdmnBZqH7u6GDCuTy1",
+            "updatedBy": "L6dX9rN9poTdmnBZqH7u6GDCuTy1"
+          },
           "VoHLU5FzzrTleafk1cD8": {
             "emails": [
               {
@@ -111178,10 +111808,11 @@
     "hTq2B2NjsEH6CVuQ7Szb": {
       "name": "binn5 binn5's Workspace",
       "ownerId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
-      "members": {
-        "jaeaXRqlI1fIdikZfRTnyfGICLx1": "owner"
-      },
       "createdAt": 1755784594756,
+      "members": {
+        "jaeaXRqlI1fIdikZfRTnyfGICLx1": "owner",
+        "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3": "member"
+      },
       "companyProfile": {
         "idGenerationRules": {
           "customer": {
@@ -111313,17 +111944,26 @@
           "isEnabled": true,
           "mode": "global"
         },
+        "lastUsedCounters": {
+          "product": 1,
+          "company": 2,
+          "customer": 5,
+          "jobCard": 13,
+          "receipt": 22,
+          "invoice": 40,
+          "quotation": 37
+        },
         "roles": [
           {
-            "id": "owner",
+            "name": "Owner",
             "permissions": [
               "*"
             ],
-            "name": "Owner"
+            "id": "owner"
           },
           {
-            "id": "admin",
             "name": "Admin",
+            "id": "admin",
             "permissions": [
               "jobcard:view:all",
               "jobcard:create",
@@ -111354,23 +111994,22 @@
             ]
           },
           {
+            "name": "Member",
             "permissions": [
               "jobcard:create",
-              "jobcard:view:assigned"
+              "jobcard:view:assigned",
+              "approval:act",
+              "salesdoc:view:all",
+              "salesdoc:view:assigned",
+              "salesdoc:create",
+              "salesdoc:edit:all",
+              "salesdoc:edit:assigned",
+              "salesdoc:revise",
+              "salesdoc:delete"
             ],
-            "id": "member",
-            "name": "Member"
+            "id": "member"
           }
-        ],
-        "lastUsedCounters": {
-          "product": 1,
-          "company": 2,
-          "customer": 5,
-          "jobCard": 13,
-          "receipt": 22,
-          "quotation": 35,
-          "invoice": 39
-        }
+        ]
       },
       "subCollection": {
         "workspaces/hTq2B2NjsEH6CVuQ7Szb/activities": {
@@ -111873,6 +112512,11 @@
             "name": "My First Board",
             "workspaceId": "hTq2B2NjsEH6CVuQ7Szb",
             "createdBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+            "lanes": [],
+            "memberUids": [
+              "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3"
+            ],
             "members": [
               {
                 "uid": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
@@ -111883,12 +112527,22 @@
                 "role": "owner",
                 "language": "en",
                 "workspaces": []
+              },
+              {
+                "photoURL": null,
+                "email": "binn6@test.com",
+                "workspaces": [
+                  {
+                    "id": "hTq2B2NjsEH6CVuQ7Szb",
+                    "role": "member",
+                    "name": "binn5 binn5's Workspace"
+                  }
+                ],
+                "uid": "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3",
+                "displayName": "binn6",
+                "language": "en"
               }
-            ],
-            "memberUids": [
-              "jaeaXRqlI1fIdikZfRTnyfGICLx1"
-            ],
-            "lanes": []
+            ]
           },
           "eDf4j06HyYUNYnRkhM8I": {
             "name": "board 2",
@@ -113981,6 +114635,310 @@
                 "type": "INV"
               }
             ]
+          },
+          "8LyXLtzMeFz5IU8iNrl7": {
+            "items": [
+              {
+                "id": "prod-IibQf4lF8M26PGOSSlQI-1755850944730",
+                "name": "product1",
+                "description": "product description",
+                "quantity": 2,
+                "unit": "หน่วย",
+                "pricePerUnit": 500,
+                "discount": 600
+              }
+            ],
+            "discount": 0,
+            "withholdingTaxPercentage": 3,
+            "paymentMethod": [
+              "bank",
+              "qr"
+            ],
+            "includeSignature": false,
+            "project": {
+              "name": "",
+              "refId": ""
+            },
+            "seller": {
+              "uid": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "viewSettings": {
+                "customerCenter": {
+                  "hashtags": {
+                    "order": 99,
+                    "isVisible": true
+                  }
+                },
+                "kanbanCardDisplayFieldsConfig_IPSDQd0itAtzrFj9Qlnp": {
+                  "customId": {
+                    "isVisible": false,
+                    "order": 1
+                  },
+                  "netTotal": {
+                    "order": 10,
+                    "isVisible": false
+                  },
+                  "customer": {
+                    "order": 5,
+                    "isVisible": true
+                  },
+                  "description": {
+                    "order": 14,
+                    "isVisible": false
+                  },
+                  "todos": {
+                    "order": 15,
+                    "isVisible": false
+                  },
+                  "dueDate": {
+                    "order": 3,
+                    "isVisible": true
+                  },
+                  "grandTotal": {
+                    "isVisible": false,
+                    "order": 9
+                  },
+                  "company": {
+                    "order": 6,
+                    "isVisible": false
+                  },
+                  "hashtags": {
+                    "order": 7,
+                    "isVisible": false
+                  },
+                  "createdAt": {
+                    "order": 0,
+                    "isVisible": true
+                  },
+                  "assignee": {
+                    "order": 4,
+                    "isVisible": true
+                  },
+                  "totalAmountAfterDiscount": {
+                    "isVisible": true,
+                    "order": 12
+                  },
+                  "totalAmountBeforeDiscount": {
+                    "isVisible": true,
+                    "order": 11
+                  },
+                  "totalAmountBeforeVat": {
+                    "isVisible": false,
+                    "order": 13
+                  },
+                  "priority": {
+                    "isVisible": false,
+                    "order": 8
+                  },
+                  "status": {
+                    "isVisible": true,
+                    "order": 2
+                  }
+                },
+                "customerProfileCardsConfig_SqVUUXEOE5f84ghXinb8": {
+                  "todos": {
+                    "order": 17,
+                    "isVisible": true
+                  },
+                  "lane": {
+                    "isVisible": true,
+                    "order": 4
+                  },
+                  "description": {
+                    "isVisible": true,
+                    "order": 16
+                  },
+                  "company": {
+                    "order": 8,
+                    "isVisible": true
+                  },
+                  "hashtags": {
+                    "order": 9,
+                    "isVisible": true
+                  },
+                  "totalAmountBeforeVat": {
+                    "isVisible": true,
+                    "order": 15
+                  },
+                  "status": {
+                    "isVisible": true,
+                    "order": 3
+                  },
+                  "assignee": {
+                    "isVisible": true,
+                    "order": 6
+                  },
+                  "dueDate": {
+                    "isVisible": true,
+                    "order": 5
+                  },
+                  "title": {
+                    "isVisible": true,
+                    "order": 1
+                  },
+                  "customer": {
+                    "order": 7,
+                    "isVisible": true
+                  },
+                  "grandTotal": {
+                    "isVisible": true,
+                    "order": 11
+                  },
+                  "boardName": {
+                    "isVisible": true,
+                    "order": 2
+                  },
+                  "customId": {
+                    "isVisible": true,
+                    "order": 0
+                  },
+                  "priority": {
+                    "isVisible": true,
+                    "order": 10
+                  },
+                  "netTotal": {
+                    "isVisible": true,
+                    "order": 12
+                  },
+                  "totalAmountBeforeDiscount": {
+                    "isVisible": true,
+                    "order": 13
+                  },
+                  "totalAmountAfterDiscount": {
+                    "order": 14,
+                    "isVisible": true
+                  }
+                }
+              },
+              "language": "en",
+              "workspaces": [
+                {
+                  "role": "owner",
+                  "id": "hTq2B2NjsEH6CVuQ7Szb",
+                  "name": "binn5 binn5's Workspace"
+                }
+              ],
+              "displayName": "binn5 binn5",
+              "email": "binn5@test.com"
+            },
+            "notes": "Notesdfsdf",
+            "customer": {
+              "id": "SqVUUXEOE5f84ghXinb8",
+              "companyNames": [
+                {
+                  "value": "com1",
+                  "label": "Main",
+                  "id": "ErN96fWC1VykU0AQAhvN"
+                },
+                {
+                  "label": "Main",
+                  "value": "cpm2",
+                  "id": "i2sAJkIsH6uRd0DLrnUA"
+                }
+              ],
+              "phones": [
+                {
+                  "value": "",
+                  "id": "phone-initial",
+                  "label": "Work"
+                }
+              ],
+              "emails": [
+                {
+                  "id": "email-initial",
+                  "value": "",
+                  "label": "Work"
+                }
+              ],
+              "name": "cust1",
+              "customId": "CUS-250821-0001",
+              "workspaceId": "hTq2B2NjsEH6CVuQ7Szb",
+              "createdAt": 1755784608891,
+              "updatedBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "updatedAt": 1755791367681,
+              "assignees": [
+                "jaeaXRqlI1fIdikZfRTnyfGICLx1"
+              ],
+              "createdBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1"
+            },
+            "isVatEnabled": true,
+            "subtotal": 400,
+            "grandTotal": 428,
+            "vatAmount": 28.000000000000004,
+            "netTotal": 416,
+            "whtAmount": 12,
+            "type": "QT",
+            "docNo": "EST-250822-0037",
+            "workspaceId": "hTq2B2NjsEH6CVuQ7Szb",
+            "createdAt": 1755850958301,
+            "createdBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+            "updatedBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+            "status": "PENDING_APPROVAL",
+            "updatedAt": 1755850982637,
+            "activityLog": [
+              {
+                "timestamp": 1755850958301,
+                "userId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+                "userDisplayName": "Unknown User",
+                "action": "Created",
+                "details": "Created quotation EST-250822-0037"
+              },
+              {
+                "timestamp": 1755850982637,
+                "userId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+                "userDisplayName": "binn5@test.com",
+                "action": "Updated status",
+                "details": "from \"DRAFT\" to \"PENDING_APPROVAL\""
+              },
+              {
+                "timestamp": 1755851332656,
+                "userId": "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3",
+                "userDisplayName": "System",
+                "action": "Decision Recorded: APPROVED",
+                "details": "Step: \"Step 1\". Comment: N/A"
+              },
+              {
+                "timestamp": 1755851400381,
+                "userId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+                "userDisplayName": "System",
+                "action": "Decision Recorded: APPROVED",
+                "details": "Step: \"Step 1\". Comment: N/A"
+              }
+            ],
+            "approval": {
+              "conditionId": "cond_1755850807148",
+              "conditionName": "Discount more than 500 thb",
+              "status": "pending",
+              "steps": [
+                {
+                  "stepId": "step_1755850794912",
+                  "stepName": "Step 1",
+                  "status": "approved",
+                  "decisions": [
+                    {
+                      "approverId": "gGkGcFhSI9Woryt4w2aZ6Cv3ghB3",
+                      "approverName": "Unknown User",
+                      "decision": "approved",
+                      "timestamp": 1755851332656,
+                      "comment": ""
+                    },
+                    {
+                      "approverId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+                      "approverName": "Unknown User",
+                      "decision": "approved",
+                      "timestamp": 1755851400381,
+                      "comment": ""
+                    }
+                  ]
+                },
+                {
+                  "stepId": "step_1755850873396",
+                  "stepName": "Step 2",
+                  "status": "in-progress",
+                  "decisions": []
+                }
+              ],
+              "initiatedAt": 1755850982538
+            }
           },
           "8NDf3CQSNLyeZulv473h": {
             "relatedInvoiceId": "9u6oEC63UKvzrxf6M8Pj",
@@ -118674,6 +119632,248 @@
               }
             ]
           },
+          "Rrf6Uc0KzNovRmILwjCK": {
+            "status": "DRAFT",
+            "items": [
+              {
+                "id": "prod-IibQf4lF8M26PGOSSlQI-1755850708912",
+                "name": "product1",
+                "description": "product description",
+                "quantity": 2,
+                "unit": "หน่วย",
+                "pricePerUnit": 500,
+                "discount": 0
+              }
+            ],
+            "discount": 0,
+            "withholdingTaxPercentage": 0,
+            "paymentMethod": [
+              "bank",
+              "qr"
+            ],
+            "includeSignature": false,
+            "project": {
+              "name": "",
+              "refId": ""
+            },
+            "seller": {
+              "uid": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "viewSettings": {
+                "customerCenter": {
+                  "hashtags": {
+                    "order": 99,
+                    "isVisible": true
+                  }
+                },
+                "kanbanCardDisplayFieldsConfig_IPSDQd0itAtzrFj9Qlnp": {
+                  "customId": {
+                    "isVisible": false,
+                    "order": 1
+                  },
+                  "netTotal": {
+                    "order": 10,
+                    "isVisible": false
+                  },
+                  "customer": {
+                    "order": 5,
+                    "isVisible": true
+                  },
+                  "description": {
+                    "order": 14,
+                    "isVisible": false
+                  },
+                  "todos": {
+                    "order": 15,
+                    "isVisible": false
+                  },
+                  "dueDate": {
+                    "order": 3,
+                    "isVisible": true
+                  },
+                  "grandTotal": {
+                    "isVisible": false,
+                    "order": 9
+                  },
+                  "company": {
+                    "order": 6,
+                    "isVisible": false
+                  },
+                  "hashtags": {
+                    "order": 7,
+                    "isVisible": false
+                  },
+                  "createdAt": {
+                    "order": 0,
+                    "isVisible": true
+                  },
+                  "assignee": {
+                    "order": 4,
+                    "isVisible": true
+                  },
+                  "totalAmountAfterDiscount": {
+                    "isVisible": true,
+                    "order": 12
+                  },
+                  "totalAmountBeforeDiscount": {
+                    "isVisible": true,
+                    "order": 11
+                  },
+                  "totalAmountBeforeVat": {
+                    "isVisible": false,
+                    "order": 13
+                  },
+                  "priority": {
+                    "isVisible": false,
+                    "order": 8
+                  },
+                  "status": {
+                    "isVisible": true,
+                    "order": 2
+                  }
+                },
+                "customerProfileCardsConfig_SqVUUXEOE5f84ghXinb8": {
+                  "todos": {
+                    "order": 17,
+                    "isVisible": true
+                  },
+                  "lane": {
+                    "isVisible": true,
+                    "order": 4
+                  },
+                  "description": {
+                    "isVisible": true,
+                    "order": 16
+                  },
+                  "company": {
+                    "order": 8,
+                    "isVisible": true
+                  },
+                  "hashtags": {
+                    "order": 9,
+                    "isVisible": true
+                  },
+                  "totalAmountBeforeVat": {
+                    "isVisible": true,
+                    "order": 15
+                  },
+                  "status": {
+                    "isVisible": true,
+                    "order": 3
+                  },
+                  "assignee": {
+                    "isVisible": true,
+                    "order": 6
+                  },
+                  "dueDate": {
+                    "isVisible": true,
+                    "order": 5
+                  },
+                  "title": {
+                    "isVisible": true,
+                    "order": 1
+                  },
+                  "customer": {
+                    "order": 7,
+                    "isVisible": true
+                  },
+                  "grandTotal": {
+                    "isVisible": true,
+                    "order": 11
+                  },
+                  "boardName": {
+                    "isVisible": true,
+                    "order": 2
+                  },
+                  "customId": {
+                    "isVisible": true,
+                    "order": 0
+                  },
+                  "priority": {
+                    "isVisible": true,
+                    "order": 10
+                  },
+                  "netTotal": {
+                    "isVisible": true,
+                    "order": 12
+                  },
+                  "totalAmountBeforeDiscount": {
+                    "isVisible": true,
+                    "order": 13
+                  },
+                  "totalAmountAfterDiscount": {
+                    "order": 14,
+                    "isVisible": true
+                  }
+                }
+              },
+              "language": "en",
+              "workspaces": [
+                {
+                  "role": "owner",
+                  "id": "hTq2B2NjsEH6CVuQ7Szb",
+                  "name": "binn5 binn5's Workspace"
+                }
+              ],
+              "displayName": "binn5 binn5",
+              "email": "binn5@test.com"
+            },
+            "notes": "Notesdfsdf",
+            "customer": {
+              "id": "G8xefsy2IKvcptxWzFgQ",
+              "createdAt": 1755799225906,
+              "updatedBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "assignees": [
+                "jaeaXRqlI1fIdikZfRTnyfGICLx1"
+              ],
+              "createdBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "customId": "CUS-250822-0003",
+              "workspaceId": "hTq2B2NjsEH6CVuQ7Szb",
+              "updatedAt": 1755846857449,
+              "hashtags": [
+                {
+                  "text": "vip",
+                  "id": "vip",
+                  "color": "#9f42ae"
+                }
+              ],
+              "phones": [
+                {
+                  "value": "",
+                  "id": "phone-initial",
+                  "label": "Work"
+                }
+              ],
+              "emails": [
+                {
+                  "value": "",
+                  "label": "Work",
+                  "id": "email-initial"
+                }
+              ],
+              "name": "cust2"
+            },
+            "subtotal": 1000,
+            "grandTotal": 1000,
+            "vatAmount": 0,
+            "netTotal": 1000,
+            "whtAmount": 0,
+            "type": "QT",
+            "docNo": "EST-250822-0036",
+            "workspaceId": "hTq2B2NjsEH6CVuQ7Szb",
+            "createdAt": 1755850719088,
+            "updatedAt": 1755850719088,
+            "createdBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+            "updatedBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+            "activityLog": [
+              {
+                "timestamp": 1755850719088,
+                "userId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+                "userDisplayName": "Unknown User",
+                "action": "Created",
+                "details": "Created quotation EST-250822-0036"
+              }
+            ]
+          },
           "Xn0luTMJKIMtNRJZ9eLk": {
             "relatedInvoiceId": "Ot8B5xGoqV1rOH59DXKq",
             "status": "COMPLETED",
@@ -120994,6 +122194,13 @@
             "createdAt": 1755849978868,
             "createdBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
             "updatedBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+            "relatedDocuments": [
+              {
+                "id": "xDfbjyXaBQ6Vv2QA2Qxy",
+                "docNo": "INV-250822-0040",
+                "type": "INV"
+              }
+            ],
             "activityLog": [
               {
                 "timestamp": 1755849978868,
@@ -121015,11 +122222,25 @@
                 "userDisplayName": "binn5@test.com",
                 "action": "Updated status",
                 "details": "from \"INVOICED\" to \"APPROVED\""
+              },
+              {
+                "timestamp": 1755850690504,
+                "userId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+                "userDisplayName": "binn5@test.com",
+                "action": "Updated status",
+                "details": "from \"INVOICED\" to \"DRAFT\""
+              },
+              {
+                "timestamp": 1755850690504,
+                "userId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+                "userDisplayName": "System",
+                "action": "Revised",
+                "details": "Document status changed to Draft for revision."
               }
             ],
-            "status": "APPROVED",
-            "updatedAt": 1755850021882,
-            "relatedDocuments": []
+            "approval": null,
+            "status": "DRAFT",
+            "updatedAt": 1755850690504
           },
           "oVUj3Q28FRFUnFGUMC5S": {
             "items": [
@@ -122799,6 +124020,239 @@
                 "userDisplayName": "System",
                 "action": "Created Deposit Invoice",
                 "details": "From Quotation EST-250821-0010"
+              }
+            ]
+          },
+          "xDfbjyXaBQ6Vv2QA2Qxy": {
+            "docNo": "INV-250822-0040",
+            "type": "INV",
+            "status": "DRAFT",
+            "invoiceType": "full",
+            "customer": {
+              "id": "nqMht45AINAkrkwjE2A3",
+              "updatedBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "createdBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "phones": [
+                {
+                  "id": "phone-initial",
+                  "label": "Work",
+                  "value": ""
+                }
+              ],
+              "customId": "CUS-250822-0005",
+              "emails": [
+                {
+                  "label": "Work",
+                  "id": "email-initial",
+                  "value": ""
+                }
+              ],
+              "createdAt": 1755846871128,
+              "workspaceId": "hTq2B2NjsEH6CVuQ7Szb",
+              "name": "tanin",
+              "updatedAt": 1755846871128
+            },
+            "seller": {
+              "viewSettings": {
+                "customerCenter": {
+                  "hashtags": {
+                    "isVisible": true,
+                    "order": 99
+                  }
+                },
+                "kanbanCardDisplayFieldsConfig_IPSDQd0itAtzrFj9Qlnp": {
+                  "todos": {
+                    "isVisible": false,
+                    "order": 15
+                  },
+                  "priority": {
+                    "isVisible": false,
+                    "order": 8
+                  },
+                  "customId": {
+                    "isVisible": false,
+                    "order": 1
+                  },
+                  "company": {
+                    "isVisible": false,
+                    "order": 6
+                  },
+                  "description": {
+                    "isVisible": false,
+                    "order": 14
+                  },
+                  "grandTotal": {
+                    "order": 9,
+                    "isVisible": false
+                  },
+                  "totalAmountBeforeDiscount": {
+                    "isVisible": true,
+                    "order": 11
+                  },
+                  "totalAmountAfterDiscount": {
+                    "isVisible": true,
+                    "order": 12
+                  },
+                  "customer": {
+                    "isVisible": true,
+                    "order": 5
+                  },
+                  "assignee": {
+                    "isVisible": true,
+                    "order": 4
+                  },
+                  "netTotal": {
+                    "isVisible": false,
+                    "order": 10
+                  },
+                  "dueDate": {
+                    "isVisible": true,
+                    "order": 3
+                  },
+                  "totalAmountBeforeVat": {
+                    "isVisible": false,
+                    "order": 13
+                  },
+                  "hashtags": {
+                    "order": 7,
+                    "isVisible": false
+                  },
+                  "status": {
+                    "order": 2,
+                    "isVisible": true
+                  },
+                  "createdAt": {
+                    "order": 0,
+                    "isVisible": true
+                  }
+                },
+                "customerProfileCardsConfig_SqVUUXEOE5f84ghXinb8": {
+                  "status": {
+                    "isVisible": true,
+                    "order": 3
+                  },
+                  "description": {
+                    "isVisible": true,
+                    "order": 16
+                  },
+                  "assignee": {
+                    "order": 6,
+                    "isVisible": true
+                  },
+                  "priority": {
+                    "isVisible": true,
+                    "order": 10
+                  },
+                  "lane": {
+                    "order": 4,
+                    "isVisible": true
+                  },
+                  "totalAmountBeforeVat": {
+                    "order": 15,
+                    "isVisible": true
+                  },
+                  "boardName": {
+                    "order": 2,
+                    "isVisible": true
+                  },
+                  "grandTotal": {
+                    "isVisible": true,
+                    "order": 11
+                  },
+                  "totalAmountAfterDiscount": {
+                    "order": 14,
+                    "isVisible": true
+                  },
+                  "dueDate": {
+                    "isVisible": true,
+                    "order": 5
+                  },
+                  "totalAmountBeforeDiscount": {
+                    "order": 13,
+                    "isVisible": true
+                  },
+                  "title": {
+                    "order": 1,
+                    "isVisible": true
+                  },
+                  "customer": {
+                    "order": 7,
+                    "isVisible": true
+                  },
+                  "company": {
+                    "order": 8,
+                    "isVisible": true
+                  },
+                  "customId": {
+                    "isVisible": true,
+                    "order": 0
+                  },
+                  "netTotal": {
+                    "order": 12,
+                    "isVisible": true
+                  },
+                  "hashtags": {
+                    "isVisible": true,
+                    "order": 9
+                  },
+                  "todos": {
+                    "isVisible": true,
+                    "order": 17
+                  }
+                }
+              },
+              "language": "en",
+              "email": "binn5@test.com",
+              "displayName": "binn5 binn5",
+              "uid": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+              "workspaces": [
+                {
+                  "name": "binn5 binn5's Workspace",
+                  "id": "hTq2B2NjsEH6CVuQ7Szb",
+                  "role": "owner"
+                }
+              ]
+            },
+            "items": [
+              {
+                "id": "prod-IibQf4lF8M26PGOSSlQI-1755849973904",
+                "name": "product1",
+                "description": "product description",
+                "quantity": 1,
+                "unit": "หน่วย",
+                "pricePerUnit": 500,
+                "discount": 0
+              }
+            ],
+            "subtotal": 500,
+            "discount": 0,
+            "vatAmount": 35,
+            "grandTotal": 535,
+            "deductedDeposit": 0,
+            "notes": "Invoice for full of Quotation EST-250822-0035",
+            "workspaceId": "hTq2B2NjsEH6CVuQ7Szb",
+            "relatedQuotationId": "nxlG8toQwFqr4sb5m0fA",
+            "relatedDocuments": [
+              {
+                "id": "nxlG8toQwFqr4sb5m0fA",
+                "docNo": "EST-250822-0035",
+                "type": "QT"
+              }
+            ],
+            "dueDate": 1758442665059,
+            "paymentStatus": "unpaid",
+            "totalAmountFromQuotation": 500,
+            "createdAt": 1755850665059,
+            "updatedAt": 1755850665059,
+            "createdBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+            "updatedBy": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+            "activityLog": [
+              {
+                "timestamp": 1755850665059,
+                "userId": "jaeaXRqlI1fIdikZfRTnyfGICLx1",
+                "userDisplayName": "System",
+                "action": "Created full Invoice",
+                "details": "Created from Quotation EST-250822-0035"
               }
             ]
           },
@@ -125888,13 +127342,13 @@
         ],
         "todoTemplates": [],
         "lastUsedCounters": {
-          "company": 0,
           "invoice": 0,
           "product": 0,
           "quotation": 0,
           "receipt": 0,
           "jobCard": 1,
-          "customer": 2
+          "customer": 2,
+          "company": 2
         }
       },
       "subCollection": {
@@ -125979,6 +127433,60 @@
             "updatedAt": 1755848033366
           }
         },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/companies": {
+          "Vr6SXzHlVkWsYJYnyiMJ": {
+            "name": "test112345",
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "customId": "COM-250822-0002",
+            "createdAt": 1755851285082,
+            "updatedAt": 1755851285082,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "associatedCustomerIds": [
+              "IhxyfTOYQ6k1UxmdMTT2"
+            ]
+          },
+          "Z1h1nm9GM2nfusJh7YuD": {
+            "name": "test",
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "customId": "COM-250822-0001",
+            "createdAt": 1755851273203,
+            "updatedAt": 1755851273203,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "associatedCustomerIds": [
+              "IhxyfTOYQ6k1UxmdMTT2"
+            ]
+          }
+        },
         "workspaces/xKnLu20t7n6A0IJxl4NN/customers": {
           "IhxyfTOYQ6k1UxmdMTT2": {
             "emails": [
@@ -125995,15 +127503,26 @@
                 "value": ""
               }
             ],
-            "companyNames": [],
             "customFields": [],
             "name": "testssss",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
             "customId": "CUS-250822-0002",
             "createdAt": 1755850137421,
-            "updatedAt": 1755850137421,
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "companyNames": [
+              {
+                "id": "Z1h1nm9GM2nfusJh7YuD",
+                "label": "Main",
+                "value": "test"
+              },
+              {
+                "id": "Vr6SXzHlVkWsYJYnyiMJ",
+                "label": "Main",
+                "value": "test112345"
+              }
+            ],
+            "updatedAt": 1755851285241
           },
           "WNF9tUB8pFM6QKQw9Fj3": {
             "emails": [

@@ -101,11 +101,24 @@ class _EditCardPageState extends State<EditCardPage> {
       _availableCustomers = [];
     }
     
-    // Load companies
-    _availableCompanies = [
-      {'id': 'none', 'name': 'None'},
-      {'id': 'company1', 'name': 'Company 1'},
-    ];
+    // Load companies from Firestore
+    try {
+      print('🔄 Loading companies from Firestore...');
+      final companies = await _controller.getCompanies();
+      _availableCompanies = [
+        {'id': 'none', 'name': 'None'},
+        ...companies.map((company) => {
+          'id': company.id,
+          'name': company.name,
+        }).toList(),
+      ];
+      print('✅ Companies loaded: ${_availableCompanies.length - 1} companies');
+    } catch (e) {
+      print('❌ Failed to load companies: $e');
+      _availableCompanies = [
+        {'id': 'none', 'name': 'None'},
+      ];
+    }
   }
 
   @override

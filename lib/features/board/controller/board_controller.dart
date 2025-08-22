@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../../../domain/entities/lane.dart';
 import '../../../domain/entities/job_card.dart';
 import '../../../domain/entities/customer.dart';
+import '../../../domain/entities/company.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../presenter/board_presenter.dart';
 import '../contract/board_view.dart';
@@ -312,6 +313,25 @@ class BoardController extends GetxController implements BoardView {
     } catch (e) {
       print('❌ Failed to get customers: $e');
       error.value = 'Failed to get customers';
+      return [];
+    }
+  }
+
+  // Get companies for current workspace
+  Future<List<Company>> getCompanies() async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for getting companies');
+      return [];
+    }
+    
+    try {
+      print('🔄 Getting companies for workspace: ${currentWorkspaceId.value}');
+      final companies = await _repository.getCompanies(currentWorkspaceId.value);
+      print('✅ Companies loaded successfully - ${companies.length} companies');
+      return companies;
+    } catch (e) {
+      print('❌ Failed to get companies: $e');
+      error.value = 'Failed to get companies';
       return [];
     }
   }

@@ -4,6 +4,7 @@ import '../services/firestore_service.dart';
 import '../../domain/entities/lane.dart';
 import '../../domain/entities/job_card.dart';
 import '../../domain/entities/customer.dart';
+import '../../domain/entities/company.dart';
 import '../../core/services/logger_service.dart';
 
 class FirestoreRepository {
@@ -1029,6 +1030,57 @@ class FirestoreRepository {
     } catch (e) {
       print('❌ Failed to get customers stream: $e');
       _logger.error('Failed to get customers stream', e);
+      rethrow;
+    }
+  }
+
+  // Get companies for workspace
+  Future<List<Company>> getCompanies(String workspaceId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getCompanies', {
+        'workspaceId': workspaceId
+      });
+      
+      print('🔄 FirestoreRepository.getCompanies:');
+      print('  - Workspace ID: $workspaceId');
+      
+      final companiesCollection = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
+      final querySnapshot = await _firestoreService.getDocuments(companiesCollection);
+      final companies = querySnapshot.docs.map((doc) {
+        return Company.fromMap(doc.data(), doc.id);
+      }).toList();
+      
+      print('✅ Companies loaded successfully - ${companies.length} companies');
+      return companies;
+    } catch (e) {
+      print('❌ Failed to get companies: $e');
+      _logger.error('Failed to get companies', e);
+      rethrow;
+    }
+  }
+
+  // Get companies stream for workspace
+  Stream<List<Company>> getCompaniesStream(String workspaceId) {
+    try {
+      _logger.methodEntry('FirestoreRepository.getCompaniesStream', {
+        'workspaceId': workspaceId
+      });
+      
+      print('🔄 FirestoreRepository.getCompaniesStream:');
+      print('  - Workspace ID: $workspaceId');
+      
+      final companiesCollection = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
+      return _firestoreService.getDocumentsStream(companiesCollection).map((querySnapshot) {
+        final companies = querySnapshot.docs.map((doc) {
+          return Company.fromMap(doc.data(), doc.id);
+        }).toList();
+        
+        print('✅ Companies stream updated - ${companies.length} companies');
+        return companies;
+      });
+    } catch (e) {
+      print('❌ Failed to get companies stream: $e');
+      _logger.error('Failed to get companies stream', e);
       rethrow;
     }
   }

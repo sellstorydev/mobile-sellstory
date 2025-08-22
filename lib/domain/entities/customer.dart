@@ -83,25 +83,28 @@ class Customer {
 
   // Create from Map from Firestore
   factory Customer.fromMap(Map<String, dynamic> map, String id) {
-    return Customer(
-      id: id,
-      name: map['name'] ?? '',
-      customId: map['customId'] ?? '',
-      workspaceId: map['workspaceId'] ?? '',
-      emails: List<Map<String, dynamic>>.from(map['emails'] ?? []),
-      phones: List<Map<String, dynamic>>.from(map['phones'] ?? []),
-      companyNames: List<String>.from(map['companyNames'] ?? []),
-      customFields: List<Map<String, dynamic>>.from(map['customFields'] ?? []),
-      assignees: List<String>.from(map['assignees'] ?? []),
-      createdAt: (map['createdAt'] is Timestamp) 
-                 ? (map['createdAt'] as Timestamp).toDate()
-                 : DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
-      updatedAt: (map['updatedAt'] is Timestamp)
-                 ? (map['updatedAt'] as Timestamp).toDate()
-                 : DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
-      createdBy: map['createdBy'] ?? '',
-      updatedBy: map['updatedBy'] ?? '',
-    );
+    try {
+      return Customer(
+        id: id,
+        name: map['name']?.toString() ?? '',
+        customId: map['customId']?.toString() ?? '',
+        workspaceId: map['workspaceId']?.toString() ?? '',
+        emails: _parseListOfMaps(map['emails']),
+        phones: _parseListOfMaps(map['phones']),
+        companyNames: _parseListOfStrings(map['companyNames']),
+        customFields: _parseListOfMaps(map['customFields']),
+        assignees: _parseAssignees(map['assignees']),
+        createdAt: _parseDateTime(map['createdAt']),
+        updatedAt: _parseDateTime(map['updatedAt']),
+        createdBy: map['createdBy']?.toString() ?? '',
+        updatedBy: map['updatedBy']?.toString() ?? '',
+      );
+    } catch (e) {
+      print('❌ Error parsing Customer.fromMap: $e');
+      print('  - Document ID: $id');
+      print('  - Raw data: $map');
+      rethrow;
+    }
   }
 
   @override
@@ -143,5 +146,72 @@ class Customer {
   @override
   String toString() {
     return 'Customer(id: $id, name: $name, customId: $customId, workspaceId: $workspaceId, emails: $emails, phones: $phones, companyNames: $companyNames, customFields: $customFields, assignees: $assignees, createdAt: $createdAt, updatedAt: $updatedAt, createdBy: $createdBy, updatedBy: $updatedBy)';
+  }
+
+  // Helper method to parse assignees field which can be either List<String> or Map<String, dynamic>
+  static List<String> _parseAssignees(dynamic assignees) {
+    if (assignees == null) return [];
+    
+    if (assignees is List) {
+      return assignees.map((item) {
+        if (item is String) return item;
+        if (item is Map<String, dynamic>) {
+          // If it's a map, try to extract id or name
+          return item['id']?.toString() ?? item['name']?.toString() ?? '';
+        }
+        return item.toString();
+      }).where((item) => item.isNotEmpty).toList();
+    }
+    
+    if (assignees is Map<String, dynamic>) {
+      // If it's a map, convert to list of keys or values
+      return assignees.keys.toList();
+    }
+    
+    return [];
+  }
+
+  // Helper method to parse list of maps
+  static List<Map<String, dynamic>> _parseListOfMaps(dynamic data) {
+    if (data == null) return [];
+    if (data is List) {
+      return data.map((item) {
+        if (item is Map<String, dynamic>) return item;
+        return <String, dynamic>{};
+      }).toList();
+    }
+    return [];
+  }
+
+  // Helper method to parse list of strings
+  static List<String> _parseListOfStrings(dynamic data) {
+    if (data == null) return [];
+    if (data is List) {
+      return data.map((item) => item.toString()).toList();
+    }
+    return [];
+  }
+
+  // Helper method to parse DateTime
+  static DateTime _parseDateTime(dynamic data) {
+    if (data == null) return DateTime.now();
+    
+    if (data is Timestamp) {
+      return data.toDate();
+    }
+    
+    if (data is int) {
+      return DateTime.fromMillisecondsSinceEpoch(data);
+    }
+    
+    if (data is String) {
+      try {
+        return DateTime.parse(data);
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    
+    return DateTime.now();
   }
 }
