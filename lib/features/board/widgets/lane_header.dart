@@ -5,11 +5,13 @@ import '../../../domain/entities/lane.dart';
 class LaneHeader extends StatelessWidget {
   final Lane lane;
   final VoidCallback? onMenuTap;
+  final VoidCallback? onCreateCard;
 
   const LaneHeader({
     super.key,
     required this.lane,
     this.onMenuTap,
+    this.onCreateCard,
   });
 
   @override
@@ -38,6 +40,7 @@ class LaneHeader extends StatelessWidget {
         children: [
           // Lane title
           Expanded(
+            flex: 2,
             child: Text(
               lane.title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -48,11 +51,11 @@ class LaneHeader extends StatelessWidget {
             ),
           ),
           
-          Container(width: AppTheme.spacing8),
+          Container(width: 4),
           
           // Card count badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing8, vertical: AppTheme.spacing4),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             decoration: BoxDecoration(
               color: AppTheme.primaryOrange,
               borderRadius: BorderRadius.circular(AppTheme.radius12),
@@ -61,24 +64,50 @@ class LaneHeader extends StatelessWidget {
               '${lane.cardCount}',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: AppTheme.fontSize12,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           
-          Container(width: AppTheme.spacing12),
+          Container(width: 6),
           
-          // Total amount
-          Text(
-            '฿${lane.totalAmount.toStringAsFixed(2)}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
+          // Total amount (pricePerUnit)
+          Expanded(
+            flex: 1,
+            child: Text(
+              '฿${_calculateTotalPricePerUnit().toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+                fontSize: 13,
+              ),
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
             ),
           ),
           
           Container(width: AppTheme.spacing8),
+          
+          // Create card button - REMOVED as per user request
+          // if (onCreateCard != null)
+          //   GestureDetector(
+          //     onTap: onCreateCard,
+          //     child: Container(
+          //       padding: const EdgeInsets.all(AppTheme.spacing4),
+          //       decoration: BoxDecoration(
+          //         color: AppTheme.primaryOrange,
+          //         borderRadius: BorderRadius.circular(AppTheme.radius4),
+          //       ),
+          //       child: const Icon(
+          //         Icons.add,
+          //         color: Colors.white,
+          //         size: AppTheme.iconSize16,
+          //       ),
+          //     ),
+          //   ),
+          
+          Container(width: 4),
           
           // Menu button
           if (onMenuTap != null)
@@ -100,5 +129,12 @@ class LaneHeader extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  double _calculateTotalPricePerUnit() {
+    return lane.cards.fold(0.0, (sum, card) {
+      // Use the amount field which represents the total value
+      return sum + (card.amount);
+    });
   }
 }

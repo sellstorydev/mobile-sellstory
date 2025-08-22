@@ -18,6 +18,7 @@ class BoardPresenter {
   
   BoardView? _view;
   BoardState _currentState = const BoardState(lanes: []);
+  bool _hasOptimisticUpdates = false;
 
   BoardPresenter(this._view, this._repository)
       : _moveCardUseCase = MoveCardUseCase(),
@@ -35,26 +36,32 @@ class BoardPresenter {
     _view = null;
   }
 
-  Future<void> load(String workspaceId) async {
-    LoggerService.to.methodEntry('BoardPresenter.load', {'workspaceId': workspaceId});
+  Future<void> load(String workspaceId, [String? boardId]) async {
+    LoggerService.to.methodEntry('BoardPresenter.load', {
+      'workspaceId': workspaceId,
+      'boardId': boardId,
+    });
     _view?.showLoading(true);
     
     try {
-      // Listen to both lanes and cards streams for real-time updates
-      _repository.getLanesStream(workspaceId).listen((lanes) {
-        LoggerService.to.business('Loaded ${lanes.length} lanes from repository');
+      // Listen to lanes stream for the specific board
+      _repository.getLanesStream(workspaceId, boardId: boardId).listen((lanes) {
+        LoggerService.to.business('Loaded ${lanes.length} lanes from repository for board: $boardId');
         
-        _currentState = _currentState.copyWith(
-          lanes: lanes,
-          isLoading: false,
-          error: null,
-        );
-        _view?.render(_currentState);
+        // Only update if we don't have any pending optimistic updates
+        if (!_hasOptimisticUpdates) {
+          _currentState = _currentState.copyWith(
+            lanes: lanes,
+            isLoading: false,
+            error: null,
+          );
+          _view?.render(_currentState);
+        }
       });
 
-      // Also listen to all cards for immediate updates when cards are moved
-      _repository.getAllCardsStream(workspaceId).listen((allCards) {
-        LoggerService.to.business('All cards updated: ${allCards.length} cards');
+      // Also listen to all cards for the specific board
+      _repository.getAllCardsStream(workspaceId, boardId: boardId).listen((allCards) {
+        LoggerService.to.business('All cards updated: ${allCards.length} cards for board: $boardId');
         
         // Update current state with new card data
         if (_currentState.lanes.isNotEmpty) {
@@ -237,6 +244,7 @@ class BoardPresenter {
     
     try {
       // Optimistic update
+      _hasOptimisticUpdates = true;
       final updatedLanes = _currentState.lanes.map((lane) {
         final cardIndex = lane.cards.indexWhere((c) => c.id == card.id);
         if (cardIndex != -1) {
@@ -257,15 +265,101 @@ class BoardPresenter {
       await _repository.updateCard(workspaceId, card);
       LoggerService.to.database('Card updated in repository');
       
+      // Reset optimistic update flag
+      _hasOptimisticUpdates = false;
+      
       print('✅ Card update completed successfully');
     } catch (e) {
       LoggerService.to.error('Failed to update card', e);
       _view?.showError('Failed to update card: ${e.toString()}');
-      // Reload to revert optimistic update
+      // Reset optimistic update flag and reload to revert optimistic update
+      _hasOptimisticUpdates = false;
       await load(workspaceId);
       print('❌ Card update failed: $e');
     }
     
     LoggerService.to.methodExit('BoardPresenter.onUpdateCard');
   }
+
+  // Update lane
+  Future<void> onUpdateLane({
+    required String workspaceId,
+    required String laneId,
+    required String title,
+    required int order,
+  }) async {
+    LoggerService.to.methodEntry('BoardPresenter.onUpdateLane', {
+      'workspaceId': workspaceId,
+      'laneId': laneId,
+      'title': title,
+      'order': order,
+    });
+    
+    try {
+      // Optimistic update
+      _hasOptimisticUpdates = true;
+      final updatedLanes = _currentState.lanes.map((lane) {
+        if (lane.id == laneId) {
+          return lane.copyWith(title: title, order: order);
+        }
+        return lane;
+      }).toList();
+      
+      _currentState = _currentState.copyWith(lanes: updatedLanes);
+      _view?.render(_currentState);
+      
+      LoggerService.to.business('Lane updated successfully');
+      
+      // Persist to repository
+      await _repository.updateLane(workspaceId, laneId, {
+        'title': title,
+        'order': order,
+      });
+      LoggerService.to.database('Lane updated in repository');
+      
+      // Reset optimistic update flag
+      _hasOptimisticUpdates = false;
+    } catch (e) {
+      LoggerService.to.error('Failed to update lane', e);
+      _view?.showError('Failed to update lane: ${e.toString()}');
+      // Reset optimistic update flag and reload to revert optimistic update
+      _hasOptimisticUpdates = false;
+      await load(workspaceId);
+    }
+    
+    LoggerService.to.methodExit('BoardPresenter.onUpdateLane');
+  }
+
+  // Delete lane
+  Future<void> onDeleteLane({
+    required String workspaceId,
+    required String laneId,
+  }) async {
+    LoggerService.to.methodEntry('BoardPresenter.onDeleteLane', {
+      'workspaceId': workspaceId,
+      'laneId': laneId,
+    });
+    
+    try {
+      // Optimistic update
+      final updatedLanes = _currentState.lanes.where((lane) => lane.id != laneId).toList();
+      
+      _currentState = _currentState.copyWith(lanes: updatedLanes);
+      _view?.render(_currentState);
+      
+      LoggerService.to.business('Lane deleted successfully');
+      
+      // Persist to repository
+      await _repository.deleteLane(workspaceId, laneId);
+      LoggerService.to.database('Lane deleted from repository');
+    } catch (e) {
+      LoggerService.to.error('Failed to delete lane', e);
+      _view?.showError('Failed to delete lane: ${e.toString()}');
+      // Reload to revert optimistic update
+      await load(workspaceId);
+    }
+    
+    LoggerService.to.methodExit('BoardPresenter.onDeleteLane');
+  }
+
 }

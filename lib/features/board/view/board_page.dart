@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../core/theme/app_theme.dart';
 import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
+import '../widgets/lane_header.dart';
+import '../widgets/status_summary_cards.dart';
 import '../../../domain/entities/lane.dart';
-import '../../chat/view/chat_center_page.dart'; // Add this import
 
 class BoardPage extends StatefulWidget {
   const BoardPage({super.key});
@@ -25,6 +27,46 @@ class _BoardPageState extends State<BoardPage> {
     
     // Initialize with current user
     _initializeWithCurrentUser();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh data when returning to this page
+    _refreshDataIfNeeded();
+  }
+
+  void _refreshDataIfNeeded() {
+    // Check if we need to refresh data (e.g., after creating new workspace)
+    if (_controller.currentWorkspaceId.value.isEmpty && !_controller.isLoading.value) {
+      _initializeWithCurrentUser();
+    } else if (_controller.currentWorkspaceId.value.isNotEmpty && _controller.currentBoardId.value.isNotEmpty) {
+      // Refresh board data when returning to this page
+      _controller.refresh();
+    }
+  }
+
+  void _handleMenuAction(String value) {
+    switch (value) {
+      case 'board_management':
+        Get.toNamed('/board-management');
+        break;
+      case 'refresh':
+        _initializeWithCurrentUser();
+        break;
+      case 'edit_workspace':
+        _navigateToEditWorkspace();
+        break;
+      default:
+        if (value.startsWith('board_')) {
+          final boardId = value.substring(6); // Remove 'board_' prefix
+          _controller.switchBoard(boardId);
+        } else if (value.startsWith('workspace_')) {
+          final workspaceId = value.substring(10); // Remove 'workspace_' prefix
+          _controller.switchWorkspace(workspaceId);
+        }
+        break;
+    }
   }
 
   Future<void> _initializeWithCurrentUser() async {
@@ -52,58 +94,161 @@ class _BoardPageState extends State<BoardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() => Text(_controller.currentWorkspaceName.value.isNotEmpty 
-          ? _controller.currentWorkspaceName.value 
-          : 'Board')),
-        actions: [
-          // Chat button
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ChatCenterPage(),
+        title: Obx(() {
+          if (_controller.hasWorkspaces) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _controller.currentWorkspaceName.value.isNotEmpty 
+                    ? _controller.currentWorkspaceName.value 
+                    : 'Board',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              );
-            },
-            icon: const Icon(Icons.chat_bubble_outline),
-            tooltip: 'Chat Center',
-          ),
-          // Refresh button
-          IconButton(
-            onPressed: () => _controller.refresh(),
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh data',
-          ),
-          // Workspace selector
+                if (_controller.currentBoardName.value.isNotEmpty)
+                  Text(
+                    _controller.currentBoardName.value,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+              ],
+            );
+          }
+          return const Text('Board');
+        }),
+        actions: [
+          // Main Menu Button - combines all actions
           Obx(() {
             if (_controller.hasWorkspaces) {
               return PopupMenuButton<String>(
-                onSelected: (workspaceId) {
-                  _controller.switchWorkspace(workspaceId);
-                },
-                itemBuilder: (context) => _controller.availableWorkspaces
-                    .map((workspace) => PopupMenuItem<String>(
-                          value: workspace['id'] as String,
-                          child: Text(workspace['name'] as String),
-                        ))
-                    .toList(),
+                onSelected: (value) => _handleMenuAction(value),
                 child: const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.workspace_premium),
+                  child: Icon(Icons.more_vert),
                 ),
+                itemBuilder: (context) => [
+                  // Board Management
+                  PopupMenuItem<String>(
+                    value: 'board_management',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.dashboard, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Board Management'),
+                      ],
+                    ),
+                  ),
+                  // Board Selector
+                  if (_controller.boards.isNotEmpty) ...[
+                    const PopupMenuDivider(),
+                    ..._controller.boards.map((board) {
+                      return PopupMenuItem<String>(
+                        value: 'board_${board.id}',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.view_column,
+                              size: 20,
+                              color: board.id == _controller.currentBoardId.value
+                                  ? AppTheme.primaryOrange
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(board.name)),
+                            if (board.id == _controller.currentBoardId.value)
+                              const Icon(Icons.check, color: AppTheme.primaryOrange),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                  // Workspace Selector
+                  if (_controller.availableWorkspaces.isNotEmpty) ...[
+                    const PopupMenuDivider(),
+                    ..._controller.availableWorkspaces.map((workspace) {
+                      return PopupMenuItem<String>(
+                        value: 'workspace_${workspace['id']}',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.workspace_premium,
+                              size: 20,
+                              color: workspace['id'] == _controller.currentWorkspaceId.value
+                                  ? AppTheme.primaryOrange
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(workspace['name'] as String)),
+                            if (workspace['id'] == _controller.currentWorkspaceId.value)
+                              const Icon(Icons.check, color: AppTheme.primaryOrange),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    const PopupMenuDivider(),
+                    PopupMenuItem<String>(
+                      value: 'edit_workspace',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.edit, size: 20),
+                          const SizedBox(width: 12),
+                          const Text('Edit Workspace'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  // Refresh
+                  const PopupMenuDivider(),
+                  PopupMenuItem<String>(
+                    value: 'refresh',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.refresh, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Refresh'),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              // Show only Add Workspace when no workspaces
+              return IconButton(
+                onPressed: () => _navigateToCreateWorkspace(),
+                icon: const Icon(Icons.add),
+                tooltip: 'Add Workspace',
               );
             }
-            return const SizedBox.shrink();
           }),
         ],
       ),
-      body: _buildBoardView(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddLaneDialog(),
-        child: const Icon(Icons.add),
-        tooltip: 'Add New Lane',
+      body: Column(
+        children: [
+          // Status Summary Cards
+          Obx(() {
+            if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
+              final allCards = _controller.lanes
+                  .expand((lane) => lane.cards)
+                  .toList();
+              return StatusSummaryCards(cards: allCards);
+            }
+            return const SizedBox.shrink();
+          }),
+          // Board View
+          Expanded(child: _buildBoardView()),
+        ],
       ),
+      floatingActionButton: Obx(() {
+        // Only show FAB if user has workspaces
+        if (_controller.hasWorkspaces) {
+          return FloatingActionButton(
+            onPressed: () => _showAddOptionsDialog(),
+            child: const Icon(Icons.add),
+            tooltip: 'Add New Item',
+          );
+        }
+        return const SizedBox.shrink(); // Hide FAB when no workspaces
+      }),
     );
   }
 
@@ -135,6 +280,73 @@ class _BoardPageState extends State<BoardPage> {
         );
       }
 
+      if (!_controller.hasWorkspaces && _controller.isInitialized.value) {
+        return Center(
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            margin: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Welcome to KanbanFlow',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Create a workspace to get started and organize your workflow.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _navigateToCreateWorkspace(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryOrange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Create Workspace',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'You can also use the + button in the top right corner',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       if (!_controller.isInitialized.value) {
         return const Center(
           child: Column(
@@ -148,7 +360,7 @@ class _BoardPageState extends State<BoardPage> {
         );
       }
 
-      if (_controller.lanes.isEmpty) {
+      if (_controller.lanes.isEmpty && _controller.hasWorkspaces) {
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -214,53 +426,49 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildLaneHeader(Lane lane) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  lane.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${lane.cards.length} cards',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+    return LaneHeader(
+      lane: lane,
+      onCreateCard: () => _navigateToCreateCardWithLane(lane),
+      onMenuTap: () => _showLaneMenu(lane),
+    );
+  }
+
+  void _navigateToCreateCardWithLane(Lane lane) {
+    Get.toNamed(
+      '/create-card',
+      parameters: {
+        'laneId': lane.id,
+        'workspaceId': _controller.currentWorkspaceId.value,
+      },
+    );
+  }
+
+  void _showLaneMenu(Lane lane) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit Lane'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showEditLaneDialog(lane);
+              },
             ),
-          ),
-          if (lane.totalAmount > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '\$${lane.totalAmount.toStringAsFixed(2)}',
-                style: TextStyle(
-                  color: Colors.green[800],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text('Delete Lane'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showDeleteLaneConfirmation(lane);
+              },
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -269,7 +477,7 @@ class _BoardPageState extends State<BoardPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
-        onTap: () => _showAddCardDialog(lane),
+        onTap: () => _navigateToCreateCard(),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -432,7 +640,213 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
+  void _showAddOptionsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Item'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.view_column),
+              title: const Text('Add New Lane'),
+              subtitle: const Text('Create a new column in the board'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showAddLaneDialog();
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.note_add),
+              title: const Text('Create New Card'),
+              subtitle: const Text('Create a new card with full details'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _navigateToCreateCard();
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.workspace_premium),
+              title: const Text('Add New Workspace'),
+              subtitle: const Text('Create a new workspace with boards'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _navigateToCreateWorkspace();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
 
+  void _navigateToCreateCard() {
+    Get.toNamed(
+      '/create-card',
+      parameters: {
+        'workspaceId': _controller.currentWorkspaceId.value,
+      },
+    );
+  }
+
+  void _navigateToCreateWorkspace() {
+    Get.toNamed('/create-workspace');
+  }
+
+  void _navigateToEditWorkspace() {
+    final currentWorkspace = _controller.availableWorkspaces.firstWhereOrNull(
+      (workspace) => workspace['id'] == _controller.currentWorkspaceId.value,
+    );
+    
+    if (currentWorkspace != null) {
+      Get.toNamed(
+        '/edit-workspace',
+        parameters: {
+          'workspaceId': currentWorkspace['id'] as String,
+          'currentName': currentWorkspace['name'] as String,
+        },
+      );
+    }
+  }
+
+  void _showEditLaneDialog(Lane lane) {
+    final TextEditingController nameController = TextEditingController(text: lane.title);
+    final TextEditingController orderController = TextEditingController(text: lane.order.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Lane: ${lane.title}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Lane Name *',
+                  hintText: 'Enter lane name...',
+                  prefixIcon: Icon(Icons.label),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: orderController,
+                decoration: const InputDecoration(
+                  labelText: 'Order',
+                  hintText: 'Enter order (optional)',
+                  prefixIcon: Icon(Icons.sort),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isNotEmpty) {
+                final newOrder = int.tryParse(orderController.text.trim()) ?? lane.order;
+                
+                print('🔄 Updating lane:');
+                print('  - Lane ID: ${lane.id}');
+                print('  - Old Title: ${lane.title}');
+                print('  - New Title: ${nameController.text.trim()}');
+                print('  - Old Order: ${lane.order}');
+                print('  - New Order: $newOrder');
+                
+                try {
+                  await _controller.updateLane(
+                    laneId: lane.id,
+                    title: nameController.text.trim(),
+                    order: newOrder,
+                  );
+                  
+                  Navigator.of(context).pop();
+                  
+                  Get.snackbar(
+                    'Success',
+                    'Lane updated successfully',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.green,
+                    colorText: Colors.white,
+                  );
+                } catch (e) {
+                  print('❌ Error updating lane: $e');
+                  Get.snackbar(
+                    'Error',
+                    'Failed to update lane: ${e.toString()}',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.red,
+                    colorText: Colors.white,
+                  );
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Lane name is required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Update Lane'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteLaneConfirmation(Lane lane) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Lane'),
+        content: Text(
+          'Are you sure you want to delete "${lane.title}"? This action cannot be undone and will also delete all cards in this lane.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _controller.deleteLane(laneId: lane.id);
+              
+              Get.snackbar(
+                'Success',
+                'Lane deleted successfully',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showAddCardDialog(Lane lane) {
     final TextEditingController titleController = TextEditingController();
