@@ -368,7 +368,7 @@ class _BoardPageState extends State<BoardPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
-        onTap: () => _showAddCardDialog(lane),
+        onTap: () => _navigateToCreateCard(),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(12),

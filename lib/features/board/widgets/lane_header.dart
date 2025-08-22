@@ -82,23 +82,23 @@ class LaneHeader extends StatelessWidget {
           
           Container(width: AppTheme.spacing8),
           
-          // Create card button
-          if (onCreateCard != null)
-            GestureDetector(
-              onTap: onCreateCard,
-              child: Container(
-                padding: const EdgeInsets.all(AppTheme.spacing4),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange,
-                  borderRadius: BorderRadius.circular(AppTheme.radius4),
-                ),
-                child: const Icon(
-                  Icons.add,
-                  color: Colors.white,
-                  size: AppTheme.iconSize16,
-                ),
-              ),
-            ),
+          // Create card button - REMOVED as per user request
+          // if (onCreateCard != null)
+          //   GestureDetector(
+          //     onTap: onCreateCard,
+          //     child: Container(
+          //       padding: const EdgeInsets.all(AppTheme.spacing4),
+          //       decoration: BoxDecoration(
+          //         color: AppTheme.primaryOrange,
+          //         borderRadius: BorderRadius.circular(AppTheme.radius4),
+          //       ),
+          //       child: const Icon(
+          //         Icons.add,
+          //         color: Colors.white,
+          //         size: AppTheme.iconSize16,
+          //       ),
+          //     ),
+          //   ),
           
           Container(width: AppTheme.spacing8),
           
