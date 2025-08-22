@@ -649,23 +649,43 @@ class _BoardPageState extends State<BoardPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (nameController.text.trim().isNotEmpty) {
                 final newOrder = int.tryParse(orderController.text.trim()) ?? lane.order;
-                _controller.updateLane(
-                  laneId: lane.id,
-                  title: nameController.text.trim(),
-                  order: newOrder,
-                );
-                Navigator.of(context).pop();
                 
-                Get.snackbar(
-                  'Success',
-                  'Lane updated successfully',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                );
+                print('🔄 Updating lane:');
+                print('  - Lane ID: ${lane.id}');
+                print('  - Old Title: ${lane.title}');
+                print('  - New Title: ${nameController.text.trim()}');
+                print('  - Old Order: ${lane.order}');
+                print('  - New Order: $newOrder');
+                
+                try {
+                  await _controller.updateLane(
+                    laneId: lane.id,
+                    title: nameController.text.trim(),
+                    order: newOrder,
+                  );
+                  
+                  Navigator.of(context).pop();
+                  
+                  Get.snackbar(
+                    'Success',
+                    'Lane updated successfully',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.green,
+                    colorText: Colors.white,
+                  );
+                } catch (e) {
+                  print('❌ Error updating lane: $e');
+                  Get.snackbar(
+                    'Error',
+                    'Failed to update lane: ${e.toString()}',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.red,
+                    colorText: Colors.white,
+                  );
+                }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

@@ -861,11 +861,22 @@ class FirestoreRepository {
         'workspaceId': workspaceId,
         'laneId': laneId
       });
+      
+      print('🔄 FirestoreRepository.updateLane:');
+      print('  - Workspace ID: $workspaceId');
+      print('  - Lane ID: $laneId');
+      print('  - Data: $data');
+      
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
       final docRef = lanesCollection.doc(laneId);
-    await _firestoreService.updateDocument(docRef, data);
+      
+      print('🔄 Updating document: ${docRef.path}');
+      await _firestoreService.updateDocument(docRef, data);
+      
+      print('✅ Lane updated successfully');
       _logger.methodExit('FirestoreRepository.updateLane');
     } catch (e) {
+      print('❌ Failed to update lane: $e');
       _logger.error('Failed to update lane', e);
       rethrow;
     }

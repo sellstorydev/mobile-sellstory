@@ -18,6 +18,7 @@ class BoardPresenter {
   
   BoardView? _view;
   BoardState _currentState = const BoardState(lanes: []);
+  bool _hasOptimisticUpdates = false;
 
   BoardPresenter(this._view, this._repository)
       : _moveCardUseCase = MoveCardUseCase(),
@@ -44,12 +45,15 @@ class BoardPresenter {
       _repository.getLanesStream(workspaceId).listen((lanes) {
         LoggerService.to.business('Loaded ${lanes.length} lanes from repository');
         
-        _currentState = _currentState.copyWith(
-          lanes: lanes,
-          isLoading: false,
-          error: null,
-        );
-        _view?.render(_currentState);
+        // Only update if we don't have any pending optimistic updates
+        if (!_hasOptimisticUpdates) {
+          _currentState = _currentState.copyWith(
+            lanes: lanes,
+            isLoading: false,
+            error: null,
+          );
+          _view?.render(_currentState);
+        }
       });
 
       // Also listen to all cards for immediate updates when cards are moved
@@ -285,6 +289,7 @@ class BoardPresenter {
     
     try {
       // Optimistic update
+      _hasOptimisticUpdates = true;
       final updatedLanes = _currentState.lanes.map((lane) {
         if (lane.id == laneId) {
           return lane.copyWith(title: title, order: order);
@@ -303,10 +308,14 @@ class BoardPresenter {
         'order': order,
       });
       LoggerService.to.database('Lane updated in repository');
+      
+      // Reset optimistic update flag
+      _hasOptimisticUpdates = false;
     } catch (e) {
       LoggerService.to.error('Failed to update lane', e);
       _view?.showError('Failed to update lane: ${e.toString()}');
-      // Reload to revert optimistic update
+      // Reset optimistic update flag and reload to revert optimistic update
+      _hasOptimisticUpdates = false;
       await load(workspaceId);
     }
     

@@ -74,8 +74,15 @@ class FirestoreService extends GetxService {
     Map<String, dynamic> data,
   ) async {
     try {
+      print('🔄 FirestoreService.updateDocument:');
+      print('  - Document path: ${document.path}');
+      print('  - Data: $data');
+      
       await document.update(data);
+      
+      print('✅ Document updated successfully');
     } catch (e) {
+      print('❌ Failed to update document: $e');
       throw Exception('Failed to update document: $e');
     }
   }
