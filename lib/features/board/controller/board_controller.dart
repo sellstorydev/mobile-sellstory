@@ -424,6 +424,27 @@ class BoardController extends GetxController implements BoardView {
     }
   }
 
+  // Delete card
+  Future<void> deleteCard(String cardId) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for deleting card');
+      throw Exception('No workspace selected');
+    }
+    
+    try {
+      print('🔄 Deleting card: $cardId');
+      await _repository.deleteCard(currentWorkspaceId.value, cardId);
+      print('✅ Card deleted successfully');
+      
+      // Refresh board data to update the view
+      await refresh();
+    } catch (e) {
+      print('❌ Failed to delete card: $e');
+      error.value = 'Failed to delete card';
+      rethrow;
+    }
+  }
+
   // Get boards for current workspace
   Future<List<Board>> getBoards() async {
     if (currentWorkspaceId.value.isEmpty) {

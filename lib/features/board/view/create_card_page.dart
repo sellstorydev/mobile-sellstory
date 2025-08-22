@@ -255,6 +255,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       );
 
       // Add card using controller with full card data
+      print('🔄 CreateCardPage._saveCard - Creating card...');
       final cardId = await _controller.createCard(card);
 
       print('✅ Card created successfully with ID: $cardId');
@@ -268,9 +269,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
         colorText: Colors.white,
       );
 
-      // Navigate back to board page
-      Get.offAllNamed('/board');
+      print('🔄 CreateCardPage._saveCard - Navigating back...');
+      // Navigate back to previous page (preserves bottom navigation)
+      Get.back();
+      print('✅ CreateCardPage._saveCard - Navigation completed');
     } catch (e) {
+      print('❌ CreateCardPage._saveCard - Error: $e');
       _showError('Failed to create card: ${e.toString()}');
     } finally {
       setState(() {

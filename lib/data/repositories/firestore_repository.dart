@@ -1402,10 +1402,21 @@ class FirestoreRepository {
         'workspaceId': workspaceId,
         'cardId': cardId
       });
+
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      final docRef = cardsCollection.doc(cardId);
-      await _firestoreService.deleteDocument(docRef);
-      _logger.methodExit('FirestoreRepository.deleteCard');
+      final cardDocRef = cardsCollection.doc(cardId);
+      
+      // Check if card exists
+      final cardDoc = await cardDocRef.get();
+      if (!cardDoc.exists) {
+        throw Exception('Card not found: $cardId');
+      }
+      
+      // Delete the card
+      await cardDocRef.delete();
+      
+      print('✅ Deleted card with ID: $cardId');
+      _logger.methodExit('FirestoreRepository.deleteCard', {'cardId': cardId});
     } catch (e) {
       _logger.error('Failed to delete card', e);
       rethrow;
