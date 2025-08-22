@@ -7,6 +7,7 @@ import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
 import '../widgets/lane_header.dart';
+import '../widgets/status_summary_cards.dart';
 import '../../../domain/entities/lane.dart';
 
 class BoardPage extends StatefulWidget {
@@ -218,7 +219,22 @@ class _BoardPageState extends State<BoardPage> {
           }),
         ],
       ),
-      body: _buildBoardView(),
+      body: Column(
+        children: [
+          // Status Summary Cards
+          Obx(() {
+            if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
+              final allCards = _controller.lanes
+                  .expand((lane) => lane.cards)
+                  .toList();
+              return StatusSummaryCards(cards: allCards);
+            }
+            return const SizedBox.shrink();
+          }),
+          // Board View
+          Expanded(child: _buildBoardView()),
+        ],
+      ),
       floatingActionButton: Obx(() {
         // Only show FAB if user has workspaces
         if (_controller.hasWorkspaces) {
