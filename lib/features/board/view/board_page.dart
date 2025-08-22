@@ -528,7 +528,7 @@ class _BoardPageState extends State<BoardPage> {
 
   void _handleCardReorder(int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
     try {
-      final oldLane = _controller.lanes[oldListIndex] as Lane;
+      final oldLane =  _controller.lanes[oldListIndex] as Lane;
       final newLane = _controller.lanes[newListIndex] as Lane;
       final card = oldLane.cards[oldItemIndex];
 
