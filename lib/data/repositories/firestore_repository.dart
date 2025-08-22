@@ -255,6 +255,169 @@ class FirestoreRepository {
     }
   }
 
+  // Update workspace name
+  Future<void> updateWorkspaceName({
+    required String workspaceId,
+    required String newName,
+    required String userId,
+  }) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.updateWorkspaceName', {
+        'workspaceId': workspaceId,
+        'newName': newName,
+        'userId': userId,
+      });
+
+      // Use batch write to update both workspace and user document
+      final batch = FirebaseFirestore.instance.batch();
+
+      // Update workspace document
+      final workspaceRef = _firestoreService.workspacesCollection.doc(workspaceId);
+      batch.update(workspaceRef, {
+        'name': newName,
+      });
+
+      // Update user document to reflect the new workspace name
+      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      
+      // Get current user data to update the workspace reference
+      final userDoc = await userRef.get();
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        final workspacesList = userData['workspaces'] as List<dynamic>? ?? [];
+        
+        // Find and update the specific workspace in the user's workspace list
+        final updatedWorkspaces = workspacesList.map((workspace) {
+          final workspaceData = workspace as Map<String, dynamic>;
+          if (workspaceData['id'] == workspaceId) {
+            return {
+              ...workspaceData,
+              'name': newName,
+            };
+          }
+          return workspace;
+        }).toList();
+
+        batch.update(userRef, {
+          'workspaces': updatedWorkspaces,
+        });
+      }
+
+      // Commit the batch
+      await batch.commit();
+
+      _logger.methodExit('FirestoreRepository.updateWorkspaceName', {
+        'workspaceId': workspaceId,
+        'newName': newName,
+        'updateStatus': 'success',
+      });
+    } catch (e) {
+      _logger.error('Failed to update workspace name', e);
+      rethrow;
+    }
+  }
+
+  // Delete workspace
+  Future<void> deleteWorkspace({
+    required String workspaceId,
+    required String userId,
+  }) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.deleteWorkspace', {
+        'workspaceId': workspaceId,
+        'userId': userId,
+      });
+
+      // Use batch write to delete all related documents
+      final batch = FirebaseFirestore.instance.batch();
+
+      // Delete workspace document
+      final workspaceRef = _firestoreService.workspacesCollection.doc(workspaceId);
+      batch.delete(workspaceRef);
+
+      // Delete all boards in the workspace
+      final boardsCollection = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('boards');
+      
+      final boardsSnapshot = await boardsCollection.get();
+      for (final boardDoc in boardsSnapshot.docs) {
+        batch.delete(boardDoc.reference);
+      }
+
+      // Delete all lanes in the workspace
+      final lanesCollection = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('lanes');
+      
+      final lanesSnapshot = await lanesCollection.get();
+      for (final laneDoc in lanesSnapshot.docs) {
+        batch.delete(laneDoc.reference);
+      }
+
+      // Delete all cards in the workspace
+      final cardsCollection = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('cards');
+      
+      final cardsSnapshot = await cardsCollection.get();
+      for (final cardDoc in cardsSnapshot.docs) {
+        batch.delete(cardDoc.reference);
+      }
+
+      // Delete all customers in the workspace
+      final customersCollection = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('customers');
+      
+      final customersSnapshot = await customersCollection.get();
+      for (final customerDoc in customersSnapshot.docs) {
+        batch.delete(customerDoc.reference);
+      }
+
+      // Update user document to remove workspace reference
+      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      
+      // Get current user data to remove the workspace reference
+      final userDoc = await userRef.get();
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        final workspacesList = userData['workspaces'] as List<dynamic>? ?? [];
+        
+        // Remove the specific workspace from the user's workspace list
+        final updatedWorkspaces = workspacesList
+            .where((workspace) {
+              final workspaceData = workspace as Map<String, dynamic>;
+              return workspaceData['id'] != workspaceId;
+            })
+            .toList();
+
+        batch.update(userRef, {
+          'workspaces': updatedWorkspaces,
+        });
+      }
+
+      // Commit the batch
+      await batch.commit();
+
+      _logger.methodExit('FirestoreRepository.deleteWorkspace', {
+        'workspaceId': workspaceId,
+        'deleteStatus': 'success',
+        'boardsDeleted': boardsSnapshot.docs.length,
+        'lanesDeleted': lanesSnapshot.docs.length,
+        'cardsDeleted': cardsSnapshot.docs.length,
+        'customersDeleted': customersSnapshot.docs.length,
+      });
+    } catch (e) {
+      _logger.error('Failed to delete workspace', e);
+      rethrow;
+    }
+  }
+
   // Get user's workspaces
   Future<List<Map<String, dynamic>>> getUserWorkspaces(String userId) async {
     try {

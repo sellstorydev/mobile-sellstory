@@ -7,6 +7,7 @@ import '../features/board/view/user_cards_page.dart';
 import '../features/board/view/card_detail_page.dart';
 import '../features/board/view/create_card_page.dart';
 import '../features/board/view/create_workspace_page.dart';
+import '../features/board/view/edit_workspace_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -17,6 +18,7 @@ class AppRoutes {
   static const String cardDetail = '/card-detail';
   static const String createCard = '/create-card';
   static const String createWorkspace = '/create-workspace';
+  static const String editWorkspace = '/edit-workspace';
 
   static final routes = [
     GetPage(
@@ -54,6 +56,13 @@ class AppRoutes {
     GetPage(
       name: createWorkspace,
       page: () => const CreateWorkspacePage(),
+    ),
+    GetPage(
+      name: editWorkspace,
+      page: () => EditWorkspacePage(
+        workspaceId: Get.parameters['workspaceId'] ?? '',
+        currentName: Get.parameters['currentName'] ?? '',
+      ),
     ),
   ];
 }

@@ -80,15 +80,32 @@ class _BoardPageState extends State<BoardPage> {
           Obx(() {
             if (_controller.hasWorkspaces) {
               return PopupMenuButton<String>(
-                onSelected: (workspaceId) {
-                  _controller.switchWorkspace(workspaceId);
+                onSelected: (value) {
+                  if (value == 'edit_workspace') {
+                    _navigateToEditWorkspace();
+                  } else {
+                    _controller.switchWorkspace(value);
+                  }
                 },
-                itemBuilder: (context) => _controller.availableWorkspaces
-                    .map((workspace) => PopupMenuItem<String>(
-                          value: workspace['id'] as String,
-                          child: Text(workspace['name'] as String),
-                        ))
-                    .toList(),
+                itemBuilder: (context) => [
+                  ..._controller.availableWorkspaces
+                      .map((workspace) => PopupMenuItem<String>(
+                            value: workspace['id'] as String,
+                            child: Text(workspace['name'] as String),
+                          ))
+                      .toList(),
+                  const PopupMenuDivider(),
+                  PopupMenuItem<String>(
+                    value: 'edit_workspace',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit, size: 16),
+                        const SizedBox(width: 8),
+                        const Text('Edit Workspace'),
+                      ],
+                    ),
+                  ),
+                ],
                 child: const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Icon(Icons.workspace_premium),
@@ -489,6 +506,22 @@ class _BoardPageState extends State<BoardPage> {
 
   void _navigateToCreateWorkspace() {
     Get.toNamed('/create-workspace');
+  }
+
+  void _navigateToEditWorkspace() {
+    final currentWorkspace = _controller.availableWorkspaces.firstWhereOrNull(
+      (workspace) => workspace['id'] == _controller.currentWorkspaceId.value,
+    );
+    
+    if (currentWorkspace != null) {
+      Get.toNamed(
+        '/edit-workspace',
+        parameters: {
+          'workspaceId': currentWorkspace['id'] as String,
+          'currentName': currentWorkspace['name'] as String,
+        },
+      );
+    }
   }
 
   void _showAddCardDialog(Lane lane) {

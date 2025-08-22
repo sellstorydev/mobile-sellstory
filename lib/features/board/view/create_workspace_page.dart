@@ -60,7 +60,10 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
         duration: const Duration(seconds: 3),
       );
 
-      // Refresh board controller to load new workspace
+      // Navigate back to board page and refresh data
+      Get.offAllNamed('/board');
+      
+      // Refresh board controller after navigation
       try {
         final boardController = Get.find<BoardController>();
         await boardController.initializeWithUser(currentUser.uid);
@@ -68,9 +71,6 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
         print('⚠️ Failed to refresh board controller: $e');
         // Continue anyway, user can manually refresh
       }
-
-      // Navigate back
-      Get.back();
     } catch (e) {
       _showError('Failed to create workspace: ${e.toString()}');
     } finally {
