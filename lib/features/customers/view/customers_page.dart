@@ -27,6 +27,7 @@ class _CustomersPageState extends State<CustomersPage> {
     // TODO: Get actual workspace ID from user session
     const workspaceId = 'GkEJ3c6u9QU4utYO6KVZ'; // Using the workspace ID from the backup data
     _controller.loadCustomers(workspaceId);
+    _controller.loadCustomerSources(workspaceId);
   }
 
   @override
@@ -118,7 +119,9 @@ class _CustomersPageState extends State<CustomersPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AddEditCustomerPage(),
+                  builder: (context) => AddEditCustomerPage(
+                    customerSources: _controller.customerSources,
+                  ),
                 ),
               );
             },

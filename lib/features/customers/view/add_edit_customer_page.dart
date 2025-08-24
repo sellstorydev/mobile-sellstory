@@ -6,10 +6,12 @@ import '../controller/customers_controller.dart';
 
 class AddEditCustomerPage extends StatefulWidget {
   final Customer? customer; // null for add, not null for edit
+  final List<String> customerSources; // Dynamic customer sources from database
 
   const AddEditCustomerPage({
     super.key,
     this.customer,
+    required this.customerSources,
   });
 
   @override
@@ -19,11 +21,11 @@ class AddEditCustomerPage extends StatefulWidget {
 class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _prefixController = TextEditingController();
   final _nationalIdController = TextEditingController();
   final _addressLine1Controller = TextEditingController();
   final _hashtagsController = TextEditingController();
   
-  String _selectedPrefix = 'นาย';
   String _selectedGender = 'Male';
   String _selectedCustomerType = 'Customer';
   String _selectedSource = 'FB';
@@ -40,10 +42,8 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   List<Map<String, String>> _phones = [];
   
   // Available options
-  final List<String> _prefixOptions = ['นาย', 'นาง', 'นางสาว', 'ดร.', 'ผศ.', 'รศ.', 'ศ.'];
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
   final List<String> _customerTypeOptions = ['Customer', 'Lead'];
-  final List<String> _sourceOptions = ['FB', 'Line', 'IG'];
   final List<String> _districtOptions = ['บางเขน', 'ลาดพร้าว', 'ห้วยขวาง', 'ดินแดง', 'วัฒนา'];
   final List<String> _provinceOptions = ['กรุงเทพมหานคร', 'นนทบุรี', 'ปทุมธานี', 'สมุทรปราการ'];
   final List<String> _subdistrictOptions = ['อนุสาวรีย์', 'ลาดยาว', 'เสนานิคม', 'จันทรเกษม'];
@@ -66,14 +66,14 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       // Edit mode - populate with existing data
       final customer = widget.customer!;
       _nameController.text = customer.name;
+      _prefixController.text = customer.prefix;
       _nationalIdController.text = customer.nationalId;
       _addressLine1Controller.text = customer.address;
       _hashtagsController.text = customer.hashtags;
       
-      _selectedPrefix = _getSafeDropdownValue(customer.prefix, _prefixOptions);
       _selectedGender = _getSafeDropdownValue(customer.gender, _genderOptions);
       _selectedCustomerType = _getSafeDropdownValue(customer.customerType, _customerTypeOptions);
-      _selectedSource = _getSafeDropdownValue(customer.source, _sourceOptions);
+      _selectedSource = _getSafeDropdownValue(customer.source, widget.customerSources.isNotEmpty ? widget.customerSources : ['FB', 'Line', 'IG']);
       
       // Set location fields with fallback to default values if empty
       _selectedDistrict = _districtOptions.first;
@@ -106,6 +106,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   @override
   void dispose() {
     _nameController.dispose();
+    _prefixController.dispose();
     _nationalIdController.dispose();
     _addressLine1Controller.dispose();
     _hashtagsController.dispose();
@@ -163,7 +164,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               _buildDropdownField(
                 'แหล่งที่มา',
                 _selectedSource,
-                _sourceOptions,
+                widget.customerSources.isNotEmpty ? widget.customerSources : ['FB', 'Line', 'IG'],
                 (value) => setState(() => _selectedSource = value!),
               ),
               const SizedBox(height: 16),
@@ -177,11 +178,9 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               const SizedBox(height: 16),
               
               // Prefix
-              _buildDropdownField(
+              _buildTextField(
                 'คำนำหน้า',
-                _selectedPrefix,
-                _prefixOptions,
-                (value) => setState(() => _selectedPrefix = value!),
+                _prefixController,
               ),
               const SizedBox(height: 16),
               

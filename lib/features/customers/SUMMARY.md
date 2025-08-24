@@ -42,9 +42,9 @@ Successfully implemented a complete customer management system for the SellStory
   - Reusable form for both add and edit operations
   - All required fields implemented:
     - Customer type (Customer/Lead)
-    - Source selection (FB/Line/IG)
+    - Source selection (dynamic from database: `workspaces.uid.companyProfile.customerSources`)
     - National ID
-    - Prefix selection
+    - Prefix (text input)
     - Name (required)
     - Gender selection
     - Multiple emails (add/edit/delete)
@@ -88,6 +88,7 @@ The implementation correctly matches the Firebase backup data structure:
 ✅ Loading and error states
 ✅ Navigation between pages
 ✅ Coming soon field placeholders
+✅ Dynamic customer sources from database
 
 ## Technical Stack
 - **State Management**: GetX

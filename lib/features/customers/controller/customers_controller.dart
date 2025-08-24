@@ -11,6 +11,7 @@ class CustomersController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString searchQuery = ''.obs;
   final RxString errorMessage = ''.obs;
+  final RxList<String> customerSources = <String>[].obs;
 
   CustomersController(this._customerRepository);
 
@@ -36,6 +37,17 @@ class CustomersController extends GetxController {
       errorMessage.value = 'Failed to load customers: $e';
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // Load customer sources from workspace
+  Future<void> loadCustomerSources(String workspaceId) async {
+    try {
+      final sources = await _customerRepository.getCustomerSources(workspaceId);
+      customerSources.value = sources;
+    } catch (e) {
+      // If loading fails, use default sources
+      customerSources.value = ['FB', 'Line', 'IG'];
     }
   }
 

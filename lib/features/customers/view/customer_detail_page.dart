@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/customer.dart';
+import '../controller/customers_controller.dart';
 import 'add_edit_customer_page.dart';
 
 class CustomerDetailPage extends StatelessWidget {
@@ -23,10 +25,15 @@ class CustomerDetailPage extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {
+              // Get customer sources from controller
+              final controller = Get.find<CustomersController>();
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AddEditCustomerPage(customer: customer),
+                  builder: (context) => AddEditCustomerPage(
+                    customer: customer,
+                    customerSources: controller.customerSources,
+                  ),
                 ),
               );
             },

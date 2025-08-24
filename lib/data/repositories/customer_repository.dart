@@ -104,6 +104,24 @@ class CustomerRepository {
       throw Exception('Failed to search customers: $e');
     }
   }
+
+  // Get customer sources from workspace
+  Future<List<String>> getCustomerSources(String workspaceId) async {
+    try {
+      final workspaceDoc = await _firestoreService.workspacesCollection.doc(workspaceId).get();
+      if (workspaceDoc.exists) {
+        final workspaceData = workspaceDoc.data()!;
+        final companyProfile = workspaceData['companyProfile'] as Map<String, dynamic>?;
+        if (companyProfile != null) {
+          final customerSources = companyProfile['customerSources'] as List<dynamic>? ?? [];
+          return customerSources.cast<String>();
+        }
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to fetch customer sources: $e');
+    }
+  }
 }
 
 
