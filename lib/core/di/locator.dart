@@ -2,12 +2,14 @@ import 'package:get/get.dart';
 import '../services/logger_service.dart';
 import '../../data/repositories/jobcard_repository.dart';
 import '../../data/repositories/firestore_repository.dart';
+import '../../data/repositories/customer_repository.dart';
 import '../../data/services/firestore_service.dart';
 import '../../domain/usecases/add_card_usecase.dart';
 import '../../domain/usecases/add_lane_usecase.dart';
 import '../../domain/usecases/move_card_usecase.dart';
 import '../../domain/usecases/reorder_card_in_lane_usecase.dart';
 import '../../features/board/controller/board_controller.dart';
+import '../../features/customers/controller/customers_controller.dart';
 
 class Locator {
   static void setup() {
@@ -30,8 +32,9 @@ class Locator {
     // Repositories
     Get.lazyPut<JobCardRepository>(() => InMemoryJobCardRepository(), fenix: true);
     Get.lazyPut<FirestoreRepository>(() => FirestoreRepository(), fenix: true);
+    Get.lazyPut<CustomerRepository>(() => CustomerRepository(Get.find<FirestoreService>()), fenix: true);
     logger?.devTools('Repositories registered', {
-      'repositories': ['JobCardRepository', 'FirestoreRepository'],
+      'repositories': ['JobCardRepository', 'FirestoreRepository', 'CustomerRepository'],
     });
     
     // Use cases
@@ -45,7 +48,10 @@ class Locator {
     
     // Controllers
     Get.lazyPut<BoardController>(() => BoardController(), fenix: true);
-    logger?.devTools('BoardController registered');
+    Get.lazyPut<CustomersController>(() => CustomersController(Get.find<CustomerRepository>()), fenix: true);
+    logger?.devTools('Controllers registered', {
+      'controllers': ['BoardController', 'CustomersController'],
+    });
     
     logger?.devTools('Locator.setup() completed', {
       'timestamp': DateTime.now().toIso8601String(),
@@ -67,7 +73,9 @@ class Locator {
     
     // Clear non-permanent dependencies
     Get.delete<BoardController>(force: true);
+    Get.delete<CustomersController>(force: true);
     Get.delete<FirestoreRepository>(force: true);
+    Get.delete<CustomerRepository>(force: true);
     Get.delete<FirestoreService>(force: true);
     Get.delete<JobCardRepository>(force: true);
     Get.delete<MoveCardUseCase>(force: true);
@@ -78,7 +86,9 @@ class Locator {
     logger?.devTools('Dependencies cleared', {
       'clearedDependencies': [
         'BoardController',
-        'FirestoreRepository', 
+        'CustomersController',
+        'FirestoreRepository',
+        'CustomerRepository',
         'FirestoreService',
         'JobCardRepository',
         'MoveCardUseCase',
