@@ -319,20 +319,26 @@ class _CreateCardPageState extends State<CreateCardPage> {
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
-          // Add watcher dropdown
+          // Action menu
           PopupMenuButton<String>(
             onSelected: (value) {
               // Add watcher functionality will be implemented later
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem<String>(
                 value: 'add_watcher',
-                child: Text('Add a watcher...'),
+                child: Row(
+                  children: [
+                    const Icon(Icons.visibility_outlined, size: 20),
+                    const SizedBox(width: 12),
+                    const Text('Add a watcher'),
+                  ],
+                ),
               ),
             ],
             child: const Padding(
               padding: EdgeInsets.all(8.0),
-              child: Icon(Icons.person_add),
+              child: Icon(Icons.more_vert),
             ),
           ),
           // Close button
@@ -343,7 +349,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -402,7 +412,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         TextField(
           controller: _jobIdController,
           decoration: const InputDecoration(
-            hintText: 'Will be auto-generated (editable)',
+            hintText: 'Job ID',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
@@ -637,18 +647,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
               ),
             ),
             const SizedBox(width: 8),
-            SizedBox(
-              height: 48, // Match dropdown height
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // New customer functionality will be implemented later
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('New'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+            ElevatedButton.icon(
+              onPressed: () {
+                // New customer functionality will be implemented later
+              },
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
             ),
@@ -701,18 +711,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
                ),
             ),
             const SizedBox(width: 8),
-            SizedBox(
-              height: 48, // Match dropdown height
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // New company functionality will be implemented later
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('New'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+            ElevatedButton.icon(
+              onPressed: () {
+                // New company functionality will be implemented later
+              },
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
             ),
@@ -880,26 +890,34 @@ class _CreateCardPageState extends State<CreateCardPage> {
         Row(
           children: [
             ElevatedButton.icon(
-                              onPressed: () {
-                  // Add product functionality will be implemented later
-                },
+              onPressed: () {
+                // Add product functionality will be implemented later
+              },
               icon: const Icon(Icons.shopping_cart, size: 16),
               label: const Text('Add Product'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
             const SizedBox(width: 8),
             ElevatedButton.icon(
-                              onPressed: () {
-                  // Add custom functionality will be implemented later
-                },
+              onPressed: () {
+                // Add custom functionality will be implemented later
+              },
               icon: const Icon(Icons.add, size: 16),
               label: const Text('Add Custom'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
           ],
@@ -942,26 +960,34 @@ class _CreateCardPageState extends State<CreateCardPage> {
         Row(
           children: [
             ElevatedButton.icon(
-                              onPressed: () {
-                  // Apply template functionality will be implemented later
-                },
+              onPressed: () {
+                // Apply template functionality will be implemented later
+              },
               icon: const Icon(Icons.description, size: 16),
               label: const Text('Apply Template'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
             const SizedBox(width: 8),
             ElevatedButton.icon(
-                              onPressed: () {
-                  // Add item functionality will be implemented later
-                },
+              onPressed: () {
+                // Add item functionality will be implemented later
+              },
               icon: const Icon(Icons.add, size: 16),
               label: const Text('Add Item'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
           ],
@@ -999,14 +1025,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ),
         const SizedBox(height: 8),
         ElevatedButton.icon(
-                          onPressed: () {
-                  // Add file functionality will be implemented later
-                },
+          onPressed: () {
+            // Add file functionality will be implemented later
+          },
           icon: const Icon(Icons.upload_file, size: 16),
           label: const Text('Add File'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primaryOrange,
             foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -1106,13 +1136,16 @@ class _CreateCardPageState extends State<CreateCardPage> {
             ),
             const SizedBox(width: 8),
             ElevatedButton(
-                      onPressed: () {
-          // Post comment functionality will be implemented later
-        },
+              onPressed: () {
+                // Post comment functionality will be implemented later
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
               child: const Text('Post'),
             ),

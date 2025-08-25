@@ -641,18 +641,18 @@ class _CardDetailPageState extends State<CardDetailPage> {
               ),
             ),
             const SizedBox(width: 8),
-            SizedBox(
-              height: 48, // Match dropdown height
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // New customer functionality will be implemented later
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('New'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+            ElevatedButton.icon(
+              onPressed: () {
+                // New customer functionality will be implemented later
+              },
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
             ),
@@ -705,18 +705,18 @@ class _CardDetailPageState extends State<CardDetailPage> {
               ),
             ),
             const SizedBox(width: 8),
-            SizedBox(
-              height: 48, // Match dropdown height
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // New company functionality will be implemented later
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('New'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+            ElevatedButton.icon(
+              onPressed: () {
+                // New company functionality will be implemented later
+              },
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
             ),
@@ -892,6 +892,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -904,6 +908,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
           ],
@@ -954,6 +962,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -966,6 +978,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
           ],
@@ -1011,6 +1027,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primaryOrange,
             foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -1117,6 +1137,9 @@ class _CardDetailPageState extends State<CardDetailPage> {
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
               child: const Text('Post'),
             ),
