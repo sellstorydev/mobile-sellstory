@@ -964,6 +964,13 @@ class FirestoreRepository {
           customId: jobId,
         ).toMap();
 
+        // Debug logging for title
+        print('📝 FirestoreRepository.createCard - Debug Card Data:');
+        print('  - Original card title: "${card.title}"');
+        print('  - Card data title: "${cardData['title']}"');
+        print('  - Card data name: "${cardData['name']}"');
+        print('  - Card data keys: ${cardData.keys.toList()}');
+
         // Set card document
         transaction.set(cardDocRef, cardData);
 

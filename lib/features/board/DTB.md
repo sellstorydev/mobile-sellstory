@@ -194,3 +194,5 @@ fields:
 - ตั้งชื่อคีย์ให้สม่ำเสมอ (เลือกใช้ camelCase ตามข้อมูลชุดนี้)
 - ความสัมพันธ์ซ้ำซ้อน (เช่น members.workspaces และ field workspaces บน board/card) ให้ยึด source of truth ที่ทีมกำหนด
 - โครงสร้างสอดคล้องแนวคิด documents/collections/subcollections ของ Firestore
+
+
