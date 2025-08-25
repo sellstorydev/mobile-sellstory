@@ -42,7 +42,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
     
     // Add a small delay to ensure controller is ready
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshCardData();
+      // Wait a bit more for controller to be fully initialized
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _refreshCardData();
+      });
     });
   }
 
@@ -84,9 +87,9 @@ class _CardDetailPageState extends State<CardDetailPage> {
   // Helper method to get the latest card data from controller
   JobCard? _getLatestCardData() {
     try {
-      // Check if controller is ready
-      if (!_controller.isInitialized.value) {
-        print('⚠️ CardDetailPage._getLatestCardData - Controller not initialized yet');
+      // Check if controller is ready and has workspace
+      if (!_controller.isInitialized.value || _controller.currentWorkspaceId.value.isEmpty) {
+        print('⚠️ CardDetailPage._getLatestCardData - Controller not ready or no workspace selected');
         return null;
       }
       
@@ -137,39 +140,65 @@ class _CardDetailPageState extends State<CardDetailPage> {
   Widget build(BuildContext context) {
     // Listen to controller state changes
     return Obx(() {
-      try {
-        _updateCurrentCard();
-      } catch (e) {
-        print('❌ Error in CardDetailPage build: $e');
-        // Continue with current card data if there's an error
+      // Only update if controller is ready
+      if (_controller.isInitialized.value && _controller.currentWorkspaceId.value.isNotEmpty) {
+        try {
+          _updateCurrentCard();
+        } catch (e) {
+          print('❌ Error in CardDetailPage build: $e');
+          // Continue with current card data if there's an error
+        }
       }
       
       return Scaffold(
         appBar: AppBar(
           title: Text(_isEditing ? 'Edit Card' : 'Card Details'),
           actions: [
-            if (!_isEditing)
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    _isEditing = true;
-                  });
-                },
-                icon: const Icon(Icons.edit),
-                tooltip: 'Edit Card',
+            // Action menu
+            PopupMenuButton<String>(
+              onSelected: (value) => _handleAction(value),
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(_isEditing ? Icons.save : Icons.edit, size: 20),
+                      const SizedBox(width: 12),
+                      Text(_isEditing ? 'Save Changes' : 'Edit Card'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'duplicate',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.copy, size: 20),
+                      const SizedBox(width: 12),
+                      const Text('Duplicate Card'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.delete, color: Colors.red, size: 20),
+                      const SizedBox(width: 12),
+                      const Text('Delete Card', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.more_vert),
               ),
-            if (_isEditing) ...[
-              IconButton(
-                onPressed: _cancelEdit,
-                icon: const Icon(Icons.close),
-                tooltip: 'Cancel',
-              ),
-              IconButton(
-                onPressed: _saveChanges,
-                icon: const Icon(Icons.save),
-                tooltip: 'Save Changes',
-              ),
-            ],
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Get.back(),
+            ),
           ],
         ),
         body: _isLoading
@@ -478,6 +507,171 @@ class _CardDetailPageState extends State<CardDetailPage> {
       _isEditing = false;
       _initializeControllers(); // Reset to original values
     });
+  }
+
+  void _handleAction(String action) {
+    switch (action) {
+      case 'edit':
+        if (_isEditing) {
+          _saveChanges();
+        } else {
+          setState(() {
+            _isEditing = true;
+          });
+        }
+        break;
+      case 'duplicate':
+        _duplicateCard();
+        break;
+      case 'delete':
+        _showDeleteConfirmation();
+        break;
+    }
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Card'),
+          content: Text('Are you sure you want to delete "${_currentCard.title}"? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteCard();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteCard() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Check if workspace is selected
+      if (_controller.currentWorkspaceId.value.isEmpty) {
+        throw Exception('No workspace selected. Please select a workspace first.');
+      }
+
+      print('🔄 CardDetailPage._deleteCard - Deleting card:');
+      print('  - Card ID: ${_currentCard.id}');
+      print('  - Workspace ID: ${_controller.currentWorkspaceId.value}');
+      print('  - Card Title: ${_currentCard.title}');
+
+      await _controller.deleteCard(_currentCard.id);
+      
+      Get.snackbar(
+        'Success',
+        'Card deleted successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      // Navigate back to previous page (preserves bottom navigation)
+      Get.back();
+    } catch (e) {
+      print('❌ Error deleting card: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to delete card: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _duplicateCard() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Check if workspace is selected
+      if (_controller.currentWorkspaceId.value.isEmpty) {
+        throw Exception('No workspace selected. Please select a workspace first.');
+      }
+
+      print('🔄 CardDetailPage._duplicateCard - Creating duplicate card:');
+      print('  - Original Card ID: ${_currentCard.id}');
+      print('  - Workspace ID: ${_controller.currentWorkspaceId.value}');
+      print('  - Original Title: ${_currentCard.title}');
+
+      // Create a duplicate card
+      final duplicateCard = JobCard(
+        id: '',
+        title: '${_currentCard.title} (Copy)',
+        description: _currentCard.description,
+        assignee: _currentCard.assignee,
+        status: _currentCard.status,
+        customId: '',
+        dueDate: _currentCard.dueDate,
+        badges: _currentCard.badges,
+        amount: _currentCard.amount,
+        laneId: _currentCard.laneId,
+        boardId: _currentCard.boardId,
+        workspaceId: _currentCard.workspaceId,
+        order: _currentCard.order,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        customer: _currentCard.customer,
+        updatedByDisplayName: _currentCard.updatedByDisplayName,
+        customerId: _currentCard.customerId,
+        company: _currentCard.company,
+        hashtag: _currentCard.hashtag,
+        expenses: _currentCard.expenses,
+        todos: _currentCard.todos,
+        notes: _currentCard.notes,
+        watchers: _currentCard.watchers,
+        customFields: _currentCard.customFields,
+        createdBy: _currentCard.createdBy,
+        updatedBy: _currentCard.updatedBy,
+      );
+
+      await _controller.createCard(duplicateCard);
+
+      Get.snackbar(
+        'Success',
+        'Card duplicated successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      // Navigate back to previous page (preserves bottom navigation)
+      Get.back();
+    } catch (e) {
+      print('❌ Error duplicating card: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to duplicate card: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _saveChanges() async {

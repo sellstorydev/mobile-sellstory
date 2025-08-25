@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 
 class StatusSummaryCards extends StatelessWidget {
@@ -20,8 +18,20 @@ class StatusSummaryCards extends StatelessWidget {
         children: [
           Expanded(
             child: _buildSummaryCard(
+              title: 'งานทั้งหมด',
+              amount: _calculateTotalAmount(),
+              count: cards.length,
+              color: Colors.blue,
+              icon: Icons.dashboard,
+              showTotal: true,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildSummaryCard(
               title: 'ปิดงานสำเร็จ',
               amount: _calculateAmountByStatus('Closed Successfully'),
+              count: _getCountByStatus('Closed Successfully'),
               color: Colors.green,
               icon: Icons.sentiment_satisfied,
             ),
@@ -31,6 +41,7 @@ class StatusSummaryCards extends StatelessWidget {
             child: _buildSummaryCard(
               title: 'กำลังดำเนินการ',
               amount: _calculateAmountByStatus('In Progress'),
+              count: _getCountByStatus('In Progress'),
               color: Colors.orange,
               icon: Icons.schedule,
             ),
@@ -40,6 +51,7 @@ class StatusSummaryCards extends StatelessWidget {
             child: _buildSummaryCard(
               title: 'ปิดงานไม่สำเร็จ',
               amount: _calculateAmountByStatus('Closed Unsuccessfully'),
+              count: _getCountByStatus('Closed Unsuccessfully'),
               color: Colors.red,
               icon: Icons.sentiment_dissatisfied,
             ),
@@ -52,8 +64,10 @@ class StatusSummaryCards extends StatelessWidget {
   Widget _buildSummaryCard({
     required String title,
     required double amount,
+    required int count,
     required Color color,
     required IconData icon,
+    bool showTotal = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -102,11 +116,23 @@ class StatusSummaryCards extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
+            // แสดงจำนวนการ์ด
+            Text(
+              '$count งาน',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            // แสดงยอดเงิน
             Text(
               '฿${amount.toStringAsFixed(2)}',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: showTotal ? 13 : 12,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -121,6 +147,14 @@ class StatusSummaryCards extends StatelessWidget {
   double _calculateAmountByStatus(String status) {
     return cards
         .where((card) => card.status == status)
-        .fold(0.0, (sum, card) => sum + (card.amount ?? 0.0));
+        .fold(0.0, (sum, card) => sum + card.amount);
+  }
+
+  double _calculateTotalAmount() {
+    return cards.fold(0.0, (sum, card) => sum + card.amount);
+  }
+
+  int _getCountByStatus(String status) {
+    return cards.where((card) => card.status == status).length;
   }
 }

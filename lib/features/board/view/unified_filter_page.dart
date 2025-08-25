@@ -1,0 +1,571 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../controller/board_controller.dart';
+
+class UnifiedFilterPage extends StatelessWidget {
+  const UnifiedFilterPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.find<BoardController>();
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('ตัวกรองงาน'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+        actions: [
+          TextButton(
+            onPressed: () => controller.clearFilter(),
+            child: Text(
+              'ล้างทั้งหมด',
+              style: TextStyle(color: Colors.red[600]),
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date Filter Section
+            _buildDateFilterSection(controller),
+            const SizedBox(height: 24),
+            
+            // Assignee Filter Section
+            _buildAssigneeFilterSection(controller),
+            const SizedBox(height: 24),
+            
+            // Customer Filter Section
+            _buildCustomerFilterSection(controller),
+            const SizedBox(height: 24),
+            
+            // Hashtag Filter Section
+            _buildHashtagFilterSection(controller),
+            const SizedBox(height: 32),
+            
+            // Apply Button
+            _buildApplyButton(controller, context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateFilterSection(BoardController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.calendar_today, color: Colors.blue[600], size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'ตัวกรองวันที่ Job Card',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[800],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        // Date Type Selection
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'เลือกประเภทวันที่:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 12),
+              
+              // Date type options with checkboxes
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildDateTypeChip(controller, 'startDate', 'Start Date'),
+                  _buildDateTypeChip(controller, 'endDate', 'End Date'),
+                  _buildDateTypeChip(controller, 'createdDate', 'Created Date'),
+                  _buildDateTypeChip(controller, 'dueDate', 'To-Do Date'),
+                  _buildDateTypeChip(controller, 'updatedAt', 'Updated At'),
+                  _buildDateTypeChip(controller, 'expectedClosingDate', 'Expected Closing Date'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Quick Date Options
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ตัวเลือกด่วน:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 12),
+              
+              // Quick date buttons
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildQuickDateChip(controller, 'today', 'วันนี้'),
+                  _buildQuickDateChip(controller, 'thisWeek', 'สัปดาห์นี้'),
+                  _buildQuickDateChip(controller, 'thisMonth', 'เดือนนี้'),
+                  _buildQuickDateChip(controller, 'lastMonth', 'เดือนก่อน'),
+                  _buildQuickDateChip(controller, '+1day', '+1 วัน'),
+                  _buildQuickDateChip(controller, '+3days', '+3 วัน'),
+                  _buildQuickDateChip(controller, '+7days', '+7 วัน'),
+                  _buildQuickDateChip(controller, '+14days', '+14 วัน'),
+                  _buildQuickDateChip(controller, '+30days', '+30 วัน'),
+                  _buildQuickDateChip(controller, 'lastWeek', 'สัปดาห์ที่แล้ว'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Custom Date Range
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'กำหนดช่วงวันที่เอง:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 12),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: Obx(() => OutlinedButton.icon(
+                      onPressed: () => _selectDate(controller, true),
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: Text(
+                        controller.selectedStartDate.value != null
+                            ? _formatDate(controller.selectedStartDate.value!)
+                            : 'เลือกวันเริ่มต้น',
+                      ),
+                    )),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Obx(() => OutlinedButton.icon(
+                      onPressed: () => _selectDate(controller, false),
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: Text(
+                        controller.selectedEndDate.value != null
+                            ? _formatDate(controller.selectedEndDate.value!)
+                            : 'เลือกวันสิ้นสุด',
+                      ),
+                    )),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAssigneeFilterSection(BoardController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.person, color: Colors.orange[600], size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'ผู้รับผิดชอบ',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange[800],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'เลือกผู้รับผิดชอบ (เลือกได้หลายคน):',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.orange[800],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              Obx(() {
+                if (controller.availableAssignees.isEmpty) {
+                  return const Text(
+                    'ไม่มีผู้รับผิดชอบในระบบ',
+                    style: TextStyle(color: Colors.grey),
+                  );
+                }
+                
+                return Column(
+                  children: controller.availableAssignees.map((assigneeId) {
+                    final displayName = controller.getDisplayNameFromUid(assigneeId);
+                    final isSelected = controller.selectedAssignees.contains(assigneeId);
+                    
+                    return CheckboxListTile(
+                      value: isSelected,
+                      onChanged: (bool? value) {
+                        controller.toggleAssigneeFilter(assigneeId);
+                      },
+                      secondary: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.orange[100],
+                        child: Text(
+                          displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                          style: TextStyle(
+                            color: Colors.orange[800],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      title: Text(displayName),
+                      subtitle: Text(_getAssigneeCardCount(controller, assigneeId)),
+                      activeColor: Colors.orange[600],
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                    );
+                  }).toList(),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCustomerFilterSection(BoardController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.people_alt, color: Colors.green[600], size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'ลูกค้า',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.green[800],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'เลือกลูกค้า (เลือกได้หลายราย):',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.green[800],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              Obx(() {
+                if (controller.availableCustomers.isEmpty) {
+                  return const Text(
+                    'ไม่มีลูกค้าในระบบ',
+                    style: TextStyle(color: Colors.grey),
+                  );
+                }
+                
+                return Column(
+                  children: controller.availableCustomers.map((customerName) {
+                    final isSelected = controller.selectedCustomers.contains(customerName);
+                    
+                    return CheckboxListTile(
+                      value: isSelected,
+                      onChanged: (bool? value) {
+                        controller.toggleCustomerFilter(customerName);
+                      },
+                      secondary: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.green[100],
+                        child: Text(
+                          customerName.isNotEmpty ? customerName[0].toUpperCase() : '?',
+                          style: TextStyle(
+                            color: Colors.green[800],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      title: Text(customerName),
+                      subtitle: Text(_getCustomerCardCount(controller, customerName)),
+                      activeColor: Colors.green[600],
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                    );
+                  }).toList(),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHashtagFilterSection(BoardController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.tag, color: Colors.purple[600], size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'แฮชแท็ก',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.purple[800],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.purple[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.purple[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'เลือกแฮชแท็ก (เลือกได้หลายอัน):',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.purple[800],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              Obx(() {
+                if (controller.availableHashtags.isEmpty) {
+                  return const Text(
+                    'ไม่มีแฮชแท็กในระบบ',
+                    style: TextStyle(color: Colors.grey),
+                  );
+                }
+                
+                return Column(
+                  children: controller.availableHashtags.map((hashtag) {
+                    final isSelected = controller.selectedHashtags.contains(hashtag);
+                    
+                    return CheckboxListTile(
+                      value: isSelected,
+                      onChanged: (bool? value) {
+                        controller.toggleHashtagFilter(hashtag);
+                      },
+                      secondary: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.purple[100],
+                        child: Text(
+                          '#',
+                          style: TextStyle(
+                            color: Colors.purple[800],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      title: Text('#$hashtag'),
+                      subtitle: Text(_getHashtagCardCount(controller, hashtag)),
+                      activeColor: Colors.purple[600],
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                    );
+                  }).toList(),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildApplyButton(BoardController controller, BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Obx(() {
+        final hasAnyFilter = controller.selectedAssignees.isNotEmpty ||
+                           controller.selectedCustomers.isNotEmpty ||
+                           controller.selectedHashtags.isNotEmpty ||
+                           controller.selectedDateFilterType.value.isNotEmpty;
+        
+        return ElevatedButton.icon(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.check),
+          label: Text(hasAnyFilter ? 'ใช้ตัวกรอง' : 'ปิด'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: hasAnyFilter ? Colors.blue[600] : Colors.grey[400],
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildDateTypeChip(BoardController controller, String type, String label) {
+    return Obx(() {
+      final isSelected = controller.selectedDateFilterType.value == type;
+      return FilterChip(
+        selected: isSelected,
+        label: Text(label),
+        onSelected: (selected) {
+          if (selected) {
+            controller.selectedDateFilterType.value = type;
+          } else {
+            controller.clearDateFilter();
+          }
+        },
+        selectedColor: Colors.blue[100],
+        checkmarkColor: Colors.blue[800],
+      );
+    });
+  }
+
+  Widget _buildQuickDateChip(BoardController controller, String type, String label) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: () => controller.setQuickDateFilter(type),
+      backgroundColor: Colors.grey[100],
+      side: BorderSide(color: Colors.grey[300]!),
+    );
+  }
+
+  Future<void> _selectDate(BoardController controller, bool isStartDate) async {
+    final context = Get.context!;
+    final initialDate = isStartDate 
+        ? controller.selectedStartDate.value ?? DateTime.now()
+        : controller.selectedEndDate.value ?? DateTime.now();
+    
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    
+    if (pickedDate != null) {
+      if (isStartDate) {
+        controller.selectedStartDate.value = pickedDate;
+      } else {
+        controller.selectedEndDate.value = pickedDate;
+      }
+      
+      // Auto-apply filter if both date type and date are selected
+      if (controller.selectedDateFilterType.value.isNotEmpty) {
+        controller.updateDateFilter(
+          controller.selectedDateFilterType.value,
+          controller.selectedStartDate.value,
+          controller.selectedEndDate.value,
+        );
+      }
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _getAssigneeCardCount(BoardController controller, String assigneeId) {
+    int count = 0;
+    for (final lane in controller.lanes) {
+      count += lane.cards.where((card) => card.assignee == assigneeId).length;
+    }
+    return '$count งาน';
+  }
+
+  String _getCustomerCardCount(BoardController controller, String customerName) {
+    int count = 0;
+    for (final lane in controller.lanes) {
+      count += lane.cards.where((card) => card.customer == customerName).length;
+    }
+    return '$count งาน';
+  }
+
+  String _getHashtagCardCount(BoardController controller, String hashtag) {
+    int count = 0;
+    for (final lane in controller.lanes) {
+      count += lane.cards.where((card) => 
+        (card.hashtag ?? '').toLowerCase().contains(hashtag.toLowerCase())
+      ).length;
+    }
+    return '$count งาน';
+  }
+}

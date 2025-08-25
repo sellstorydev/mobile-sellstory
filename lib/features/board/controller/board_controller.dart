@@ -23,9 +23,30 @@ class BoardController extends GetxController implements BoardView {
   final RxList<Board> boards = <Board>[].obs;
   final RxString currentBoardId = ''.obs;
   final RxString currentBoardName = ''.obs;
+  final Rx<Board?> currentBoard = Rx<Board?>(null);
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
   final RxBool isInitialized = false.obs;
+  
+  // Search functionality
+  final RxString searchQuery = ''.obs;
+  final RxBool isSearching = false.obs;
+  final RxList<Lane> filteredLanes = <Lane>[].obs;
+  final RxList<Lane> _originalLanes = <Lane>[].obs;
+  
+  // Filter functionality
+  final RxList<String> selectedAssignees = <String>[].obs;
+  final RxList<String> selectedCustomers = <String>[].obs;
+  final RxList<String> selectedHashtags = <String>[].obs;
+  final RxBool isFiltering = false.obs;
+  final RxList<String> availableAssignees = <String>[].obs;
+  final RxList<String> availableCustomers = <String>[].obs;
+  final RxList<String> availableHashtags = <String>[].obs;
+  
+  // Date filter functionality
+  final RxString selectedDateFilterType = ''.obs; // startDate, endDate, createdDate, etc.
+  final Rx<DateTime?> selectedStartDate = Rx<DateTime?>(null);
+  final Rx<DateTime?> selectedEndDate = Rx<DateTime?>(null);
   
   @override
   void onInit() {
@@ -112,9 +133,15 @@ class BoardController extends GetxController implements BoardView {
       print('🔄 Switching to board: $boardId');
       currentBoardId.value = boardId;
       
-      // Find board name
+      // Find and set current board with members info
       final board = boards.firstWhere((b) => b.id == boardId);
       currentBoardName.value = board.name;
+      currentBoard.value = board; // Set current board for member lookup
+      
+      print('📋 Board members: ${board.members.length} members');
+      for (final member in board.members) {
+        print('  - ${member['displayName']} (${member['uid']})');
+      }
       
       // Clear current lanes and cards
       lanes.clear();
@@ -424,6 +451,27 @@ class BoardController extends GetxController implements BoardView {
     }
   }
 
+  // Delete card
+  Future<void> deleteCard(String cardId) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for deleting card');
+      throw Exception('No workspace selected');
+    }
+    
+    try {
+      print('🔄 Deleting card: $cardId');
+      await _repository.deleteCard(currentWorkspaceId.value, cardId);
+      print('✅ Card deleted successfully');
+      
+      // Refresh board data to update the view
+      await refresh();
+    } catch (e) {
+      print('❌ Failed to delete card: $e');
+      error.value = 'Failed to delete card';
+      rethrow;
+    }
+  }
+
   // Get boards for current workspace
   Future<List<Board>> getBoards() async {
     if (currentWorkspaceId.value.isEmpty) {
@@ -534,14 +582,504 @@ class BoardController extends GetxController implements BoardView {
       print('  - Lane: ${lane.title} (${lane.cards.length} cards)');
       for (final card in lane.cards) {
         print('    - Card: ${card.title} (ID: ${card.id}, Custom ID: ${card.customId})');
+        print('      * Description: "${card.description}"');
+        print('      * Customer: "${card.customer}"');
+        print('      * Assignee: "${card.assignee}"');
+        print('      * Status: "${card.status}"');
       }
     }
     
     this.lanes.value = state.lanes;
+    _originalLanes.value = state.lanes; // Store original lanes for search
+    
+    // Update available assignees, customers, and hashtags
+    _updateAvailableAssignees();
+    _updateAvailableCustomers();
+    _updateAvailableHashtags();
+    
+    // Apply current search and filter if exists
+    final hasAssigneeFilter = selectedAssignees.isNotEmpty;
+    final hasCustomerFilter = selectedCustomers.isNotEmpty;
+    final hasHashtagFilter = selectedHashtags.isNotEmpty;
+    final hasDateFilter = selectedDateFilterType.value.isNotEmpty;
+    final hasSearchQuery = searchQuery.value.isNotEmpty;
+    
+    if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasDateFilter)) {
+      print('🔍 Reapplying search and filter');
+      _performSearch(searchQuery.value);
+      _performFilter();
+    } else if (hasSearchQuery) {
+      print('🔍 Reapplying search filter: "${searchQuery.value}"');
+      _performSearch(searchQuery.value);
+    } else if (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasDateFilter) {
+      print('🔍 Reapplying filters - Assignees: ${selectedAssignees.length}, Customers: ${selectedCustomers.length}, Hashtags: ${selectedHashtags.length}, Date: ${hasDateFilter}');
+      _performFilter();
+    } else {
+      filteredLanes.value = state.lanes;
+    }
+    
     isLoading.value = state.isLoading;
     error.value = state.error ?? '';
     isInitialized.value = true;
     
     print('📱 Board state updated - ${state.lanes.length} lanes');
+  }
+  
+  // Search Methods
+  void updateSearchQuery(String query) {
+    final trimmedQuery = query.trim();
+    searchQuery.value = trimmedQuery;
+    
+    if (trimmedQuery.isEmpty) {
+      clearSearch();
+    } else {
+      _performSearch(trimmedQuery);
+    }
+  }
+  
+  void clearSearch() {
+    searchQuery.value = '';
+    isSearching.value = false;
+    filteredLanes.value = _originalLanes;
+    print('🔍 Search cleared');
+  }
+  
+  void _performSearch(String query) {
+    if (query.isEmpty) {
+      clearSearch();
+      return;
+    }
+    
+    isSearching.value = true;
+    final searchLower = query.toLowerCase();
+    
+    print('🔍 Performing search for: "$query"');
+    print('🔍 Available lanes to search: ${_originalLanes.length}');
+    
+    // Count total cards available
+    int totalCards = 0;
+    for (final lane in _originalLanes) {
+      totalCards += lane.cards.length;
+      print('🔍 Lane "${lane.title}" has ${lane.cards.length} cards');
+    }
+    print('🔍 Total cards to search: $totalCards');
+    
+    final List<Lane> searchResults = [];
+    int matchingCards = 0;
+    
+    for (final lane in _originalLanes) {
+      // Filter cards that match the search query
+      final filteredCards = lane.cards.where((card) {
+        final matches = _cardMatchesSearch(card, searchLower);
+        if (matches) matchingCards++;
+        return matches;
+      }).toList();
+      
+      // Check if lane title matches
+      final laneTitleMatches = lane.title.toLowerCase().contains(searchLower);
+      
+      // Include lane if it has matching cards or the lane title matches
+      if (filteredCards.isNotEmpty || laneTitleMatches) {
+        // If lane title matches, include all cards; otherwise include only filtered cards
+        final cardsToInclude = laneTitleMatches ? lane.cards : filteredCards;
+            
+        searchResults.add(Lane(
+          id: lane.id,
+          title: lane.title,
+          order: lane.order,
+          cards: cardsToInclude,
+          boardId: lane.boardId,
+        ));
+        
+        print('🔍 Including lane "${lane.title}" with ${cardsToInclude.length} cards');
+      }
+    }
+    
+    filteredLanes.value = searchResults;
+    print('🔍 Search completed - Found ${searchResults.length} lanes with matching content');
+    print('🔍 Total matching cards: $matchingCards');
+  }
+  
+  bool _cardMatchesSearch(JobCard card, String searchLower) {
+    // Helper function to safely check string contains
+    bool safeContains(String? text, String search) {
+      if (text == null || text.isEmpty) return false;
+      return text.toLowerCase().contains(search);
+    }
+    
+    // Debug logging for search
+    if (searchLower == 'test' || searchLower == 'card' || searchLower == 'new') {
+      print('🔍 Checking card "${card.title}" against "$searchLower"');
+      print('  - title: "${card.title}"');
+      print('  - description: "${card.description}"');
+      print('  - customId: "${card.customId}"');
+      print('  - customer: "${card.customer}"');
+      print('  - assignee: "${card.assignee}"');
+      print('  - status: "${card.status}"');
+    }
+    
+    return safeContains(card.title, searchLower) ||
+           safeContains(card.description, searchLower) ||
+           safeContains(card.customId, searchLower) ||
+           safeContains(card.customer, searchLower) ||
+           safeContains(card.assignee, searchLower) ||
+           safeContains(card.status, searchLower) ||
+           safeContains(card.updatedByDisplayName, searchLower) ||
+           safeContains(card.company, searchLower) ||
+           safeContains(card.hashtag ?? '', searchLower);
+  }
+  
+  // Filter Methods
+  void toggleAssigneeFilter(String assigneeId) {
+    if (selectedAssignees.contains(assigneeId)) {
+      selectedAssignees.remove(assigneeId);
+    } else {
+      selectedAssignees.add(assigneeId);
+    }
+    _performFilter();
+  }
+  
+  void toggleCustomerFilter(String customerName) {
+    if (selectedCustomers.contains(customerName)) {
+      selectedCustomers.remove(customerName);
+    } else {
+      selectedCustomers.add(customerName);
+    }
+    _performFilter();
+  }
+  
+  void toggleHashtagFilter(String hashtag) {
+    if (selectedHashtags.contains(hashtag)) {
+      selectedHashtags.remove(hashtag);
+    } else {
+      selectedHashtags.add(hashtag);
+    }
+    _performFilter();
+  }
+  
+  // Date Filter Methods
+  void updateDateFilter(String dateType, DateTime? startDate, DateTime? endDate) {
+    selectedDateFilterType.value = dateType;
+    selectedStartDate.value = startDate;
+    selectedEndDate.value = endDate;
+    _performFilter();
+  }
+  
+  void clearDateFilter() {
+    selectedDateFilterType.value = '';
+    selectedStartDate.value = null;
+    selectedEndDate.value = null;
+    _performFilter();
+  }
+  
+  void setQuickDateFilter(String type) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    switch (type) {
+      case 'today':
+        updateDateFilter('createdDate', today, today.add(const Duration(days: 1)));
+        break;
+      case 'thisWeek':
+        final startOfWeek = today.subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 7));
+        updateDateFilter('createdDate', startOfWeek, endOfWeek);
+        break;
+      case 'thisMonth':
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final endOfMonth = DateTime(now.year, now.month + 1, 1);
+        updateDateFilter('createdDate', startOfMonth, endOfMonth);
+        break;
+      case 'lastMonth':
+        final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
+        final endOfLastMonth = DateTime(now.year, now.month, 1);
+        updateDateFilter('createdDate', startOfLastMonth, endOfLastMonth);
+        break;
+      case '+1day':
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 2)));
+        break;
+      case '+3days':
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 4)));
+        break;
+      case '+7days':
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 8)));
+        break;
+      case '+14days':
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 15)));
+        break;
+      case '+30days':
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 31)));
+        break;
+      case 'lastWeek':
+        final startOfLastWeek = today.subtract(Duration(days: now.weekday + 6));
+        final endOfLastWeek = startOfLastWeek.add(const Duration(days: 7));
+        updateDateFilter('createdDate', startOfLastWeek, endOfLastWeek);
+        break;
+    }
+  }
+  
+  void clearFilter() {
+    selectedAssignees.clear();
+    selectedCustomers.clear();
+    selectedHashtags.clear();
+    selectedDateFilterType.value = '';
+    selectedStartDate.value = null;
+    selectedEndDate.value = null;
+    isFiltering.value = false;
+    // Re-apply search if active, otherwise show original lanes
+    if (searchQuery.value.isNotEmpty) {
+      _performSearch(searchQuery.value);
+    } else {
+      filteredLanes.value = _originalLanes;
+    }
+    print('🔍 Filter cleared');
+  }
+  
+  void _performFilter() {
+    final hasAssigneeFilter = selectedAssignees.isNotEmpty;
+    final hasCustomerFilter = selectedCustomers.isNotEmpty;
+    final hasHashtagFilter = selectedHashtags.isNotEmpty;
+    final hasDateFilter = selectedDateFilterType.value.isNotEmpty && 
+                         (selectedStartDate.value != null || selectedEndDate.value != null);
+    
+    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasDateFilter) {
+      isFiltering.value = false;
+      if (searchQuery.value.isNotEmpty) {
+        _performSearch(searchQuery.value);
+      } else {
+        filteredLanes.value = _originalLanes;
+      }
+      return;
+    }
+    
+    isFiltering.value = true;
+    
+    print('🔍 Filtering - Assignees: ${selectedAssignees.length} selected: $selectedAssignees');
+    print('🔍 Filtering - Customers: ${selectedCustomers.length} selected: $selectedCustomers');
+    print('🔍 Filtering - Hashtags: ${selectedHashtags.length} selected: $selectedHashtags');
+    print('🔍 Filtering - Date: ${selectedDateFilterType.value} from ${selectedStartDate.value} to ${selectedEndDate.value}');
+    
+    // Start with original lanes or search results
+    final sourceLanes = searchQuery.value.isNotEmpty ? 
+        _getSearchResults(searchQuery.value) : _originalLanes;
+    
+    print('🔍 Source lanes for filtering: ${sourceLanes.length} lanes');
+    
+    final List<Lane> filterResults = [];
+    int matchingCards = 0;
+    
+    for (final lane in sourceLanes) {
+      print('🔍 Checking lane "${lane.title}" with ${lane.cards.length} cards');
+      
+      // Filter cards by assignee, customer, hashtag, and/or date
+      final filteredCards = lane.cards.where((card) {
+        bool assigneeMatches = true;
+        bool customerMatches = true;
+        bool hashtagMatches = true;
+        bool dateMatches = true;
+        
+        // Check assignee filter (OR logic - match any selected assignee)
+        if (hasAssigneeFilter) {
+          assigneeMatches = selectedAssignees.contains(card.assignee);
+        }
+        
+        // Check customer filter (OR logic - match any selected customer)  
+        if (hasCustomerFilter) {
+          customerMatches = selectedCustomers.any((selectedCustomer) => 
+            card.customer.toLowerCase().contains(selectedCustomer.toLowerCase()));
+        }
+        
+        // Check hashtag filter (OR logic - match any selected hashtag)
+        if (hasHashtagFilter) {
+          hashtagMatches = selectedHashtags.any((selectedHashtag) => 
+            (card.hashtag ?? '').toLowerCase().contains(selectedHashtag.toLowerCase()));
+        }
+        
+        // Check date filter
+        if (hasDateFilter) {
+          dateMatches = _checkDateFilter(card);
+        }
+        
+        final matches = assigneeMatches && customerMatches && hashtagMatches && dateMatches;
+        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), Hashtag: "${card.hashtag ?? ''}" (${hashtagMatches}), Date: (${dateMatches}) - Match: $matches');
+        
+        if (matches) matchingCards++;
+        return matches;
+      }).toList();
+      
+      // Include lane if it has matching cards
+      if (filteredCards.isNotEmpty) {
+        filterResults.add(Lane(
+          id: lane.id,
+          title: lane.title,
+          order: lane.order,
+          cards: filteredCards,
+          boardId: lane.boardId,
+        ));
+        
+        print('🔍 Including lane "${lane.title}" with ${filteredCards.length} cards');
+      } else {
+        print('🔍 Skipping lane "${lane.title}" - no matching cards');
+      }
+    }
+    
+    filteredLanes.value = filterResults;
+    print('🔍 Filter completed - Found ${filterResults.length} lanes with matching criteria');
+    print('🔍 Total matching cards: $matchingCards');
+  }
+  
+  bool _checkDateFilter(JobCard card) {
+    final startDate = selectedStartDate.value;
+    final endDate = selectedEndDate.value;
+    final filterType = selectedDateFilterType.value;
+    
+    DateTime? cardDate;
+    
+    // Get the appropriate date from card based on filter type
+    switch (filterType) {
+      case 'startDate':
+        // For now, using createdAt as startDate - can be extended
+        cardDate = card.createdAt;
+        break;
+      case 'endDate':
+        // Using dueDate as endDate
+        cardDate = card.dueDate;
+        break;
+      case 'createdDate':
+        cardDate = card.createdAt;
+        break;
+      case 'dueDate':
+      case 'toDoDate':
+        cardDate = card.dueDate;
+        break;
+      case 'updatedAt':
+        cardDate = card.updatedAt;
+        break;
+      case 'expectedClosingDate':
+        // Using dueDate as expected closing date
+        cardDate = card.dueDate;
+        break;
+      default:
+        cardDate = card.createdAt;
+    }
+    
+    if (cardDate == null) return false;
+    
+    // Check if card date is within the selected range
+    bool matches = true;
+    
+    if (startDate != null) {
+      matches = matches && cardDate.isAfter(startDate.subtract(const Duration(days: 1)));
+    }
+    
+    if (endDate != null) {
+      matches = matches && cardDate.isBefore(endDate.add(const Duration(days: 1)));
+    }
+    
+    return matches;
+  }
+  
+  List<Lane> _getSearchResults(String query) {
+    final searchLower = query.toLowerCase();
+    final List<Lane> searchResults = [];
+    
+    for (final lane in _originalLanes) {
+      final filteredCards = lane.cards.where((card) {
+        return _cardMatchesSearch(card, searchLower);
+      }).toList();
+      
+      final laneTitleMatches = lane.title.toLowerCase().contains(searchLower);
+      
+      if (filteredCards.isNotEmpty || laneTitleMatches) {
+        final cardsToInclude = laneTitleMatches ? lane.cards : filteredCards;
+        searchResults.add(Lane(
+          id: lane.id,
+          title: lane.title,
+          order: lane.order,
+          cards: cardsToInclude,
+          boardId: lane.boardId,
+        ));
+      }
+    }
+    
+    return searchResults;
+  }
+  
+  void _updateAvailableAssignees() {
+    final Set<String> assigneeUids = {};
+    
+    for (final lane in _originalLanes) {
+      for (final card in lane.cards) {
+        if (card.assignee.isNotEmpty) {
+          assigneeUids.add(card.assignee);
+        }
+      }
+    }
+    
+    // Convert UIDs to display names for UI, but keep UIDs for internal filtering
+    final List<String> assigneeDisplays = assigneeUids.map((uid) => getDisplayNameFromUid(uid)).toList();
+    availableAssignees.value = assigneeUids.toList(); // Keep UIDs for filtering logic
+    print('🔍 Available assignees updated: ${assigneeUids.length} assignees');
+    print('🔍 UIDs: $assigneeUids');
+    print('🔍 Display names: $assigneeDisplays');
+  }
+  
+  void _updateAvailableCustomers() {
+    final Set<String> customerNames = {};
+    
+    for (final lane in _originalLanes) {
+      for (final card in lane.cards) {
+        if (card.customer.isNotEmpty) {
+          customerNames.add(card.customer);
+        }
+      }
+    }
+    
+    availableCustomers.value = customerNames.toList();
+    print('🔍 Available customers updated: ${customerNames.length} customers');
+    print('🔍 Customers: $customerNames');
+  }
+  
+  void _updateAvailableHashtags() {
+    final Set<String> hashtags = {};
+    
+    for (final lane in _originalLanes) {
+      for (final card in lane.cards) {
+        final cardHashtag = card.hashtag ?? '';
+        if (cardHashtag.isNotEmpty) {
+          // Split hashtags by common delimiters and clean them
+          final cardHashtags = cardHashtag
+              .split(RegExp(r'[,\s]+'))
+              .where((tag) => tag.isNotEmpty)
+              .map((tag) => tag.trim().replaceFirst('#', ''))
+              .where((tag) => tag.isNotEmpty);
+          hashtags.addAll(cardHashtags);
+        }
+      }
+    }
+    
+    availableHashtags.value = hashtags.toList();
+    print('🔍 Available hashtags updated: ${hashtags.length} hashtags');
+    print('🔍 Hashtags: $hashtags');
+  }
+  
+  // Helper method to get display name from UID
+  String getDisplayNameFromUid(String uid) {
+    if (currentBoard.value?.members != null) {
+      for (final member in currentBoard.value!.members) {
+        if (member['uid'] == uid) {
+          return member['displayName'] ?? uid;
+        }
+      }
+    }
+    return uid; // Return UID if display name not found
+  }
+  
+  // Getter for lanes to use in UI (returns filtered/searched lanes)
+  List<Lane> get displayLanes {
+    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedDateFilterType.value.isNotEmpty) {
+      return filteredLanes;
+    }
+    return lanes;
   }
 }

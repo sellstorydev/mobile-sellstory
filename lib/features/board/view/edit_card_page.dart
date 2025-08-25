@@ -80,6 +80,15 @@ class _EditCardPageState extends State<EditCardPage> {
       'name': lane.title,
     }).toList();
     
+    // Validate selected lane exists in available lanes
+    if (_selectedLane.isNotEmpty) {
+      final laneExists = _availableLanes.any((lane) => lane['id'] == _selectedLane);
+      if (!laneExists) {
+        print('⚠️ Selected lane $_selectedLane not found in available lanes, resetting');
+        _selectedLane = '';
+      }
+    }
+    
     // Load assignees from workspace users
     await _loadWorkspaceUsers();
     
@@ -87,34 +96,71 @@ class _EditCardPageState extends State<EditCardPage> {
     try {
       print('🔄 Loading customers from Firestore...');
       final customers = await _controller.getCustomers();
-      _availableCustomers = customers.map((customer) => {
-        'id': customer.id,
-        'name': customer.name,
-        'customId': customer.customId,
-      }).toList();
+      
+      // Deduplicate customers by ID to prevent dropdown issues
+      final customerMap = <String, Map<String, dynamic>>{};
+      for (final customer in customers) {
+        if (!customerMap.containsKey(customer.id)) {
+          customerMap[customer.id] = {
+            'id': customer.id,
+            'name': customer.name,
+            'customId': customer.customId,
+          };
+        }
+      }
+      _availableCustomers = customerMap.values.toList();
+      
       print('✅ Customers loaded: ${_availableCustomers.length} customers');
+      
+      // Validate selected customer exists in available customers
+      if (_selectedCustomer.isNotEmpty) {
+        final customerExists = _availableCustomers.any((customer) => customer['id'] == _selectedCustomer);
+        if (!customerExists) {
+          print('⚠️ Selected customer $_selectedCustomer not found in available customers, resetting');
+          _selectedCustomer = '';
+        }
+      }
     } catch (e) {
       print('❌ Failed to load customers: $e');
       _availableCustomers = [];
+      _selectedCustomer = '';
     }
     
     // Load companies from Firestore
     try {
       print('🔄 Loading companies from Firestore...');
       final companies = await _controller.getCompanies();
-      _availableCompanies = [
-        {'id': 'none', 'name': 'None'},
-        ...companies.map((company) => {
-          'id': company.id,
-          'name': company.name,
-        }).toList(),
-      ];
+      
+      // Deduplicate companies by ID to prevent dropdown issues
+      final companyMap = <String, Map<String, dynamic>>{};
+      companyMap['none'] = {'id': 'none', 'name': 'None'};
+      
+      for (final company in companies) {
+        if (!companyMap.containsKey(company.id)) {
+          companyMap[company.id] = {
+            'id': company.id,
+            'name': company.name,
+          };
+        }
+      }
+      _availableCompanies = companyMap.values.toList();
+      
       print('✅ Companies loaded: ${_availableCompanies.length - 1} companies');
+      
+      // Validate selected company exists in available companies
+      if (_selectedCompany.isNotEmpty) {
+        final companyExists = _availableCompanies.any((company) => company['id'] == _selectedCompany);
+        if (!companyExists) {
+          print('⚠️ Selected company $_selectedCompany not found in available companies, resetting to none');
+          _selectedCompany = 'none';
+        }
+      }
     } catch (e) {
       print('❌ Failed to load companies: $e');
       _availableCompanies = [
         {'id': 'none', 'name': 'None'},
       ];
+      _selectedCompany = 'none';
     }
   }
 
@@ -124,6 +170,7 @@ class _EditCardPageState extends State<EditCardPage> {
       if (workspaceId.isEmpty) {
         print('⚠️ No workspace selected for loading users');
         _availableAssignees = [];
+        _selectedAssignee = '';
         return;
       }
 
@@ -146,9 +193,19 @@ class _EditCardPageState extends State<EditCardPage> {
       _availableAssignees = userMap.values.toList();
       
       print('✅ Loaded ${_availableAssignees.length} users for workspace');
+      
+      // Validate selected assignee exists in available assignees
+      if (_selectedAssignee.isNotEmpty) {
+        final assigneeExists = _availableAssignees.any((assignee) => assignee['id'] == _selectedAssignee);
+        if (!assigneeExists) {
+          print('⚠️ Selected assignee $_selectedAssignee not found in available assignees, resetting');
+          _selectedAssignee = '';
+        }
+      }
     } catch (e) {
       print('❌ Failed to load workspace users: $e');
       _availableAssignees = [];
+      _selectedAssignee = '';
     }
   }
 
@@ -266,7 +323,9 @@ class _EditCardPageState extends State<EditCardPage> {
             
             // Lane
             DropdownButtonFormField<String>(
-              value: _selectedLane.isNotEmpty ? _selectedLane : null,
+              value: _selectedLane.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _selectedLane) 
+                     ? _selectedLane 
+                     : null,
               decoration: const InputDecoration(
                 labelText: 'Lane',
                 prefixIcon: Icon(Icons.view_column),
@@ -305,7 +364,9 @@ class _EditCardPageState extends State<EditCardPage> {
             
             // Assignee
             DropdownButtonFormField<String>(
-              value: _selectedAssignee.isNotEmpty ? _selectedAssignee : null,
+              value: _selectedAssignee.isNotEmpty && _availableAssignees.any((assignee) => assignee['id'] == _selectedAssignee) 
+                     ? _selectedAssignee 
+                     : null,
               decoration: const InputDecoration(
                 labelText: 'Assignee',
                 prefixIcon: Icon(Icons.person),
@@ -335,7 +396,9 @@ class _EditCardPageState extends State<EditCardPage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
+                    value: _selectedCustomer.isNotEmpty && _availableCustomers.any((customer) => customer['id'] == _selectedCustomer) 
+                           ? _selectedCustomer 
+                           : null,
                     decoration: const InputDecoration(
                       labelText: 'Customer',
                       prefixIcon: Icon(Icons.business),
@@ -384,7 +447,9 @@ class _EditCardPageState extends State<EditCardPage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCompany.isNotEmpty ? _selectedCompany : null,
+                    value: _selectedCompany.isNotEmpty && _availableCompanies.any((company) => company['id'] == _selectedCompany) 
+                           ? _selectedCompany 
+                           : null,
                     decoration: const InputDecoration(
                       labelText: 'Company',
                       prefixIcon: Icon(Icons.business),
