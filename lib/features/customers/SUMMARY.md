@@ -51,9 +51,11 @@ Successfully implemented a complete customer management system for the SellStory
   - Proper data format: reads hashtags as objects with color, id, and text properties
   - Enhanced color parsing for hashtag chips with debug logging
   - Improved hashtag display with comprehensive error handling and debugging
-  - Always shows hashtag section with fallback display for empty data
+  - **Data validation logic**: Only shows sections when valid data exists (same as customer tile)
   - **Enhanced email and phone display**: Shows multiple emails/phones with labels (Work, Personal, etc.)
   - **Object-based data handling**: Displays emails and phones from object structure `[{id, label, value}]`
+  - **Company section**: Only shows when company names are not empty
+  - **Hashtag validation**: Only shows hashtags when valid hashtag data exists
 
 - **Add/Edit Customer Page** (`lib/features/customers/view/add_edit_customer_page.dart`)
   - Reusable form for both add and edit operations

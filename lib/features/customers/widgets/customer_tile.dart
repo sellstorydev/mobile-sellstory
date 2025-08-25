@@ -12,6 +12,28 @@ class CustomerTile extends StatelessWidget {
     this.onTap,
   });
 
+  // Helper methods to check for valid data
+  bool _hasValidEmails() {
+    return customer.emails.isNotEmpty && 
+           customer.emails.any((email) => 
+             email['value'] != null && 
+             email['value'].toString().trim().isNotEmpty
+           );
+  }
+
+  bool _hasValidPhones() {
+    return customer.phones.isNotEmpty && 
+           customer.phones.any((phone) => 
+             phone['value'] != null && 
+             phone['value'].toString().trim().isNotEmpty
+           );
+  }
+
+  bool _hasValidCompanies() {
+    return customer.companyNames.isNotEmpty && 
+           customer.companyNames.trim().isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -77,48 +99,34 @@ class CustomerTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       
-                      // Contact Info
-                      if (customer.emails.isNotEmpty || customer.phones.isNotEmpty)
-                        Row(
-                          children: [
-                            if (customer.emails.isNotEmpty) ...[
-                              Icon(
-                                Icons.email_outlined,
-                                size: 14,
-                                color: AppTheme.textSecondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  customer.emails.first['value']?.toString() ?? '',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                            if (customer.emails.isNotEmpty && customer.phones.isNotEmpty)
-                              const SizedBox(width: 8),
-                            if (customer.phones.isNotEmpty) ...[
-                              Icon(
-                                Icons.phone_outlined,
-                                size: 14,
-                                color: AppTheme.textSecondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                customer.phones.first['value']?.toString() ?? '',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                                             // Contact Info Icons
+                       if (_hasValidEmails() || _hasValidPhones() || _hasValidCompanies())
+                         Row(
+                           children: [
+                             if (_hasValidEmails())
+                               Icon(
+                                 Icons.email_outlined,
+                                 size: 16,
+                                 color: AppTheme.textSecondary,
+                               ),
+                             if (_hasValidEmails() && (_hasValidPhones() || _hasValidCompanies()))
+                               const SizedBox(width: 8),
+                             if (_hasValidPhones())
+                               Icon(
+                                 Icons.phone_outlined,
+                                 size: 16,
+                                 color: AppTheme.textSecondary,
+                               ),
+                             if (_hasValidPhones() && _hasValidCompanies())
+                               const SizedBox(width: 8),
+                             if (_hasValidCompanies())
+                               Icon(
+                                 Icons.business_outlined,
+                                 size: 16,
+                                 color: AppTheme.textSecondary,
+                               ),
+                           ],
+                         ),
                     ],
                   ),
                 ),

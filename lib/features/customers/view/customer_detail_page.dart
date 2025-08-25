@@ -24,6 +24,36 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   List<HashtagOption> _availableHashtags = [];
   bool _isLoadingHashtags = true;
 
+  // Helper methods to check for valid data
+  bool _hasValidEmails() {
+    return widget.customer.emails.isNotEmpty && 
+           widget.customer.emails.any((email) => 
+             email['value'] != null && 
+             email['value'].toString().trim().isNotEmpty
+           );
+  }
+
+  bool _hasValidPhones() {
+    return widget.customer.phones.isNotEmpty && 
+           widget.customer.phones.any((phone) => 
+             phone['value'] != null && 
+             phone['value'].toString().trim().isNotEmpty
+           );
+  }
+
+  bool _hasValidCompanies() {
+    return widget.customer.companyNames.isNotEmpty && 
+           widget.customer.companyNames.trim().isNotEmpty;
+  }
+
+  bool _hasValidHashtags() {
+    return widget.customer.hashtags.isNotEmpty && 
+           widget.customer.hashtags.any((hashtag) => 
+             hashtag['id'] != null && 
+             hashtag['id'].toString().trim().isNotEmpty
+           );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -111,7 +141,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             const SizedBox(height: 16),
             
             // Company Information
-            if (widget.customer.companyNames.isNotEmpty) ...[
+            if (_hasValidCompanies()) ...[
               _buildInfoSection('ข้อมูลบริษัท', [
                 _buildInfoRow('ชื่อบริษัท', widget.customer.companyNames),
               ]),
@@ -274,8 +304,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
       );
     }
 
-    if (hashtagObjects.isEmpty) {
-      print('No hashtags found, showing "ไม่ระบุ"');
+    if (!_hasValidHashtags()) {
+      print('No valid hashtags found, showing "ไม่ระบุ"');
       return _buildInfoRow('แฮชแท็ก', 'ไม่ระบุ');
     }
 
@@ -477,7 +507,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   Widget _buildEmailsDisplay() {
     final emails = widget.customer.emails;
     
-    if (emails.isEmpty) {
+    if (!_hasValidEmails()) {
       return _buildInfoRow('อีเมล', 'ไม่ระบุ');
     }
 
@@ -501,7 +531,10 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: emails.map((email) {
+              children: emails.where((email) => 
+                email['value'] != null && 
+                email['value'].toString().trim().isNotEmpty
+              ).map((email) {
                 final label = email['label'] as String? ?? 'Work';
                 final value = email['value'] as String? ?? '';
                 return Padding(
@@ -525,7 +558,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   Widget _buildPhonesDisplay() {
     final phones = widget.customer.phones;
     
-    if (phones.isEmpty) {
+    if (!_hasValidPhones()) {
       return _buildInfoRow('เบอร์โทร', 'ไม่ระบุ');
     }
 
@@ -549,7 +582,10 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: phones.map((phone) {
+              children: phones.where((phone) => 
+                phone['value'] != null && 
+                phone['value'].toString().trim().isNotEmpty
+              ).map((phone) {
                 final label = phone['label'] as String? ?? 'Work';
                 final value = phone['value'] as String? ?? '';
                 return Padding(

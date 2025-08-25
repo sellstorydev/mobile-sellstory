@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
 import '../services/logger_service.dart';
-import '../services/workspace_service.dart';
 import '../../data/repositories/jobcard_repository.dart';
 import '../../data/repositories/firestore_repository.dart';
 import '../../data/repositories/customer_repository.dart';
