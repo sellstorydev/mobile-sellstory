@@ -5,6 +5,7 @@ import '../features/shell/shell_page.dart';
 import '../features/board/view/board_page.dart';
 import '../features/board/view/user_cards_page.dart';
 import '../features/board/view/card_detail_page.dart';
+import '../features/board/view/card_view_page.dart';
 import '../features/board/view/create_card_page.dart';
 import '../features/board/view/create_workspace_page.dart';
 import '../features/board/view/edit_workspace_page.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
   static const String board = '/board';
   static const String userCards = '/user-cards';
   static const String cardDetail = '/card-detail';
+  static const String cardView = '/card-view';
   static const String createCard = '/create-card';
   static const String editCard = '/edit-card';
   static const String createBoard = '/create-board';
@@ -52,6 +54,10 @@ class AppRoutes {
     GetPage(
       name: cardDetail,
       page: () => CardDetailPage(card: Get.arguments),
+    ),
+    GetPage(
+      name: cardView,
+      page: () => CardViewPage(card: Get.arguments),
     ),
     GetPage(
       name: createCard,
