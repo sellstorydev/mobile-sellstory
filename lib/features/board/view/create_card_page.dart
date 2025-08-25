@@ -59,6 +59,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   @override
   void initState() {
     super.initState();
+    print('🔄 CreateCardPage.initState - Page opened');
     _initializeData().then((_) {
       setState(() {});
     });
@@ -179,6 +180,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
           userMap[uid] = {
             'id': uid,
             'name': user['displayName'] ?? user['email'] ?? 'Unknown User',
+            'displayName': user['displayName'] ?? user['email'] ?? 'Unknown User', // Add displayName field
             'email': user['email'] ?? '',
           };
         }
@@ -199,6 +201,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   @override
   void dispose() {
+    print('🔄 CreateCardPage.dispose - Page being disposed');
     _jobIdController.dispose();
     _titleController.dispose();
     _hashtagController.dispose();
@@ -252,11 +255,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
       
       // Get selected assignee details
       String assigneeId = '';
+      String assigneeDisplayName = '';
       if (_assigneeController.text.trim().isNotEmpty) {
         final selectedUser = _availableUsers.firstWhereOrNull(
           (user) => user['id'] == _assigneeController.text.trim()
         );
         assigneeId = selectedUser?['id'] ?? _assigneeController.text.trim();
+        assigneeDisplayName = selectedUser?['displayName'] ?? selectedUser?['name'] ?? _assigneeController.text.trim();
       }
       
       // Get customer name if selected
@@ -294,7 +299,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         customer: customerName,
-        updatedByDisplayName: '',
+        updatedByDisplayName: assigneeDisplayName, // Use assignee display name
         customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
         company: companyName,
         hashtag: _hashtagController.text.trim().isNotEmpty ? _hashtagController.text.trim() : null,
@@ -310,39 +315,50 @@ class _CreateCardPageState extends State<CreateCardPage> {
       // Add card using controller with full card data
       print('🔄 CreateCardPage._saveCard - Creating card...');
       print('  - Title: "${card.title}"');
-      print('  - Title Length: ${card.title.length}');
-      print('  - Title Controller Text: "${_titleController.text}"');
-      print('  - Title Controller Text Length: ${_titleController.text.length}');
+      print('  - Assignee ID: "${card.assignee}"');
+      print('  - UpdatedByDisplayName: "${card.updatedByDisplayName}"');
+      print('  - Available Users Count: ${_availableUsers.length}');
+      if (_availableUsers.isNotEmpty) {
+        print('  - First User Example: ${_availableUsers.first}');
+      }
       final cardId = await _controller.createCard(card);
 
       print('✅ Card created successfully with ID: $cardId');
 
-      // Show success message
+      // Show success message and navigate back immediately
       Get.snackbar(
         'Success',
         'Job Card created successfully',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 1),
       );
 
       print('🔄 CreateCardPage._saveCard - Navigating back...');
       
-      // Wait a moment for the snackbar to show, then navigate back
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Navigate back to previous page (preserves bottom navigation)
-      Get.back();
-      
-      print('✅ CreateCardPage._saveCard - Navigation completed');
+      // Reset loading state before navigation
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        // Navigate back immediately after success
+        Navigator.of(context).pop();
+        print('✅ CreateCardPage._saveCard - Navigation completed');
+      } else {
+        print('⚠️ CreateCardPage._saveCard - Widget not mounted, cannot navigate');
+      }
     } catch (e) {
       print('❌ CreateCardPage._saveCard - Error: $e');
-      _showError('Failed to create card: ${e.toString()}');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      
+      // Only show error and keep page open if there's an error
+      if (mounted) {
+        _showError('Failed to create card: ${e.toString()}');
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

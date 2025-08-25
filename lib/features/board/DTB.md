@@ -149,6 +149,7 @@ fields:
   name: string
   updatedAt: number       # epoch ms
   updatedBy: string
+  updatedByDisplayName: string
   workspaceId: string
 
 Company (document)
