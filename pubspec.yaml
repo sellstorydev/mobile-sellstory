@@ -80,7 +80,7 @@ dependencies:
   image_picker: ^1.0.4
 
   # File picker for chat attachments
-  file_picker:
+  file_picker: ^8.0.0+1
 
   # URL launcher for opening links
   url_launcher: ^6.2.1
@@ -137,6 +137,11 @@ flutter_launcher_icons:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+# Platform-specific configuration
+platforms:
+  android:
+  ios:
 
 # The following section is specific to Flutter packages.
 flutter:

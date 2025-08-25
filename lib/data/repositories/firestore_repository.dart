@@ -12,7 +12,7 @@ class FirestoreRepository {
   final FirestoreService _firestoreService = Get.find<FirestoreService>();
   final LoggerService _logger = Get.find<LoggerService>();
   
-  // Create workspace with default structure
+  // Create workspace with default structure 
   Future<void> createWorkspace({
     required String name,
     required String ownerId,

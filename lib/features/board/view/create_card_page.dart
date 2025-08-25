@@ -107,11 +107,20 @@ class _CreateCardPageState extends State<CreateCardPage> {
     try {
       print('🔄 Loading customers from Firestore...');
       final customers = await _controller.getCustomers();
-      _availableCustomers = customers.map((customer) => {
-        'id': customer.id,
-        'name': customer.name,
-        'customId': customer.customId,
-      }).toList();
+      
+      // Deduplicate customers by ID to prevent dropdown issues
+      final customerMap = <String, Map<String, dynamic>>{};
+      for (final customer in customers) {
+        if (!customerMap.containsKey(customer.id)) {
+          customerMap[customer.id] = {
+            'id': customer.id,
+            'name': customer.name,
+            'customId': customer.customId,
+          };
+        }
+      }
+      _availableCustomers = customerMap.values.toList();
+      
       print('✅ Customers loaded: ${_availableCustomers.length} customers');
     } catch (e) {
       print('❌ Failed to load customers: $e');
@@ -122,14 +131,22 @@ class _CreateCardPageState extends State<CreateCardPage> {
     try {
       print('🔄 Loading companies from Firestore...');
       final companies = await _controller.getCompanies();
-      _availableCompanies = [
-        {'id': 'none', 'name': 'None'},
-        ...companies.map((company) => {
-          'id': company.id,
-          'name': company.name,
-        }).toList(),
-      ];
+      
+      // Deduplicate companies by ID to prevent dropdown issues
+      final companyMap = <String, Map<String, dynamic>>{};
+      companyMap['none'] = {'id': 'none', 'name': 'None'};
+      
+      for (final company in companies) {
+        if (!companyMap.containsKey(company.id)) {
+          companyMap[company.id] = {
+            'id': company.id,
+            'name': company.name,
+          };
+        }
+      }
+      _availableCompanies = companyMap.values.toList();
       _selectedCompany = 'none';
+      
       print('✅ Companies loaded: ${_availableCompanies.length - 1} companies');
     } catch (e) {
       print('❌ Failed to load companies: $e');
@@ -435,7 +452,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedBoard.isNotEmpty ? _selectedBoard : null,
+                value: _selectedBoard.isNotEmpty && _availableBoards.any((board) => board['id'] == _selectedBoard) 
+                       ? _selectedBoard 
+                       : null,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -475,7 +494,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedLane.isNotEmpty ? _selectedLane : null,
+                value: _selectedLane.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _selectedLane) 
+                       ? _selectedLane 
+                       : null,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -543,7 +564,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _assigneeController.text.isNotEmpty ? _assigneeController.text : null,
+          value: _assigneeController.text.isNotEmpty && _availableUsers.any((user) => user['id'] == _assigneeController.text) 
+                 ? _assigneeController.text 
+                 : null,
           decoration: const InputDecoration(
             hintText: 'Select an assignee',
             border: OutlineInputBorder(),
@@ -587,7 +610,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
           children: [
             Expanded(
               child: DropdownButtonFormField<String>(
-                value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
+                value: _selectedCustomer.isNotEmpty && _availableCustomers.any((customer) => customer['id'] == _selectedCustomer) 
+                       ? _selectedCustomer 
+                       : null,
                 decoration: const InputDecoration(
                   hintText: 'Select a customer',
                   border: OutlineInputBorder(),
@@ -650,7 +675,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
           children: [
             Expanded(
                              child: DropdownButtonFormField<String>(
-                 value: _selectedCompany.isNotEmpty ? _selectedCompany : null,
+                 value: _selectedCompany.isNotEmpty && _availableCompanies.any((company) => company['id'] == _selectedCompany) 
+                        ? _selectedCompany 
+                        : null,
                  decoration: const InputDecoration(
                    border: OutlineInputBorder(),
                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
