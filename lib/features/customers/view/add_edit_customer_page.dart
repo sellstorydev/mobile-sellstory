@@ -836,12 +836,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           customerType: _selectedCustomerType,
           emails: emailsObjects,
           phones: phonesObjects,
-          companyNames: '', // TODO: Add company field to form
+          companyNames: [], // TODO: Add company field to form
           nationalId: _nationalIdController.text.trim(),
           address: _addressLine1Controller.text.trim(),
           source: _selectedSource,
           hashtags: hashtagObjects,
-          assignees: '', // TODO: Add assignees field to form
+          assignees: [], // TODO: Add assignees field to form
           customId: widget.customer?.customId ?? _generateCustomId(),
           workspaceId: workspaceId, // Dynamic workspace ID
           createdAt: widget.customer?.createdAt ?? DateTime.now(),

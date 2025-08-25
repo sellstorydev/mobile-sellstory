@@ -1057,8 +1057,8 @@ class _CardViewPageState extends State<CardViewPage> {
         colorText: Colors.white,
       );
 
-      // Navigate back to previous page
-      Get.back();
+      // Navigate back to board page directly
+      Get.until((route) => route.isFirst);
     } catch (e) {
       print('❌ Error deleting card: $e');
       Get.snackbar(

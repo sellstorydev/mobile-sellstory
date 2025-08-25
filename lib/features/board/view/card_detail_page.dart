@@ -1219,8 +1219,8 @@ class _CardDetailPageState extends State<CardDetailPage> {
         colorText: Colors.white,
       );
 
-      // Navigate back to previous page (preserves bottom navigation)
-      Get.back();
+      // Navigate back to board page directly
+      Get.until((route) => route.isFirst);
     } catch (e) {
       print('❌ Error deleting card: $e');
       Get.snackbar(

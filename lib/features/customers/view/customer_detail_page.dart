@@ -113,7 +113,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             // Company Information
             if (widget.customer.companyNames.isNotEmpty) ...[
               _buildInfoSection('ข้อมูลบริษัท', [
-                _buildInfoRow('ชื่อบริษัท', widget.customer.companyNames),
+                _buildInfoRow('ชื่อบริษัท', widget.customer.companyNames.map((company) => company['value'] ?? company['name'] ?? '').join(', ')),
               ]),
               const SizedBox(height: 16),
             ],
@@ -128,7 +128,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                 _buildInfoRow('แหล่งที่มา', widget.customer.source),
               _buildHashtagDisplay(), // Always show hashtag section
               if (widget.customer.assignees.isNotEmpty)
-                _buildInfoRow('ผู้รับผิดชอบ', widget.customer.assignees),
+                _buildInfoRow('ผู้รับผิดชอบ', widget.customer.assignees.join(', ')),
             ]),
             
             const SizedBox(height: 16),
