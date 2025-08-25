@@ -25,7 +25,7 @@ class _CustomersPageState extends State<CustomersPage> {
     
     // Load customers for the current workspace
     // TODO: Get actual workspace ID from user session
-    const workspaceId = 'GkEJ3c6u9QU4utYO6KVZ'; // Using the workspace ID from the backup data
+    const workspaceId = 'fsIY4b8MLqjcdPwRv6GK'; // Using the workspace ID from the backup data
     _controller.loadCustomers(workspaceId);
     _controller.loadCustomerSources(workspaceId);
   }
@@ -183,7 +183,7 @@ class _CustomersPageState extends State<CustomersPage> {
               ElevatedButton(
                 onPressed: () {
                   // TODO: Retry loading customers
-                  const workspaceId = 'GkEJ3c6u9QU4utYO6KVZ';
+                  const workspaceId = 'fsIY4b8MLqjcdPwRv6GK';
                   _controller.loadCustomers(workspaceId);
                 },
                 child: const Text('ลองใหม่'),

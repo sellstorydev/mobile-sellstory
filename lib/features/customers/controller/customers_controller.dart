@@ -24,12 +24,14 @@ class CustomersController extends GetxController {
 
   // Load customers for a workspace
   Future<void> loadCustomers(String workspaceId) async {
+    print(workspaceId);
     try {
       isLoading.value = true;
       errorMessage.value = '';
       
       // Get customers stream for real-time updates
       _customerRepository.getCustomersStream(workspaceId).listen((customersList) {
+        print(customersList);
         customers.value = customersList;
         _filterCustomers();
       });
@@ -47,7 +49,7 @@ class CustomersController extends GetxController {
       customerSources.value = sources;
     } catch (e) {
       // If loading fails, use default sources
-      customerSources.value = ['FB', 'Line', 'IG'];
+      customerSources.value = [];
     }
   }
 

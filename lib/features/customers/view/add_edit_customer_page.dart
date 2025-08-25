@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/hashtag_input_field.dart';
+import '../../../core/services/hashtag_service.dart';
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
 
@@ -25,6 +27,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   final _nationalIdController = TextEditingController();
   final _addressLine1Controller = TextEditingController();
   final _hashtagsController = TextEditingController();
+  
+  // Hashtag related
+  final HashtagService _hashtagService = HashtagService();
+  List<HashtagOption> _availableHashtags = [];
+  List<String> _selectedHashtags = [];
+  bool _isLoadingHashtags = true;
   
   String _selectedGender = 'Male';
   String _selectedCustomerType = 'Customer';
@@ -52,6 +60,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   void initState() {
     super.initState();
     _initializeForm();
+    _loadHashtags();
   }
 
   String _getSafeDropdownValue(String value, List<String> options) {
@@ -59,6 +68,24 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       return value;
     }
     return options.isNotEmpty ? options.first : '';
+  }
+
+  Future<void> _loadHashtags() async {
+    try {
+      // TODO: Get workspaceId from current user context
+      const workspaceId = 'fsIY4b8MLqjcdPwRv6GK';
+      final hashtags = await _hashtagService.getHashtagsByScope(workspaceId, 'customer');
+      
+      setState(() {
+        _availableHashtags = hashtags;
+        _isLoadingHashtags = false;
+      });
+    } catch (e) {
+      print('Error loading hashtags: $e');
+      setState(() {
+        _isLoadingHashtags = false;
+      });
+    }
   }
 
   void _initializeForm() {
@@ -69,7 +96,18 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       _prefixController.text = customer.prefix;
       _nationalIdController.text = customer.nationalId;
       _addressLine1Controller.text = customer.address;
-      _hashtagsController.text = customer.hashtags;
+             // Parse hashtags from object format to IDs
+       if (customer.hashtags.isNotEmpty) {
+         _selectedHashtags = customer.hashtags.map((hashtagObj) {
+           return hashtagObj['id'] as String;
+         }).toList();
+         
+         // Set display text for the controller
+         final hashtagTexts = customer.hashtags.map((hashtagObj) {
+           return hashtagObj['text'] as String;
+         }).toList();
+         _hashtagsController.text = hashtagTexts.join(', ');
+       }
       
       _selectedGender = _getSafeDropdownValue(customer.gender, _genderOptions);
       _selectedCustomerType = _getSafeDropdownValue(customer.customerType, _customerTypeOptions);
@@ -156,8 +194,21 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               ),
               const SizedBox(height: 16),
               
-              // Hashtags (Coming Soon)
-              _buildComingSoonField('แฮชแท็ก', 'hashtags'),
+              // Hashtags
+              if (_isLoadingHashtags)
+                const Center(child: CircularProgressIndicator())
+              else
+                HashtagInputField(
+                  selectedHashtags: _selectedHashtags,
+                  availableHashtags: _availableHashtags,
+                  onHashtagsChanged: (hashtags) {
+                    setState(() {
+                      _selectedHashtags = hashtags;
+                    });
+                  },
+                  label: 'แฮชแท็ก',
+                  hintText: 'เลือกแฮชแท็ก',
+                ),
               const SizedBox(height: 16),
               
               // Source
@@ -693,13 +744,119 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     });
   }
 
-  void _saveCustomer() {
+  void _saveCustomer() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement save logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('บันทึกข้อมูลลูกค้าเรียบร้อยแล้ว')),
-      );
-      Navigator.pop(context);
+      try {
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+
+        // Convert selected hashtags to object format for storage
+        final hashtagObjects = _selectedHashtags.map((hashtagId) {
+          final hashtag = _availableHashtags.firstWhere(
+            (h) => h.id == hashtagId,
+            orElse: () => HashtagOption(
+              id: hashtagId,
+              name: hashtagId,
+              color: '#ef4444',
+              totalUsage: 0,
+              enabled: true,
+              scopes: {},
+            ),
+          );
+          return {
+            'color': hashtag.color,
+            'id': hashtag.id,
+            'text': hashtag.name,
+          };
+        }).toList();
+        
+        // Convert emails and phones to string format
+        final emailsString = _emails
+            .where((email) => email['value']?.isNotEmpty == true)
+            .map((email) => email['value'])
+            .join(', ');
+        
+        final phonesString = _phones
+            .where((phone) => phone['value']?.isNotEmpty == true)
+            .map((phone) => phone['value'])
+            .join(', ');
+
+        // Create customer object
+        final customer = Customer(
+          id: widget.customer?.id ?? '', // Empty for new customer
+          name: _nameController.text.trim(),
+          prefix: _prefixController.text.trim(),
+          gender: _selectedGender,
+          age: '25', // TODO: Add age field to form
+          customerType: _selectedCustomerType,
+          emails: emailsString,
+          phones: phonesString,
+          companyNames: '', // TODO: Add company field to form
+          nationalId: _nationalIdController.text.trim(),
+          address: _addressLine1Controller.text.trim(),
+          source: _selectedSource,
+          hashtags: hashtagObjects,
+          assignees: '', // TODO: Add assignees field to form
+          customId: widget.customer?.customId ?? _generateCustomId(),
+          workspaceId: 'fsIY4b8MLqjcdPwRv6GK', // TODO: Get from current user context
+          createdAt: widget.customer?.createdAt ?? DateTime.now(),
+          updatedAt: DateTime.now(),
+          createdBy: widget.customer?.createdBy ?? 'current-user', // TODO: Get from auth
+          updatedBy: 'current-user', // TODO: Get from auth
+        );
+
+        // Get controller and save
+        final controller = Get.find<CustomersController>();
+        const workspaceId = 'fsIY4b8MLqjcdPwRv6GK'; // TODO: Get from current user context
+        
+        if (widget.customer != null) {
+          // Update existing customer
+          await controller.updateCustomer(workspaceId, customer);
+        } else {
+          // Add new customer
+          await controller.addCustomer(workspaceId, customer);
+        }
+
+        // Close loading dialog
+        Navigator.pop(context);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.customer != null 
+                ? 'อัปเดตข้อมูลลูกค้าเรียบร้อยแล้ว' 
+                : 'เพิ่มลูกค้าใหม่เรียบร้อยแล้ว'
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        Navigator.pop(context);
+      } catch (e) {
+        // Close loading dialog
+        Navigator.pop(context);
+        
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
+  }
+
+  String _generateCustomId() {
+    // Generate a simple custom ID with timestamp
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return 'CUST$timestamp';
   }
 }

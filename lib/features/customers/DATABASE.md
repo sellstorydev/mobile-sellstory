@@ -531,7 +531,7 @@
             "order": "number",
             "style": {}
           }
-        }
+      }
       }
     }
   },
@@ -635,7 +635,9 @@
               },
               "usage": {
                 "product": 1,
-                "jobBoard": 1
+                "jobBoard": 1,
+                "company": 1,
+                "customer": 1
               },
               "name": "hot"
             }

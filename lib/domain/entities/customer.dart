@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
 class Customer {
   final String id;
@@ -13,7 +14,7 @@ class Customer {
   final String nationalId;
   final String address;
   final String source;
-  final String hashtags;
+  final List<Map<String, dynamic>> hashtags;
   final String assignees;
   final String customId;
   final String workspaceId;
@@ -58,7 +59,7 @@ class Customer {
     String? nationalId,
     String? address,
     String? source,
-    String? hashtags,
+    List<Map<String, dynamic>>? hashtags,
     String? assignees,
     String? customId,
     String? workspaceId,
@@ -131,7 +132,7 @@ class Customer {
       nationalId: map['nationalId'] ?? '',
       address: map['address'] ?? '',
       source: map['source'] ?? '',
-      hashtags: map['hashtags'] ?? '',
+      hashtags: _parseHashtagsFromMap(map['hashtags']),
       assignees: map['assignees'] ?? '',
       customId: map['customId'] ?? '',
       workspaceId: map['workspaceId'] ?? '',
@@ -195,6 +196,80 @@ class Customer {
   @override
   String toString() {
     return 'Customer(id: $id, name: $name, customId: $customId, customerType: $customerType)';
+  }
+
+  // Helper method to parse hashtags from different data types
+  static List<Map<String, dynamic>> _parseHashtagsFromMap(dynamic hashtagsData) {
+    try {
+      // If hashtagsData is null or empty, return empty list
+      if (hashtagsData == null || hashtagsData.toString().isEmpty) {
+        return [];
+      }
+
+      // If it's already a List, try to convert it
+      if (hashtagsData is List) {
+        return hashtagsData.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            // Convert string to hashtag object format
+            return {
+              'color': '#ef4444',
+              'id': item,
+              'text': item,
+            };
+          } else {
+            // Fallback for unknown types
+            return {
+              'color': '#ef4444',
+              'id': item.toString(),
+              'text': item.toString(),
+            };
+          }
+        }).toList();
+      }
+
+      // If it's a String, try to parse it as JSON or treat as single hashtag
+      if (hashtagsData is String) {
+        try {
+          // Try to parse as JSON array
+          final List<dynamic> parsed = jsonDecode(hashtagsData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              return {
+                'color': '#ef4444',
+                'id': item.toString(),
+                'text': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          // If JSON parsing fails, treat as single hashtag string
+          if (hashtagsData.trim().isNotEmpty) {
+            return [{
+              'color': '#ef4444',
+              'id': hashtagsData,
+              'text': hashtagsData,
+            }];
+          }
+          return [];
+        }
+      }
+
+      // For any other type, convert to string and create hashtag object
+      return [{
+        'color': '#ef4444',
+        'id': hashtagsData.toString(),
+        'text': hashtagsData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing hashtags: $e');
+      print('Hashtags data: $hashtagsData');
+      print('Hashtags data type: ${hashtagsData.runtimeType}');
+      return [];
+    }
   }
 }
 

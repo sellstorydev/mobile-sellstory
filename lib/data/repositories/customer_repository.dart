@@ -13,9 +13,57 @@ class CustomerRepository {
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
       final querySnapshot = await customersCollection.get();
       
-      return querySnapshot.docs.map((doc) {
-        return Customer.fromMap(doc.data(), doc.id);
-      }).toList();
+      final List<Customer> customers = [];
+      
+      for (final doc in querySnapshot.docs) {
+        try {
+          final customer = Customer.fromMap(doc.data(), doc.id);
+          customers.add(customer);
+        } catch (e) {
+          // Log detailed information about the parsing error
+          print('=== Customer Parsing Error ===');
+          print('Customer ID: ${doc.id}');
+          print('Error Type: ${e.runtimeType}');
+          print('Error Message: $e');
+          print('Raw Data: ${doc.data()}');
+          print('Data Keys: ${doc.data().keys.toList()}');
+          
+          // Try to extract basic information even if parsing fails
+          try {
+            final data = doc.data();
+            final basicCustomer = Customer(
+              id: doc.id,
+              name: data['name']?.toString() ?? 'Unknown Customer',
+              prefix: data['prefix']?.toString() ?? '',
+              gender: data['gender']?.toString() ?? '',
+              age: data['age']?.toString() ?? '',
+              customerType: data['customerType']?.toString() ?? 'Customer',
+              emails: data['emails']?.toString() ?? '',
+              phones: data['phones']?.toString() ?? '',
+              companyNames: data['companyNames']?.toString() ?? '',
+              nationalId: data['nationalId']?.toString() ?? '',
+              address: data['address']?.toString() ?? '',
+              source: data['source']?.toString() ?? '',
+              hashtags: [], // Empty hashtags to avoid parsing issues
+              assignees: data['assignees']?.toString() ?? '',
+              customId: data['customId']?.toString() ?? doc.id,
+              workspaceId: data['workspaceId']?.toString() ?? workspaceId,
+              createdAt: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
+              updatedAt: DateTime.tryParse(data['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+              createdBy: data['createdBy']?.toString() ?? '',
+              updatedBy: data['updatedBy']?.toString() ?? '',
+            );
+            customers.add(basicCustomer);
+            print('✅ Created basic customer from raw data');
+          } catch (fallbackError) {
+            print('❌ Failed to create basic customer: $fallbackError');
+            // Skip this customer entirely
+          }
+          print('=== End Customer Parsing Error ===');
+        }
+      }
+      
+      return customers;
     } catch (e) {
       throw Exception('Failed to fetch customers: $e');
     }
@@ -26,9 +74,57 @@ class CustomerRepository {
     try {
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
       return customersCollection.snapshots().map((snapshot) {
-        return snapshot.docs.map((doc) {
-          return Customer.fromMap(doc.data(), doc.id);
-        }).toList();
+        final List<Customer> customers = [];
+        
+        for (final doc in snapshot.docs) {
+          try {
+            final customer = Customer.fromMap(doc.data(), doc.id);
+            customers.add(customer);
+          } catch (e) {
+            // Log detailed information about the parsing error
+            print('=== Customer Parsing Error (Stream) ===');
+            print('Customer ID: ${doc.id}');
+            print('Error Type: ${e.runtimeType}');
+            print('Error Message: $e');
+            print('Raw Data: ${doc.data()}');
+            print('Data Keys: ${doc.data().keys.toList()}');
+            
+            // Try to extract basic information even if parsing fails
+            try {
+              final data = doc.data();
+              final basicCustomer = Customer(
+                id: doc.id,
+                name: data['name']?.toString() ?? 'Unknown Customer',
+                prefix: data['prefix']?.toString() ?? '',
+                gender: data['gender']?.toString() ?? '',
+                age: data['age']?.toString() ?? '',
+                customerType: data['customerType']?.toString() ?? 'Customer',
+                emails: data['emails']?.toString() ?? '',
+                phones: data['phones']?.toString() ?? '',
+                companyNames: data['companyNames']?.toString() ?? '',
+                nationalId: data['nationalId']?.toString() ?? '',
+                address: data['address']?.toString() ?? '',
+                source: data['source']?.toString() ?? '',
+                hashtags: [], // Empty hashtags to avoid parsing issues
+                assignees: data['assignees']?.toString() ?? '',
+                customId: data['customId']?.toString() ?? doc.id,
+                workspaceId: data['workspaceId']?.toString() ?? workspaceId,
+                createdAt: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
+                updatedAt: DateTime.tryParse(data['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+                createdBy: data['createdBy']?.toString() ?? '',
+                updatedBy: data['updatedBy']?.toString() ?? '',
+              );
+              customers.add(basicCustomer);
+              print('✅ Created basic customer from raw data (Stream)');
+            } catch (fallbackError) {
+              print('❌ Failed to create basic customer (Stream): $fallbackError');
+              // Skip this customer entirely
+            }
+            print('=== End Customer Parsing Error (Stream) ===');
+          }
+        }
+        
+        return customers;
       });
     } catch (e) {
       throw Exception('Failed to fetch customers stream: $e');
@@ -97,9 +193,57 @@ class CustomerRepository {
           .where('name', isLessThan: searchTerm + '\uf8ff')
           .get();
       
-      return querySnapshot.docs.map((doc) {
-        return Customer.fromMap(doc.data(), doc.id);
-      }).toList();
+      final List<Customer> customers = [];
+      
+      for (final doc in querySnapshot.docs) {
+        try {
+          final customer = Customer.fromMap(doc.data(), doc.id);
+          customers.add(customer);
+        } catch (e) {
+          // Log detailed information about the parsing error
+          print('=== Customer Search Parsing Error ===');
+          print('Customer ID: ${doc.id}');
+          print('Error Type: ${e.runtimeType}');
+          print('Error Message: $e');
+          print('Raw Data: ${doc.data()}');
+          print('Data Keys: ${doc.data().keys.toList()}');
+          
+          // Try to extract basic information even if parsing fails
+          try {
+            final data = doc.data();
+            final basicCustomer = Customer(
+              id: doc.id,
+              name: data['name']?.toString() ?? 'Unknown Customer',
+              prefix: data['prefix']?.toString() ?? '',
+              gender: data['gender']?.toString() ?? '',
+              age: data['age']?.toString() ?? '',
+              customerType: data['customerType']?.toString() ?? 'Customer',
+              emails: data['emails']?.toString() ?? '',
+              phones: data['phones']?.toString() ?? '',
+              companyNames: data['companyNames']?.toString() ?? '',
+              nationalId: data['nationalId']?.toString() ?? '',
+              address: data['address']?.toString() ?? '',
+              source: data['source']?.toString() ?? '',
+              hashtags: [], // Empty hashtags to avoid parsing issues
+              assignees: data['assignees']?.toString() ?? '',
+              customId: data['customId']?.toString() ?? doc.id,
+              workspaceId: data['workspaceId']?.toString() ?? workspaceId,
+              createdAt: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
+              updatedAt: DateTime.tryParse(data['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+              createdBy: data['createdBy']?.toString() ?? '',
+              updatedBy: data['updatedBy']?.toString() ?? '',
+            );
+            customers.add(basicCustomer);
+            print('✅ Created basic customer from search raw data');
+          } catch (fallbackError) {
+            print('❌ Failed to create basic customer from search: $fallbackError');
+            // Skip this customer entirely
+          }
+          print('=== End Customer Search Parsing Error ===');
+        }
+      }
+      
+      return customers;
     } catch (e) {
       throw Exception('Failed to search customers: $e');
     }

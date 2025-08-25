@@ -1,17 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/hashtag_service.dart';
+import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
 import 'add_edit_customer_page.dart';
 
-class CustomerDetailPage extends StatelessWidget {
+class CustomerDetailPage extends StatefulWidget {
   final Customer customer;
 
   const CustomerDetailPage({
     super.key,
     required this.customer,
   });
+
+  @override
+  State<CustomerDetailPage> createState() => _CustomerDetailPageState();
+}
+
+class _CustomerDetailPageState extends State<CustomerDetailPage> {
+  final HashtagService _hashtagService = HashtagService();
+  List<HashtagOption> _availableHashtags = [];
+  bool _isLoadingHashtags = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHashtags();
+  }
+
+  Future<void> _loadHashtags() async {
+    try {
+      print('Loading hashtags for workspace: ${widget.customer.workspaceId}');
+      final hashtags = await _hashtagService.getWorkspaceHashtags(widget.customer.workspaceId);
+      print('Loaded ${hashtags.length} hashtags');
+      setState(() {
+        _availableHashtags = hashtags;
+        _isLoadingHashtags = false;
+      });
+    } catch (e) {
+      print('Error loading hashtags: $e');
+      setState(() {
+        _isLoadingHashtags = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +65,7 @@ class CustomerDetailPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => AddEditCustomerPage(
-                    customer: customer,
+                    customer: widget.customer,
                     customerSources: controller.customerSources,
                   ),
                 ),
@@ -53,51 +87,50 @@ class CustomerDetailPage extends StatelessWidget {
             
             // Customer Information
             _buildInfoSection('ข้อมูลลูกค้า', [
-              _buildInfoRow('รหัสลูกค้า', customer.customId),
-              _buildInfoRow('ชื่อ', '${customer.prefix} ${customer.name}'),
-              _buildInfoRow('เพศ', customer.gender),
-              _buildInfoRow('อายุ', '${customer.age} ปี'),
-              _buildInfoRow('ประเภท', customer.customerType),
+              _buildInfoRow('รหัสลูกค้า', widget.customer.customId),
+              _buildInfoRow('ชื่อ', '${widget.customer.prefix} ${widget.customer.name}'),
+              _buildInfoRow('เพศ', widget.customer.gender),
+              _buildInfoRow('อายุ', '${widget.customer.age} ปี'),
+              _buildInfoRow('ประเภท', widget.customer.customerType),
             ]),
             
             const SizedBox(height: 16),
             
             // Contact Information
             _buildInfoSection('ข้อมูลติดต่อ', [
-              _buildInfoRow('อีเมล', customer.emails.isNotEmpty ? customer.emails : 'ไม่ระบุ'),
-              _buildInfoRow('เบอร์โทร', customer.phones.isNotEmpty ? customer.phones : 'ไม่ระบุ'),
+              _buildInfoRow('อีเมล', widget.customer.emails.isNotEmpty ? widget.customer.emails : 'ไม่ระบุ'),
+              _buildInfoRow('เบอร์โทร', widget.customer.phones.isNotEmpty ? widget.customer.phones : 'ไม่ระบุ'),
             ]),
             
             const SizedBox(height: 16),
             
             // Company Information
-            if (customer.companyNames.isNotEmpty) ...[
+            if (widget.customer.companyNames.isNotEmpty) ...[
               _buildInfoSection('ข้อมูลบริษัท', [
-                _buildInfoRow('ชื่อบริษัท', customer.companyNames),
+                _buildInfoRow('ชื่อบริษัท', widget.customer.companyNames),
               ]),
               const SizedBox(height: 16),
             ],
             
             // Additional Information
             _buildInfoSection('ข้อมูลเพิ่มเติม', [
-              if (customer.nationalId.isNotEmpty)
-                _buildInfoRow('เลขบัตรประชาชน', customer.nationalId),
-              if (customer.address.isNotEmpty)
-                _buildInfoRow('ที่อยู่', customer.address),
-              if (customer.source.isNotEmpty)
-                _buildInfoRow('แหล่งที่มา', customer.source),
-              if (customer.hashtags.isNotEmpty)
-                _buildInfoRow('แฮชแท็ก', customer.hashtags),
-              if (customer.assignees.isNotEmpty)
-                _buildInfoRow('ผู้รับผิดชอบ', customer.assignees),
+              if (widget.customer.nationalId.isNotEmpty)
+                _buildInfoRow('เลขบัตรประชาชน', widget.customer.nationalId),
+              if (widget.customer.address.isNotEmpty)
+                _buildInfoRow('ที่อยู่', widget.customer.address),
+              if (widget.customer.source.isNotEmpty)
+                _buildInfoRow('แหล่งที่มา', widget.customer.source),
+              _buildHashtagDisplay(), // Always show hashtag section
+              if (widget.customer.assignees.isNotEmpty)
+                _buildInfoRow('ผู้รับผิดชอบ', widget.customer.assignees),
             ]),
             
             const SizedBox(height: 16),
             
             // System Information
             _buildInfoSection('ข้อมูลระบบ', [
-              _buildInfoRow('สร้างเมื่อ', _formatDate(customer.createdAt)),
-              _buildInfoRow('อัปเดตล่าสุด', _formatDate(customer.updatedAt)),
+              _buildInfoRow('สร้างเมื่อ', _formatDate(widget.customer.createdAt)),
+              _buildInfoRow('อัปเดตล่าสุด', _formatDate(widget.customer.updatedAt)),
             ]),
           ],
         ),
@@ -136,7 +169,7 @@ class CustomerDetailPage extends StatelessWidget {
           
           // Name
           Text(
-            '${customer.prefix} ${customer.name}',
+            '${widget.customer.prefix} ${widget.customer.name}',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -154,7 +187,7 @@ class CustomerDetailPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              customer.customId,
+              widget.customer.customId,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -168,17 +201,17 @@ class CustomerDetailPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: customer.customerType == 'Customer' 
+              color: widget.customer.customerType == 'Customer' 
                   ? Colors.green.withOpacity(0.1)
                   : Colors.orange.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              customer.customerType,
+              widget.customer.customerType,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: customer.customerType == 'Customer' 
+                color: widget.customer.customerType == 'Customer' 
                     ? Colors.green
                     : Colors.orange,
               ),
@@ -187,6 +220,183 @@ class CustomerDetailPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildHashtagDisplay() {
+    // Get hashtag objects directly from the list
+    final hashtagObjects = widget.customer.hashtags;
+    
+    print('=== Hashtag Display Debug ===');
+    print('Customer hashtags data: $hashtagObjects');
+    print('Hashtags type: ${hashtagObjects.runtimeType}');
+    print('Hashtags length: ${hashtagObjects.length}');
+    print('Is loading hashtags: $_isLoadingHashtags');
+    print('Available hashtags count: ${_availableHashtags.length}');
+    
+    // Debug: Show available hashtag IDs
+    if (_availableHashtags.isNotEmpty) {
+      print('Available hashtag IDs: ${_availableHashtags.map((h) => h.id).toList()}');
+    }
+    
+    if (_isLoadingHashtags) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 120,
+              child: Text(
+                'แฮชแท็ก',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (hashtagObjects.isEmpty) {
+      print('No hashtags found, showing "ไม่ระบุ"');
+      return _buildInfoRow('แฮชแท็ก', 'ไม่ระบุ');
+    }
+
+    // Convert hashtag objects to HashtagOption for display
+    final List<HashtagOption> selectedHashtags = [];
+    
+    for (int i = 0; i < hashtagObjects.length; i++) {
+      try {
+        final hashtagObj = hashtagObjects[i];
+        print('Processing hashtag object $i: $hashtagObj');
+        
+        // Handle the hashtag object structure: {color, id, text}
+        final hashtagId = hashtagObj['id'] as String? ?? '';
+        final hashtagText = hashtagObj['text'] as String? ?? '';
+        final hashtagColor = hashtagObj['color'] as String? ?? '#ef4444';
+        
+        print('Parsed hashtag $i - ID: $hashtagId, Text: $hashtagText, Color: $hashtagColor');
+        
+        final hashtagOption = _availableHashtags.firstWhere(
+          (hashtag) => hashtag.id == hashtagId,
+          orElse: () => HashtagOption(
+            id: hashtagId,
+            name: hashtagText,
+            color: hashtagColor,
+            totalUsage: 0,
+            enabled: true,
+            scopes: {},
+          ),
+        );
+        
+        selectedHashtags.add(hashtagOption);
+        print('✅ Added hashtag: ${hashtagOption.name}');
+      } catch (e) {
+        print('❌ Error processing hashtag $i: $e');
+        // Continue with other hashtags
+      }
+    }
+    
+    print('Final selected hashtags count: ${selectedHashtags.length}');
+    
+    if (selectedHashtags.isEmpty) {
+      print('No hashtags processed successfully, showing fallback');
+      return _buildInfoRow('แฮชแท็ก', 'ไม่ระบุ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'แฮชแท็ก',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: selectedHashtags.map((hashtag) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _parseColor(hashtag.color),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '#${hashtag.name}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _parseColor(String colorString) {
+    try {
+      // Handle different color formats
+      String cleanColor = colorString.trim();
+      
+      // If it's already a hex color with #
+      if (cleanColor.startsWith('#')) {
+        // Ensure it's 6 digits (RGB) or 8 digits (ARGB)
+        if (cleanColor.length == 7) {
+          // RGB format: #RRGGBB -> 0xFFRRGGBB
+          return Color(int.parse('0xFF${cleanColor.substring(1)}'));
+        } else if (cleanColor.length == 9) {
+          // ARGB format: #AARRGGBB -> 0xAARRGGBB
+          return Color(int.parse('0x${cleanColor.substring(1)}'));
+        }
+      }
+      
+      // If it's a hex color without #
+      if (cleanColor.length == 6) {
+        // RGB format: RRGGBB -> 0xFFRRGGBB
+        return Color(int.parse('0xFF$cleanColor'));
+      } else if (cleanColor.length == 8) {
+        // ARGB format: AARRGGBB -> 0xAARRGGBB
+        return Color(int.parse('0x$cleanColor'));
+      }
+      
+      // If it's a number (already in int format)
+      if (int.tryParse(cleanColor) != null) {
+        return Color(int.parse(cleanColor));
+      }
+      
+      // Fallback to default color
+      return AppTheme.primaryOrange;
+    } catch (e) {
+      print('Error parsing color: $colorString - $e');
+      return AppTheme.primaryOrange;
+    }
   }
 
   Widget _buildInfoSection(String title, List<Widget> children) {
