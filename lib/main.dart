@@ -8,7 +8,7 @@ import 'app/app.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/i18n/locale_controller.dart';
 import 'core/services/logger_service.dart';
-import 'core/services/workspace_service.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,15 +66,6 @@ void main() async {
     LoggerService.to.config('Theme and locale controllers registered');
   } catch (e) {
     LoggerService.to.failure('Failed to register controllers', e);
-  }
-  
-  // Initialize workspace service with parameters from Get.parameters
-  try {
-    final workspaceService = Get.find<WorkspaceService>();
-    workspaceService.initializeWithParameters();
-    LoggerService.to.config('Workspace service initialized with parameters');
-  } catch (e) {
-    LoggerService.to.failure('Failed to initialize workspace service', e);
   }
   
   LoggerService.to.success('Application initialization completed');
