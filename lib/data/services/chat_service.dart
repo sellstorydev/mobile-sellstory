@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -201,16 +200,30 @@ class ChatService extends GetxService {
     required String chatroomId,
     required String platform,
     required String text,
+    String? replyText, // optional quoted text
     Map<String, dynamic>? sender,
   }) {
+    final p = platform.toLowerCase();
+    String finalText = text;
+    final msg = <String, dynamic>{
+      'type': 'text',
+    };
+
+    if ((p == 'facebook' || p == 'instagram') && replyText != null && replyText.isNotEmpty) {
+      // Format as per request for FB/IG
+      finalText = 'ข้อความ $text\nตอบกลับ : $replyText';
+    } else if (p == 'line' && replyText != null && replyText.isNotEmpty) {
+      // Hint for server to perform proper quote reply for LINE (server-side implementation)
+      msg['quoteText'] = replyText;
+    }
+
+    msg['text'] = finalText;
+
     return sendMessage(
       workspaceId: workspaceId,
       chatroomId: chatroomId,
       platform: platform,
-      message: {
-        'type': 'text',
-        'text': text,
-      },
+      message: msg,
       sender: sender,
     );
   }

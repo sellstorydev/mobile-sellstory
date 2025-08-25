@@ -14,6 +14,7 @@ class MessageBubble extends StatelessWidget {
   final bool highlight;
   final String? highlightQuery;
   final bool focused; // emphasize currently focused match
+  final VoidCallback? onLongPress; // for actions like Quote Reply
 
   const MessageBubble({
     Key? key,
@@ -23,6 +24,7 @@ class MessageBubble extends StatelessWidget {
     this.highlight = false,
     this.highlightQuery,
     this.focused = false,
+    this.onLongPress,
   }) : super(key: key);
 
   @override
@@ -35,78 +37,82 @@ class MessageBubble extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: isFromCurrentUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isFromCurrentUser) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundImage: senderAvatar != null ? NetworkImage(senderAvatar) : null,
-              child: senderAvatar == null
-                  ? Text(_getInitials(senderName), style: const TextStyle(fontSize: 12))
-                  : null,
-            ),
-            const SizedBox(width: 8),
-          ],
+      child: GestureDetector(
+        onLongPress: onLongPress,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisAlignment: isFromCurrentUser
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isFromCurrentUser) ...[
+              CircleAvatar(
+                radius: 16,
+                backgroundImage: senderAvatar != null ? NetworkImage(senderAvatar) : null,
+                child: senderAvatar == null
+                    ? Text(_getInitials(senderName), style: const TextStyle(fontSize: 12))
+                    : null,
+              ),
+              const SizedBox(width: 8),
+            ],
 
-          Flexible(
-            child: Column(
-              crossAxisAlignment: isFromCurrentUser
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
-              children: [
-                if (!isFromCurrentUser)
+            Flexible(
+              child: Column(
+                crossAxisAlignment: isFromCurrentUser
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: [
+                  if (!isFromCurrentUser)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4, left: 8),
+                      child: Text(
+                        senderName,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  Container(
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isFromCurrentUser ? const Color(0xFFFF7A00) : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(16).copyWith(
+                        bottomLeft: isFromCurrentUser ? const Radius.circular(16) : const Radius.circular(4),
+                        bottomRight: isFromCurrentUser ? const Radius.circular(4) : const Radius.circular(16),
+                      ),
+                      boxShadow: highlight
+                          ? [
+                              BoxShadow(
+                                color: Colors.yellow.withValues(alpha: 0.45),
+                                blurRadius: focused ? 16 : 10,
+                                spreadRadius: focused ? 2 : 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: _buildMessageContent(context, messageType),
+                  ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4, left: 8),
+                    padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
                     child: Text(
-                      senderName,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                      timestamp != null ? timeago.format(timestamp) : '',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                     ),
                   ),
-                Container(
-                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isFromCurrentUser ? const Color(0xFFFF7A00) : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(16).copyWith(
-                      bottomLeft: isFromCurrentUser ? const Radius.circular(16) : const Radius.circular(4),
-                      bottomRight: isFromCurrentUser ? const Radius.circular(4) : const Radius.circular(16),
-                    ),
-                    boxShadow: highlight
-                        ? [
-                            BoxShadow(
-                              color: Colors.yellow.withValues(alpha: 0.45),
-                              blurRadius: focused ? 16 : 10,
-                              spreadRadius: focused ? 2 : 1,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: _buildMessageContent(context, messageType),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
-                  child: Text(
-                    timestamp != null ? timeago.format(timestamp) : '',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          if (isFromCurrentUser) ...[
-            const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Color(0xFFFF7A00),
-              child: Text(_getInitials(senderName), style: const TextStyle(fontSize: 12, color: Colors.white)),
-            ),
+            if (isFromCurrentUser) ...[
+              const SizedBox(width: 8),
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: Color(0xFFFF7A00),
+                child: Text(_getInitials(senderName), style: const TextStyle(fontSize: 12, color: Colors.white)),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -306,13 +312,15 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildAudioMessage(BuildContext context) {
-    final audioUrl = messageData['audioUrl'] ?? messageData['url'] ?? '';
-    return GestureDetector(
+    final audioUrl = messageData['audioUrl'] ?? messageData['fileUrl'] ?? messageData['url'] ?? '';
+    final fileName = (messageData['fileName'] ?? (messageData['text'] ?? 'ข้อความเสียง')).toString();
+    return GestureDetector
+      (
       onTap: () {
         if (audioUrl.toString().isEmpty) return;
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => AudioViewerPage(url: audioUrl, title: 'เสียง'),
+            builder: (_) => AudioViewerPage(url: audioUrl, title: fileName.isNotEmpty ? fileName : 'เสียง'),
           ),
         );
       },
@@ -325,9 +333,15 @@ class MessageBubble extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.audiotrack, color: isFromCurrentUser ? Colors.white : Colors.grey[600]),
+            Icon(Icons.play_circle_fill, color: isFromCurrentUser ? Colors.white : Colors.grey[700], size: 28),
             const SizedBox(width: 8),
-            Text('ข้อความเสียง', style: TextStyle(color: isFromCurrentUser ? Colors.white : Colors.black87, fontWeight: FontWeight.w500)),
+            Flexible(
+              child: Text(
+                fileName.isNotEmpty ? fileName : 'ข้อความเสียง',
+                style: TextStyle(color: isFromCurrentUser ? Colors.white : Colors.black87, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
