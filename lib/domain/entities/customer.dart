@@ -1,15 +1,22 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
 class Customer {
   final String id;
   final String name;
-  final String customId;
-  final String workspaceId;
+  final String prefix;
+  final String gender;
+  final String age;
+  final String customerType;
   final List<Map<String, dynamic>> emails;
   final List<Map<String, dynamic>> phones;
-  final List<String> companyNames;
-  final List<Map<String, dynamic>> customFields;
+  final List<Map<String, dynamic>> companyNames;
+  final String nationalId;
+  final String address;
+  final String source;
+  final List<Map<String, dynamic>> hashtags;
   final List<String> assignees;
+  final String customId;
+  final String workspaceId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String createdBy;
@@ -18,13 +25,20 @@ class Customer {
   Customer({
     required this.id,
     required this.name,
-    required this.customId,
-    required this.workspaceId,
+    required this.prefix,
+    required this.gender,
+    required this.age,
+    required this.customerType,
     required this.emails,
     required this.phones,
     required this.companyNames,
-    required this.customFields,
+    required this.nationalId,
+    required this.address,
+    required this.source,
+    required this.hashtags,
     required this.assignees,
+    required this.customId,
+    required this.workspaceId,
     required this.createdAt,
     required this.updatedAt,
     required this.createdBy,
@@ -34,13 +48,20 @@ class Customer {
   Customer copyWith({
     String? id,
     String? name,
-    String? customId,
-    String? workspaceId,
+    String? prefix,
+    String? gender,
+    String? age,
+    String? customerType,
     List<Map<String, dynamic>>? emails,
     List<Map<String, dynamic>>? phones,
-    List<String>? companyNames,
-    List<Map<String, dynamic>>? customFields,
+    List<Map<String, dynamic>>? companyNames,
+    String? nationalId,
+    String? address,
+    String? source,
+    List<Map<String, dynamic>>? hashtags,
     List<String>? assignees,
+    String? customId,
+    String? workspaceId,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? createdBy,
@@ -49,13 +70,20 @@ class Customer {
     return Customer(
       id: id ?? this.id,
       name: name ?? this.name,
-      customId: customId ?? this.customId,
-      workspaceId: workspaceId ?? this.workspaceId,
+      prefix: prefix ?? this.prefix,
+      gender: gender ?? this.gender,
+      age: age ?? this.age,
+      customerType: customerType ?? this.customerType,
       emails: emails ?? this.emails,
       phones: phones ?? this.phones,
       companyNames: companyNames ?? this.companyNames,
-      customFields: customFields ?? this.customFields,
+      nationalId: nationalId ?? this.nationalId,
+      address: address ?? this.address,
+      source: source ?? this.source,
+      hashtags: hashtags ?? this.hashtags,
       assignees: assignees ?? this.assignees,
+      customId: customId ?? this.customId,
+      workspaceId: workspaceId ?? this.workspaceId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
@@ -67,15 +95,22 @@ class Customer {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'customId': customId,
-      'workspaceId': workspaceId,
+      'prefix': prefix,
+      'gender': gender,
+      'age': age,
+      'customerType': customerType,
       'emails': emails,
       'phones': phones,
       'companyNames': companyNames,
-      'customFields': customFields,
+      'nationalId': nationalId,
+      'address': address,
+      'source': source,
+      'hashtags': hashtags,
       'assignees': assignees,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'customId': customId,
+      'workspaceId': workspaceId,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+      'updatedAt': updatedAt.millisecondsSinceEpoch,
       'createdBy': createdBy,
       'updatedBy': updatedBy,
     };
@@ -83,28 +118,28 @@ class Customer {
 
   // Create from Map from Firestore
   factory Customer.fromMap(Map<String, dynamic> map, String id) {
-    try {
-      return Customer(
-        id: id,
-        name: map['name']?.toString() ?? '',
-        customId: map['customId']?.toString() ?? '',
-        workspaceId: map['workspaceId']?.toString() ?? '',
-        emails: _parseListOfMaps(map['emails']),
-        phones: _parseListOfMaps(map['phones']),
-        companyNames: _parseListOfStrings(map['companyNames']),
-        customFields: _parseListOfMaps(map['customFields']),
-        assignees: _parseAssignees(map['assignees']),
-        createdAt: _parseDateTime(map['createdAt']),
-        updatedAt: _parseDateTime(map['updatedAt']),
-        createdBy: map['createdBy']?.toString() ?? '',
-        updatedBy: map['updatedBy']?.toString() ?? '',
-      );
-    } catch (e) {
-      print('❌ Error parsing Customer.fromMap: $e');
-      print('  - Document ID: $id');
-      print('  - Raw data: $map');
-      rethrow;
-    }
+    return Customer(
+      id: id,
+      name: map['name'] ?? '',
+      prefix: map['prefix'] ?? '',
+      gender: map['gender'] ?? '',
+      age: map['age'] ?? '',
+      customerType: map['customerType'] ?? '',
+      emails: parseEmailsFromMap(map['emails']),
+      phones: parsePhonesFromMap(map['phones']),
+      companyNames: Customer.parseCompanyNamesFromMap(map['companyNames']),
+      nationalId: map['nationalId'] ?? '',
+      address: map['address'] ?? '',
+      source: map['source'] ?? '',
+      hashtags: _parseHashtagsFromMap(map['hashtags']),
+      assignees: _parseAssigneesFromMap(map['assignees']),
+      customId: map['customId'] ?? '',
+      workspaceId: map['workspaceId'] ?? '',
+      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
+      createdBy: map['createdBy'] ?? '',
+      updatedBy: map['updatedBy'] ?? '',
+    );
   }
 
   @override
@@ -113,13 +148,20 @@ class Customer {
     return other is Customer &&
         other.id == id &&
         other.name == name &&
-        other.customId == customId &&
-        other.workspaceId == workspaceId &&
+        other.prefix == prefix &&
+        other.gender == gender &&
+        other.age == age &&
+        other.customerType == customerType &&
         other.emails == emails &&
         other.phones == phones &&
         other.companyNames == companyNames &&
-        other.customFields == customFields &&
+        other.nationalId == nationalId &&
+        other.address == address &&
+        other.source == source &&
+        other.hashtags == hashtags &&
         other.assignees == assignees &&
+        other.customId == customId &&
+        other.workspaceId == workspaceId &&
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt &&
         other.createdBy == createdBy &&
@@ -130,13 +172,20 @@ class Customer {
   int get hashCode {
     return id.hashCode ^
         name.hashCode ^
-        customId.hashCode ^
-        workspaceId.hashCode ^
+        prefix.hashCode ^
+        gender.hashCode ^
+        age.hashCode ^
+        customerType.hashCode ^
         emails.hashCode ^
         phones.hashCode ^
         companyNames.hashCode ^
-        customFields.hashCode ^
+        nationalId.hashCode ^
+        address.hashCode ^
+        source.hashCode ^
+        hashtags.hashCode ^
         assignees.hashCode ^
+        customId.hashCode ^
+        workspaceId.hashCode ^
         createdAt.hashCode ^
         updatedAt.hashCode ^
         createdBy.hashCode ^
@@ -145,73 +194,318 @@ class Customer {
 
   @override
   String toString() {
-    return 'Customer(id: $id, name: $name, customId: $customId, workspaceId: $workspaceId, emails: $emails, phones: $phones, companyNames: $companyNames, customFields: $customFields, assignees: $assignees, createdAt: $createdAt, updatedAt: $updatedAt, createdBy: $createdBy, updatedBy: $updatedBy)';
+    return 'Customer(id: $id, name: $name, customId: $customId, customerType: $customerType)';
   }
 
-  // Helper method to parse assignees field which can be either List<String> or Map<String, dynamic>
-  static List<String> _parseAssignees(dynamic assignees) {
-    if (assignees == null) return [];
-    
-    if (assignees is List) {
-      return assignees.map((item) {
-        if (item is String) return item;
-        if (item is Map<String, dynamic>) {
-          // If it's a map, try to extract id or name
-          return item['id']?.toString() ?? item['name']?.toString() ?? '';
-        }
-        return item.toString();
-      }).where((item) => item.isNotEmpty).toList();
-    }
-    
-    if (assignees is Map<String, dynamic>) {
-      // If it's a map, convert to list of keys or values
-      return assignees.keys.toList();
-    }
-    
-    return [];
-  }
-
-  // Helper method to parse list of maps
-  static List<Map<String, dynamic>> _parseListOfMaps(dynamic data) {
-    if (data == null) return [];
-    if (data is List) {
-      return data.map((item) {
-        if (item is Map<String, dynamic>) return item;
-        return <String, dynamic>{};
-      }).toList();
-    }
-    return [];
-  }
-
-  // Helper method to parse list of strings
-  static List<String> _parseListOfStrings(dynamic data) {
-    if (data == null) return [];
-    if (data is List) {
-      return data.map((item) => item.toString()).toList();
-    }
-    return [];
-  }
-
-  // Helper method to parse DateTime
-  static DateTime _parseDateTime(dynamic data) {
-    if (data == null) return DateTime.now();
-    
-    if (data is Timestamp) {
-      return data.toDate();
-    }
-    
-    if (data is int) {
-      return DateTime.fromMillisecondsSinceEpoch(data);
-    }
-    
-    if (data is String) {
-      try {
-        return DateTime.parse(data);
-      } catch (e) {
-        return DateTime.now();
+  // Helper method to parse emails from different data types
+  static List<Map<String, dynamic>> parseEmailsFromMap(dynamic emailsData) {
+    try {
+      if (emailsData == null || emailsData.toString().isEmpty) {
+        return [];
       }
+      
+      if (emailsData is List) {
+        return emailsData.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            return {
+              'id': 'email-initial',
+              'label': 'Work',
+              'value': item,
+            };
+          } else {
+            return {
+              'id': 'email-initial',
+              'label': 'Work',
+              'value': item.toString(),
+            };
+          }
+        }).toList();
+      }
+      
+      if (emailsData is String) {
+        try {
+          final List<dynamic> parsed = jsonDecode(emailsData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              return {
+                'id': 'email-initial',
+                'label': 'Work',
+                'value': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          if (emailsData.trim().isNotEmpty) {
+            return [{
+              'id': 'email-initial',
+              'label': 'Work',
+              'value': emailsData,
+            }];
+          }
+          return [];
+        }
+      }
+      
+      return [{
+        'id': 'email-initial',
+        'label': 'Work',
+        'value': emailsData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing emails: $e');
+      print('Emails data: $emailsData');
+      print('Emails data type: ${emailsData.runtimeType}');
+      return [];
     }
-    
-    return DateTime.now();
+  }
+
+  // Helper method to parse phones from different data types
+  static List<Map<String, dynamic>> parsePhonesFromMap(dynamic phonesData) {
+    try {
+      if (phonesData == null || phonesData.toString().isEmpty) {
+        return [];
+      }
+      
+      if (phonesData is List) {
+        return phonesData.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            return {
+              'id': 'phone-initial',
+              'label': 'Work',
+              'value': item,
+            };
+          } else {
+            return {
+              'id': 'phone-initial',
+              'label': 'Work',
+              'value': item.toString(),
+            };
+          }
+        }).toList();
+      }
+      
+      if (phonesData is String) {
+        try {
+          final List<dynamic> parsed = jsonDecode(phonesData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              return {
+                'id': 'phone-initial',
+                'label': 'Work',
+                'value': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          if (phonesData.trim().isNotEmpty) {
+            return [{
+              'id': 'phone-initial',
+              'label': 'Work',
+              'value': phonesData,
+            }];
+          }
+          return [];
+        }
+      }
+      
+      return [{
+        'id': 'phone-initial',
+        'label': 'Work',
+        'value': phonesData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing phones: $e');
+      print('Phones data: $phonesData');
+      print('Phones data type: ${phonesData.runtimeType}');
+      return [];
+    }
+  }
+
+  // Helper method to parse company names from different data types  
+  static List<Map<String, dynamic>> parseCompanyNamesFromMap(dynamic companyNamesData) {
+    try {
+      if (companyNamesData == null || companyNamesData.toString().isEmpty) {
+        return [];
+      }
+      
+      if (companyNamesData is List) {
+        return companyNamesData.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            return {
+              'id': 'company-initial',
+              'label': 'Company',
+              'value': item,
+            };
+          } else {
+            return {
+              'id': 'company-initial',
+              'label': 'Company',
+              'value': item.toString(),
+            };
+          }
+        }).toList();
+      }
+      
+      if (companyNamesData is String) {
+        try {
+          final List<dynamic> parsed = jsonDecode(companyNamesData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              return {
+                'id': 'company-initial',
+                'label': 'Company',
+                'value': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          if (companyNamesData.trim().isNotEmpty) {
+            return [{
+              'id': 'company-initial',
+              'label': 'Company',
+              'value': companyNamesData,
+            }];
+          }
+          return [];
+        }
+      }
+      
+      return [{
+        'id': 'company-initial',
+        'label': 'Company',
+        'value': companyNamesData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing company names: $e');
+      print('Company names data: $companyNamesData');
+      print('Company names data type: ${companyNamesData.runtimeType}');
+      return [];
+    }
+  }
+
+  // Helper method to parse hashtags from different data types
+  static List<Map<String, dynamic>> _parseHashtagsFromMap(dynamic hashtagsData) {
+    try {
+      // If hashtagsData is null or empty, return empty list
+      if (hashtagsData == null || hashtagsData.toString().isEmpty) {
+        return [];
+      }
+
+      // If it's already a List, try to convert it
+      if (hashtagsData is List) {
+        return hashtagsData.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            // Convert string to hashtag object format
+            return {
+              'color': '#ef4444',
+              'id': item,
+              'text': item,
+            };
+          } else {
+            // Fallback for unknown types
+            return {
+              'color': '#ef4444',
+              'id': item.toString(),
+              'text': item.toString(),
+            };
+          }
+        }).toList();
+      }
+
+      // If it's a String, try to parse it as JSON or treat as single hashtag
+      if (hashtagsData is String) {
+        try {
+          // Try to parse as JSON array
+          final List<dynamic> parsed = jsonDecode(hashtagsData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              return {
+                'color': '#ef4444',
+                'id': item.toString(),
+                'text': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          // If JSON parsing fails, treat as single hashtag string
+          if (hashtagsData.trim().isNotEmpty) {
+            return [{
+              'color': '#ef4444',
+              'id': hashtagsData,
+              'text': hashtagsData,
+            }];
+          }
+          return [];
+        }
+      }
+
+      // For any other type, convert to string and create hashtag object
+      return [{
+        'color': '#ef4444',
+        'id': hashtagsData.toString(),
+        'text': hashtagsData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing hashtags: $e');
+      print('Hashtags data: $hashtagsData');
+      print('Hashtags data type: ${hashtagsData.runtimeType}');
+      return [];
+    }
+  }
+
+  // Helper method to parse assignees from different data types
+  static List<String> _parseAssigneesFromMap(dynamic assigneesData) {
+    try {
+      // If assigneesData is null or empty, return empty list
+      if (assigneesData == null) {
+        return [];
+      }
+
+      // If it's already a List, convert each item to String
+      if (assigneesData is List) {
+        return assigneesData.map((item) => item.toString()).toList();
+      }
+
+      // If it's a String, try to parse it as JSON or treat as single assignee
+      if (assigneesData is String) {
+        if (assigneesData.trim().isEmpty) {
+          return [];
+        }
+        try {
+          // Try to parse as JSON array
+          final List<dynamic> parsed = jsonDecode(assigneesData);
+          return parsed.map((item) => item.toString()).toList();
+        } catch (e) {
+          // If JSON parsing fails, treat as single assignee string
+          return [assigneesData];
+        }
+      }
+
+      // For any other type, convert to string and return as single item
+      return [assigneesData.toString()];
+    } catch (e) {
+      print('Error parsing assignees: $e');
+      print('Assignees data: $assigneesData');
+      print('Assignees data type: ${assigneesData.runtimeType}');
+      return [];
+    }
   }
 }
+
+

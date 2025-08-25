@@ -9,6 +9,7 @@ import 'core/theme/theme_controller.dart';
 import 'core/i18n/locale_controller.dart';
 import 'core/services/logger_service.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   

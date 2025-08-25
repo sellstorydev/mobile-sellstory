@@ -1,0 +1,574 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/services/hashtag_service.dart';
+import '../../../core/widgets/hashtag_input_field.dart';
+import '../../../domain/entities/customer.dart';
+import '../controller/customers_controller.dart';
+import 'add_edit_customer_page.dart';
+
+class CustomerDetailPage extends StatefulWidget {
+  final Customer customer;
+
+  const CustomerDetailPage({
+    super.key,
+    required this.customer,
+  });
+
+  @override
+  State<CustomerDetailPage> createState() => _CustomerDetailPageState();
+}
+
+class _CustomerDetailPageState extends State<CustomerDetailPage> {
+  final HashtagService _hashtagService = HashtagService();
+  List<HashtagOption> _availableHashtags = [];
+  bool _isLoadingHashtags = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHashtags();
+  }
+
+  Future<void> _loadHashtags() async {
+    try {
+      // Use controller to get current workspace ID
+      final controller = Get.find<CustomersController>();
+      final workspaceId = controller.currentWorkspaceId.value.isNotEmpty 
+          ? controller.currentWorkspaceId.value 
+          : widget.customer.workspaceId;
+      
+      print('Loading hashtags for workspace: $workspaceId');
+      final hashtags = await _hashtagService.getWorkspaceHashtags(workspaceId);
+      print('Loaded ${hashtags.length} hashtags');
+      setState(() {
+        _availableHashtags = hashtags;
+        _isLoadingHashtags = false;
+      });
+    } catch (e) {
+      print('Error loading hashtags: $e');
+      setState(() {
+        _isLoadingHashtags = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundGrey,
+      appBar: AppBar(
+        title: Text('รายละเอียดลูกค้า'),
+        backgroundColor: AppTheme.backgroundWhite,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () {
+              // Get customer sources from controller
+              final controller = Get.find<CustomersController>();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddEditCustomerPage(
+                    customer: widget.customer,
+                    customerSources: controller.customerSources,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.edit),
+            tooltip: 'แก้ไขลูกค้า',
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile Card
+            _buildProfileCard(),
+            const SizedBox(height: 16),
+            
+            // Customer Information
+            _buildInfoSection('ข้อมูลลูกค้า', [
+              _buildInfoRow('รหัสลูกค้า', widget.customer.customId),
+              _buildInfoRow('ชื่อ', '${widget.customer.prefix} ${widget.customer.name}'),
+              _buildInfoRow('เพศ', widget.customer.gender),
+              _buildInfoRow('อายุ', '${widget.customer.age} ปี'),
+              _buildInfoRow('ประเภท', widget.customer.customerType),
+            ]),
+            
+            const SizedBox(height: 16),
+            
+            // Contact Information
+            _buildInfoSection('ข้อมูลติดต่อ', [
+              _buildEmailsDisplay(),
+              _buildPhonesDisplay(),
+            ]),
+            
+            const SizedBox(height: 16),
+            
+            // Company Information
+            if (widget.customer.companyNames.isNotEmpty) ...[
+              _buildInfoSection('ข้อมูลบริษัท', [
+                _buildInfoRow('ชื่อบริษัท', widget.customer.companyNames.map((company) => company['value'] ?? company['name'] ?? '').join(', ')),
+              ]),
+              const SizedBox(height: 16),
+            ],
+            
+            // Additional Information
+            _buildInfoSection('ข้อมูลเพิ่มเติม', [
+              if (widget.customer.nationalId.isNotEmpty)
+                _buildInfoRow('เลขบัตรประชาชน', widget.customer.nationalId),
+              if (widget.customer.address.isNotEmpty)
+                _buildInfoRow('ที่อยู่', widget.customer.address),
+              if (widget.customer.source.isNotEmpty)
+                _buildInfoRow('แหล่งที่มา', widget.customer.source),
+              _buildHashtagDisplay(), // Always show hashtag section
+              if (widget.customer.assignees.isNotEmpty)
+                _buildInfoRow('ผู้รับผิดชอบ', widget.customer.assignees.join(', ')),
+            ]),
+            
+            const SizedBox(height: 16),
+            
+            // System Information
+            _buildInfoSection('ข้อมูลระบบ', [
+              _buildInfoRow('สร้างเมื่อ', _formatDate(widget.customer.createdAt)),
+              _buildInfoRow('อัปเดตล่าสุด', _formatDate(widget.customer.updatedAt)),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Profile Image
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+            child: Icon(
+              Icons.person,
+              size: 40,
+              color: AppTheme.primaryOrange,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Name
+          Text(
+            '${widget.customer.prefix} ${widget.customer.name}',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          
+          // Customer ID
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              widget.customer.customId,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.primaryOrange,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          
+          // Customer Type
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: widget.customer.customerType == 'Customer' 
+                  ? Colors.green.withOpacity(0.1)
+                  : Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              widget.customer.customerType,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: widget.customer.customerType == 'Customer' 
+                    ? Colors.green
+                    : Colors.orange,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHashtagDisplay() {
+    // Get hashtag objects directly from the list
+    final hashtagObjects = widget.customer.hashtags;
+    
+    print('=== Hashtag Display Debug ===');
+    print('Customer hashtags data: $hashtagObjects');
+    print('Hashtags type: ${hashtagObjects.runtimeType}');
+    print('Hashtags length: ${hashtagObjects.length}');
+    print('Is loading hashtags: $_isLoadingHashtags');
+    print('Available hashtags count: ${_availableHashtags.length}');
+    
+    // Debug: Show available hashtag IDs
+    if (_availableHashtags.isNotEmpty) {
+      print('Available hashtag IDs: ${_availableHashtags.map((h) => h.id).toList()}');
+    }
+    
+    if (_isLoadingHashtags) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 120,
+              child: Text(
+                'แฮชแท็ก',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (hashtagObjects.isEmpty) {
+      print('No hashtags found, showing "ไม่ระบุ"');
+      return _buildInfoRow('แฮชแท็ก', 'ไม่ระบุ');
+    }
+
+    // Convert hashtag objects to HashtagOption for display
+    final List<HashtagOption> selectedHashtags = [];
+    
+    for (int i = 0; i < hashtagObjects.length; i++) {
+      try {
+        final hashtagObj = hashtagObjects[i];
+        print('Processing hashtag object $i: $hashtagObj');
+        
+        // Handle the hashtag object structure: {color, id, text}
+        final hashtagId = hashtagObj['id'] as String? ?? '';
+        final hashtagText = hashtagObj['text'] as String? ?? '';
+        final hashtagColor = hashtagObj['color'] as String? ?? '#ef4444';
+        
+        print('Parsed hashtag $i - ID: $hashtagId, Text: $hashtagText, Color: $hashtagColor');
+        
+        final hashtagOption = _availableHashtags.firstWhere(
+          (hashtag) => hashtag.id == hashtagId,
+          orElse: () => HashtagOption(
+            id: hashtagId,
+            name: hashtagText,
+            color: hashtagColor,
+            totalUsage: 0,
+            enabled: true,
+            scopes: {},
+          ),
+        );
+        
+        selectedHashtags.add(hashtagOption);
+        print('✅ Added hashtag: ${hashtagOption.name}');
+      } catch (e) {
+        print('❌ Error processing hashtag $i: $e');
+        // Continue with other hashtags
+      }
+    }
+    
+    print('Final selected hashtags count: ${selectedHashtags.length}');
+    
+    if (selectedHashtags.isEmpty) {
+      print('No hashtags processed successfully, showing fallback');
+      return _buildInfoRow('แฮชแท็ก', 'ไม่ระบุ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'แฮชแท็ก',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: selectedHashtags.map((hashtag) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _parseColor(hashtag.color),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '#${hashtag.name}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _parseColor(String colorString) {
+    try {
+      // Handle different color formats
+      String cleanColor = colorString.trim();
+      
+      // If it's already a hex color with #
+      if (cleanColor.startsWith('#')) {
+        // Ensure it's 6 digits (RGB) or 8 digits (ARGB)
+        if (cleanColor.length == 7) {
+          // RGB format: #RRGGBB -> 0xFFRRGGBB
+          return Color(int.parse('0xFF${cleanColor.substring(1)}'));
+        } else if (cleanColor.length == 9) {
+          // ARGB format: #AARRGGBB -> 0xAARRGGBB
+          return Color(int.parse('0x${cleanColor.substring(1)}'));
+        }
+      }
+      
+      // If it's a hex color without #
+      if (cleanColor.length == 6) {
+        // RGB format: RRGGBB -> 0xFFRRGGBB
+        return Color(int.parse('0xFF$cleanColor'));
+      } else if (cleanColor.length == 8) {
+        // ARGB format: AARRGGBB -> 0xAARRGGBB
+        return Color(int.parse('0x$cleanColor'));
+      }
+      
+      // If it's a number (already in int format)
+      if (int.tryParse(cleanColor) != null) {
+        return Color(int.parse(cleanColor));
+      }
+      
+      // Fallback to default color
+      return AppTheme.primaryOrange;
+    } catch (e) {
+      print('Error parsing color: $colorString - $e');
+      return AppTheme.primaryOrange;
+    }
+  }
+
+  Widget _buildInfoSection(String title, List<Widget> children) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildEmailsDisplay() {
+    final emails = widget.customer.emails;
+    
+    if (emails.isEmpty) {
+      return _buildInfoRow('อีเมล', 'ไม่ระบุ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'อีเมล',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: emails.map((email) {
+                final label = email['label'] as String? ?? 'Work';
+                final value = email['value'] as String? ?? '';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    '$label: $value',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhonesDisplay() {
+    final phones = widget.customer.phones;
+    
+    if (phones.isEmpty) {
+      return _buildInfoRow('เบอร์โทร', 'ไม่ระบุ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'เบอร์โทร',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: phones.map((phone) {
+                final label = phone['label'] as String? ?? 'Work';
+                final value = phone['value'] as String? ?? '';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    '$label: $value',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+

@@ -121,41 +121,64 @@ class JobCard {
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
-    return {
-      'title': title,
-      'description': description,
-      'assignedTo': assignee, // Map to 'assignedTo' to match Firebase structure
-      'status': status,
-      'customId': customId,
-      'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
-      'badges': badges,
-      'amount': amount,
-      'laneId': laneId,
-      'boardId': boardId,
+    // Build the map based on DTB.md structure and only include non-empty values
+    final Map<String, dynamic> data = {
       'workspaceId': workspaceId,
-      'order': order,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
-      'customer': customer,
-      'updatedByDisplayName': updatedByDisplayName,
-      'customerId': customerId,
-      'company': company,
-      'hashtag': hashtag,
-      'expenses': expenses,
-      'todos': todos,
-      'notes': notes,
-      'watchers': watchers,
-      'customFields': customFields,
-      'createdBy': createdBy,
-      'updatedBy': updatedBy,
     };
+
+    // Required fields
+    if (title.isNotEmpty) data['name'] = title; // Map title -> name per DTB.md
+    if (createdBy.isNotEmpty) data['createdBy'] = createdBy;
+    
+    // Optional fields - only add if they have values
+    if (description.isNotEmpty) data['description'] = description;
+    if (assignee.isNotEmpty) data['assignedTo'] = assignee;
+    if (status.isNotEmpty) data['status'] = status;
+    if (customId.isNotEmpty) data['customId'] = customId;
+    if (dueDate != null) data['dueDate'] = Timestamp.fromDate(dueDate!);
+    if (badges.isNotEmpty) data['badges'] = badges;
+    if (amount > 0) data['amount'] = amount;
+    if (laneId.isNotEmpty) data['laneId'] = laneId;
+    if (boardId.isNotEmpty) data['boardId'] = boardId;
+    if (order > 0) data['order'] = order;
+    if (customer.isNotEmpty) data['customer'] = customer;
+    if (updatedByDisplayName.isNotEmpty) data['updatedByDisplayName'] = updatedByDisplayName;
+    if (customerId?.isNotEmpty == true) data['customerId'] = customerId;
+    if (company?.isNotEmpty == true) data['company'] = company;
+    if (hashtag?.isNotEmpty == true) data['hashtag'] = hashtag;
+    if (expenses.isNotEmpty) data['expenses'] = expenses;
+    if (todos.isNotEmpty) data['todos'] = todos;
+    if (notes.isNotEmpty) data['notes'] = notes;
+    if (watchers.isNotEmpty) data['watchers'] = watchers;
+    if (customFields.isNotEmpty) data['customFields'] = customFields;
+    if (updatedBy.isNotEmpty) data['updatedBy'] = updatedBy;
+
+    // Always include timestamps
+    data['createdAt'] = Timestamp.fromDate(createdAt);
+    data['updatedAt'] = Timestamp.fromDate(updatedAt);
+
+    // DTB.md structure fields
+    if (laneId.isNotEmpty) {
+      data['lanes'] = [laneId]; // lanes: array per DTB.md
+    }
+
+    return data;
   }
 
   // Create from Map from Firestore
   factory JobCard.fromMap(Map<String, dynamic> map, String id) {
+    // Handle DTB.md structure mapping
+    String title = map['title'] ?? map['name'] ?? ''; // Support both title and name
+    String laneId = map['laneId'] ?? '';
+    
+    // Handle lanes array from DTB.md structure
+    if (laneId.isEmpty && map['lanes'] is List && (map['lanes'] as List).isNotEmpty) {
+      laneId = (map['lanes'] as List).first?.toString() ?? '';
+    }
+
     return JobCard(
       id: id,
-      title: map['title'] ?? '',
+      title: title,
       description: map['description'] ?? '',
       assignee: map['assignedTo'] ?? map['assignee'] ?? '',
       status: map['status'] ?? 'To Do',
@@ -163,7 +186,7 @@ class JobCard {
       dueDate: (map['dueDate'] as Timestamp?)?.toDate(),
       badges: List<String>.from(map['badges'] ?? []),
       amount: (map['amount'] ?? 0.0).toDouble(),
-      laneId: map['laneId'] ?? '',
+      laneId: laneId,
       boardId: map['boardId'] ?? '',
       workspaceId: map['workspaceId'] ?? '',
       order: map['order'] ?? 0,
