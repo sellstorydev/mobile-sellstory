@@ -166,7 +166,6 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _isLoading = true);
     setState(() => _error = null);
 
-
     try {
       final result = await _chatService.sendFileMessage(
         workspaceId: widget.workspaceId,

@@ -258,10 +258,12 @@ class _StatusButton extends StatelessWidget {
     required this.selected,
     required this.onTap,
   }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     final bg = selected ? _accent.withValues(alpha: 0.1) : const Color(0xFFF3F4F6);
     final ic = selected ? _accent : Colors.black54;
+
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
