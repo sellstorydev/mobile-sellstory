@@ -1,12 +1,12 @@
-
 import 'package:flutter/material.dart';
+
 
 class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final String? avatarUrl;
   final bool showBack;
   final bool showAutoReplyBubble; // จุดส้มมุมบนซ้าย
-  final String platform;          // "LINE" จะขึ้นแบดจ์เขียว
+  final String platform;          // LINE / FACEBOOK / INSTAGRAM
   final VoidCallback? onBack;
   final VoidCallback? onSearch;
   final VoidCallback? onMore;
@@ -28,7 +28,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLine = platform.toUpperCase() == 'LINE';
+    final platformUpper = platform.toUpperCase();
 
     return AppBar(
       elevation: 0,
@@ -82,11 +82,11 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
                   child: _OrangeBubble(),
                 ),
 
-              // LINE badge วงกลมเขียว (มุมขวาล่าง)
-              if (isLine)
+              // Platform badge (มุมขวาล่าง) รองรับ LINE / FACEBOOK / INSTAGRAM
+              if (_PlatformCircleBadge.supports(platformUpper))
                 Positioned(
                   right: -2, bottom: -2,
-                  child: _LineCircleBadge(),
+                  child: _PlatformCircleBadge(platform: platformUpper),
                 ),
             ],
           ),
@@ -138,27 +138,90 @@ class _OrangeBubble extends StatelessWidget {
   }
 }
 
-class _LineCircleBadge extends StatelessWidget {
+class _PlatformCircleBadge extends StatelessWidget {
+  final String platform; // uppercase expected
+  const _PlatformCircleBadge({required this.platform});
+
+  static bool supports(String p) {
+    switch (p) {
+      case 'LINE':
+      case 'FACEBOOK':
+      case 'INSTAGRAM':
+        return true;
+      default:
+        return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 20, height: 20,
-      decoration: BoxDecoration(
-        color: const Color(0xFF06C755), // LINE green
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      alignment: Alignment.center,
-      child: const FittedBox(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 3),
-          child: Text(
-            'LINE',
-            style: TextStyle(
-                color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800, height: 1),
+    switch (platform) {
+      case 'LINE':
+        return Container(
+          width: 20, height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xFF06C755), // LINE green
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
           ),
-        ),
-      ),
-    );
+          alignment: Alignment.center,
+          child: const FittedBox(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 3),
+              child: Text(
+                'LINE',
+                style: TextStyle(
+                    color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800, height: 1),
+              ),
+            ),
+          ),
+        );
+      case 'FACEBOOK':
+        return Container(
+          width: 20, height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1877F2), // Facebook blue
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          alignment: Alignment.center,
+          child: const FittedBox(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 3),
+              child: Text(
+                'FB',
+                style: TextStyle(
+                    color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, height: 1),
+              ),
+            ),
+          ),
+        );
+      case 'INSTAGRAM':
+        return Container(
+          width: 20, height: 20,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFF58529), Color(0xFFDD2A7B), Color(0xFF8134AF), Color(0xFF515BD4)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          alignment: Alignment.center,
+          child: const FittedBox(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 3),
+              child: Text(
+                'IG',
+                style: TextStyle(
+                    color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, height: 1),
+              ),
+            ),
+          ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }

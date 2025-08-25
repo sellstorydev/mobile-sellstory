@@ -21,6 +21,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
 
   late final ChatController _controller;
   String? _currentUserId;
+  final ScrollController _listScrollController = ScrollController();
 
   @override
   void initState() {
@@ -35,13 +36,13 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
        _currentUserId = currentUser.uid;
       _controller.setCurrentUser(_currentUserId!);
       _controller.loadConversations();
-      _controller.refresh();
     }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _listScrollController.dispose();
     super.dispose();
   }
 
@@ -170,11 +171,17 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
 
   Widget _buildConversationsList() {
     return Obx(() {
-      if (_controller.isLoading.value) {
+      final loading = _controller.isLoading.value;
+      final errorText = _controller.error.value;
+      final conversations = _controller.filteredConversations;
+
+      // First-time load: no data yet -> full-screen loader
+      if (loading && conversations.isEmpty) {
         return const Center(child: CircularProgressIndicator());
       }
 
-      if (_controller.error.value.isNotEmpty) {
+      // Error state only when no data to show
+      if (!loading && errorText.isNotEmpty && conversations.isEmpty) {
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -182,7 +189,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
               Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
               const SizedBox(height: 16),
               Text(
-                _controller.error.value,
+                errorText,
                 style: const TextStyle(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
@@ -195,8 +202,6 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
           ),
         );
       }
-
-      final conversations = _controller.filteredConversations;
 
       if (conversations.isEmpty) {
         return const Center(
@@ -214,22 +219,40 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
         );
       }
 
-      return ListView.separated(
-        padding: const EdgeInsets.only(bottom: 16),
-        itemCount: conversations.length,
-        separatorBuilder: (context, index) => Divider(
-          height: 1,
-          color: Colors.grey.shade200,
-          indent: 76, // ให้เส้นเริ่มหลังรูปโปรไฟล์ เหมือนมือถือหลายแอป
-        ),
-        itemBuilder: (context, index) {
-          final conversation = conversations[index];
-          return ConversationTile(
-            conversation: conversation,
-            currentUserId: _currentUserId ?? '',
-            onTap: () => _onConversationTap(conversation),
-          );
-        },
+      // Keep current list visible; show thin progress bar while loading
+      return Stack(
+        children: [
+          ListView.separated(
+            key: const PageStorageKey('chat_center_list'),
+            controller: _listScrollController,
+            cacheExtent: 800,
+            padding: const EdgeInsets.only(bottom: 16),
+            itemCount: conversations.length,
+            separatorBuilder: (context, index) => Divider(
+              height: 1,
+              color: Colors.grey.shade200,
+              indent: 76,
+            ),
+            itemBuilder: (context, index) {
+              final conversation = conversations[index];
+              return RepaintBoundary(
+                child: ConversationTile(
+                  key: ValueKey(conversation['id'] ?? index),
+                  conversation: conversation,
+                  currentUserId: _currentUserId ?? '',
+                  onTap: () => _onConversationTap(conversation),
+                ),
+              );
+            },
+          ),
+          if (loading)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+        ],
       );
     });
   }
@@ -296,7 +319,6 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context);
-                          _controller.refresh();
                         },
                         child: const Text('ใช้ตัวกรอง'),
                       ),

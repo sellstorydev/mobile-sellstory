@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../../data/services/chat_service.dart';
 import '../widgets/chat_header_line.dart';
+import '../widgets/chat_status_button.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/show_bottom_modal.dart';
@@ -48,12 +49,16 @@ class _ChatScreenState extends State<ChatScreen> {
   // Cache latest messages to allow instant recompute on user typing
   List<QueryDocumentSnapshot> _currentMessages = const [];
 
+  // Quote reply state
+  String? _replyPreviewText;
+
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
   String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? 'แชท');
   String? get _avatarUrl => widget.conversationData['avatar'];
   String get _sourceType => widget.conversationData['source_type'] ?? 'unknown';
 
   String? _chatroomNameState; // refreshed name after reset
+
 
   @override
   void initState() {
@@ -114,6 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
         chatroomId: widget.conversationId,
         platform: _sourceType,
         text: text.trim(),
+        replyText: _replyPreviewText, // include quote when present
         sender: {
           'id': _currentUserId,
           'name': FirebaseAuth.instance.currentUser?.displayName ?? 'Mobile User',
@@ -122,7 +128,8 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (result['success'] == true) {
-        print('Message sent successfully. ID: ${result['messageId']}');
+        // Clear reply state after successful send
+        if (mounted) setState(() => _replyPreviewText = null);
         _scrollToBottom();
       }
     } catch (e) {
@@ -348,10 +355,12 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _focusCurrentMatch());
   }
 
+
+
   // Helpers for bottom sheet actions
   Future<void> _updateStatus(ChatStatus status) async {
+    // Only map business statuses; auto-reply is stored separately in bot_status
     final map = {
-      ChatStatus.autoReply: 'AUTO_REPLY',
       ChatStatus.inProgress: 'IN_PROGRESS',
       ChatStatus.done: 'DONE',
     };
@@ -360,7 +369,7 @@ class _ChatScreenState extends State<ChatScreen> {
           .doc(widget.conversationId)
           .update({'chatroom_status': map[status]});
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('อัปเดตสถานะแล้ว')));
-      setState(() {});
+      // setState(() {});
     } catch (e) {
       _showErrorSnackBar('อัปเดตสถานะไม่สำเร็จ: $e');
     }
@@ -374,6 +383,19 @@ class _ChatScreenState extends State<ChatScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว')));
     } catch (e) {
       _showErrorSnackBar('อัปเดตปักหมุดไม่สำเร็จ: $e');
+    }
+  }
+
+  Future<void> _updateBotStatus(bool enabled) async {
+    try {
+      await _chatService.getChatroomsCollection(widget.workspaceId)
+          .doc(widget.conversationId)
+          .update({'bot_status': enabled ? 'Y' : 'N'});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(enabled ? 'เปิดโหมดตอบกลับอัตโนมัติ' : 'ปิดโหมดตอบกลับอัตโนมัติ')),
+      );
+    } catch (e) {
+      _showErrorSnackBar('อัปเดตตอบกลับอัตโนมัติไม่สำเร็จ: $e');
     }
   }
 
@@ -411,40 +433,70 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: ChatHeaderLine(
-        title: _chatroomName,
-        avatarUrl: _avatarUrl,
-        platform: 'LINE',
-        showBack: false,
-        onSearch: () {
-          setState(() {
-            _showSearch = !_showSearch;
-            if (!_showSearch) {
-              _searchQuery = '';
-              _searchController.clear();
-              _matchedIds = [];
-              _focusedMatchIndex = 0;
-              _lastFocusedQuery = '';
-            }
-          });
-        },
-        onMore: () {
-          ShowBottomModal.open(
-            context,
-            current: ChatStatus.inProgress,
-            pinned: false,
-            assignOptions: const ['ทีม A', 'ทีม B', 'ทีม C'],
-            selectedAssign: null,
-            onStatusChange: _updateStatus,
-            onPinChanged: _updatePinned,
-            onAssignChanged: (v) {},
-            onNote: () {},
-            onAddSale: () {},
-            onRename: () {},
-            onResetName: _reloadChatroomName,
-            onDelete: _deleteChatroom,
-          );
-        },
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: _chatService
+              .getChatroomsCollection(widget.workspaceId)
+              .doc(widget.conversationId)
+              .snapshots(),
+          builder: (context, snap) {
+            final data = snap.data?.data() ?? widget.conversationData;
+            String pickName() => (data['name'] ?? data['who_name'] ?? data['displayName'] ?? data['customerName'] ?? 'แชท').toString();
+            final title = _chatroomNameState ?? pickName();
+            final avatar = (data['avatar'] ?? widget.conversationData['avatar']) as String?;
+            final platform = (data['source_type'] ?? widget.conversationData['source_type'] ?? 'LINE').toString();
+            final botEnabled = (data['bot_status'] ?? 'N') == 'Y';
+
+            return ChatHeaderLine(
+              title: title,
+              avatarUrl: avatar,
+              platform: platform,
+              showBack: false,
+              showAutoReplyBubble: botEnabled,
+              onSearch: () {
+                setState(() {
+                  _showSearch = !_showSearch;
+                  if (!_showSearch) {
+                    _searchQuery = '';
+                    _searchController.clear();
+                    _matchedIds = [];
+                    _focusedMatchIndex = 0;
+                    _lastFocusedQuery = '';
+                  }
+                });
+              },
+              onMore: () {
+                // Derive current flags from latest data
+                final statusRaw = (data['chatroom_status'] ?? '').toString().toUpperCase();
+                final currentStatus = statusRaw == 'DONE' ? ChatStatus.done : ChatStatus.inProgress;
+                final pinned = (data['chat_pin'] ?? 'N') == 'Y';
+                final bot = (data['bot_status'] ?? 'N') == 'Y';
+
+                ShowBottomModal.open(
+                  context,
+                  current: currentStatus,
+                  pinned: pinned,
+                  botEnabled: bot,
+                  assignOptions: const ['ทีม A', 'ทีม B', 'ทีม C'],
+                  selectedAssign: null,
+                  onStatusChange: _updateStatus,
+                  onPinChanged: _updatePinned,
+                  onBotStatusChanged: _updateBotStatus,
+                  onAssignChanged: (v) {},
+                  onNote: () {},
+                  onAddSale: () {},
+                  onRename: () {},
+                  onResetName: _reloadChatroomName,
+                  onDelete: _deleteChatroom,
+                  workspaceId: widget.workspaceId,
+                  chatroomId: widget.conversationId,
+                   customerId: (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString(),
+                );
+              },
+            );
+          },
+        ),
       ),
       body: Column(
         children: [
@@ -607,6 +659,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       highlight: isHighlighted,
                       highlightQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
                       focused: isFocused,
+                      onLongPress: () => _onLongPressMessage(messageData),
                     );
                   },
                 );
@@ -640,6 +693,8 @@ class _ChatScreenState extends State<ChatScreen> {
             workspaceId: widget.workspaceId,
             chatroomId: widget.conversationId,
             enabled: !_isLoading,
+            replyPreview: _replyPreviewText,
+            onCancelReply: () => setState(() => _replyPreviewText = null),
           ),
         ],
       ),
@@ -739,5 +794,59 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  // Build reply preview string from a message
+  String _makeReplyPreview(Map<String, dynamic> m) {
+    final type = (m['type'] ?? 'text').toString();
+    String text = (m['text'] ?? m['message'] ?? '').toString().trim();
+    switch (type) {
+      case 'text':
+        return text.isNotEmpty ? text : '[ข้อความ]';
+      case 'image':
+        if (text.isNotEmpty) return text;
+        return '[รูปภาพ]';
+      case 'video':
+        if (text.isNotEmpty) return text;
+        return '[วิดีโอ]';
+      case 'audio':
+        final name = (m['fileName'] ?? '').toString();
+        return name.isNotEmpty ? 'เสียง: $name' : '[ข้อความเสียง]';
+      case 'file':
+        final name = (m['fileName'] ?? '').toString();
+        return name.isNotEmpty ? 'ไฟล์: $name' : '[ไฟล์]';
+      case 'sticker':
+        return '[สติ๊กเกอร์]';
+      default:
+        return text.isNotEmpty ? text : '[$type]';
+    }
+  }
+
+  Future<void> _onLongPressMessage(Map<String, dynamic> messageData) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.reply),
+              title: const Text('Quote Reply'),
+              onTap: () => Navigator.pop(ctx, 'reply'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (picked == 'reply') {
+      final preview = _makeReplyPreview(messageData);
+      setState(() => _replyPreviewText = preview);
+    }
   }
 }

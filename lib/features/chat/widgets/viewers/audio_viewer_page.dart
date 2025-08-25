@@ -31,7 +31,10 @@ class _AudioViewerPageState extends State<AudioViewerPage> {
 
   @override
   void dispose() {
+    try{
+      _player.stop();
     _player.dispose();
+    }catch(e){}
     super.dispose();
   }
 
@@ -80,8 +83,13 @@ class _AudioViewerPageState extends State<AudioViewerPage> {
                     await _player.seek(_pos - const Duration(seconds: 10));
                   },
                 ),
+
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 18),
+                  ),
                   onPressed: () async {
                     if (_state == PlayerState.playing) {
                       await _player.pause();

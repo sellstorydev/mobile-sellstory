@@ -23,6 +23,8 @@ class ChatController extends GetxController {
   // Subscription for realtime updates
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatroomsSub;
 
+  bool get _isListening => _chatroomsSub != null;
+
   @override
   void onInit() {
     super.onInit();
@@ -97,10 +99,16 @@ class ChatController extends GetxController {
       }
     }
 
-    // If already listening, restart
-    await stopRealtime();
+    // Already listening: do nothing to prevent flicker
+    if (_isListening) {
+      _logger.info('startRealtime: already listening, skip restart');
+      return;
+    }
 
-    isLoading.value = true;
+    // First start only: show loading if no data yet
+    if (conversations.isEmpty) {
+      isLoading.value = true;
+    }
     error.value = '';
 
     try {
@@ -143,7 +151,8 @@ class ChatController extends GetxController {
           return data;
         }).toList();
 
-        conversations.value = items;
+        // Preserve list identity to reduce widget rebuild/flicker
+        conversations.assignAll(items);
         isLoading.value = false;
         error.value = '';
       }, onError: (e) {
@@ -177,8 +186,9 @@ class ChatController extends GetxController {
   }
 
   void refresh() {
-    // Restart stream to force refresh if needed
-    startRealtime();
+    // Avoid restarting stream to prevent UI flicker
+    _logger.info('ChatController.refresh: soft refresh (no restart)');
+    conversations.refresh();
   }
 
   List<Map<String, dynamic>> get filteredConversations {
