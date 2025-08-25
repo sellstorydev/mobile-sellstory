@@ -405,10 +405,13 @@ class _CardDetailPageState extends State<CardDetailPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _jobIdController,
+          enabled: false, // Disable the field
           decoration: const InputDecoration(
             hintText: 'Job ID',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            fillColor: Color(0xFFF5F5F5), // Light gray background for disabled state
+            filled: true,
           ),
         ),
       ],

@@ -60,6 +60,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
   void initState() {
     super.initState();
     print('🔄 CreateCardPage.initState - Page opened');
+    print('  - Received laneId: ${widget.laneId}');
+    print('  - Received boardId: ${widget.boardId}');
+    print('  - Received workspaceId: ${widget.workspaceId}');
     _initializeData().then((_) {
       setState(() {});
     });
@@ -79,6 +82,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
     // Set default lane if provided
     if (widget.laneId != null) {
       _selectedLane = widget.laneId!;
+      print('✅ Set default lane from parameter: $_selectedLane');
+    } else {
+      print('⚠️ No laneId parameter provided');
     }
   }
 
@@ -96,10 +102,21 @@ class _CreateCardPageState extends State<CreateCardPage> {
       'name': lane.title,
     }).toList();
     
+    print('🔄 Available lanes loaded: ${_availableLanes.length} lanes');
+    for (final lane in _availableLanes) {
+      print('  - Lane: ${lane['id']} -> ${lane['name']}');
+    }
+    print('📍 Current selected lane: $_selectedLane');
+    
     // Set first lane as default if no lane is selected
     if (_selectedLane.isEmpty && _availableLanes.isNotEmpty) {
       _selectedLane = _availableLanes.first['id'];
+      print('✅ Set first lane as default: $_selectedLane');
     }
+    
+    // Validate that selected lane exists in available lanes
+    final laneExists = _availableLanes.any((lane) => lane['id'] == _selectedLane);
+    print('🔍 Selected lane exists in available lanes: $laneExists');
     
     // Load users from current workspace
     await _loadWorkspaceUsers();
@@ -473,10 +490,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _jobIdController,
+          enabled: false, // Disable the field
           decoration: const InputDecoration(
             hintText: 'auto-generated',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            fillColor: Color(0xFFF5F5F5), // Light gray background for disabled state
+            filled: true,
           ),
         ),
       ],
