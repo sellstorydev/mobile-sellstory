@@ -72,8 +72,17 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
 
   Future<void> _loadHashtags() async {
     try {
-      // TODO: Get workspaceId from current user context
-      const workspaceId = 'fsIY4b8MLqjcdPwRv6GK';
+      final controller = Get.find<CustomersController>();
+      final workspaceId = controller.currentWorkspaceId.value;
+      
+      if (workspaceId.isEmpty) {
+        print('⚠️ AddEditCustomerPage: No workspace ID available for hashtags');
+        setState(() {
+          _isLoadingHashtags = false;
+        });
+        return;
+      }
+      
       final hashtags = await _hashtagService.getHashtagsByScope(workspaceId, 'customer');
       
       setState(() {
@@ -111,24 +120,32 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       
       _selectedGender = _getSafeDropdownValue(customer.gender, _genderOptions);
       _selectedCustomerType = _getSafeDropdownValue(customer.customerType, _customerTypeOptions);
-      _selectedSource = _getSafeDropdownValue(customer.source, widget.customerSources.isNotEmpty ? widget.customerSources : ['FB', 'Line', 'IG']);
+      _selectedSource = _getSafeDropdownValue(customer.source, widget.customerSources.isNotEmpty ? widget.customerSources : []);
       
       // Set location fields with fallback to default values if empty
       _selectedDistrict = _districtOptions.first;
       _selectedProvince = _provinceOptions.first;
       _selectedSubdistrict = _subdistrictOptions.first;
       
-      // Parse emails and phones from string format
+      // Parse emails and phones from object format
       if (customer.emails.isNotEmpty) {
-        _emails = [
-          {'id': 'email-1', 'label': 'Work', 'value': customer.emails}
-        ];
+        _emails = customer.emails.map((emailObj) {
+          return {
+            'id': emailObj['id'] as String? ?? 'email-initial',
+            'label': emailObj['label'] as String? ?? 'Work',
+            'value': emailObj['value'] as String? ?? '',
+          };
+        }).toList();
       }
       
       if (customer.phones.isNotEmpty) {
-        _phones = [
-          {'id': 'phone-1', 'label': 'Work', 'value': customer.phones}
-        ];
+        _phones = customer.phones.map((phoneObj) {
+          return {
+            'id': phoneObj['id'] as String? ?? 'phone-initial',
+            'label': phoneObj['label'] as String? ?? 'Work',
+            'value': phoneObj['value'] as String? ?? '',
+          };
+        }).toList();
       }
     } else {
       // Add mode - initialize with default values
@@ -215,7 +232,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               _buildDropdownField(
                 'แหล่งที่มา',
                 _selectedSource,
-                widget.customerSources.isNotEmpty ? widget.customerSources : ['FB', 'Line', 'IG'],
+                widget.customerSources.isNotEmpty ? widget.customerSources : [],
                 (value) => setState(() => _selectedSource = value!),
               ),
               const SizedBox(height: 16),
@@ -776,17 +793,39 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           };
         }).toList();
         
-        // Convert emails and phones to string format
-        final emailsString = _emails
+        // Convert emails and phones to object format for storage
+        final emailsObjects = _emails
             .where((email) => email['value']?.isNotEmpty == true)
-            .map((email) => email['value'])
-            .join(', ');
+            .map((email) => {
+              'id': email['id'] as String? ?? 'email-initial',
+              'label': email['label'] as String? ?? 'Work',
+              'value': email['value'] as String? ?? '',
+            })
+            .toList();
         
-        final phonesString = _phones
+        final phonesObjects = _phones
             .where((phone) => phone['value']?.isNotEmpty == true)
-            .map((phone) => phone['value'])
-            .join(', ');
+            .map((phone) => {
+              'id': phone['id'] as String? ?? 'phone-initial',
+              'label': phone['label'] as String? ?? 'Work',
+              'value': phone['value'] as String? ?? '',
+            })
+            .toList();
 
+        // Get workspace ID from controller
+        final controller = Get.find<CustomersController>();
+        final workspaceId = controller.currentWorkspaceId.value;
+        
+        if (workspaceId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ไม่สามารถบันทึกข้อมูลได้: ไม่พบ Workspace'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        
         // Create customer object
         final customer = Customer(
           id: widget.customer?.id ?? '', // Empty for new customer
@@ -795,8 +834,8 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           gender: _selectedGender,
           age: '25', // TODO: Add age field to form
           customerType: _selectedCustomerType,
-          emails: emailsString,
-          phones: phonesString,
+          emails: emailsObjects,
+          phones: phonesObjects,
           companyNames: '', // TODO: Add company field to form
           nationalId: _nationalIdController.text.trim(),
           address: _addressLine1Controller.text.trim(),
@@ -804,17 +843,13 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           hashtags: hashtagObjects,
           assignees: '', // TODO: Add assignees field to form
           customId: widget.customer?.customId ?? _generateCustomId(),
-          workspaceId: 'fsIY4b8MLqjcdPwRv6GK', // TODO: Get from current user context
+          workspaceId: workspaceId, // Dynamic workspace ID
           createdAt: widget.customer?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
           createdBy: widget.customer?.createdBy ?? 'current-user', // TODO: Get from auth
           updatedBy: 'current-user', // TODO: Get from auth
         );
 
-        // Get controller and save
-        final controller = Get.find<CustomersController>();
-        const workspaceId = 'fsIY4b8MLqjcdPwRv6GK'; // TODO: Get from current user context
-        
         if (widget.customer != null) {
           // Update existing customer
           await controller.updateCustomer(workspaceId, customer);

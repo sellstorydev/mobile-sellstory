@@ -32,8 +32,14 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
 
   Future<void> _loadHashtags() async {
     try {
-      print('Loading hashtags for workspace: ${widget.customer.workspaceId}');
-      final hashtags = await _hashtagService.getWorkspaceHashtags(widget.customer.workspaceId);
+      // Use controller to get current workspace ID
+      final controller = Get.find<CustomersController>();
+      final workspaceId = controller.currentWorkspaceId.value.isNotEmpty 
+          ? controller.currentWorkspaceId.value 
+          : widget.customer.workspaceId;
+      
+      print('Loading hashtags for workspace: $workspaceId');
+      final hashtags = await _hashtagService.getWorkspaceHashtags(workspaceId);
       print('Loaded ${hashtags.length} hashtags');
       setState(() {
         _availableHashtags = hashtags;
@@ -98,8 +104,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             
             // Contact Information
             _buildInfoSection('ข้อมูลติดต่อ', [
-              _buildInfoRow('อีเมล', widget.customer.emails.isNotEmpty ? widget.customer.emails : 'ไม่ระบุ'),
-              _buildInfoRow('เบอร์โทร', widget.customer.phones.isNotEmpty ? widget.customer.phones : 'ไม่ระบุ'),
+              _buildEmailsDisplay(),
+              _buildPhonesDisplay(),
             ]),
             
             const SizedBox(height: 16),
@@ -466,6 +472,102 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildEmailsDisplay() {
+    final emails = widget.customer.emails;
+    
+    if (emails.isEmpty) {
+      return _buildInfoRow('อีเมล', 'ไม่ระบุ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'อีเมล',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: emails.map((email) {
+                final label = email['label'] as String? ?? 'Work';
+                final value = email['value'] as String? ?? '';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    '$label: $value',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhonesDisplay() {
+    final phones = widget.customer.phones;
+    
+    if (phones.isEmpty) {
+      return _buildInfoRow('เบอร์โทร', 'ไม่ระบุ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'เบอร์โทร',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: phones.map((phone) {
+                final label = phone['label'] as String? ?? 'Work';
+                final value = phone['value'] as String? ?? '';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    '$label: $value',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

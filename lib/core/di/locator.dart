@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../services/logger_service.dart';
+import '../services/workspace_service.dart';
 import '../../data/repositories/jobcard_repository.dart';
 import '../../data/repositories/firestore_repository.dart';
 import '../../data/repositories/customer_repository.dart';
@@ -27,7 +28,9 @@ class Locator {
     
     // Services
     Get.lazyPut<FirestoreService>(() => FirestoreService(), fenix: true);
-    logger?.devTools('FirestoreService registered');
+    logger?.devTools('Services registered', {
+      'services': ['FirestoreService'],
+    });
     
     // Repositories
     Get.lazyPut<JobCardRepository>(() => InMemoryJobCardRepository(), fenix: true);

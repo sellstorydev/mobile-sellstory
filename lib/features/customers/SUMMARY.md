@@ -11,6 +11,10 @@ Successfully implemented a complete customer management system for the SellStory
   - Support for all customer fields from backup data
   - Proper serialization/deserialization methods
   - Robust hashtag data parsing with type conversion and error handling
+  - **Enhanced email and phone handling**: Now stores as `List<Map<String, dynamic>>` with structure `[{id, label, value}]`
+  - **Backward compatibility**: Handles both old string format and new object format
+  - **Default initialization**: Creates initial objects with `email-initial`/`phone-initial` IDs
+  - **Public parsing methods**: `parseEmailsFromMap` and `parsePhonesFromMap` for data conversion
 
 - **Customer Repository** (`lib/data/repositories/customer_repository.dart`)
   - CRUD operations for customers
@@ -48,6 +52,8 @@ Successfully implemented a complete customer management system for the SellStory
   - Enhanced color parsing for hashtag chips with debug logging
   - Improved hashtag display with comprehensive error handling and debugging
   - Always shows hashtag section with fallback display for empty data
+  - **Enhanced email and phone display**: Shows multiple emails/phones with labels (Work, Personal, etc.)
+  - **Object-based data handling**: Displays emails and phones from object structure `[{id, label, value}]`
 
 - **Add/Edit Customer Page** (`lib/features/customers/view/add_edit_customer_page.dart`)
   - Reusable form for both add and edit operations
@@ -58,8 +64,8 @@ Successfully implemented a complete customer management system for the SellStory
     - Prefix (text input)
     - Name (required)
     - Gender selection
-    - Multiple emails (add/edit/delete)
-    - Multiple phones (add/edit/delete)
+      - Multiple emails (add/edit/delete) with object structure `[{id, label, value}]`
+  - Multiple phones (add/edit/delete) with object structure `[{id, label, value}]`
     - Address fields
     - Location fields (district/province/postal code/country/subdistrict)
   - Hashtag field with full functionality:
@@ -92,7 +98,22 @@ Successfully implemented a complete customer management system for the SellStory
 - Updated `lib/core/di/locator.dart` to register:
   - CustomerRepository
   - CustomersController
+  - FirestoreRepository (for workspace management)
+- Removed WorkspaceService dependency
 - Proper dependency management for the customer feature
+
+### 5. Dynamic Workspace Management
+- **CustomersController** (`lib/features/customers/controller/customers_controller.dart`)
+  - **Firebase Auth Integration**: Gets current user ID from `FirebaseAuth.instance.currentUser`
+  - **Dynamic workspace loading**: Uses `FirestoreRepository.getUserWorkspaces()` to get user's workspaces
+  - **Automatic initialization**: Automatically initializes with current user and first workspace on controller creation
+  - **Workspace switching**: Provides `switchWorkspace()` method for dynamic workspace switching
+  - **Centralized management**: All workspace and user management now handled in the controller
+- **Updated all customer pages** to use controller's workspace management:
+  - `customers_page.dart`: Uses `controller.currentWorkspaceId.value`
+  - `add_edit_customer_page.dart`: Uses controller for workspace ID and hashtag loading
+  - `customer_detail_page.dart`: Uses controller for workspace ID and hashtag loading
+- **Removed WorkspaceService**: No longer needed as functionality is now in the controller
 
 ## Data Structure Alignment
 The implementation correctly matches the Firebase backup data structure:
@@ -138,3 +159,4 @@ The implementation correctly matches the Firebase backup data structure:
 - The form is fully functional for data entry and validation
 - Navigation is properly implemented between all pages
 - The feature is isolated and doesn't interfere with other app features
+- **Recent Update**: Replaced WorkspaceService with Firebase Auth integration in CustomersController for proper user and workspace management

@@ -90,7 +90,7 @@ class CustomerTile extends StatelessWidget {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  customer.emails,
+                                  customer.emails.first['value']?.toString() ?? '',
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: AppTheme.textSecondary,
@@ -110,7 +110,7 @@ class CustomerTile extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                customer.phones,
+                                customer.phones.first['value']?.toString() ?? '',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.textSecondary,

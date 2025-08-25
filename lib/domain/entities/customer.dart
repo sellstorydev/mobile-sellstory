@@ -8,8 +8,8 @@ class Customer {
   final String gender;
   final String age;
   final String customerType;
-  final String emails;
-  final String phones;
+  final List<Map<String, dynamic>> emails;
+  final List<Map<String, dynamic>> phones;
   final String companyNames;
   final String nationalId;
   final String address;
@@ -53,8 +53,8 @@ class Customer {
     String? gender,
     String? age,
     String? customerType,
-    String? emails,
-    String? phones,
+    List<Map<String, dynamic>>? emails,
+    List<Map<String, dynamic>>? phones,
     String? companyNames,
     String? nationalId,
     String? address,
@@ -126,8 +126,8 @@ class Customer {
       gender: map['gender'] ?? '',
       age: map['age'] ?? '',
       customerType: map['customerType'] ?? '',
-      emails: map['emails'] ?? '',
-      phones: map['phones'] ?? '',
+      emails: parseEmailsFromMap(map['emails']),
+      phones: parsePhonesFromMap(map['phones']),
       companyNames: map['companyNames'] ?? '',
       nationalId: map['nationalId'] ?? '',
       address: map['address'] ?? '',
@@ -196,6 +196,138 @@ class Customer {
   @override
   String toString() {
     return 'Customer(id: $id, name: $name, customId: $customId, customerType: $customerType)';
+  }
+
+  // Helper method to parse emails from different data types
+  static List<Map<String, dynamic>> parseEmailsFromMap(dynamic emailsData) {
+    try {
+      if (emailsData == null || emailsData.toString().isEmpty) {
+        return [];
+      }
+      
+      if (emailsData is List) {
+        return emailsData.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            return {
+              'id': 'email-initial',
+              'label': 'Work',
+              'value': item,
+            };
+          } else {
+            return {
+              'id': 'email-initial',
+              'label': 'Work',
+              'value': item.toString(),
+            };
+          }
+        }).toList();
+      }
+      
+      if (emailsData is String) {
+        try {
+          final List<dynamic> parsed = jsonDecode(emailsData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              return {
+                'id': 'email-initial',
+                'label': 'Work',
+                'value': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          if (emailsData.trim().isNotEmpty) {
+            return [{
+              'id': 'email-initial',
+              'label': 'Work',
+              'value': emailsData,
+            }];
+          }
+          return [];
+        }
+      }
+      
+      return [{
+        'id': 'email-initial',
+        'label': 'Work',
+        'value': emailsData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing emails: $e');
+      print('Emails data: $emailsData');
+      print('Emails data type: ${emailsData.runtimeType}');
+      return [];
+    }
+  }
+
+  // Helper method to parse phones from different data types
+  static List<Map<String, dynamic>> parsePhonesFromMap(dynamic phonesData) {
+    try {
+      if (phonesData == null || phonesData.toString().isEmpty) {
+        return [];
+      }
+      
+      if (phonesData is List) {
+        return phonesData.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            return {
+              'id': 'phone-initial',
+              'label': 'Work',
+              'value': item,
+            };
+          } else {
+            return {
+              'id': 'phone-initial',
+              'label': 'Work',
+              'value': item.toString(),
+            };
+          }
+        }).toList();
+      }
+      
+      if (phonesData is String) {
+        try {
+          final List<dynamic> parsed = jsonDecode(phonesData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              return {
+                'id': 'phone-initial',
+                'label': 'Work',
+                'value': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          if (phonesData.trim().isNotEmpty) {
+            return [{
+              'id': 'phone-initial',
+              'label': 'Work',
+              'value': phonesData,
+            }];
+          }
+          return [];
+        }
+      }
+      
+      return [{
+        'id': 'phone-initial',
+        'label': 'Work',
+        'value': phonesData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing phones: $e');
+      print('Phones data: $phonesData');
+      print('Phones data type: ${phonesData.runtimeType}');
+      return [];
+    }
   }
 
   // Helper method to parse hashtags from different data types

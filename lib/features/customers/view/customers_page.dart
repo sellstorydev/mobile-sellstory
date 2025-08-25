@@ -23,11 +23,8 @@ class _CustomersPageState extends State<CustomersPage> {
     // Get the registered controller
     _controller = Get.find<CustomersController>();
     
-    // Load customers for the current workspace
-    // TODO: Get actual workspace ID from user session
-    const workspaceId = 'fsIY4b8MLqjcdPwRv6GK'; // Using the workspace ID from the backup data
-    _controller.loadCustomers(workspaceId);
-    _controller.loadCustomerSources(workspaceId);
+    // The controller will automatically initialize with current user and workspace
+    // No need to manually load customers here as it's handled in the controller
   }
 
   @override
@@ -182,9 +179,11 @@ class _CustomersPageState extends State<CustomersPage> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  // TODO: Retry loading customers
-                  const workspaceId = 'fsIY4b8MLqjcdPwRv6GK';
-                  _controller.loadCustomers(workspaceId);
+                  // Retry loading customers with current workspace
+                  final workspaceId = _controller.currentWorkspaceId.value;
+                  if (workspaceId.isNotEmpty) {
+                    _controller.loadCustomers(workspaceId);
+                  }
                 },
                 child: const Text('ลองใหม่'),
               ),
