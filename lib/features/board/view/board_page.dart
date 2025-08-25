@@ -308,9 +308,10 @@ class _BoardPageState extends State<BoardPage> {
           Obx(() {
             final hasCustomerFilter = _controller.selectedCustomers.isNotEmpty;
             final hasAssigneeFilter = _controller.selectedAssignees.isNotEmpty;
+            final hasHashtagFilter = _controller.selectedHashtags.isNotEmpty;
             final hasDateFilter = _controller.selectedDateFilterType.value.isNotEmpty;
             
-            if (hasCustomerFilter || hasAssigneeFilter || hasDateFilter) {
+            if (hasCustomerFilter || hasAssigneeFilter || hasHashtagFilter || hasDateFilter) {
               return Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -361,6 +362,16 @@ class _BoardPageState extends State<BoardPage> {
                               ),
                             ),
                           ],
+                          if (hasHashtagFilter) ...[
+                            Text(
+                              'แฮชแท็ก: ${_controller.selectedHashtags.map((tag) => '#$tag').join(', ')}',
+                              style: TextStyle(
+                                color: Colors.blue[800],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -382,6 +393,7 @@ class _BoardPageState extends State<BoardPage> {
             if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
               final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                                  _controller.selectedCustomers.isNotEmpty ||
+                                 _controller.selectedHashtags.isNotEmpty ||
                                  _controller.selectedDateFilterType.value.isNotEmpty;
               final displayLanes = (_controller.isSearching.value || hasAnyFilter)
                   ? _controller.filteredLanes 
@@ -521,6 +533,7 @@ class _BoardPageState extends State<BoardPage> {
 
       final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                          _controller.selectedCustomers.isNotEmpty ||
+                         _controller.selectedHashtags.isNotEmpty ||
                          _controller.selectedDateFilterType.value.isNotEmpty;
       final displayLanes = (_controller.isSearching.value || hasAnyFilter)
           ? _controller.filteredLanes 
@@ -532,20 +545,32 @@ class _BoardPageState extends State<BoardPage> {
           String filterMessage = '';
           final hasAssignee = _controller.selectedAssignees.isNotEmpty;
           final hasCustomer = _controller.selectedCustomers.isNotEmpty;
+          final hasHashtag = _controller.selectedHashtags.isNotEmpty;
           final hasDate = _controller.selectedDateFilterType.value.isNotEmpty;
           
-          if (hasAssignee && hasCustomer && hasDate) {
+          // Count the number of active filters
+          final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasDate].where((x) => x).length;
+          
+          if (filterCount >= 3) {
             filterMessage = 'ไม่พบงานสำหรับเงื่อนไขที่เลือกทั้งหมด';
           } else if (hasAssignee && hasCustomer) {
             filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและลูกค้าที่เลือก';
+          } else if (hasAssignee && hasHashtag) {
+            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและแฮชแท็กที่เลือก';
           } else if (hasAssignee && hasDate) {
             filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและช่วงวันที่ที่เลือก';
+          } else if (hasCustomer && hasHashtag) {
+            filterMessage = 'ไม่พบงานสำหรับลูกค้าและแฮชแท็กที่เลือก';
           } else if (hasCustomer && hasDate) {
             filterMessage = 'ไม่พบงานสำหรับลูกค้าและช่วงวันที่ที่เลือก';
+          } else if (hasHashtag && hasDate) {
+            filterMessage = 'ไม่พบงานสำหรับแฮชแท็กและช่วงวันที่ที่เลือก';
           } else if (hasAssignee) {
             filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบที่เลือก';
           } else if (hasCustomer) {
             filterMessage = 'ไม่พบงานสำหรับลูกค้าที่เลือก';
+          } else if (hasHashtag) {
+            filterMessage = 'ไม่พบงานสำหรับแฮชแท็กที่เลือก';
           } else if (hasDate) {
             filterMessage = 'ไม่พบงานในช่วงวันที่ที่เลือก';
           }

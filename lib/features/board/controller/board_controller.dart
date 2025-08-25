@@ -37,9 +37,11 @@ class BoardController extends GetxController implements BoardView {
   // Filter functionality
   final RxList<String> selectedAssignees = <String>[].obs;
   final RxList<String> selectedCustomers = <String>[].obs;
+  final RxList<String> selectedHashtags = <String>[].obs;
   final RxBool isFiltering = false.obs;
   final RxList<String> availableAssignees = <String>[].obs;
   final RxList<String> availableCustomers = <String>[].obs;
+  final RxList<String> availableHashtags = <String>[].obs;
   
   // Date filter functionality
   final RxString selectedDateFilterType = ''.obs; // startDate, endDate, createdDate, etc.
@@ -590,25 +592,27 @@ class BoardController extends GetxController implements BoardView {
     this.lanes.value = state.lanes;
     _originalLanes.value = state.lanes; // Store original lanes for search
     
-    // Update available assignees and customers
+    // Update available assignees, customers, and hashtags
     _updateAvailableAssignees();
     _updateAvailableCustomers();
+    _updateAvailableHashtags();
     
     // Apply current search and filter if exists
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
+    final hasHashtagFilter = selectedHashtags.isNotEmpty;
     final hasDateFilter = selectedDateFilterType.value.isNotEmpty;
     final hasSearchQuery = searchQuery.value.isNotEmpty;
     
-    if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasDateFilter)) {
+    if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasDateFilter)) {
       print('🔍 Reapplying search and filter');
       _performSearch(searchQuery.value);
       _performFilter();
     } else if (hasSearchQuery) {
       print('🔍 Reapplying search filter: "${searchQuery.value}"');
       _performSearch(searchQuery.value);
-    } else if (hasAssigneeFilter || hasCustomerFilter || hasDateFilter) {
-      print('🔍 Reapplying filters - Assignees: ${selectedAssignees.length}, Customers: ${selectedCustomers.length}, Date: ${hasDateFilter}');
+    } else if (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasDateFilter) {
+      print('🔍 Reapplying filters - Assignees: ${selectedAssignees.length}, Customers: ${selectedCustomers.length}, Hashtags: ${selectedHashtags.length}, Date: ${hasDateFilter}');
       _performFilter();
     } else {
       filteredLanes.value = state.lanes;
@@ -722,7 +726,7 @@ class BoardController extends GetxController implements BoardView {
            safeContains(card.status, searchLower) ||
            safeContains(card.updatedByDisplayName, searchLower) ||
            safeContains(card.company, searchLower) ||
-           safeContains(card.hashtag, searchLower);
+           safeContains(card.hashtag ?? '', searchLower);
   }
   
   // Filter Methods
@@ -740,6 +744,15 @@ class BoardController extends GetxController implements BoardView {
       selectedCustomers.remove(customerName);
     } else {
       selectedCustomers.add(customerName);
+    }
+    _performFilter();
+  }
+  
+  void toggleHashtagFilter(String hashtag) {
+    if (selectedHashtags.contains(hashtag)) {
+      selectedHashtags.remove(hashtag);
+    } else {
+      selectedHashtags.add(hashtag);
     }
     _performFilter();
   }
@@ -808,6 +821,7 @@ class BoardController extends GetxController implements BoardView {
   void clearFilter() {
     selectedAssignees.clear();
     selectedCustomers.clear();
+    selectedHashtags.clear();
     selectedDateFilterType.value = '';
     selectedStartDate.value = null;
     selectedEndDate.value = null;
@@ -824,10 +838,11 @@ class BoardController extends GetxController implements BoardView {
   void _performFilter() {
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
+    final hasHashtagFilter = selectedHashtags.isNotEmpty;
     final hasDateFilter = selectedDateFilterType.value.isNotEmpty && 
                          (selectedStartDate.value != null || selectedEndDate.value != null);
     
-    if (!hasAssigneeFilter && !hasCustomerFilter && !hasDateFilter) {
+    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasDateFilter) {
       isFiltering.value = false;
       if (searchQuery.value.isNotEmpty) {
         _performSearch(searchQuery.value);
@@ -841,6 +856,7 @@ class BoardController extends GetxController implements BoardView {
     
     print('🔍 Filtering - Assignees: ${selectedAssignees.length} selected: $selectedAssignees');
     print('🔍 Filtering - Customers: ${selectedCustomers.length} selected: $selectedCustomers');
+    print('🔍 Filtering - Hashtags: ${selectedHashtags.length} selected: $selectedHashtags');
     print('🔍 Filtering - Date: ${selectedDateFilterType.value} from ${selectedStartDate.value} to ${selectedEndDate.value}');
     
     // Start with original lanes or search results
@@ -855,10 +871,11 @@ class BoardController extends GetxController implements BoardView {
     for (final lane in sourceLanes) {
       print('🔍 Checking lane "${lane.title}" with ${lane.cards.length} cards');
       
-      // Filter cards by assignee, customer, and/or date
+      // Filter cards by assignee, customer, hashtag, and/or date
       final filteredCards = lane.cards.where((card) {
         bool assigneeMatches = true;
         bool customerMatches = true;
+        bool hashtagMatches = true;
         bool dateMatches = true;
         
         // Check assignee filter (OR logic - match any selected assignee)
@@ -872,13 +889,19 @@ class BoardController extends GetxController implements BoardView {
             card.customer.toLowerCase().contains(selectedCustomer.toLowerCase()));
         }
         
+        // Check hashtag filter (OR logic - match any selected hashtag)
+        if (hasHashtagFilter) {
+          hashtagMatches = selectedHashtags.any((selectedHashtag) => 
+            (card.hashtag ?? '').toLowerCase().contains(selectedHashtag.toLowerCase()));
+        }
+        
         // Check date filter
         if (hasDateFilter) {
           dateMatches = _checkDateFilter(card);
         }
         
-        final matches = assigneeMatches && customerMatches && dateMatches;
-        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), Date: (${dateMatches}) - Match: $matches');
+        final matches = assigneeMatches && customerMatches && hashtagMatches && dateMatches;
+        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), Hashtag: "${card.hashtag ?? ''}" (${hashtagMatches}), Date: (${dateMatches}) - Match: $matches');
         
         if (matches) matchingCards++;
         return matches;
@@ -1017,6 +1040,29 @@ class BoardController extends GetxController implements BoardView {
     print('🔍 Customers: $customerNames');
   }
   
+  void _updateAvailableHashtags() {
+    final Set<String> hashtags = {};
+    
+    for (final lane in _originalLanes) {
+      for (final card in lane.cards) {
+        final cardHashtag = card.hashtag ?? '';
+        if (cardHashtag.isNotEmpty) {
+          // Split hashtags by common delimiters and clean them
+          final cardHashtags = cardHashtag
+              .split(RegExp(r'[,\s]+'))
+              .where((tag) => tag.isNotEmpty)
+              .map((tag) => tag.trim().replaceFirst('#', ''))
+              .where((tag) => tag.isNotEmpty);
+          hashtags.addAll(cardHashtags);
+        }
+      }
+    }
+    
+    availableHashtags.value = hashtags.toList();
+    print('🔍 Available hashtags updated: ${hashtags.length} hashtags');
+    print('🔍 Hashtags: $hashtags');
+  }
+  
   // Helper method to get display name from UID
   String getDisplayNameFromUid(String uid) {
     if (currentBoard.value?.members != null) {
@@ -1031,7 +1077,7 @@ class BoardController extends GetxController implements BoardView {
   
   // Getter for lanes to use in UI (returns filtered/searched lanes)
   List<Lane> get displayLanes {
-    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedDateFilterType.value.isNotEmpty) {
+    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedDateFilterType.value.isNotEmpty) {
       return filteredLanes;
     }
     return lanes;

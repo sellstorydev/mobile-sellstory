@@ -40,6 +40,10 @@ class UnifiedFilterPage extends StatelessWidget {
             
             // Customer Filter Section
             _buildCustomerFilterSection(controller),
+            const SizedBox(height: 24),
+            
+            // Hashtag Filter Section
+            _buildHashtagFilterSection(controller),
             const SizedBox(height: 32),
             
             // Apply Button
@@ -366,12 +370,97 @@ class UnifiedFilterPage extends StatelessWidget {
     );
   }
 
+  Widget _buildHashtagFilterSection(BoardController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.tag, color: Colors.purple[600], size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'แฮชแท็ก',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.purple[800],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.purple[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.purple[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'เลือกแฮชแท็ก (เลือกได้หลายอัน):',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.purple[800],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              Obx(() {
+                if (controller.availableHashtags.isEmpty) {
+                  return const Text(
+                    'ไม่มีแฮชแท็กในระบบ',
+                    style: TextStyle(color: Colors.grey),
+                  );
+                }
+                
+                return Column(
+                  children: controller.availableHashtags.map((hashtag) {
+                    final isSelected = controller.selectedHashtags.contains(hashtag);
+                    
+                    return CheckboxListTile(
+                      value: isSelected,
+                      onChanged: (bool? value) {
+                        controller.toggleHashtagFilter(hashtag);
+                      },
+                      secondary: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.purple[100],
+                        child: Text(
+                          '#',
+                          style: TextStyle(
+                            color: Colors.purple[800],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      title: Text('#$hashtag'),
+                      subtitle: Text(_getHashtagCardCount(controller, hashtag)),
+                      activeColor: Colors.purple[600],
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                    );
+                  }).toList(),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildApplyButton(BoardController controller, BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: Obx(() {
         final hasAnyFilter = controller.selectedAssignees.isNotEmpty ||
                            controller.selectedCustomers.isNotEmpty ||
+                           controller.selectedHashtags.isNotEmpty ||
                            controller.selectedDateFilterType.value.isNotEmpty;
         
         return ElevatedButton.icon(
@@ -466,6 +555,16 @@ class UnifiedFilterPage extends StatelessWidget {
     int count = 0;
     for (final lane in controller.lanes) {
       count += lane.cards.where((card) => card.customer == customerName).length;
+    }
+    return '$count งาน';
+  }
+
+  String _getHashtagCardCount(BoardController controller, String hashtag) {
+    int count = 0;
+    for (final lane in controller.lanes) {
+      count += lane.cards.where((card) => 
+        (card.hashtag ?? '').toLowerCase().contains(hashtag.toLowerCase())
+      ).length;
     }
     return '$count งาน';
   }
