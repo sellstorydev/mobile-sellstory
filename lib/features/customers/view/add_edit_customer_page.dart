@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
+import '../../../core/widgets/assignees_input_field.dart';
+import '../../../core/widgets/company_picker.dart';
+import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/hashtag_service.dart';
+import '../../../core/services/id_generation_service.dart';
+
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
 
@@ -27,23 +33,34 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   final _nationalIdController = TextEditingController();
   final _addressLine1Controller = TextEditingController();
   final _hashtagsController = TextEditingController();
+  final _customIdController = TextEditingController();
   
   // Hashtag related
   final HashtagService _hashtagService = HashtagService();
+  final IdGenerationService _idGenerationService = Get.find<IdGenerationService>();
+  final WorkspaceMembersService _workspaceMembersService = Get.find<WorkspaceMembersService>();
   List<HashtagOption> _availableHashtags = [];
   List<String> _selectedHashtags = [];
   bool _isLoadingHashtags = true;
+  
+  // Assignees related
+  List<WorkspaceMember> _availableMembers = [];
+  List<String> _selectedAssignees = [];
+  bool _isLoadingMembers = true;
+  
+  // Company related
+  List<Company> _selectedCompanies = [];
   
   String _selectedGender = 'Male';
   String _selectedCustomerType = 'Customer';
   String _selectedSource = 'FB';
   
   // Location fields
-  String _selectedDistrict = 'บางเขน';
-  String _selectedProvince = 'กรุงเทพมหานคร';
-  String _selectedSubdistrict = 'อนุสาวรีย์';
-  String _selectedCountry = 'ไทย';
-  String _postalCode = '';
+  final _districtController = TextEditingController();
+  final _provinceController = TextEditingController();
+  final _subdistrictController = TextEditingController();
+  final _countryController = TextEditingController();
+  final _postalCodeController = TextEditingController();
   
   // Multiple emails and phones
   List<Map<String, String>> _emails = [];
@@ -52,15 +69,13 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   // Available options
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
   final List<String> _customerTypeOptions = ['Customer', 'Lead'];
-  final List<String> _districtOptions = ['บางเขน', 'ลาดพร้าว', 'ห้วยขวาง', 'ดินแดง', 'วัฒนา'];
-  final List<String> _provinceOptions = ['กรุงเทพมหานคร', 'นนทบุรี', 'ปทุมธานี', 'สมุทรปราการ'];
-  final List<String> _subdistrictOptions = ['อนุสาวรีย์', 'ลาดยาว', 'เสนานิคม', 'จันทรเกษม'];
 
   @override
   void initState() {
     super.initState();
     _initializeForm();
     _loadHashtags();
+    _loadMembers();
   }
 
   String _getSafeDropdownValue(String value, List<String> options) {
@@ -97,6 +112,33 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     }
   }
 
+  Future<void> _loadMembers() async {
+    try {
+      final controller = Get.find<CustomersController>();
+      final workspaceId = controller.currentWorkspaceId.value;
+      
+      if (workspaceId.isEmpty) {
+        print('⚠️ AddEditCustomerPage: No workspace ID available for members');
+        setState(() {
+          _isLoadingMembers = false;
+        });
+        return;
+      }
+      
+      final members = await _workspaceMembersService.getAssignableMembers(workspaceId);
+      
+      setState(() {
+        _availableMembers = members;
+        _isLoadingMembers = false;
+      });
+    } catch (e) {
+      print('Error loading members: $e');
+      setState(() {
+        _isLoadingMembers = false;
+      });
+    }
+  }
+
   void _initializeForm() {
     if (widget.customer != null) {
       // Edit mode - populate with existing data
@@ -105,27 +147,64 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       _prefixController.text = customer.prefix;
       _nationalIdController.text = customer.nationalId;
       _addressLine1Controller.text = customer.address;
-             // Parse hashtags from object format to IDs
-       if (customer.hashtags.isNotEmpty) {
-         _selectedHashtags = customer.hashtags.map((hashtagObj) {
-           return hashtagObj['id'] as String;
+      _customIdController.text = customer.customId;
+      
+      // Parse hashtags from object format to IDs
+      if (customer.hashtags.isNotEmpty) {
+        _selectedHashtags = customer.hashtags.map((hashtagObj) {
+          return hashtagObj['id'] as String;
+        }).toList();
+        
+        // Set display text for the controller
+        final hashtagTexts = customer.hashtags.map((hashtagObj) {
+          return hashtagObj['text'] as String;
+        }).toList();
+        _hashtagsController.text = hashtagTexts.join(', ');
+      }
+      
+             // Parse assignees
+       _selectedAssignees = List<String>.from(customer.assignees);
+       
+       // Parse companies from object format
+       if (customer.companyNames.isNotEmpty) {
+         // Convert companyNames to Company objects for display
+         _selectedCompanies = customer.companyNames.map((companyNameObj) {
+           return Company(
+             id: companyNameObj['id'] as String? ?? '',
+             companyNames: [companyNameObj],
+             customId: '',
+             emails: [],
+             phones: [],
+             taxId: '',
+             branch: '',
+             addressLine1: '',
+             subdistrict: '',
+             district: '',
+             province: '',
+             postalCode: '',
+             country: '',
+             hashtags: [],
+             website: '',
+             workspaceId: '',
+             createdAt: DateTime.now(),
+             updatedAt: DateTime.now(),
+             createdBy: '',
+             updatedBy: '',
+             associatedCustomerIds: [],
+           );
          }).toList();
-         
-         // Set display text for the controller
-         final hashtagTexts = customer.hashtags.map((hashtagObj) {
-           return hashtagObj['text'] as String;
-         }).toList();
-         _hashtagsController.text = hashtagTexts.join(', ');
        }
       
       _selectedGender = _getSafeDropdownValue(customer.gender, _genderOptions);
       _selectedCustomerType = _getSafeDropdownValue(customer.customerType, _customerTypeOptions);
       _selectedSource = _getSafeDropdownValue(customer.source, widget.customerSources.isNotEmpty ? widget.customerSources : []);
       
-      // Set location fields with fallback to default values if empty
-      _selectedDistrict = _districtOptions.first;
-      _selectedProvince = _provinceOptions.first;
-      _selectedSubdistrict = _subdistrictOptions.first;
+             // Set location fields with fallback to default values if empty
+       _districtController.text = '';
+       _provinceController.text = '';
+       _subdistrictController.text = '';
+       _countryController.text = '';
+       _postalCodeController.text = '';
       
       // Parse emails and phones from object format
       if (customer.emails.isNotEmpty) {
@@ -155,6 +234,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       _phones = [
         {'id': 'phone-initial', 'label': 'Work', 'value': ''}
       ];
+      _selectedAssignees = [];
     }
   }
 
@@ -165,6 +245,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     _nationalIdController.dispose();
     _addressLine1Controller.dispose();
     _hashtagsController.dispose();
+    _customIdController.dispose();
+    _districtController.dispose();
+    _provinceController.dispose();
+    _subdistrictController.dispose();
+    _countryController.dispose();
+    _postalCodeController.dispose();
     super.dispose();
   }
 
@@ -197,8 +283,17 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Assignees (Coming Soon)
-              _buildComingSoonField('เซลที่รับผิดชอบ', 'assignees'),
+              // Assignees
+              AssigneesInputField(
+                selectedAssignees: _selectedAssignees,
+                availableMembers: _availableMembers,
+                onAssigneesChanged: (assignees) {
+                  setState(() {
+                    _selectedAssignees = assignees;
+                  });
+                },
+                isLoading: _isLoadingMembers,
+              ),
               const SizedBox(height: 16),
               
               // Customer Type
@@ -245,6 +340,10 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               ),
               const SizedBox(height: 16),
               
+              // Custom ID
+              _buildCustomIdField(),
+              const SizedBox(height: 16),
+              
               // Prefix
               _buildTextField(
                 'คำนำหน้า',
@@ -289,8 +388,17 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               _buildLocationSection(),
               const SizedBox(height: 16),
               
-              // Company (Coming Soon)
-              _buildComingSoonField('บริษัท', 'company'),
+              // Company
+              CompanyPicker(
+                selectedCompanies: _selectedCompanies,
+                onCompaniesChanged: (companies) {
+                  setState(() {
+                    _selectedCompanies = companies;
+                  });
+                },
+                label: 'บริษัท',
+                hintText: 'เลือกบริษัท',
+              ),
             ],
           ),
         ),
@@ -404,6 +512,72 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
             validator: isRequired ? (value) {
               if (value == null || value.isEmpty) {
                 return 'กรุณาเลือก $label';
+              }
+              return null;
+            } : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomIdField() {
+    final isEditMode = widget.customer != null;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'รหัสลูกค้า',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              if (!isEditMode) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'อัตโนมัติ',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _customIdController,
+            enabled: isEditMode, // Only editable in edit mode
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              hintText: isEditMode ? 'กรอกรหัสลูกค้า' : 'จะถูกสร้างอัตโนมัติ',
+              filled: !isEditMode,
+              fillColor: !isEditMode ? Colors.grey.shade100 : null,
+            ),
+            validator: isEditMode ? (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'กรุณากรอกรหัสลูกค้า';
               }
               return null;
             } : null,
@@ -657,72 +831,38 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           const SizedBox(height: 16),
           
           // Subdistrict
-          _buildDropdownField(
+          _buildTextField(
             'ตำบล/แขวง',
-            _selectedSubdistrict,
-            _subdistrictOptions,
-            (value) => setState(() => _selectedSubdistrict = value!),
+            _subdistrictController,
           ),
           const SizedBox(height: 16),
           
           // District
-          _buildDropdownField(
+          _buildTextField(
             'อำเภอ/เขต',
-            _selectedDistrict,
-            _districtOptions,
-            (value) => setState(() => _selectedDistrict = value!),
+            _districtController,
           ),
           const SizedBox(height: 16),
           
           // Province
-          _buildDropdownField(
+          _buildTextField(
             'จังหวัด',
-            _selectedProvince,
-            _provinceOptions,
-            (value) => setState(() => _selectedProvince = value!),
+            _provinceController,
           ),
           const SizedBox(height: 16),
           
           // Postal Code
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.backgroundWhite,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'รหัสไปรษณีย์',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  initialValue: _postalCode,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  onChanged: (value) => _postalCode = value,
-                ),
-              ],
-            ),
+          _buildTextField(
+            'รหัสไปรษณีย์',
+            _postalCodeController,
+            keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 16),
           
           // Country
-          _buildDropdownField(
+          _buildTextField(
             'ประเทศ',
-            _selectedCountry,
-            ['ไทย', 'สหรัฐอเมริกา', 'จีน', 'ญี่ปุ่น'],
-            (value) => setState(() => _selectedCountry = value!),
+            _countryController,
           ),
         ],
       ),
@@ -815,6 +955,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         // Get workspace ID from controller
         final controller = Get.find<CustomersController>();
         final workspaceId = controller.currentWorkspaceId.value;
+        final userId = FirebaseAuth.instance.currentUser?.uid ?? "";
         
         if (workspaceId.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -824,6 +965,16 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
             ),
           );
           return;
+        }
+        
+        // Generate customer ID for new customers or use existing one for edit
+        String customerId;
+        if (widget.customer != null) {
+          // Edit mode - use the custom ID from the field
+          customerId = _customIdController.text.trim();
+        } else {
+          // Add mode - generate new ID
+          customerId = await _generateCustomId();
         }
         
         // Create customer object
@@ -836,18 +987,18 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           customerType: _selectedCustomerType,
           emails: emailsObjects,
           phones: phonesObjects,
-          companyNames: [], // TODO: Add company field to form
+          companyNames: _selectedCompanies.map((company) => company.companyNames).expand((names) => names).toList(),
           nationalId: _nationalIdController.text.trim(),
           address: _addressLine1Controller.text.trim(),
           source: _selectedSource,
           hashtags: hashtagObjects,
-          assignees: [], // TODO: Add assignees field to form
-          customId: widget.customer?.customId ?? _generateCustomId(),
+          assignees: _selectedAssignees,
+          customId: customerId,
           workspaceId: workspaceId, // Dynamic workspace ID
           createdAt: widget.customer?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
-          createdBy: widget.customer?.createdBy ?? 'current-user', // TODO: Get from auth
-          updatedBy: 'current-user', // TODO: Get from auth
+          createdBy: widget.customer?.createdBy ?? userId, // TODO: Get from auth
+          updatedBy: userId, // Use customer ID when editing, fallback for new customers
         );
 
         if (widget.customer != null) {
@@ -873,7 +1024,8 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           ),
         );
         
-        Navigator.pop(context);
+        // Pop with result to trigger refresh in detail page
+        Navigator.pop(context, true);
       } catch (e) {
         // Close loading dialog
         Navigator.pop(context);
@@ -889,9 +1041,27 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     }
   }
 
-  String _generateCustomId() {
-    // Generate a simple custom ID with timestamp
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    return 'CUST$timestamp';
+  Future<String> _generateCustomId() async {
+    try {
+      // Get workspace ID from controller
+      final controller = Get.find<CustomersController>();
+      final workspaceId = controller.currentWorkspaceId.value;
+      
+      if (workspaceId.isEmpty) {
+        print('⚠️ No workspace ID available for ID generation, using fallback');
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        return 'CUST$timestamp';
+      }
+      
+      // Generate customer ID using the service
+      final customerId = await _idGenerationService.generateCustomerId(workspaceId);
+      print('✅ Generated customer ID: $customerId');
+      return customerId;
+    } catch (e) {
+      print('❌ Error generating customer ID: $e');
+      // Fallback to simple ID generation
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      return 'CUST$timestamp';
+    }
   }
 }

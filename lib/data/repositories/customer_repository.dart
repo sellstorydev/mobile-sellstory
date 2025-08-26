@@ -21,32 +21,32 @@ class CustomerRepository {
           customers.add(customer);
         } catch (e) {
           // Log detailed information about the parsing error
-          print('=== Customer Parsing Error ===');
-          print('Customer ID: ${doc.id}');
-          print('Error Type: ${e.runtimeType}');
-          print('Error Message: $e');
-          print('Raw Data: ${doc.data()}');
-          print('Data Keys: ${doc.data().keys.toList()}');
-          
-          // Try to extract basic information even if parsing fails
-          try {
-            final data = doc.data();
-            final basicCustomer = Customer(
-              id: doc.id,
-              name: data['name']?.toString() ?? 'Unknown Customer',
-              prefix: data['prefix']?.toString() ?? '',
-              gender: data['gender']?.toString() ?? '',
-              age: data['age']?.toString() ?? '',
-              customerType: data['customerType']?.toString() ?? 'Customer',
-              emails: Customer.parseEmailsFromMap(data['emails']),
-              phones: Customer.parsePhonesFromMap(data['phones']),
-              companyNames: Customer.parseCompanyNamesFromMap(data['companyNames']),
-              nationalId: data['nationalId']?.toString() ?? '',
-              address: data['address']?.toString() ?? '',
-              source: data['source']?.toString() ?? '',
-              hashtags: [], // Empty hashtags to avoid parsing issues
-              assignees: data['assignees'] is List ? (data['assignees'] as List).cast<String>() : [],
-              customId: data['customId']?.toString() ?? doc.id,
+                      print('=== Customer Parsing Error ===');
+            print('Customer ID: ${doc.id}');
+            print('Error Type: ${e.runtimeType}');
+            print('Error Message: $e');
+            print('Raw Data: ${doc.data()}');
+            print('Data Keys: ${doc.data().keys.toList()}');
+            
+            // Try to extract basic information even if parsing fails
+            try {
+              final data = doc.data();
+              final basicCustomer = Customer(
+                id: doc.id,
+                name: data['name']?.toString() ?? 'Unknown Customer',
+                prefix: data['prefix']?.toString() ?? '',
+                gender: data['gender']?.toString() ?? '',
+                age: data['age']?.toString() ?? '',
+                customerType: data['customerType']?.toString() ?? 'Customer',
+                emails: Customer.parseEmailsFromMap(data['emails']),
+                phones: Customer.parsePhonesFromMap(data['phones']),
+                companyNames: Customer.parseCompanyNamesFromMap(data['companyNames']),
+                nationalId: data['nationalId']?.toString() ?? '',
+                address: data['address']?.toString() ?? '',
+                source: data['source']?.toString() ?? '',
+                hashtags: [], // Empty hashtags to avoid parsing issues
+                assignees: Customer.parseAssigneesFromMap(data['assignees']),
+                customId: data['customId']?.toString() ?? doc.id,
               workspaceId: data['workspaceId']?.toString() ?? workspaceId,
               createdAt: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
               updatedAt: DateTime.tryParse(data['updatedAt']?.toString() ?? '') ?? DateTime.now(),
@@ -106,7 +106,7 @@ class CustomerRepository {
                 address: data['address']?.toString() ?? '',
                 source: data['source']?.toString() ?? '',
                 hashtags: [], // Empty hashtags to avoid parsing issues
-                assignees: data['assignees'] is List ? (data['assignees'] as List).cast<String>() : [],
+                assignees: Customer.parseAssigneesFromMap(data['assignees']),
                 customId: data['customId']?.toString() ?? doc.id,
                 workspaceId: data['workspaceId']?.toString() ?? workspaceId,
                 createdAt: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
@@ -225,7 +225,7 @@ class CustomerRepository {
               address: data['address']?.toString() ?? '',
               source: data['source']?.toString() ?? '',
               hashtags: [], // Empty hashtags to avoid parsing issues
-              assignees: data['assignees'] is List ? (data['assignees'] as List).cast<String>() : [],
+              assignees: Customer.parseAssigneesFromMap(data['assignees']),
               customId: data['customId']?.toString() ?? doc.id,
               workspaceId: data['workspaceId']?.toString() ?? workspaceId,
               createdAt: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),

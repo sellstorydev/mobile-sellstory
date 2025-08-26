@@ -51,9 +51,11 @@ Successfully implemented a complete customer management system for the SellStory
   - Proper data format: reads hashtags as objects with color, id, and text properties
   - Enhanced color parsing for hashtag chips with debug logging
   - Improved hashtag display with comprehensive error handling and debugging
-  - Always shows hashtag section with fallback display for empty data
+  - **Data validation logic**: Only shows sections when valid data exists (same as customer tile)
   - **Enhanced email and phone display**: Shows multiple emails/phones with labels (Work, Personal, etc.)
   - **Object-based data handling**: Displays emails and phones from object structure `[{id, label, value}]`
+  - **Company section**: Only shows when company names are not empty
+  - **Hashtag validation**: Only shows hashtags when valid hashtag data exists
 
 - **Add/Edit Customer Page** (`lib/features/customers/view/add_edit_customer_page.dart`)
   - Reusable form for both add and edit operations
@@ -75,15 +77,23 @@ Successfully implemented a complete customer management system for the SellStory
     - Color-coded hashtag chips
     - Integration with workspace hashtag settings
     - Proper data format: saves hashtags as objects with color, id, and text properties
-  - Full save/update functionality:
-    - Integration with CustomerRepository and CustomersController
-    - Proper error handling and loading states
-    - Success/error feedback messages
-    - Automatic custom ID generation for new customers
-    - Data validation before saving
-  - Coming soon fields with placeholder UI:
-    - Assignees field
-    - Company field
+     - Full save/update functionality:
+     - Integration with CustomerRepository and CustomersController
+     - Proper error handling and loading states
+     - Success/error feedback messages
+     - Automatic custom ID generation for new customers
+     - Editable custom ID field for existing customers
+     - Data validation before saving
+  - **Assignees field**: Multi-select dropdown for workspace members
+    - Fetches members from `workspaces/{workspaceId}/members`
+    - Matches with `users/{UID}` for full member data
+    - Saves UIDs to customer's `assignees` field
+    - Displays member names in UI, saves UIDs to database
+  - **Company field**: Multi-select company picker with search functionality
+    - Uses `CompanyPicker` widget for company selection
+    - Supports both old 'name' field and new 'companyNames' array structure
+    - Saves company data as array of objects: `[{id, label: "Main", value}]`
+    - Backward compatibility for existing company data
   - Form validation
   - Modern UI with consistent styling
 
@@ -99,6 +109,7 @@ Successfully implemented a complete customer management system for the SellStory
   - CustomerRepository
   - CustomersController
   - FirestoreRepository (for workspace management)
+  - IdGenerationService (for dynamic ID generation)
 - Removed WorkspaceService dependency
 - Proper dependency management for the customer feature
 
@@ -114,6 +125,15 @@ Successfully implemented a complete customer management system for the SellStory
   - `add_edit_customer_page.dart`: Uses controller for workspace ID and hashtag loading
   - `customer_detail_page.dart`: Uses controller for workspace ID and hashtag loading
 - **Removed WorkspaceService**: No longer needed as functionality is now in the controller
+
+### 6. Dynamic Customer ID Generation
+- **IdGenerationService** (`lib/core/services/id_generation_service.dart`)
+  - **Dynamic ID generation**: Fetches rules from `workspaces/workspaceId.companyProfile.idGenerationRules.customer`
+  - **Configurable format**: Supports different date formats (YYMMDD, YYYYMMDD, DDMMYY, MMDDYY)
+  - **Conflict protection**: Uses `companyProfile.lastUsedCounters.customer` field for atomic sequence management
+  - **Fallback handling**: Provides fallback ID generation when rules are not available
+  - **Format example**: `CUS-250825-0001` based on rules (prefix: "CUS", dateFormat: "YYMMDD", separator: "-", minLength: 4)
+- **Updated Add/Edit Customer Page**: Now uses dynamic ID generation service instead of hardcoded logic
 
 ## Data Structure Alignment
 The implementation correctly matches the Firebase backup data structure:
@@ -150,7 +170,8 @@ The implementation correctly matches the Firebase backup data structure:
 4. Add company functionality
 5. Implement location auto-detection
 6. Add image upload for customer profiles
-7. Add customer deletion functionality
+7. ✅ Add customer deletion functionality - COMPLETED
+8. ✅ Fix companyNames data type (String → List<Map<String, dynamic>>) - COMPLETED
 8. Add customer import/export features
 
 ## Notes
@@ -160,3 +181,23 @@ The implementation correctly matches the Firebase backup data structure:
 - Navigation is properly implemented between all pages
 - The feature is isolated and doesn't interfere with other app features
 - **Recent Update**: Replaced WorkspaceService with Firebase Auth integration in CustomersController for proper user and workspace management
+- **Dynamic Customer ID Generation**: Implemented dynamic customer ID generation based on Firestore rules from `workspaces/workspaceId/companyProfile/idGenerationRules/customer`
+- **Memory Leak Fix**: Fixed `setState() called after dispose()` error in `customer_detail_page.dart` by properly managing GetX `ever` listener lifecycle with `Worker` variable and `dispose()` method
+- **Assignees Feature Implementation**: 
+  - **Data Structure**: Changed `assignees` field from `String` to `List<String>` in Customer entity
+  - **WorkspaceMembersService**: Created service to fetch workspace members from `workspaces/{workspaceId}/members` and match with `users/{UID}` data
+  - **AssigneesInputField**: Created multi-select widget for assignees with user avatars, names, emails, and permission badges
+  - **UI Integration**: Replaced "Coming Soon" assignees field with functional multi-select dropdown in add/edit customer page
+  - **Display**: Added assignees display in customer detail page with chip-style UI showing display names instead of UIDs
+  - **Data Parsing**: Added `parseAssigneesFromMap` method to handle various data formats (String, List, JSON)
+  - **Dependency Injection**: Registered WorkspaceMembersService in locator.dart
+  - **Assignee Display Enhancement**: Updated customer detail page to fetch workspace members and display their display names instead of UIDs
+  - **Loading State**: Added loading indicator for assignees display while fetching member data
+  - **Fallback Handling**: If member data is not found, falls back to showing the UID
+  - **Company Display Enhancement**: Updated customer detail page to show company names in chip-style design matching assignees display
+  - **Company Chip Design**: Each company name now displays as an individual chip with orange theme styling
+- **Company Data Structure Fix**: 
+  - **Backward Compatibility**: Updated Company entity to handle both old 'name' field and new 'companyNames' array structure
+  - **Data Conversion**: Automatically converts old single 'name' field to new array format: `[{id, label: "Main", value}]`
+  - **Customer Integration**: Fixed customer form to properly save company data as array of objects instead of full company objects
+  - **Display Consistency**: Ensured company data is displayed and saved consistently across the application
