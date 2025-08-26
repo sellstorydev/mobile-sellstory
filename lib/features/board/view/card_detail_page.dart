@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/constants/app_font.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
+import '../widgets/hashtag_selection_modal.dart';
 
 class CardDetailPage extends StatefulWidget {
   final JobCard card;
@@ -23,10 +23,12 @@ class _CardDetailPageState extends State<CardDetailPage> {
   // Form controllers
   final TextEditingController _jobIdController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _hashtagController = TextEditingController();
   final TextEditingController _assigneeController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
+  
+  // Hashtag state
+  List<Map<String, dynamic>> _selectedHashtags = [];
   
   // Form state
   String _selectedBoard = '';
@@ -68,8 +70,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
     // Initialize form with current card data
     _jobIdController.text = _currentCard.customId.isNotEmpty ? _currentCard.customId : 'JB-${_currentCard.id.substring(0, 8)}';
     _titleController.text = _currentCard.title;
-    _hashtagController.text = _currentCard.hashtag ?? '';
     _assigneeController.text = _currentCard.assignee;
+    
+    // Initialize hashtags from current card
+    _initializeHashtags();
     _detailsController.text = _currentCard.description;
     _selectedStatus = _currentCard.status;
     _expectedClosingDate = _currentCard.dueDate;
@@ -105,18 +109,35 @@ class _CardDetailPageState extends State<CardDetailPage> {
   }
 
   Future<void> _loadAvailableOptions() async {
-    // Load boards - use current workspace board
-    _availableBoards = [
-      {'id': 'current-board', 'name': 'Current Board'},
-    ];
-    _selectedBoard = 'current-board';
+    // Load boards from Firestore
+    try {
+      print('🔄 Loading boards from Firestore...');
+      final boards = await _controller.getBoards();
+      
+      _availableBoards = boards.map((board) => {
+        'id': board.id,
+        'name': board.name,
+      }).toList();
+      
+      // Set current board from the card's data
+      final currentCard = _currentCard;
+      if (currentCard.boardId.isNotEmpty && _availableBoards.any((board) => board['id'] == currentCard.boardId)) {
+        _selectedBoard = currentCard.boardId;
+      } else if (_controller.currentBoardId.value.isNotEmpty) {
+        _selectedBoard = _controller.currentBoardId.value;
+      } else if (_availableBoards.isNotEmpty) {
+        _selectedBoard = _availableBoards.first['id'];
+      }
+      
+      print('✅ Boards loaded: ${_availableBoards.length} boards');
+      print('📍 Selected board: $_selectedBoard');
+    } catch (e) {
+      print('❌ Failed to load boards: $e');
+      _availableBoards = [];
+    }
     
-    // Load lanes
-    final lanes = _controller.lanes;
-    _availableLanes = lanes.map((lane) => {
-      'id': lane.id,
-      'name': lane.title,
-    }).toList();
+    // Load lanes for selected board
+    await _loadLanesForBoard(_selectedBoard);
     
     // Load users from current workspace
     await _loadWorkspaceUsers();
@@ -170,6 +191,38 @@ class _CardDetailPageState extends State<CardDetailPage> {
       _availableCompanies = [
         {'id': 'none', 'name': 'None'},
       ];
+    }
+  }
+
+  Future<void> _loadLanesForBoard(String boardId) async {
+    if (boardId.isEmpty) {
+      print('⚠️ No board ID provided for loading lanes');
+      _availableLanes = [];
+      return;
+    }
+    
+    try {
+      print('🔄 Loading lanes for board: $boardId');
+      final lanes = await _controller.getLanesByBoardId(boardId);
+      
+      _availableLanes = lanes.map((lane) => {
+        'id': lane.id,
+        'name': lane.title,
+      }).toList();
+      
+      print('✅ Lanes loaded for board $boardId: ${_availableLanes.length} lanes');
+      
+      // Set current lane from the card's data
+      if (_currentCard.laneId.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _currentCard.laneId)) {
+        _selectedLane = _currentCard.laneId;
+        print('✅ Set lane from card data: $_selectedLane');
+      } else if (_availableLanes.isNotEmpty) {
+        _selectedLane = _availableLanes.first['id'];
+        print('✅ Set first lane as default: $_selectedLane');
+      }
+    } catch (e) {
+      print('❌ Failed to load lanes for board $boardId: $e');
+      _availableLanes = [];
     }
   }
 
@@ -267,11 +320,32 @@ class _CardDetailPageState extends State<CardDetailPage> {
   void dispose() {
     _jobIdController.dispose();
     _titleController.dispose();
-    _hashtagController.dispose();
     _assigneeController.dispose();
     _detailsController.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+  
+  void _initializeHashtags() {
+    // Parse existing hashtag string into hashtag objects
+    if (_currentCard.hashtag?.isNotEmpty == true) {
+      final hashtagText = _currentCard.hashtag!;
+      final hashtags = hashtagText
+          .split(RegExp(r'[,\s]+'))
+          .where((tag) => tag.isNotEmpty)
+          .map((tag) => tag.trim().replaceFirst('#', ''))
+          .where((tag) => tag.isNotEmpty)
+          .toList();
+      
+      _selectedHashtags = hashtags.asMap().entries.map((entry) {
+        final colors = ['#f97316', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f472b6', '#6b7280'];
+        return {
+          'id': 'existing_${entry.key}',
+          'text': entry.value,
+          'color': colors[entry.key % colors.length],
+        };
+      }).toList();
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -405,10 +479,13 @@ class _CardDetailPageState extends State<CardDetailPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _jobIdController,
+          enabled: false, // Disable the field
           decoration: const InputDecoration(
             hintText: 'Job ID',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            fillColor: Color(0xFFF5F5F5), // Light gray background for disabled state
+            filled: true,
           ),
         ),
       ],
@@ -474,9 +551,16 @@ class _CardDetailPageState extends State<CardDetailPage> {
                     ),
                   );
                 }).toList(),
-                onChanged: (value) {
+                onChanged: (value) async {
                   setState(() {
                     _selectedBoard = value!;
+                  });
+                  
+                  // Load lanes for the newly selected board
+                  await _loadLanesForBoard(_selectedBoard);
+                  
+                  setState(() {
+                    // Trigger UI rebuild with new lanes
                   });
                 },
               ),
@@ -542,15 +626,50 @@ class _CardDetailPageState extends State<CardDetailPage> {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _hashtagController,
-          decoration: const InputDecoration(
-            hintText: 'e.g. #Urgent #FollowUp',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        InkWell(
+          onTap: _openHashtagModal,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[400]!),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: _selectedHashtags.isEmpty
+                ? const Text(
+                    'Tap to select hashtags...',
+                    style: TextStyle(color: Colors.grey),
+                  )
+                : Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _selectedHashtags.map((hashtag) {
+                      return Chip(
+                        label: Text('#${hashtag['text']}'),
+                        backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
+                        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      );
+                    }).toList(),
+                  ),
           ),
         ),
       ],
+    );
+  }
+  
+  void _openHashtagModal() {
+    showDialog(
+      context: context,
+      builder: (context) => HashtagSelectionModal(
+        selectedHashtags: _selectedHashtags,
+        onHashtagsSelected: (selectedHashtags) {
+          setState(() {
+            _selectedHashtags = selectedHashtags;
+          });
+        },
+      ),
     );
   }
 
@@ -640,22 +759,22 @@ class _CardDetailPageState extends State<CardDetailPage> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
-            SizedBox(
-              height: 48, // Match dropdown height
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // New customer functionality will be implemented later
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('New'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                ),
-              ),
-            ),
+            // const SizedBox(width: 8),
+            // ElevatedButton.icon(
+            //   onPressed: () {
+            //     // New customer functionality will be implemented later
+            //   },
+            //   icon: const Icon(Icons.add, size: 16),
+            //   label: const Text('New'),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: AppTheme.primaryOrange,
+            //     foregroundColor: Colors.white,
+            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(6),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ],
@@ -704,22 +823,22 @@ class _CardDetailPageState extends State<CardDetailPage> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
-            SizedBox(
-              height: 48, // Match dropdown height
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // New company functionality will be implemented later
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('New'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                ),
-              ),
-            ),
+            // const SizedBox(width: 8),
+            // ElevatedButton.icon(
+            //   onPressed: () {
+            //     // New company functionality will be implemented later
+            //   },
+            //   icon: const Icon(Icons.add, size: 16),
+            //   label: const Text('New'),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: AppTheme.primaryOrange,
+            //     foregroundColor: Colors.white,
+            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(6),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ],
@@ -892,20 +1011,28 @@ class _CardDetailPageState extends State<CardDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Add custom functionality will be implemented later
-              },
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add Custom'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[300],
-                foregroundColor: Colors.black87,
-              ),
-            ),
+            // const SizedBox(width: 8),
+            // ElevatedButton.icon(
+            //   onPressed: () {
+            //     // Add custom functionality will be implemented later
+            //   },
+            //   icon: const Icon(Icons.add, size: 16),
+            //   label: const Text('Add Custom'),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: Colors.grey[300],
+            //     foregroundColor: Colors.black87,
+            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(6),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
         const SizedBox(height: 8),
@@ -954,6 +1081,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -966,6 +1097,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
           ],
@@ -1011,6 +1146,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primaryOrange,
             foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -1100,10 +1239,13 @@ class _CardDetailPageState extends State<CardDetailPage> {
                   hintText: 'Write a comment...',
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  prefixIcon: CircleAvatar(
-                    radius: 12,
-                    backgroundColor: Colors.grey,
-                    child: Text('b', style: TextStyle(fontSize: 12, color: Colors.white)),
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey,
+                      child: Text('b', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ),
               ),
@@ -1117,6 +1259,9 @@ class _CardDetailPageState extends State<CardDetailPage> {
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
               child: const Text('Post'),
             ),
@@ -1369,7 +1514,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
         assignee: _assigneeController.text.trim(),
         customer: _selectedCustomer.isNotEmpty ? _availableCustomers.firstWhere((c) => c['id'] == _selectedCustomer)['name'] : '',
         company: _selectedCompany != 'none' ? _availableCompanies.firstWhere((c) => c['id'] == _selectedCompany)['name'] : null,
-        hashtag: _hashtagController.text.trim().isNotEmpty ? _hashtagController.text.trim() : null,
+        hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
         status: _selectedStatus,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,

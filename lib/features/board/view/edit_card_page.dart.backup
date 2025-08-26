@@ -211,46 +211,122 @@ class _EditCardPageState extends State<EditCardPage> {
 
   @override
   Widget build(BuildContext context) {
-          return Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
-        appBar: AppBar(
-          title: const Text(
-            'Edit Job Card',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          '✏️ Edit Job Card',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF4A90E2),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Color(0xFF4A90E2),
+                Color(0xFF7BB3F0),
+              ],
             ),
           ),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-          centerTitle: false,
-          actions: [
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.visibility_outlined, color: Colors.black54),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: PopupMenuButton<String>(
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person_add, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text('Add Watcher', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
               onSelected: (value) {
-                // Add watcher functionality will be implemented later
+                // Watcher functionality will be implemented later
               },
               itemBuilder: (context) => [
                 const PopupMenuItem(
                   value: 'add_watcher',
                   child: Row(
                     children: [
-                      Icon(Icons.visibility_outlined, size: 18),
+                      Icon(Icons.person_add, color: Color(0xFF4A90E2)),
                       SizedBox(width: 8),
-                      Text('Add a watcher'),
+                      Text('Add a watcher...'),
                     ],
                   ),
                 ),
               ],
             ),
-          ],
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: PopupMenuButton<String>(
+              onSelected: (value) {
+                // Menu options will be implemented later
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'duplicate',
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy, color: Color(0xFF4A90E2)),
+                      SizedBox(width: 8),
+                      Text('Duplicate'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete'),
+                    ],
+                  ),
+                ),
+              ],
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.more_vert, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFF8F9FA),
+              Color(0xFFE9ECEF),
+            ],
+          ),
         ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             _buildCoreDetails(),
             const SizedBox(height: 24),
             _buildStatusSection(),
@@ -268,8 +344,9 @@ class _EditCardPageState extends State<EditCardPage> {
             _buildHistorySection(),
             const SizedBox(height: 24),
             _buildCommentsSection(),
-            const SizedBox(height: 100), // Space for bottom buttons
-          ],
+              const SizedBox(height: 100), // Space for bottom buttons
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomButtons(),
@@ -278,258 +355,128 @@ class _EditCardPageState extends State<EditCardPage> {
 
   Widget _buildCoreDetails() {
     return Container(
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Color(0xFFF8F9FA),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Job ID Section
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryOrange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.tag,
-                    color: AppTheme.primaryOrange,
-                    size: 20,
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A90E2).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Job ID',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                child: const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFF4A90E2),
+                  size: 20,
                 ),
-                const Spacer(),
-                Text(
-                  _jobIdController.text.isEmpty ? 'Auto-generated' : _jobIdController.text,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            
-            // Job Card Title Section
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.edit,
-                    color: Colors.blue,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Job Card Title',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                hintText: 'Enter job title',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: Color(0xFFE1E5E9)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: Color(0xFFE1E5E9)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Board and Lane Section
-            Row(
-              children: [
-                const Text(
-                  'Board',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+              const SizedBox(width: 12),
+              const Text(
+                '📋 Core Details',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3748),
                 ),
-                const SizedBox(width: 50),
-                const Text(
-                  'Lane',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
-                      border: Border.all(color: const Color(0xFFE1E5E9)),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'Current Board',
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedLane.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _selectedLane) 
-                           ? _selectedLane : null,
-                    decoration: InputDecoration(
-                      hintText: 'Select lane',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(color: Color(0xFFE1E5E9)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(color: Color(0xFFE1E5E9)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    ),
-                    isExpanded: true,
-                    items: _availableLanes.map((lane) {
-                      return DropdownMenuItem<String>(
-                        value: lane['id'],
-                        child: Text(
-                          lane['name'],
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLane = value ?? '';
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Hashtag
-            const Text(
-              'Hashtag',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          // Job ID
+          TextFormField(
+            controller: _jobIdController,
+            decoration: const InputDecoration(
+              labelText: 'Job ID',
+              prefixIcon: Icon(Icons.tag),
+              border: OutlineInputBorder(),
             ),
-            const SizedBox(height: 8),
-            TextFormField(
+            readOnly: true,
+          ),
+          const SizedBox(height: 16),
+          
+          // Job Card Title
+          TextFormField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              labelText: 'Job Card Title *',
+              prefixIcon: Icon(Icons.title),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Lane
+          DropdownButtonFormField<String>(
+              value: _selectedLane.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _selectedLane) 
+                     ? _selectedLane 
+                     : null,
+              decoration: const InputDecoration(
+                labelText: 'Lane',
+                prefixIcon: Icon(Icons.view_column),
+                border: OutlineInputBorder(),
+              ),
+              isExpanded: true,
+              items: _availableLanes.map((lane) {
+                return DropdownMenuItem<String>(
+                  value: lane['id'],
+                  child: Text(
+                    lane['name'],
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedLane = value ?? '';
+                });
+              },
+          ),
+          const SizedBox(height: 16),
+          
+          // Hashtag
+          TextFormField(
               controller: _hashtagController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
+                labelText: 'Hashtag',
                 hintText: 'e.g. #Urgent #FollowUp',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: Color(0xFFE1E5E9)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: Color(0xFFE1E5E9)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                prefixIcon: Icon(Icons.tag),
+                border: OutlineInputBorder(),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Assignee
-            const Text(
-              'Assignee *',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
+          ),
+          const SizedBox(height: 16),
+          
+          // Assignee
+          DropdownButtonFormField<String>(
               value: _selectedAssignee.isNotEmpty && _availableAssignees.any((assignee) => assignee['id'] == _selectedAssignee) 
-                     ? _selectedAssignee : null,
-              decoration: InputDecoration(
-                hintText: 'Select an assignee',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: Color(0xFFE1E5E9)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: Color(0xFFE1E5E9)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                     ? _selectedAssignee 
+                     : null,
+              decoration: const InputDecoration(
+                labelText: 'Assignee',
+                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder(),
               ),
               isExpanded: true,
               items: _availableAssignees.map((assignee) {
@@ -547,11 +494,11 @@ class _EditCardPageState extends State<EditCardPage> {
                   _selectedAssignee = value ?? '';
                 });
               },
-            ),
-            const SizedBox(height: 16),
-            
-            // Customer
-            Row(
+          ),
+          const SizedBox(height: 16),
+          
+          // Customer
+          Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
@@ -598,11 +545,11 @@ class _EditCardPageState extends State<EditCardPage> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Company
-            Row(
+          ),
+          const SizedBox(height: 16),
+          
+          // Company
+          Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
@@ -649,37 +596,37 @@ class _EditCardPageState extends State<EditCardPage> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Expected Closing Date
-            InkWell(
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: _expectedClosingDate ?? DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (date != null) {
-                  setState(() {
-                    _expectedClosingDate = date;
-                  });
-                }
-              },
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Expected Closing Date',
-                  prefixIcon: Icon(Icons.calendar_today),
-                  border: OutlineInputBorder(),
-                ),
-                child: Text(
-                  _expectedClosingDate != null
-                      ? '${_expectedClosingDate!.day}/${_expectedClosingDate!.month}/${_expectedClosingDate!.year}'
-                      : 'Select a date',
-                ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Expected Closing Date
+          InkWell(
+            onTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _expectedClosingDate ?? DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (date != null) {
+                setState(() {
+                  _expectedClosingDate = date;
+                });
+              }
+            },
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Expected Closing Date',
+                prefixIcon: Icon(Icons.calendar_today),
+                border: OutlineInputBorder(),
+              ),
+              child: Text(
+                _expectedClosingDate != null
+                    ? '${_expectedClosingDate!.day}/${_expectedClosingDate!.month}/${_expectedClosingDate!.year}'
+                    : 'Select a date',
               ),
             ),
+          ),
           ],
         ),
       ),
@@ -1164,50 +1111,118 @@ class _EditCardPageState extends State<EditCardPage> {
 
   Widget _buildBottomButtons() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Color(0xFFF8F9FA),
+          ],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, -2),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
       child: Row(
         children: [
           Expanded(
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Colors.grey[400]!,
+                    Colors.grey[300]!,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: const Text('Cancel'),
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close, size: 20),
+                label: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _saveChanges,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xFF4A90E2),
+                    Color(0xFF7BB3F0),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4A90E2).withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text('Save'),
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _saveChanges,
+                icon: _isLoading 
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.save, size: 20),
+                label: Text(
+                  _isLoading ? 'Saving...' : '💾 Save Changes',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

@@ -492,6 +492,29 @@ class BoardController extends GetxController implements BoardView {
     }
   }
 
+  // Get lanes for a specific board
+  Future<List<Lane>> getLanesByBoardId(String boardId) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for getting lanes');
+      return [];
+    }
+    
+    try {
+      print('🔄 Getting lanes for board: $boardId in workspace: ${currentWorkspaceId.value}');
+      
+      // Get lanes stream for the specific board
+      final lanesStream = _repository.getLanesStream(currentWorkspaceId.value, boardId: boardId);
+      final lanesList = await lanesStream.first;
+      
+      print('✅ Lanes loaded successfully for board $boardId - ${lanesList.length} lanes');
+      return lanesList;
+    } catch (e) {
+      print('❌ Failed to get lanes for board $boardId: $e');
+      error.value = 'Failed to get lanes';
+      return [];
+    }
+  }
+
   // Create board
   Future<String> createBoard(String name) async {
     if (currentWorkspaceId.value.isEmpty) {
@@ -1081,5 +1104,49 @@ class BoardController extends GetxController implements BoardView {
       return filteredLanes;
     }
     return lanes;
+  }
+
+  // Get hashtags from workspace hashtagSettings
+  Future<List<Map<String, dynamic>>> getWorkspaceHashtags() async {
+    try {
+      final workspaceId = currentWorkspaceId.value;
+      if (workspaceId.isEmpty) {
+        print('⚠️ No workspace selected for loading hashtags');
+        return [];
+      }
+
+      print('🔄 Loading hashtags for workspace: $workspaceId');
+      
+      // Get workspace data
+      final workspaceData = await _repository.getWorkspace(workspaceId);
+      
+      if (workspaceData != null) {
+        final hashtagSettings = workspaceData['companyProfile']?['hashtagSettings'] as Map<String, dynamic>?;
+        
+        if (hashtagSettings != null && hashtagSettings['isEnabled'] == true) {
+          final masterList = hashtagSettings['masterList'] as List<dynamic>?;
+          
+          if (masterList != null) {
+            final hashtags = masterList
+                .where((hashtag) => hashtag['enabled'] == true && hashtag['scopes']?['jobBoard'] == true)
+                .map((hashtag) => {
+                  'id': hashtag['id'] ?? '',
+                  'text': hashtag['name'] ?? '',
+                  'color': hashtag['color'] ?? '#f97316',
+                })
+                .toList();
+            
+            print('✅ Loaded ${hashtags.length} hashtags from workspace settings');
+            return List<Map<String, dynamic>>.from(hashtags);
+          }
+        }
+      }
+      
+      print('⚠️ No hashtag settings found for workspace');
+      return [];
+    } catch (e) {
+      print('❌ Failed to load workspace hashtags: $e');
+      return [];
+    }
   }
 }

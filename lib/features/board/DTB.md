@@ -1,5 +1,5 @@
 ### SCOPE
-ระบบใช้ Firestore โครงสร้างหลัก: workspace → boards/lanes/cards/customers/companies/activities (ดู PATHS)  
+ระบบใช้ Firestore โครงสร้างหลัก: workspace → boards/lanes/cards/customers/companies/activities (ดู PATHS)
 จุดประสงค์ context: ให้ AI เข้าใจโมเดลข้อมูล, ความสัมพันธ์, และชนิดข้อมูล เพื่อใช้ตอบคำถาม/เขียนโค้ด map ค่าได้ถูกต้อง
 
 ### DATABASE_OVERVIEW
@@ -95,10 +95,40 @@ fields:
 Card (document)
 /workspaces/{workspaceId}/cards/{cardId}
 fields:
+  # meta & relation
+  id: string
+  boardId: string
+  laneId: string
+  workspaceId: string
+  createdAt: number                # epoch ms
   createdBy: string
-  lanes: array                     # อาจเก็บ id ของ lane ที่เกี่ยวข้อง
-  memberUids: array<string>
-  members: array<map>
+  updatedAt: number                # epoch ms
+  updatedBy: string
+  updatedByDisplayName?: string
+  assignedTo?: string
+
+  # content
+  title: string
+  description: string
+  status: string                   # เช่น "Pending" / etc.
+  order: number
+  notes: array
+  todos: array
+  expenses: array
+  watchers: array
+  customFields: array
+  customId: string
+
+  # customer link (ถ้ามี)
+  customer?: string
+  customerId?: string
+
+  # lanes reference (ถ้าเก็บซ้ำ)
+  lanes?: array
+
+  # members duplication (ถ้าใช้)
+  memberUids?: array<string>
+  members?: array<map>
     members[].displayName: string
     members[].email: string
     members[].language: string
@@ -113,8 +143,15 @@ fields:
     workspaces[].id: string
     workspaces[].name: string
     workspaces[].role: string
-  name: string
-  workspaceId: string
+
+  # NEW: hashtags
+  hashtags: array<Hashtag>
+  Hashtag: map
+    Hashtag.id: string
+    Hashtag.text: string
+    Hashtag.color: string          # hex เช่น "#f97316"
+  # (ถ้าต้อง query หา card ด้วย hashtag แนะนำเพิ่ม)
+  hashtagsIndex?: array<string>    # เก็บ id หรือ text (normalize) สำหรับทำ array-contains/any
 
 Lane (document)
 /workspaces/{workspaceId}/lanes/{laneId}
@@ -149,6 +186,7 @@ fields:
   name: string
   updatedAt: number       # epoch ms
   updatedBy: string
+  updatedByDisplayName: string
   workspaceId: string
 
 Company (document)
@@ -190,7 +228,8 @@ fields:
   workspaceId: string
 
 ### NOTES & CONVENTIONS
-- วันที่/เวลาใน number ใช้ epoch ms; ถ้าเป็น Firestore timestamp จะระบุเป็นชนิด timestamp
-- ตั้งชื่อคีย์ให้สม่ำเสมอ (เลือกใช้ camelCase ตามข้อมูลชุดนี้)
-- ความสัมพันธ์ซ้ำซ้อน (เช่น members.workspaces และ field workspaces บน board/card) ให้ยึด source of truth ที่ทีมกำหนด
-- โครงสร้างสอดคล้องแนวคิด documents/collections/subcollections ของ Firestore
+- number สำหรับเวลา = epoch ms; ถ้าเป็น Firestore timestamp จะระบุชนิด timestamp
+- ตั้งชื่อคีย์ให้สม่ำเสมอ (camelCase ตามชุดนี้)
+- ถ้าข้อมูลซ้ำซ้อน (เช่น members.workspaces กับ workspaces บน board/card) ให้ยึด source of truth ที่ทีมกำหนด
+- Query จาก array ของ object: การใช้ array-contains ต้องแมตช์ “ทั้ง object” ใน array; ถ้าต้องการค้นจาก key ใด key หนึ่ง แนะนำเพิ่มฟิลด์เสริมเช่น hashtagsIndex: array<string> เพื่อ query ให้ตรงและเร็วขึ้น
+- ดัชนี: ใช้ single-field/composite indexes ตาม query; array-contains/array-contains-any มีข้อจำกัด และ composite index รองรับ array field ได้สูงสุดหนึ่งฟิลด์ต่อ index

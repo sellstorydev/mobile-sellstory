@@ -121,16 +121,37 @@ class JobCard {
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
-    // Build the map based on DTB.md structure and only include non-empty values
+    // Build the map based on DTB.md Card structure
     final Map<String, dynamic> data = {
       'workspaceId': workspaceId,
+      'name': title, // Card name per DTB.md
+      'title': title, // Also include title field for compatibility
     };
 
-    // Required fields
-    if (title.isNotEmpty) data['name'] = title; // Map title -> name per DTB.md
+    // Required fields per DTB.md Card structure
     if (createdBy.isNotEmpty) data['createdBy'] = createdBy;
     
-    // Optional fields - only add if they have values
+    // DTB.md Card structure requires these arrays
+    data['memberUids'] = watchers.isNotEmpty ? watchers : [createdBy]; // Use watchers or creator
+    data['members'] = []; // Will be populated by backend/system
+    
+    // lanes array per DTB.md (may store lane IDs related to this card)
+    if (laneId.isNotEmpty) {
+      data['lanes'] = [laneId];
+    } else {
+      data['lanes'] = [];
+    }
+    
+    // Optional workspaces array per DTB.md
+    if (workspaceId.isNotEmpty) {
+      data['workspaces'] = [{
+        'id': workspaceId,
+        'name': '', // Will be populated by backend
+        'role': 'member'
+      }];
+    }
+
+    // Job card specific fields (not in DTB.md Card but needed for job cards)
     if (description.isNotEmpty) data['description'] = description;
     if (assignee.isNotEmpty) data['assignedTo'] = assignee;
     if (status.isNotEmpty) data['status'] = status;
@@ -140,7 +161,7 @@ class JobCard {
     if (amount > 0) data['amount'] = amount;
     if (laneId.isNotEmpty) data['laneId'] = laneId;
     if (boardId.isNotEmpty) data['boardId'] = boardId;
-    if (order > 0) data['order'] = order;
+    if (order >= 0) data['order'] = order; // Allow 0 order
     if (customer.isNotEmpty) data['customer'] = customer;
     if (updatedByDisplayName.isNotEmpty) data['updatedByDisplayName'] = updatedByDisplayName;
     if (customerId?.isNotEmpty == true) data['customerId'] = customerId;
@@ -149,18 +170,12 @@ class JobCard {
     if (expenses.isNotEmpty) data['expenses'] = expenses;
     if (todos.isNotEmpty) data['todos'] = todos;
     if (notes.isNotEmpty) data['notes'] = notes;
-    if (watchers.isNotEmpty) data['watchers'] = watchers;
     if (customFields.isNotEmpty) data['customFields'] = customFields;
     if (updatedBy.isNotEmpty) data['updatedBy'] = updatedBy;
 
-    // Always include timestamps
-    data['createdAt'] = Timestamp.fromDate(createdAt);
-    data['updatedAt'] = Timestamp.fromDate(updatedAt);
-
-    // DTB.md structure fields
-    if (laneId.isNotEmpty) {
-      data['lanes'] = [laneId]; // lanes: array per DTB.md
-    }
+    // Always include timestamps (convert to epoch ms per DTB.md conventions)
+    data['createdAt'] = createdAt.millisecondsSinceEpoch;
+    data['updatedAt'] = updatedAt.millisecondsSinceEpoch;
 
     return data;
   }
@@ -168,12 +183,36 @@ class JobCard {
   // Create from Map from Firestore
   factory JobCard.fromMap(Map<String, dynamic> map, String id) {
     // Handle DTB.md structure mapping
-    String title = map['title'] ?? map['name'] ?? ''; // Support both title and name
+    String title = map['title'] ?? map['name'] ?? ''; // Support both title and name per DTB.md
     String laneId = map['laneId'] ?? '';
     
     // Handle lanes array from DTB.md structure
     if (laneId.isEmpty && map['lanes'] is List && (map['lanes'] as List).isNotEmpty) {
       laneId = (map['lanes'] as List).first?.toString() ?? '';
+    }
+
+    // Handle memberUids from DTB.md structure for watchers
+    List<String> watchers = [];
+    if (map['memberUids'] is List) {
+      watchers = List<String>.from(map['memberUids']);
+    } else if (map['watchers'] is List) {
+      watchers = List<String>.from(map['watchers']);
+    }
+
+    // Handle timestamps - DTB.md uses epoch ms (number) but Firestore may use Timestamp
+    DateTime createdAt = DateTime.now();
+    DateTime updatedAt = DateTime.now();
+    
+    if (map['createdAt'] is Timestamp) {
+      createdAt = (map['createdAt'] as Timestamp).toDate();
+    } else if (map['createdAt'] is int) {
+      createdAt = DateTime.fromMillisecondsSinceEpoch(map['createdAt']);
+    }
+    
+    if (map['updatedAt'] is Timestamp) {
+      updatedAt = (map['updatedAt'] as Timestamp).toDate();
+    } else if (map['updatedAt'] is int) {
+      updatedAt = DateTime.fromMillisecondsSinceEpoch(map['updatedAt']);
     }
 
     return JobCard(
@@ -190,10 +229,8 @@ class JobCard {
       boardId: map['boardId'] ?? '',
       workspaceId: map['workspaceId'] ?? '',
       order: map['order'] ?? 0,
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? 
-                 DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? 
-                 DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       customer: map['customer'] ?? '',
       updatedByDisplayName: map['updatedByDisplayName'] ?? '',
       customerId: map['customerId'],
@@ -202,7 +239,7 @@ class JobCard {
       expenses: List<Map<String, dynamic>>.from(map['expenses'] ?? []),
       todos: List<Map<String, dynamic>>.from(map['todos'] ?? []),
       notes: List<Map<String, dynamic>>.from(map['notes'] ?? []),
-      watchers: List<String>.from(map['watchers'] ?? []),
+      watchers: watchers,
       customFields: List<Map<String, dynamic>>.from(map['customFields'] ?? []),
       createdBy: map['createdBy'] ?? '',
       updatedBy: map['updatedBy'] ?? '',

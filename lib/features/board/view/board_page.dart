@@ -705,6 +705,11 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   void _navigateToCreateCardWithLane(Lane lane) {
+    print('🔄 Navigating to create card with lane:');
+    print('  - Lane ID: ${lane.id}');
+    print('  - Lane Name: ${lane.title}');
+    print('  - Workspace ID: ${_controller.currentWorkspaceId.value}');
+    
     Get.toNamed(
       '/create-card',
       parameters: {
@@ -748,7 +753,7 @@ class _BoardPageState extends State<BoardPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
-        onTap: () => _navigateToCreateCard(),
+        onTap: () => _navigateToCreateCardWithLane(lane),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(12),
