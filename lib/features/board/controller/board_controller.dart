@@ -492,6 +492,29 @@ class BoardController extends GetxController implements BoardView {
     }
   }
 
+  // Get lanes for a specific board
+  Future<List<Lane>> getLanesByBoardId(String boardId) async {
+    if (currentWorkspaceId.value.isEmpty) {
+      print('⚠️ No workspace selected for getting lanes');
+      return [];
+    }
+    
+    try {
+      print('🔄 Getting lanes for board: $boardId in workspace: ${currentWorkspaceId.value}');
+      
+      // Get lanes stream for the specific board
+      final lanesStream = _repository.getLanesStream(currentWorkspaceId.value, boardId: boardId);
+      final lanesList = await lanesStream.first;
+      
+      print('✅ Lanes loaded successfully for board $boardId - ${lanesList.length} lanes');
+      return lanesList;
+    } catch (e) {
+      print('❌ Failed to get lanes for board $boardId: $e');
+      error.value = 'Failed to get lanes';
+      return [];
+    }
+  }
+
   // Create board
   Future<String> createBoard(String name) async {
     if (currentWorkspaceId.value.isEmpty) {

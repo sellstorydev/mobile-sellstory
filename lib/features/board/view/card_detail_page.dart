@@ -105,18 +105,35 @@ class _CardDetailPageState extends State<CardDetailPage> {
   }
 
   Future<void> _loadAvailableOptions() async {
-    // Load boards - use current workspace board
-    _availableBoards = [
-      {'id': 'current-board', 'name': 'Current Board'},
-    ];
-    _selectedBoard = 'current-board';
+    // Load boards from Firestore
+    try {
+      print('🔄 Loading boards from Firestore...');
+      final boards = await _controller.getBoards();
+      
+      _availableBoards = boards.map((board) => {
+        'id': board.id,
+        'name': board.name,
+      }).toList();
+      
+      // Set current board from the card's data
+      final currentCard = _currentCard;
+      if (currentCard.boardId.isNotEmpty && _availableBoards.any((board) => board['id'] == currentCard.boardId)) {
+        _selectedBoard = currentCard.boardId;
+      } else if (_controller.currentBoardId.value.isNotEmpty) {
+        _selectedBoard = _controller.currentBoardId.value;
+      } else if (_availableBoards.isNotEmpty) {
+        _selectedBoard = _availableBoards.first['id'];
+      }
+      
+      print('✅ Boards loaded: ${_availableBoards.length} boards');
+      print('📍 Selected board: $_selectedBoard');
+    } catch (e) {
+      print('❌ Failed to load boards: $e');
+      _availableBoards = [];
+    }
     
-    // Load lanes
-    final lanes = _controller.lanes;
-    _availableLanes = lanes.map((lane) => {
-      'id': lane.id,
-      'name': lane.title,
-    }).toList();
+    // Load lanes for selected board
+    await _loadLanesForBoard(_selectedBoard);
     
     // Load users from current workspace
     await _loadWorkspaceUsers();
@@ -170,6 +187,38 @@ class _CardDetailPageState extends State<CardDetailPage> {
       _availableCompanies = [
         {'id': 'none', 'name': 'None'},
       ];
+    }
+  }
+
+  Future<void> _loadLanesForBoard(String boardId) async {
+    if (boardId.isEmpty) {
+      print('⚠️ No board ID provided for loading lanes');
+      _availableLanes = [];
+      return;
+    }
+    
+    try {
+      print('🔄 Loading lanes for board: $boardId');
+      final lanes = await _controller.getLanesByBoardId(boardId);
+      
+      _availableLanes = lanes.map((lane) => {
+        'id': lane.id,
+        'name': lane.title,
+      }).toList();
+      
+      print('✅ Lanes loaded for board $boardId: ${_availableLanes.length} lanes');
+      
+      // Set current lane from the card's data
+      if (_currentCard.laneId.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _currentCard.laneId)) {
+        _selectedLane = _currentCard.laneId;
+        print('✅ Set lane from card data: $_selectedLane');
+      } else if (_availableLanes.isNotEmpty) {
+        _selectedLane = _availableLanes.first['id'];
+        print('✅ Set first lane as default: $_selectedLane');
+      }
+    } catch (e) {
+      print('❌ Failed to load lanes for board $boardId: $e');
+      _availableLanes = [];
     }
   }
 
@@ -477,9 +526,16 @@ class _CardDetailPageState extends State<CardDetailPage> {
                     ),
                   );
                 }).toList(),
-                onChanged: (value) {
+                onChanged: (value) async {
                   setState(() {
                     _selectedBoard = value!;
+                  });
+                  
+                  // Load lanes for the newly selected board
+                  await _loadLanesForBoard(_selectedBoard);
+                  
+                  setState(() {
+                    // Trigger UI rebuild with new lanes
                   });
                 },
               ),
