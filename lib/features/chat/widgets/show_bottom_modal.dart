@@ -8,6 +8,7 @@ import 'chat_menu_tile.dart';
 import 'notes_sheet.dart';
 import 'user_picker_sheet.dart';
 import 'customer_picker_sheet.dart';
+import 'jobcard_picker_sheet.dart';
 
 const _accent = Color(0xFFFF7A00); // โทมส้มตามภาพ
 
@@ -115,9 +116,15 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   late ChatStatus _status;
   late bool _pinned;
   late bool _botEnabled; // Add bot status variable
-  String? _assign;
   bool _loadingAssignees = false;
   List<UserItem> _assignees = [];
+  // Track current customerId locally to allow updating after picking a new one
+  String? _currentCustomerId;
+  String? _currentCustomerName;
+  // Linked Job Card state
+  String? _jobCardId;
+  String? _jobCardTitle;
+
 
   // Helper to get chatroom doc ref
   DocumentReference<Map<String, dynamic>> get _chatroomDoc => FirebaseFirestore.instance
@@ -131,6 +138,40 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   Future<Map<String, dynamic>> _getChatroomData() async {
     final snap = await _chatroomDoc.get();
     return snap.data() ?? <String, dynamic>{};
+  }
+
+  Future<void> _loadCustomerNameById(String cid) async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.workspaceId)
+          .collection('customers')
+          .doc(cid)
+          .get();
+      final m = snap.data() ?? {};
+      final name = (m['name'] ?? m['displayName'] ?? m['customerName'] ?? '').toString();
+      if (!mounted) return;
+      setState(() => _currentCustomerName = name.isNotEmpty ? name : null);
+    } catch (_) {
+      // ignore fetch errors for UX
+    }
+  }
+
+  Future<void> _loadJobCardTitleById(String cardId) async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.workspaceId)
+          .collection('cards')
+          .doc(cardId)
+          .get();
+      final m = snap.data() ?? {};
+      final title = (m['title'] ?? m['name'] ?? '').toString();
+      if (!mounted) return;
+      setState(() => _jobCardTitle = title.isNotEmpty ? title : null);
+    } catch (_) {
+      // ignore
+    }
   }
 
   String _pickDisplayName(Map<String, dynamic> data) {
@@ -209,9 +250,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     _status = widget.current;
     _pinned = widget.pinned;
     _botEnabled = widget.botEnabled; // Initialize bot status
-    _assign = widget.selectedAssign;
-    if (widget.customerId != null && widget.customerId!.isNotEmpty) {
+    _currentCustomerId = widget.customerId;
+    if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
       _loadAssignees();
+      _loadCustomerNameById(_currentCustomerId!);
     }
     // Realtime sync with chatroom document
     _chatroomSub = _chatroomDoc.snapshots().listen((snap) {
@@ -221,11 +263,49 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       final bot = (data['bot_status'] ?? 'N') == 'Y';
       final statusRaw = (data['chatroom_status'] ?? '').toString().toUpperCase();
       final status = statusRaw == 'DONE' ? ChatStatus.done : ChatStatus.inProgress;
+      final cid = (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString();
+      final cname = (data['customerName'] ?? '').toString();
+      final jobId = (data['jobCardId'] ?? data['jobCardID'] ?? '').toString();
+      final jobTitle = (data['jobCardTitle'] ?? '').toString();
       if (!mounted) return;
       setState(() {
         _pinned = pinned;
         _botEnabled = bot;
         _status = status;
+        // If customerId changed while sheet is open, update and reload assignees
+        if ((cid ?? '') != (_currentCustomerId ?? '')) {
+          _currentCustomerId = cid;
+          _assignees = [];
+          if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
+            _loadAssignees();
+            if (cname.isNotEmpty) {
+              _currentCustomerName = cname;
+            } else {
+              _loadCustomerNameById(_currentCustomerId!);
+            }
+          } else {
+            _currentCustomerName = null;
+          }
+        } else {
+          // same id; update name if present in doc
+          if (cname.isNotEmpty) _currentCustomerName = cname;
+        }
+        // Sync job card fields
+        final prevJobId = _jobCardId ?? '';
+        if (jobId != prevJobId) {
+          _jobCardId = jobId.isNotEmpty ? jobId : null;
+          if (_jobCardId != null) {
+            if (jobTitle.isNotEmpty) {
+              _jobCardTitle = jobTitle;
+            } else {
+              _loadJobCardTitleById(_jobCardId!);
+            }
+          } else {
+            _jobCardTitle = null;
+          }
+        } else {
+          if (jobTitle.isNotEmpty) _jobCardTitle = jobTitle;
+        }
       });
     });
   }
@@ -238,14 +318,14 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Future<void> _loadAssignees() async {
-    if (widget.customerId == null || widget.customerId!.isEmpty) return;
+    if (_currentCustomerId == null || _currentCustomerId!.isEmpty) return;
     try {
       setState(() => _loadingAssignees = true);
       final doc = await FirebaseFirestore.instance
           .collection('workspaces')
           .doc(widget.workspaceId)
           .collection('customers')
-          .doc(widget.customerId)
+          .doc(_currentCustomerId)
           .get();
       final data = doc.data() ?? {};
       final ids = ((data['assignees'] as List?) ?? []).cast<String>();
@@ -270,7 +350,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
 
   Future<void> _openNotes() async {
 
-    if (widget.customerId == null || widget.customerId!.isEmpty) {
+    if (_currentCustomerId == null || _currentCustomerId!.isEmpty) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ไม่พบลูกค้าสำหรับบันทึกโน้ต')),
@@ -291,7 +371,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           height: h * 0.9,
           child: NotesSheet(
             workspaceId: widget.workspaceId,
-            customerId: widget.customerId!,
+            customerId: _currentCustomerId!,
           ),
         );
       },
@@ -327,12 +407,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           ],
         ),
       );
-      if (ok == true && widget.customerId != null && widget.customerId!.isNotEmpty) {
+      if (ok == true && _currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
         await FirebaseFirestore.instance
             .collection('workspaces')
             .doc(widget.workspaceId)
             .collection('customers')
-            .doc(widget.customerId)
+            .doc(_currentCustomerId)
             .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
         await _loadAssignees();
         widget.onAssignChanged?.call(pickedUid);
@@ -341,12 +421,18 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
           );
         }
+      } else if (ok == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('กรุณาเชื่อมลูกค้ากับห้องแชทก่อน')),
+          );
+        }
       }
     }
   }
 
   Future<void> _removeAssignee(UserItem user) async {
-    if (widget.customerId == null || widget.customerId!.isEmpty) return;
+    if (_currentCustomerId == null || _currentCustomerId!.isEmpty) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -365,7 +451,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           .collection('workspaces')
           .doc(widget.workspaceId)
           .collection('customers')
-          .doc(widget.customerId)
+          .doc(_currentCustomerId)
           .set({'assignees': FieldValue.arrayRemove([user.uid])}, SetOptions(merge: true));
       if (!mounted) return;
       setState(() => _assignees.removeWhere((u) => u.uid == user.uid));
@@ -413,10 +499,55 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }, SetOptions(merge: true));
 
       if (!mounted) return;
+      setState(() {
+        _currentCustomerId = pickedCustomerId;
+        _currentCustomerName = name.isNotEmpty ? name : null;
+      });
+      // Refresh assignees immediately for the newly linked customer
+      await _loadAssignees();
+
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('เชื่อมลูกค้ากับห้องแชทแล้ว')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เชื่อมลูกค้าไม่สำเร็จ: $e')));
+    }
+  }
+
+  Future<void> _openJobCardPicker() async {
+    final result = await showModalBottomSheet<JobCardPickerResult>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final h = MediaQuery.of(ctx).size.height;
+        return SizedBox(
+          height: h * 0.9,
+          child: JobCardPickerSheet(workspaceId: widget.workspaceId),
+        );
+      },
+    );
+
+    if (result == null) return;
+
+    try {
+      await _chatroomDoc.set({
+        'jobCardId': result.cardId,
+        'jobCardTitle': result.title,
+      }, SetOptions(merge: true));
+
+      if (!mounted) return;
+      setState(() {
+        _jobCardId = result.cardId;
+        _jobCardTitle = result.title;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ผูก Job Card แล้ว')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ผูก Job Card ไม่สำเร็จ: $e')));
     }
   }
 
@@ -475,12 +606,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   tooltip: 'ตอบกลับอัตโนมัติ: เปิด/ปิดการทำงานของแชตบอท',
                   onTap: () async {
                     setState(() => _botEnabled = !_botEnabled);
-                    // Prefer parent callback
-
                     if (widget.onBotStatusChanged != null) {
                       widget.onBotStatusChanged!(_botEnabled);
                     } else {
-                      // Fallback: persist directly
                       try {
                         await _chatroomDoc.update({'bot_status': _botEnabled ? 'Y' : 'N'});
                         if (mounted) {
@@ -505,20 +633,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   tooltip: 'ห้องแชทกำลังดำเนินการ',
                   onTap: () async {
                     setState(() => _status = ChatStatus.inProgress);
-                    if (widget.onStatusChange != null) {
-                      widget.onStatusChange(_status);
-                    } else {
-                      try {
-                        await _chatroomDoc.update({'chatroom_status': 'IN_PROGRESS'});
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ตั้งค่าเป็นกำลังดำเนินการ')));
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปเดตสถานะไม่สำเร็จ: $e')));
-                        }
-                      }
-                    }
+                    // onStatusChange is required; call directly
+                    widget.onStatusChange(_status);
                   },
                 ),
                 ChatStatusButton(
@@ -528,20 +644,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   tooltip: 'คุยจบแล้ว',
                   onTap: () async {
                     setState(() => _status = ChatStatus.done);
-                    if (widget.onStatusChange != null) {
-                      widget.onStatusChange(_status);
-                    } else {
-                      try {
-                        await _chatroomDoc.update({'chatroom_status': 'DONE'});
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ตั้งค่าเป็นสำเร็จ')));
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปเดตสถานะไม่สำเร็จ: $e')));
-                        }
-                      }
-                    }
+                    // onStatusChange is required; call directly
+                    widget.onStatusChange(_status);
                   },
                 ),
                 ChatStatusButton(
@@ -555,9 +659,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                     if (widget.onPinChanged != null) {
                       widget.onPinChanged!(_pinned);
                     } else {
-                      // Fallback: persist directly
+                      // Fallback: persist both chat_pin and bot_status directly
                       try {
-                        await _chatroomDoc.update({'chat_pin': _pinned ? 'Y' : 'N'});
+                        await _chatroomDoc.update({
+                          'chat_pin': _pinned ? 'Y' : 'N',
+                          'bot_status': _botEnabled ? 'Y' : 'N',
+                        });
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(_pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว')),
@@ -592,41 +699,194 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               onTap: _openCustomerPicker,
               closeOnTap: false,
             ),
+            if ((_currentCustomerId ?? '').isNotEmpty) ...[
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Card(
+                  color: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: const Color(0xFFE9ECEF),
+                          child: Text(
+                            (_currentCustomerName?.isNotEmpty == true ? _currentCustomerName![0] : '?').toUpperCase(),
+                            style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black87),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                (_currentCustomerName?.isNotEmpty == true)
+                                    ? _currentCustomerName!
+                                    : 'กำลังดึงชื่อลูกค้า...',
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'แก้ไข/เปลี่ยนลูกค้า',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _openCustomerPicker,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          icon: const Icon(Icons.swap_horiz, size: 16),
+                          label: const Text('เปลี่ยน', style: TextStyle(fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            ChatMenuTile(
+              icon: Icons.card_travel_outlined,
+              text: 'ผูก Job Card',
+              onTap: _openJobCardPicker,
+              closeOnTap: false,
+            ),
+            if ((_jobCardId ?? '').isNotEmpty) ...[
+              // Padding(
+              //   padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
+              //   child: Row(
+              //     children: const [
+              //       Icon(Icons.style_outlined, size: 16, color: Colors.black54),
+              //       SizedBox(width: 6),
+              //       Text('Job Card ที่เชื่อม', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.black87)),
+              //     ],
+              //   ),
+              // ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Card(
+
+                  color: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Color(0xFFE9ECEF),
+                          child: Icon(Icons.style_outlined, color: Colors.black87),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                (_jobCardTitle?.isNotEmpty == true)
+                                    ? _jobCardTitle!
+                                    : 'กำลังดึงชื่อการ์ด...',
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'แก้ไข/เปลี่ยนการ์ด',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _openJobCardPicker,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          icon: const Icon(Icons.swap_horiz, size: 16),
+                          label: const Text('เปลี่ยน', style: TextStyle(fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
             ChatMenuTile(
               icon: Icons.badge_outlined,
               text: 'เพิ่มเซล',
               onTap: _openUserPicker,
               closeOnTap: false,
             ),
-            if (_loadingAssignees)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: LinearProgressIndicator(minHeight: 2),
-              ),
-            if (_assignees.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 8, right: 8, bottom: 12),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _assignees.map((u) => Chip(
-                      avatar: CircleAvatar(
-                        backgroundImage: (u.photoURL != null && u.photoURL!.isNotEmpty)
-                            ? NetworkImage(u.photoURL!)
-                            : null,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Card(
+                color: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
+                child: (_assignees.isEmpty)
+                    ? Padding(
+                  padding: const EdgeInsets.all(14.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 18, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'ยังไม่มีเซลที่ดูแล กด “เพิ่มเซล” เพื่อเชื่อมผู้ดูแลลูกค้า',
+                          style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                    : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _assignees.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final u = _assignees[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      leading: CircleAvatar(
+                        backgroundImage: (u.photoURL != null && u.photoURL!.isNotEmpty) ? NetworkImage(u.photoURL!) : null,
+                        backgroundColor: const Color(0xFFE9ECEF),
                         child: (u.photoURL == null || u.photoURL!.isEmpty)
                             ? Text(u.displayName.isNotEmpty ? u.displayName[0].toUpperCase() : '?')
                             : null,
                       ),
-                      label: Text(u.displayName),
-                      deleteIcon: const Icon(Icons.close),
-                      onDeleted: () => _removeAssignee(u),
-                    )).toList(),
-                  ),
+                      title: Text(u.displayName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: (u.email.isNotEmpty)
+                          ? Text(u.email, maxLines: 1, overflow: TextOverflow.ellipsis)
+                          : null,
+                      trailing: IconButton(
+                        icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                        tooltip: 'ลบออก',
+                        onPressed: () => _removeAssignee(u),
+                      ),
+                    );
+                  },
                 ),
               ),
+            ),
+            if (_loadingAssignees)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+
             ChatMenuTile(
               icon: Icons.edit_outlined,
               text: 'เปลี่ยนชื่อแชท',
@@ -644,6 +904,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               onTap: widget.onDelete,
             ),
           ],
+
         ),
       ),
     );

@@ -377,9 +377,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _updatePinned(bool pinned) async {
     try {
-      await _chatService.getChatroomsCollection(widget.workspaceId)
-          .doc(widget.conversationId)
-          .update({'chat_pin': pinned ? 'Y' : 'N'});
+      final docRef = _chatService.getChatroomsCollection(widget.workspaceId)
+          .doc(widget.conversationId);
+      // Read current bot_status to persist alongside pin
+      final snap = await docRef.get();
+      final data = snap.data();
+      final currentBot = (data != null ? (data['bot_status'] ?? 'N') : 'N') == 'Y';
+      await docRef.update({
+        'chat_pin': pinned ? 'Y' : 'N',
+        'bot_status': currentBot ? 'Y' : 'N',
+      });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว')));
     } catch (e) {
       _showErrorSnackBar('อัปเดตปักหมุดไม่สำเร็จ: $e');
