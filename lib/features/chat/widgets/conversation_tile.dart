@@ -14,13 +14,94 @@ class ConversationTile extends StatelessWidget {
     this.onTap,
   }) : super(key: key);
 
+
+  String _detectPlatform(Map<String, dynamic> c) {
+    final conn = c['connection'];
+    final nestedPlatform = (conn is Map ? conn['platform'] : null)?.toString().toLowerCase();
+    // Prefer explicit platform/source fields first, then fallbacks
+    final candidates = <String?>[
+      nestedPlatform,
+      c['platform']?.toString(),
+      c['sourceType']?.toString(),
+      c['source_type']?.toString(),
+      c['source']?.toString(),
+      c['channel']?.toString(),
+      c['connectionPlatform']?.toString(),
+    ]
+        .whereType<String>()
+        .map((s) => s.toLowerCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    final raw = candidates.isNotEmpty ? candidates.first : '';
+
+    if (raw.contains('facebook') || raw == 'fb') return 'facebook';
+    if (raw.contains('instagram') || raw == 'ig') return 'instagram';
+    if (raw.contains('line')) return 'line';
+    // Heuristics by available IDs
+    if ((c['pageId'] ?? '').toString().isNotEmpty) return 'facebook';
+    if ((c['igUserId'] ?? '').toString().isNotEmpty) return 'instagram';
+    if ((c['channelId'] ?? c['botId'] ?? '').toString().isNotEmpty) return 'line';
+    return 'unknown';
+  }
+
+  String _pageName(Map<String, dynamic> c) {
+    final direct = (c['pageName'] ?? '').toString();
+    if (direct.isNotEmpty) return direct;
+    final conn = c['connection'];
+    if (conn is Map) {
+      final nested = (conn['pageName'] ?? conn['name'] ?? conn['displayName'] ?? '').toString();
+      if (nested.isNotEmpty) return nested;
+    }
+    // Other common aliases we might carry along
+    final alt = (c['providerName'] ?? c['connectionName'] ?? c['igUsername'] ?? '').toString();
+    if (alt.isNotEmpty) return alt;
+    return '';
+  }
+
+  (_PlatformIconColor, IconData) _platformStyle(String platform) {
+    switch (platform) {
+      case 'facebook':
+        return ((_PlatformIconColor(const Color(0xFF1877F2))), Icons.public);
+      case 'instagram':
+        return ((_PlatformIconColor(const Color(0xFFE1306C))), Icons.camera_alt_outlined);
+      case 'line':
+        return ((_PlatformIconColor(const Color(0xFF00C300))), Icons.chat);
+      default:
+        return ((_PlatformIconColor(Colors.grey.shade600)), Icons.chat_bubble_outline);
+    }
+  }
+
+  String _platformLabel(String platform) {
+    switch (platform) {
+      case 'facebook':
+        return 'Facebook';
+      case 'instagram':
+        return 'Instagram';
+      case 'line':
+        return 'LINE';
+      default:
+        return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isGroup = (conversation['is_group'] == true || conversation['is_group'] == 'Y');
+    // Removed unused isGroup variable
     final name = (conversation['name'] ?? 'Unknown').toString();
     final lastMsg = (conversation['last_message'] ?? conversation['lastMessage'] ?? '').toString();
-    final updatedAt = conversation['updatedAt'] ?? conversation['last_message_info']?['last_upd'];
+    // Prefer the normalized field, fallback to raw sources
+    final dynamic updatedAt = conversation['lastMessageAt'] ?? conversation['last_message_info']?['last_upd'] ?? conversation['updatedAt'];
     final unread = (conversation['unreadCount'] ?? conversation['unread'] ?? 0) as int;
+
+    final platform = _detectPlatform(conversation);
+    final pageTitle = _pageName(conversation);
+    final style = _platformStyle(platform);
+    final Color platformColor = style.$1.color;
+    final IconData platformIcon = style.$2;
+
+    // Title to show on the top line: prefer pageName/providerName, else platform label
+    final topTitle = pageTitle.isNotEmpty ? pageTitle : _platformLabel(platform);
 
     String timeText = '';
     if (updatedAt is DateTime) {
@@ -29,7 +110,9 @@ class ConversationTile extends StatelessWidget {
       timeText = DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(updatedAt));
     } else if (updatedAt is String && updatedAt.isNotEmpty) {
       final dt = DateTime.tryParse(updatedAt);
-      if (dt != null) timeText = DateFormat('HH:mm').format(dt);
+      if (dt != null) {
+        timeText = DateFormat('HH:mm').format(dt);
+      }
     }
 
     return InkWell(
@@ -42,7 +125,8 @@ class ConversationTile extends StatelessWidget {
           children: [
             _AvatarWithBadge(
               imageUrl: conversation['avatarUrl'],
-              platformIcon: Icons.chat_bubble, // ปรับเป็นไอคอน LINE/IG ตาม platform ถ้ามีฟิลด์
+              platformIcon: platformIcon,
+              platformColor: platformColor,
               showPlatform: true,
             ),
             const SizedBox(width: 12),
@@ -50,22 +134,32 @@ class ConversationTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // บรรทัดชื่อ + เวลา + badge
-                  Row(
-                    children: [
-                      if (isGroup)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1DB446), // เขียวแบบ LINE
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Text(
-                            'Group Chat',
-                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                  // Top line: provider/page name with platform icon
+                  if (topTitle.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Icon(platformIcon, size: 14, color: platformColor),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            topTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: platformColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                  ],
+
+                  // Name row with time
+                  Row(
+                    children: [
                       Expanded(
                         child: Text(
                           name,
@@ -81,7 +175,8 @@ class ConversationTile extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  // บรรทัดข้อความล่าสุด + badge ตัวเลขแดง
+
+                  // Last message + unread badge
                   Row(
                     children: [
                       Expanded(
@@ -118,16 +213,23 @@ class ConversationTile extends StatelessWidget {
   }
 }
 
+class _PlatformIconColor {
+  final Color color;
+  const _PlatformIconColor(this.color);
+}
+
 class _AvatarWithBadge extends StatelessWidget {
   final String? imageUrl;
   final IconData platformIcon;
   final bool showPlatform;
+  final Color platformColor;
 
   const _AvatarWithBadge({
     Key? key,
     this.imageUrl,
     required this.platformIcon,
     this.showPlatform = true,
+    this.platformColor = const Color(0xFF00C300),
   }) : super(key: key);
 
   @override
@@ -159,10 +261,11 @@ class _AvatarWithBadge extends StatelessWidget {
                     offset: const Offset(0, 2),
                   )
                 ],
+
               ),
               child: CircleAvatar(
                 radius: 12,
-                backgroundColor: const Color(0xFF00C300), // โทน LINE
+                backgroundColor: platformColor,
                 child: Icon(platformIcon, size: 14, color: Colors.white),
               ),
             ),

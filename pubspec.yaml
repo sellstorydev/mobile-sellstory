@@ -67,6 +67,12 @@ dependencies:
   firebase_storage: ^12.3.2
   google_sign_in: ^6.2.1
   
+  # Messaging and device info
+  firebase_messaging: ^15.0.4
+  device_info_plus: ^10.1.0
+  # Analytics (GA4)
+  firebase_analytics: ^11.0.0
+
   # Time formatting
   timeago: ^3.7.0
 

@@ -452,13 +452,37 @@ class _ChatScreenState extends State<ChatScreen> {
             String pickName() => (data['name'] ?? data['who_name'] ?? data['displayName'] ?? data['customerName'] ?? 'แชท').toString();
             final title = _chatroomNameState ?? pickName();
             final avatar = (data['avatar'] ?? widget.conversationData['avatar']) as String?;
-            final platform = (data['source_type'] ?? widget.conversationData['source_type'] ?? 'LINE').toString();
+            final platformRaw = (data['source_type'] ?? widget.conversationData['source_type'] ?? 'LINE').toString();
+            final platform = platformRaw.toUpperCase();
+
+            String pickPageTitle() {
+              final direct = (data['pageName'] ?? widget.conversationData['pageName'] ?? '').toString();
+              if (direct.isNotEmpty) return direct;
+              final conn = data['connection'] ?? widget.conversationData['connection'];
+              if (conn is Map) {
+                final nested = (conn['pageName'] ?? conn['name'] ?? conn['displayName'] ?? conn['igUsername'] ?? '').toString();
+                if (nested.isNotEmpty) return nested;
+              }
+              // Fallback to platform label if nothing else
+              switch (platform) {
+                case 'FACEBOOK':
+                  return 'Facebook';
+                case 'INSTAGRAM':
+                  return 'Instagram';
+                case 'LINE':
+                  return 'LINE';
+                default:
+                  return '';
+              }
+            }
+            final pageTitle = pickPageTitle();
             final botEnabled = (data['bot_status'] ?? 'N') == 'Y';
 
             return ChatHeaderLine(
               title: title,
               avatarUrl: avatar,
               platform: platform,
+              pageTitle: pageTitle,
               showBack: false,
               showAutoReplyBubble: botEnabled,
               onSearch: () {

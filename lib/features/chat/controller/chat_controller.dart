@@ -23,7 +23,14 @@ class ChatController extends GetxController {
   // Subscription for realtime updates
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatroomsSub;
 
+  // Cached workspace info
+  Map<String, dynamic>? _workspaceData;
+  List<Map<String, dynamic>> _wsFacebook = const [];
+  List<Map<String, dynamic>> _wsInstagram = const [];
+  List<Map<String, dynamic>> _wsLine = const [];
+
   bool get _isListening => _chatroomsSub != null;
+
 
   @override
   void onInit() {
@@ -89,6 +96,227 @@ class ChatController extends GetxController {
     }
   }
 
+  // Load workspace connections (facebook/instagram/line) and attach matching provider info to each chatroom item so ConversationTile can show provider name and correct platform icon. If multiple connections exist and no direct ID to match, fall back to single-connection per platform when available.
+  Future<void> _loadWorkspaceConnectionsIfNeeded() async {
+    if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) return;
+    if (_workspaceData != null) return; // already loaded
+
+    try {
+      _workspaceData = await _firestoreService.getWorkspace(_currentWorkspaceId!);
+      final ws = _workspaceData ?? {};
+      final connections = (ws['connections'] ?? ws['companyProfile']?['connections']) as Map<String, dynamic>?;
+
+      List<Map<String, dynamic>> asList(dynamic v) {
+        if (v is List) return v.cast<Map<String, dynamic>>();
+        return const [];
+      }
+
+      _wsFacebook = asList(connections?['facebook']);
+      _wsInstagram = asList(connections?['instagram']);
+      _wsLine = asList(connections?['line']);
+
+      _logger.info('Loaded workspace connections: fb=${_wsFacebook.length}, ig=${_wsInstagram.length}, line=${_wsLine.length}');
+    } catch (e) {
+      _logger.warning('Failed to load workspace connections: $e');
+    }
+  }
+
+  Map<String, dynamic> _attachProviderInfo(Map<String, dynamic> data) {
+    String platform = (data['source_type'] ?? data['sourceType'] ?? '').toString().toLowerCase();
+
+    Map<String, dynamic>? matched;
+
+    // Prefer connections embedded on the chatroom document itself
+    final docConnections = (data['connections'] ?? data['companyProfile']?['connections']) as Map<String, dynamic>?;
+
+    List<Map<String, dynamic>> asList(dynamic v) {
+      if (v is List) return v.cast<Map<String, dynamic>>();
+      return const [];
+    }
+
+    final docFacebook = asList(docConnections?['facebook']);
+    final docInstagram = asList(docConnections?['instagram']);
+    final docLine = asList(docConnections?['line']);
+
+
+    // Select candidates: prefer doc-level connections, else workspace-level
+    List<Map<String, dynamic>> fbCandidates = docFacebook.isNotEmpty ? docFacebook : _wsFacebook;
+    List<Map<String, dynamic>> igCandidates = docInstagram.isNotEmpty ? docInstagram : _wsInstagram;
+    List<Map<String, dynamic>> lineCandidates = docLine.isNotEmpty ? docLine : _wsLine;
+
+    // Infer platform if missing/unknown
+    bool isUnknown = platform.isEmpty || platform == 'unknown';
+    if (isUnknown) {
+      final hasPageId = (data['pageId']?.toString().isNotEmpty ?? false);
+      final hasIgUserId = (data['igUserId']?.toString().isNotEmpty ?? false);
+      final hasLineIds = (data['channelId']?.toString().isNotEmpty ?? false) || (data['botId']?.toString().isNotEmpty ?? false) || (data['lineUserId']?.toString().isNotEmpty ?? false);
+
+      if (hasPageId) {
+        platform = 'facebook';
+      } else if (hasIgUserId) {
+        platform = 'instagram';
+      } else if (hasLineIds) {
+        platform = 'line';
+      } else {
+        // Infer from available connection arrays (prefer doc-level)
+        final available = <String, int>{
+          'facebook': fbCandidates.length,
+          'instagram': igCandidates.length,
+          'line': lineCandidates.length,
+        }..removeWhere((k, v) => v == 0);
+        if (available.length == 1) {
+          platform = available.keys.first;
+        }
+      }
+
+      if (platform.isNotEmpty) {
+        // Save back for UI consistency
+        data['source_type'] = data['source_type'] ?? platform;
+        data['sourceType'] = data['sourceType'] ?? platform;
+      }
+    }
+
+    if (platform.contains('facebook')) {
+      final pageId = (data['pageId'] ?? data['connection']?['pageId'])?.toString();
+      if (pageId != null && pageId.isNotEmpty) {
+        matched = fbCandidates.firstWhereOrNull((e) => (e['pageId']?.toString() ?? '') == pageId);
+      }
+      matched ??= fbCandidates.length == 1 ? fbCandidates.first : null;
+      matched ??= fbCandidates.isNotEmpty ? fbCandidates.first : null;
+    } else if (platform.contains('instagram') || platform == 'ig') {
+      final igUserId = (data['igUserId'] ?? data['connection']?['igUserId'])?.toString();
+      final pageId = (data['pageId'] ?? data['connection']?['pageId'])?.toString();
+      if (igUserId != null && igUserId.isNotEmpty) {
+        matched = igCandidates.firstWhereOrNull((e) => (e['igUserId']?.toString() ?? '') == igUserId);
+      }
+      // Fallback to pageId matching if present on IG connection
+      if (matched == null && pageId != null && pageId.isNotEmpty) {
+        matched = igCandidates.firstWhereOrNull((e) => (e['pageId']?.toString() ?? '') == pageId);
+      }
+      matched ??= igCandidates.length == 1 ? igCandidates.first : null;
+      matched ??= igCandidates.isNotEmpty ? igCandidates.first : null;
+    } else if (platform.contains('line')) {
+      final channelId = (data['channelId'] ?? data['connection']?['channelId'])?.toString();
+      final botId = (data['botId'] ?? data['connection']?['botId'])?.toString();
+      final userId = (data['lineUserId'] ?? data['connection']?['userId'])?.toString();
+
+      if (channelId != null && channelId.isNotEmpty) {
+        matched = lineCandidates.firstWhereOrNull((e) => (e['channelId']?.toString() ?? '') == channelId);
+      }
+      matched ??= (botId != null && botId.isNotEmpty)
+          ? lineCandidates.firstWhereOrNull((e) => (e['botId']?.toString() ?? '') == botId)
+          : null;
+      matched ??= (userId != null && userId.isNotEmpty)
+          ? lineCandidates.firstWhereOrNull((e) => (e['userId']?.toString() ?? '') == userId)
+          : null;
+
+      if (matched == null && lineCandidates.isNotEmpty) {
+        final title = (data['name'] ?? data['customerName'] ?? data['who_name'] ?? '').toString();
+        if (title.isNotEmpty) {
+          matched = lineCandidates.firstWhereOrNull((e) {
+            final dn = (e['displayName'] ?? e['statusMessage'] ?? '').toString();
+            return dn.isNotEmpty && title.contains(dn);
+          });
+        }
+      }
+
+      matched ??= lineCandidates.length == 1 ? lineCandidates.first : null;
+      matched ??= lineCandidates.isNotEmpty ? lineCandidates.first : null;
+    } else {
+      // Platform still unknown: if there is a single connection overall, use it
+      final all = <Map<String, dynamic>>[]
+        ..addAll(fbCandidates)
+        ..addAll(igCandidates)
+        ..addAll(lineCandidates);
+      if (all.length == 1) {
+        matched = all.first;
+        final p = (docFacebook.isNotEmpty ? 'facebook' : docInstagram.isNotEmpty ? 'instagram' : docLine.isNotEmpty ? 'line' : (_wsFacebook.isNotEmpty ? 'facebook' : _wsInstagram.isNotEmpty ? 'instagram' : _wsLine.isNotEmpty ? 'line' : 'unknown'));
+        if (p != 'unknown') {
+          data['source_type'] = data['source_type'] ?? p;
+          data['sourceType'] = data['sourceType'] ?? p;
+          platform = p;
+        }
+      } else if (all.isNotEmpty) {
+        // Pick a reasonable default order: line > facebook > instagram
+        if (lineCandidates.isNotEmpty) {
+          matched = lineCandidates.first;
+          platform = 'line';
+        } else if (fbCandidates.isNotEmpty) {
+          matched = fbCandidates.first;
+          platform = 'facebook';
+        } else if (igCandidates.isNotEmpty) {
+          matched = igCandidates.first;
+          platform = 'instagram';
+        }
+        if (matched != null) {
+          data['source_type'] = data['source_type'] ?? platform;
+          data['sourceType'] = data['sourceType'] ?? platform;
+        }
+      }
+    }
+
+    if (matched != null) {
+      final effectivePlatform = (data['source_type'] ?? platform).toString().toLowerCase();
+      final platformLabel = effectivePlatform.contains('facebook')
+          ? 'facebook'
+          : effectivePlatform.contains('instagram') || effectivePlatform == 'ig' ? 'instagram' : effectivePlatform.contains('line') ? 'line' : 'unknown';
+
+      data['connection'] = {
+        ...matched,
+        'platform': platformLabel,
+      };
+
+      // Flatten a few helpful fields for UI
+      final existingPageName = (data['pageName'] ?? '').toString().trim();
+      final matchedPageName = (matched['pageName'] ?? matched['displayName'] ?? matched['igUsername'] ?? '').toString().trim();
+      if (existingPageName.isEmpty && matchedPageName.isNotEmpty) {
+        data['pageName'] = matchedPageName;
+      }
+
+      data['pageId'] = data['pageId'] ?? matched['pageId'];
+      data['igUserId'] = data['igUserId'] ?? matched['igUserId'];
+      data['channelId'] = data['channelId'] ?? matched['channelId'];
+      data['botId'] = data['botId'] ?? matched['botId'];
+
+      // Avatar fallback from connection profile images
+      data['avatarUrl'] = data['avatarUrl'] ?? data['avatar'] ??
+          matched['pageImageUrl'] ?? matched['profilePictureUrl'] ?? matched['pictureUrl'];
+
+      _logger.info('Provider matched for chatroom ${data['id']}: ${data['pageName']} (${platformLabel})');
+    } else {
+      // Final fallback: set pageName from first available candidate by platform
+      String candidateName = '';
+      Map<String, dynamic>? candidate;
+      if (platform.contains('facebook') && fbCandidates.isNotEmpty) {
+        candidate = fbCandidates.first;
+        candidateName = (candidate['pageName'] ?? '').toString();
+      } else if ((platform.contains('instagram') || platform == 'ig') && igCandidates.isNotEmpty) {
+        candidate = igCandidates.first;
+        candidateName = (candidate['pageName'] ?? candidate['igUsername'] ?? '').toString();
+      } else if (platform.contains('line') && lineCandidates.isNotEmpty) {
+        candidate = lineCandidates.first;
+        candidateName = (candidate['displayName'] ?? '').toString();
+      }
+
+
+      if ((data['pageName'] ?? '').toString().isEmpty && candidateName.isNotEmpty) {
+        data['pageName'] = candidateName;
+        // Attach minimal connection info for UI consistency
+        data['connection'] = {
+          ...?candidate,
+          'platform': platform.isEmpty ? 'unknown' : platform,
+        };
+        data['avatarUrl'] = data['avatarUrl'] ?? data['avatar'] ??
+            candidate?['pageImageUrl'] ?? candidate?['profilePictureUrl'] ?? candidate?['pictureUrl'];
+        _logger.info('Provider fallback set for chatroom ${data['id']}: ${data['pageName']} (${platform})');
+      } else {
+        _logger.warning('No provider matched for chatroom ${data['id']} (platform: ${platform.isEmpty ? 'unknown' : platform})');
+      }
+    }
+
+    return data;
+  }
+
   // Start realtime listener for chatrooms in current workspace
   Future<void> startRealtime() async {
     if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
@@ -104,6 +332,9 @@ class ChatController extends GetxController {
       _logger.info('startRealtime: already listening, skip restart');
       return;
     }
+
+    // Preload connections so tiles can show provider/page names
+    await _loadWorkspaceConnectionsIfNeeded();
 
     // First start only: show loading if no data yet
     if (conversations.isEmpty) {
@@ -148,7 +379,9 @@ class ChatController extends GetxController {
           data['lastMessageAt'] = parseDate(lastMessageInfo['last_upd']);
           data['createdAt'] = parseDate(data['created']);
 
-          return data;
+
+          // Attach provider info if possible
+          return _attachProviderInfo(data);
         }).toList();
 
         // Preserve list identity to reduce widget rebuild/flicker
@@ -291,3 +524,4 @@ class ChatController extends GetxController {
     super.onClose();
   }
 }
+

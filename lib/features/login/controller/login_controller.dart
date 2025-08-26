@@ -2,6 +2,9 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/services/firebase_auth_service.dart';
 import '../../../core/di/locator.dart';
+import '../../../core/services/fcm_service.dart';
+import '../../../core/services/analytics_service.dart';
+
 
 class LoginController extends GetxController {
   final FirebaseAuthService _authService = Get.find<FirebaseAuthService>();
@@ -42,11 +45,24 @@ class LoginController extends GetxController {
       
       // Ensure dependencies are properly setup after login
       Locator.setup();
-      
+
+      // Register FCM token + device immediately after login
+      if (Get.isRegistered<FcmService>()) {
+        await Get.find<FcmService>().registerDeviceForPush();
+      }
+
+      // GA4: set userId and log login event
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null && Get.isRegistered<AnalyticsService>()) {
+        await AnalyticsService.to.setUserId(uid);
+        await AnalyticsService.to.logLogin(method: 'password');
+      }
+
       Get.offAllNamed('/shell');
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
     } catch (e) {
+      print(e);
       Get.snackbar(
         'Error',
         'Login failed: ${e.toString()}',
@@ -59,6 +75,9 @@ class LoginController extends GetxController {
     }
   }
 
+
+
+
   // Google Sign-In
   Future<void> signInWithGoogle() async {
     try {
@@ -67,7 +86,19 @@ class LoginController extends GetxController {
       
       // Ensure dependencies are properly setup after login
       Locator.setup();
-      
+
+      // Register FCM token + device immediately after login
+      if (Get.isRegistered<FcmService>()) {
+        await Get.find<FcmService>().registerDeviceForPush();
+      }
+
+      // GA4: set userId and log login event
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null && Get.isRegistered<AnalyticsService>()) {
+        await AnalyticsService.to.setUserId(uid);
+        await AnalyticsService.to.logLogin(method: 'google');
+      }
+
       Get.offAllNamed('/shell');
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);

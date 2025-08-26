@@ -7,6 +7,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
   final bool showBack;
   final bool showAutoReplyBubble; // จุดส้มมุมบนซ้าย
   final String platform;          // LINE / FACEBOOK / INSTAGRAM
+  final String? pageTitle;        // provider/page name
   final VoidCallback? onBack;
   final VoidCallback? onSearch;
   final VoidCallback? onMore;
@@ -16,6 +17,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.avatarUrl,
     this.platform = 'LINE',
+    this.pageTitle,
     this.showBack = false,
     this.showAutoReplyBubble = true,
     this.onBack,
@@ -23,12 +25,29 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
     this.onMore,
   }) : super(key: key);
 
+  // Small helper for platform color/icon
+  (Color, IconData) _platformStyle(String p) {
+    switch (p.toUpperCase()) {
+      case 'FACEBOOK':
+        return (const Color(0xFF1877F2), Icons.public);
+      case 'INSTAGRAM':
+        return (const Color(0xFFE1306C), Icons.camera_alt_outlined);
+      case 'LINE':
+        return (const Color(0xFF06C755), Icons.chat);
+      default:
+        return (Colors.grey.shade600, Icons.chat_bubble_outline);
+    }
+  }
+
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
     final platformUpper = platform.toUpperCase();
+    final style = _platformStyle(platformUpper);
+    final Color platformColor = style.$1;
+    final IconData platformIcon = style.$2;
 
     return AppBar(
       elevation: 0,
@@ -93,14 +112,41 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
 
           const SizedBox(width: 12),
 
-          // ชื่อห้อง
+          // Titles (pageTitle small + main title)
           Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (pageTitle != null && pageTitle!.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(platformIcon, size: 14, color: platformColor),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          pageTitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: platformColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                ],
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
           ),
         ],
