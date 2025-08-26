@@ -549,26 +549,10 @@ class FirestoreRepository {
         final cards = cardsSnapshot.docs.map((doc) {
           final cardData = doc.data();
           print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
+          print('📋 Card hashtags data: ${cardData['hashtags']}');
           
-          // Map Firestore data to JobCard entity
-          return JobCard(
-            id: doc.id,
-            title: cardData['title'] ?? '',
-            assignee: cardData['assignedTo'] ?? '',
-            status: cardData['status'] ?? 'To Do',
-            customId: cardData['customId'] ?? '',
-            dueDate: null, // Not in current data structure
-            badges: [], // Not in current data structure
-            amount: 0.0, // Not in current data structure
-            laneId: cardData['laneId'] ?? '',
-            boardId: cardData['boardId'] ?? '',
-            workspaceId: workspaceId,
-            order: cardData['order'] ?? 0,
-            createdAt: _parseTimestamp(cardData['createdAt']),
-            updatedAt: _parseTimestamp(cardData['updatedAt']),
-            customer: cardData['customer'] ?? '',
-            updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
-          );
+          // Use fromMap to ensure all fields including hashtags are properly mapped
+          return JobCard.fromMap(cardData, doc.id);
         }).toList();
         
         // Sort cards by order after fetching
@@ -595,26 +579,10 @@ class FirestoreRepository {
       final cards = cardsSnapshot.docs.map((doc) {
         final cardData = doc.data();
         print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
+        print('📋 Card hashtags data: ${cardData['hashtags']}');
         
-        // Map Firestore data to JobCard entity
-        return JobCard(
-          id: doc.id,
-          title: cardData['title'] ?? '',
-          assignee: cardData['assignedTo'] ?? '',
-          status: cardData['status'] ?? 'To Do',
-          customId: cardData['customId'] ?? '',
-          dueDate: null, // Not in current data structure
-          badges: [], // Not in current data structure
-          amount: 0.0, // Not in current data structure
-          laneId: cardData['laneId'] ?? '',
-          boardId: cardData['boardId'] ?? '',
-          workspaceId: workspaceId,
-          order: cardData['order'] ?? 0,
-          createdAt: _parseTimestamp(cardData['createdAt']),
-          updatedAt: _parseTimestamp(cardData['updatedAt']),
-          customer: cardData['customer'] ?? '',
-          updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
-        );
+        // Use fromMap to ensure all fields including hashtags are properly mapped
+        return JobCard.fromMap(cardData, doc.id);
       }).toList();
       
       // Sort cards by order after fetching
@@ -647,25 +615,10 @@ class FirestoreRepository {
         final cards = cardsSnapshot.docs.map((doc) {
           final cardData = doc.data();
           print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
+          print('📋 Card hashtags data: ${cardData['hashtags']}');
           
-          return JobCard(
-            id: doc.id,
-            title: cardData['title'] ?? '',
-            assignee: cardData['assignedTo'] ?? '',
-            status: cardData['status'] ?? 'To Do',
-            customId: cardData['customId'] ?? '',
-            dueDate: null,
-            badges: [],
-            amount: 0.0,
-            laneId: cardData['laneId'] ?? '',
-            boardId: cardData['boardId'] ?? '',
-            workspaceId: workspaceId,
-            order: cardData['order'] ?? 0,
-            createdAt: _parseTimestamp(cardData['createdAt']),
-            updatedAt: _parseTimestamp(cardData['updatedAt']),
-            customer: cardData['customer'] ?? '',
-            updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
-          );
+          // Use fromMap to ensure all fields including hashtags are properly mapped
+          return JobCard.fromMap(cardData, doc.id);
         }).toList();
         
         // Sort cards by order after fetching
@@ -746,24 +699,10 @@ class FirestoreRepository {
       ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
           final cardData = doc.data();
-          return JobCard(
-            id: doc.id,
-            title: cardData['title'] ?? '',
-            assignee: cardData['assignedTo'] ?? '',
-            status: cardData['status'] ?? 'To Do',
-            customId: cardData['customId'] ?? '',
-            dueDate: null,
-            badges: [],
-            amount: 0.0,
-            laneId: cardData['laneId'] ?? '',
-            boardId: cardData['boardId'] ?? '',
-            workspaceId: workspaceId,
-            order: cardData['order'] ?? 0,
-            createdAt: _parseTimestamp(cardData['createdAt']),
-            updatedAt: _parseTimestamp(cardData['updatedAt']),
-            customer: cardData['customer'] ?? '',
-            updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
-          );
+          print('📋 Lane card hashtags data: ${cardData['hashtags']}');
+          
+          // Use fromMap to ensure all fields including hashtags are properly mapped
+          return JobCard.fromMap(cardData, doc.id);
         }).toList();
         
         // Sort cards by order after fetching
@@ -798,23 +737,10 @@ class FirestoreRepository {
     ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
           final cardData = doc.data();
-          // Map Firestore data to JobCard entity
-          return JobCard(
-            id: doc.id,
-            title: cardData['title'] ?? '',
-            assignee: cardData['assignedTo'] ?? '',
-            status: cardData['status'] ?? 'To Do',
-            customId: cardData['customId'] ?? '',
-            dueDate: null, // Not in current data structure
-            badges: [], // Not in current data structure
-            amount: 0.0, // Not in current data structure
-            laneId: cardData['laneId'] ?? '',
-            order: cardData['order'] ?? 0,
-            createdAt: _parseTimestamp(cardData['createdAt']),
-            updatedAt: _parseTimestamp(cardData['updatedAt']),
-            customer: cardData['customer'] ?? '',
-            updatedByDisplayName: cardData['updatedByDisplayName'] ?? '',
-          );
+          print('📋 User assigned card hashtags data: ${cardData['hashtags']}');
+          
+          // Use fromMap to ensure all fields including hashtags are properly mapped
+          return JobCard.fromMap(cardData, doc.id);
       }).toList();
       
       // Sort cards by order after fetching

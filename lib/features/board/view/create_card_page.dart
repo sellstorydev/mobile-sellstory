@@ -357,6 +357,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
         company: companyName,
         hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
+        hashtags: _selectedHashtags,
         expenses: [],
         todos: [],
         notes: [],

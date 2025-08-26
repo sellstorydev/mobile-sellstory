@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/constants/app_font.dart';
+
+
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import 'card_detail_page.dart'; // For edit functionality
@@ -464,19 +464,33 @@ class _CardViewPageState extends State<CardViewPage> {
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.grey[50],
             border: Border.all(color: Colors.grey[300]!),
             borderRadius: BorderRadius.circular(4),
           ),
-          child: Text(
-            _currentCard.hashtag?.isNotEmpty == true ? _currentCard.hashtag! : 'No hashtag',
-            style: TextStyle(
-              fontSize: 14,
-              color: _currentCard.hashtag?.isNotEmpty == true ? Colors.black : Colors.grey,
-            ),
-          ),
+          child: _currentCard.hashtags.isNotEmpty
+              ? Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _currentCard.hashtags.map((hashtag) {
+                    return Chip(
+                      label: Text('#${hashtag['text']}'),
+                      backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
+                      labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    );
+                  }).toList(),
+                )
+              : Text(
+                  _currentCard.hashtag?.isNotEmpty == true ? _currentCard.hashtag! : 'No hashtags',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
         ),
       ],
     );

@@ -61,6 +61,14 @@ class _CardDetailPageState extends State<CardDetailPage> {
   void initState() {
     super.initState();
     _currentCard = widget.card;
+    
+    print('🎬 CardDetailPage.initState');
+    print('  - Initial card ID: ${_currentCard.id}');
+    print('  - Initial card title: ${_currentCard.title}');
+    print('  - Initial card hashtags length: ${_currentCard.hashtags.length}');
+    print('  - Initial card hashtags: ${_currentCard.hashtags}');
+    print('  - Initial card hashtag string: "${_currentCard.hashtag ?? ''}"');
+    
     _initializeData().then((_) {
       setState(() {});
     });
@@ -269,6 +277,8 @@ class _CardDetailPageState extends State<CardDetailPage> {
         print('🔄 CardDetailPage._refreshCardData - Refreshing card data');
         setState(() {
           _currentCard = latestCard;
+          // Re-initialize hashtags with the updated card data inside setState
+          _initializeHashtagsInternal();
         });
       }
     } catch (e) {
@@ -294,6 +304,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
         final card = lane.cards.firstWhereOrNull((c) => c.id == widget.card.id);
         if (card != null) {
           print('✅ CardDetailPage._getLatestCardData - Found card: ${card.title}');
+          print('  - Card ID: ${card.id}');
+          print('  - Card hashtags length: ${card.hashtags.length}');
+          print('  - Card hashtags: ${card.hashtags}');
+          print('  - Card hashtag string: "${card.hashtag ?? ''}"');
           return card;
         }
       }
@@ -327,8 +341,37 @@ class _CardDetailPageState extends State<CardDetailPage> {
   }
   
   void _initializeHashtags() {
-    // Parse existing hashtag string into hashtag objects
-    if (_currentCard.hashtag?.isNotEmpty == true) {
+    _initializeHashtagsInternal();
+    
+    // Force UI refresh if this is called after initial build
+    if (mounted) {
+      setState(() {});
+    }
+  }
+  
+  void _initializeHashtagsInternal() {
+    print('🏷️ _initializeHashtags called');
+    print('  - Card ID: ${_currentCard.id}');
+    print('  - Card title: ${_currentCard.title}');
+    print('  - Card hashtags array length: ${_currentCard.hashtags.length}');
+    print('  - Card hashtag string: "${_currentCard.hashtag ?? ''}"');
+    
+    // Use hashtags array if available (new DTB structure)
+    if (_currentCard.hashtags.isNotEmpty) {
+      print('  - Using hashtags array');
+      _selectedHashtags = _currentCard.hashtags.map((hashtag) {
+        final result = {
+          'id': hashtag['id'] ?? '',
+          'text': hashtag['text'] ?? '',
+          'color': hashtag['color'] ?? '#f97316',
+        };
+        print('    - Hashtag: $result');
+        return result;
+      }).toList();
+    }
+    // Fallback to legacy hashtag string
+    else if (_currentCard.hashtag?.isNotEmpty == true) {
+      print('  - Using legacy hashtag string');
       final hashtagText = _currentCard.hashtag!;
       final hashtags = hashtagText
           .split(RegExp(r'[,\s]+'))
@@ -346,6 +389,8 @@ class _CardDetailPageState extends State<CardDetailPage> {
         };
       }).toList();
     }
+    
+    print('  - Final selected hashtags: $_selectedHashtags');
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -614,6 +659,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
   }
 
   Widget _buildHashtagSection() {
+    print('🎨 _buildHashtagSection - Building hashtag UI');
+    print('  - _selectedHashtags length: ${_selectedHashtags.length}');
+    print('  - _selectedHashtags content: $_selectedHashtags');
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -665,8 +714,11 @@ class _CardDetailPageState extends State<CardDetailPage> {
       builder: (context) => HashtagSelectionModal(
         selectedHashtags: _selectedHashtags,
         onHashtagsSelected: (selectedHashtags) {
+          print('🏷️ CardDetailPage - Hashtags selected from modal');
+          print('  - Received hashtags: $selectedHashtags');
           setState(() {
             _selectedHashtags = selectedHashtags;
+            print('  - Updated _selectedHashtags: $_selectedHashtags');
           });
         },
       ),
@@ -1506,6 +1558,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
       print('  - Custom ID: ${_jobIdController.text.trim()}');
       print('  - Title: ${_titleController.text.trim()}');
       print('  - Status: $_selectedStatus');
+      print('  - Selected hashtags: $_selectedHashtags');
       
       // Create updated card
       final updatedCard = _currentCard.copyWith(
@@ -1515,6 +1568,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
         customer: _selectedCustomer.isNotEmpty ? _availableCustomers.firstWhere((c) => c['id'] == _selectedCustomer)['name'] : '',
         company: _selectedCompany != 'none' ? _availableCompanies.firstWhere((c) => c['id'] == _selectedCompany)['name'] : null,
         hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
+        hashtags: _selectedHashtags,
         status: _selectedStatus,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,
@@ -1525,6 +1579,8 @@ class _CardDetailPageState extends State<CardDetailPage> {
       print('  - Custom ID: ${updatedCard.customId}');
       print('  - Title: ${updatedCard.title}');
       print('  - Status: ${updatedCard.status}');
+      print('  - Updated hashtags: ${updatedCard.hashtags}');
+      print('  - Updated hashtag string: "${updatedCard.hashtag}"');
 
       // Update card using controller
       await _controller.updateCard(updatedCard);
@@ -1536,13 +1592,19 @@ class _CardDetailPageState extends State<CardDetailPage> {
       // Refresh card data after successful update
       _refreshCardData();
 
-      Get.snackbar(
-        'Success',
-        'Card updated successfully',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      // Navigate back immediately after successful update
+      Get.back();
+      
+      // Show success message after navigation
+      Future.delayed(const Duration(milliseconds: 100), () {
+        Get.snackbar(
+          'Success',
+          'Card updated successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      });
     } catch (e) {
       setState(() {
         _isLoading = false;
