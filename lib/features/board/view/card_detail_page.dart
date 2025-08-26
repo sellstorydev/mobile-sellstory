@@ -714,8 +714,11 @@ class _CardDetailPageState extends State<CardDetailPage> {
       builder: (context) => HashtagSelectionModal(
         selectedHashtags: _selectedHashtags,
         onHashtagsSelected: (selectedHashtags) {
+          print('🏷️ CardDetailPage - Hashtags selected from modal');
+          print('  - Received hashtags: $selectedHashtags');
           setState(() {
             _selectedHashtags = selectedHashtags;
+            print('  - Updated _selectedHashtags: $_selectedHashtags');
           });
         },
       ),
@@ -1555,6 +1558,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
       print('  - Custom ID: ${_jobIdController.text.trim()}');
       print('  - Title: ${_titleController.text.trim()}');
       print('  - Status: $_selectedStatus');
+      print('  - Selected hashtags: $_selectedHashtags');
       
       // Create updated card
       final updatedCard = _currentCard.copyWith(
@@ -1575,6 +1579,8 @@ class _CardDetailPageState extends State<CardDetailPage> {
       print('  - Custom ID: ${updatedCard.customId}');
       print('  - Title: ${updatedCard.title}');
       print('  - Status: ${updatedCard.status}');
+      print('  - Updated hashtags: ${updatedCard.hashtags}');
+      print('  - Updated hashtag string: "${updatedCard.hashtag}"');
 
       // Update card using controller
       await _controller.updateCard(updatedCard);
@@ -1586,13 +1592,19 @@ class _CardDetailPageState extends State<CardDetailPage> {
       // Refresh card data after successful update
       _refreshCardData();
 
-      Get.snackbar(
-        'Success',
-        'Card updated successfully',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      // Navigate back immediately after successful update
+      Get.back();
+      
+      // Show success message after navigation
+      Future.delayed(const Duration(milliseconds: 100), () {
+        Get.snackbar(
+          'Success',
+          'Card updated successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      });
     } catch (e) {
       setState(() {
         _isLoading = false;

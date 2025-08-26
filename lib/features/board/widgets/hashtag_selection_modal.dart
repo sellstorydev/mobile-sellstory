@@ -200,6 +200,8 @@ class _HashtagSelectionModalState extends State<HashtagSelectionModal> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
+                      print('🏷️ HashtagSelectionModal - OK pressed');
+                      print('  - Selected hashtags: $_selectedHashtags');
                       widget.onHashtagsSelected(_selectedHashtags);
                       Navigator.of(context).pop();
                     },
