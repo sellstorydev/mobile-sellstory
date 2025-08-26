@@ -36,14 +36,17 @@ class BoardPresenter {
     _view = null;
   }
 
-  Future<void> load(String workspaceId) async {
-    LoggerService.to.methodEntry('BoardPresenter.load', {'workspaceId': workspaceId});
+  Future<void> load(String workspaceId, [String? boardId]) async {
+    LoggerService.to.methodEntry('BoardPresenter.load', {
+      'workspaceId': workspaceId,
+      'boardId': boardId,
+    });
     _view?.showLoading(true);
     
     try {
-      // Listen to both lanes and cards streams for real-time updates
-      _repository.getLanesStream(workspaceId).listen((lanes) {
-        LoggerService.to.business('Loaded ${lanes.length} lanes from repository');
+      // Listen to lanes stream for the specific board
+      _repository.getLanesStream(workspaceId, boardId: boardId).listen((lanes) {
+        LoggerService.to.business('Loaded ${lanes.length} lanes from repository for board: $boardId');
         
         // Only update if we don't have any pending optimistic updates
         if (!_hasOptimisticUpdates) {
@@ -56,9 +59,9 @@ class BoardPresenter {
         }
       });
 
-      // Also listen to all cards for immediate updates when cards are moved
-      _repository.getAllCardsStream(workspaceId).listen((allCards) {
-        LoggerService.to.business('All cards updated: ${allCards.length} cards');
+      // Also listen to all cards for the specific board
+      _repository.getAllCardsStream(workspaceId, boardId: boardId).listen((allCards) {
+        LoggerService.to.business('All cards updated: ${allCards.length} cards for board: $boardId');
         
         // Update current state with new card data
         if (_currentState.lanes.isNotEmpty) {
@@ -241,6 +244,7 @@ class BoardPresenter {
     
     try {
       // Optimistic update
+      _hasOptimisticUpdates = true;
       final updatedLanes = _currentState.lanes.map((lane) {
         final cardIndex = lane.cards.indexWhere((c) => c.id == card.id);
         if (cardIndex != -1) {
@@ -261,11 +265,15 @@ class BoardPresenter {
       await _repository.updateCard(workspaceId, card);
       LoggerService.to.database('Card updated in repository');
       
+      // Reset optimistic update flag
+      _hasOptimisticUpdates = false;
+      
       print('✅ Card update completed successfully');
     } catch (e) {
       LoggerService.to.error('Failed to update card', e);
       _view?.showError('Failed to update card: ${e.toString()}');
-      // Reload to revert optimistic update
+      // Reset optimistic update flag and reload to revert optimistic update
+      _hasOptimisticUpdates = false;
       await load(workspaceId);
       print('❌ Card update failed: $e');
     }
@@ -353,4 +361,5 @@ class BoardPresenter {
     
     LoggerService.to.methodExit('BoardPresenter.onDeleteLane');
   }
+
 }

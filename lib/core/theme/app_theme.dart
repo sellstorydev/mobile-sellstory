@@ -139,9 +139,11 @@ class AppTheme {
       scaffoldBackgroundColor: backgroundWhite,
       fontFamily: AppFont.family,
 
+
       
       // App Bar Theme
       appBarTheme: const AppBarTheme(
+        surfaceTintColor: Colors.white,
         backgroundColor: backgroundWhite,
         foregroundColor: textPrimary,
         elevation: 0,
@@ -206,6 +208,7 @@ class AppTheme {
       
       // Text Theme
       textTheme: const TextTheme(
+
         headlineLarge: TextStyle(
           fontFamily: AppFont.family,
           fontSize: fontSize32,

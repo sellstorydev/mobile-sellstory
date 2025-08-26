@@ -9,6 +9,7 @@ import 'core/theme/theme_controller.dart';
 import 'core/i18n/locale_controller.dart';
 import 'core/services/logger_service.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -34,7 +35,7 @@ void main() async {
   // Initialize GetStorage
   try {
     await GetStorage.init();
-    LoggerService.to.cache('GetStorage initialized successfully');
+    LoggerService.to.cache('GetS torage initialized successfully');
   } catch (e) {
     LoggerService.to.failure('Failed to initialize GetStorage', e);
   }
@@ -56,7 +57,8 @@ void main() async {
       'status': 'failed',
     });
   }
-  
+
+
   // Register theme and locale controllers
   try {
     Get.put(ThemeController(), permanent: true);
@@ -69,9 +71,6 @@ void main() async {
   LoggerService.to.success('Application initialization completed');
   
   runApp(
-    DevicePreview(
-      enabled: true, // Enable device preview
-      builder: (context) => const SellStoryApp(),
-    ),
+      const SellStoryApp()
   );
 }

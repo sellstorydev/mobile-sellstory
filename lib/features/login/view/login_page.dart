@@ -49,6 +49,8 @@ class LoginPage extends StatelessWidget {
                             TextFormField(
                               onChanged: controller.onIdentityChanged,
                               keyboardType: TextInputType.emailAddress,
+                              style: const TextStyle(color: Colors.black),
+
                               decoration: InputDecoration(
                                 hintText: 'กรอกอีเมล',
                                 filled: true,
@@ -80,6 +82,7 @@ class LoginPage extends StatelessWidget {
                             Obx(() => TextFormField(
                               onChanged: controller.onPasswordChanged,
                               obscureText: controller.obscurePassword.value,
+                              style: const TextStyle(color: Colors.black), // Added black text color
                               decoration: InputDecoration(
                                 hintText: 'กรอกรหัสผ่าน',
                                 filled: true,

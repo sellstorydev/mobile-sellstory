@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Camera and media permissions for image capture/picking -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- For Android 13+ gallery access -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Backward compatibility for older Android versions -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
     <application
         android:label="sellstory"
         android:name="${applicationName}"

@@ -10,10 +10,12 @@ class Customer {
   final List<Map<String, dynamic>> emails;
   final List<Map<String, dynamic>> phones;
   final List<Map<String, dynamic>> companyNames;
+  final List<Map<String, dynamic>> companyNames;
   final String nationalId;
   final String address;
   final String source;
   final List<Map<String, dynamic>> hashtags;
+  final List<String> assignees;
   final List<String> assignees;
   final String customId;
   final String workspaceId;
@@ -55,10 +57,12 @@ class Customer {
     List<Map<String, dynamic>>? emails,
     List<Map<String, dynamic>>? phones,
     List<Map<String, dynamic>>? companyNames,
+    List<Map<String, dynamic>>? companyNames,
     String? nationalId,
     String? address,
     String? source,
     List<Map<String, dynamic>>? hashtags,
+    List<String>? assignees,
     List<String>? assignees,
     String? customId,
     String? workspaceId,
@@ -325,6 +329,72 @@ class Customer {
       print('Error parsing phones: $e');
       print('Phones data: $phonesData');
       print('Phones data type: ${phonesData.runtimeType}');
+      return [];
+    }
+  }
+
+  // Helper method to parse company names from different data types  
+  static List<Map<String, dynamic>> parseCompanyNamesFromMap(dynamic companyNamesData) {
+    try {
+      if (companyNamesData == null || companyNamesData.toString().isEmpty) {
+        return [];
+      }
+      
+      if (companyNamesData is List) {
+        return companyNamesData.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else if (item is String) {
+            return {
+              'id': 'company-initial',
+              'label': 'Company',
+              'value': item,
+            };
+          } else {
+            return {
+              'id': 'company-initial',
+              'label': 'Company',
+              'value': item.toString(),
+            };
+          }
+        }).toList();
+      }
+      
+      if (companyNamesData is String) {
+        try {
+          final List<dynamic> parsed = jsonDecode(companyNamesData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return item;
+            } else {
+              return {
+                'id': 'company-initial',
+                'label': 'Company',
+                'value': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          if (companyNamesData.trim().isNotEmpty) {
+            return [{
+              'id': 'company-initial',
+              'label': 'Company',
+              'value': companyNamesData,
+            }];
+          }
+          return [];
+        }
+      }
+      
+      return [{
+        'id': 'company-initial',
+        'label': 'Company',
+        'value': companyNamesData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing company names: $e');
+      print('Company names data: $companyNamesData');
+      print('Company names data type: ${companyNamesData.runtimeType}');
       return [];
     }
   }

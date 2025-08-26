@@ -3,10 +3,13 @@ import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../chat/view/chat_center_page.dart';
 import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
 import '../widgets/lane_header.dart';
+import '../widgets/status_summary_cards.dart';
+import 'unified_filter_page.dart';
 import '../../../domain/entities/lane.dart';
 
 class BoardPage extends StatefulWidget {
@@ -39,6 +42,32 @@ class _BoardPageState extends State<BoardPage> {
     // Check if we need to refresh data (e.g., after creating new workspace)
     if (_controller.currentWorkspaceId.value.isEmpty && !_controller.isLoading.value) {
       _initializeWithCurrentUser();
+    } else if (_controller.currentWorkspaceId.value.isNotEmpty && _controller.currentBoardId.value.isNotEmpty) {
+      // Refresh board data when returning to this page
+      _controller.refresh();
+    }
+  }
+
+  void _handleMenuAction(String value) {
+    switch (value) {
+      case 'board_management':
+        Get.toNamed('/board-management');
+        break;
+      case 'refresh':
+        _initializeWithCurrentUser();
+        break;
+      case 'edit_workspace':
+        _navigateToEditWorkspace();
+        break;
+      default:
+        if (value.startsWith('board_')) {
+          final boardId = value.substring(6); // Remove 'board_' prefix
+          _controller.switchBoard(boardId);
+        } else if (value.startsWith('workspace_')) {
+          final workspaceId = value.substring(10); // Remove 'workspace_' prefix
+          _controller.switchWorkspace(workspaceId);
+        }
+        break;
     }
   }
 
@@ -67,68 +96,319 @@ class _BoardPageState extends State<BoardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() => Text(_controller.currentWorkspaceName.value.isNotEmpty 
-          ? _controller.currentWorkspaceName.value 
-          : 'Board')),
+        title: Obx(() {
+          if (_controller.hasWorkspaces) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _controller.currentWorkspaceName.value.isNotEmpty 
+                    ? _controller.currentWorkspaceName.value 
+                    : 'Board',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                if (_controller.currentBoardName.value.isNotEmpty)
+                  Text(
+                    _controller.currentBoardName.value,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+              ],
+            );
+          }
+          return const Text('Board');
+        }),
         actions: [
-          // Refresh button
-          IconButton(
-            onPressed: () => _initializeWithCurrentUser(),
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh data',
-          ),
-          // Add Workspace button - show when no workspaces
+          // Unified Filter Button
           Obx(() {
-            if (!_controller.hasWorkspaces) {
+            if (_controller.hasWorkspaces) {
+              final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
+                                 _controller.selectedCustomers.isNotEmpty ||
+                                 _controller.selectedDateFilterType.value.isNotEmpty;
+              
+              return IconButton(
+                onPressed: () => _showUnifiedFilterPage(),
+                icon: Icon(
+                  hasAnyFilter ? Icons.filter_alt : Icons.filter_alt_outlined,
+                  color: hasAnyFilter ? Colors.blue[600] : null,
+                ),
+                tooltip: hasAnyFilter ? 'Active Filters' : 'Filter Jobs',
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          
+          // Search Button
+          Obx(() {
+            if (_controller.hasWorkspaces) {
+              return IconButton(
+                onPressed: () => _showSearchDialog(),
+                icon: Icon(_controller.isSearching.value ? Icons.search_off : Icons.search),
+                tooltip: _controller.isSearching.value ? 'Clear Search' : 'Search',
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatCenterPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.chat_bubble_outline),
+            tooltip: 'Chat Center',
+          ),
+
+          // Main Menu Button - combines all actions
+          Obx(() {
+            if (_controller.hasWorkspaces) {
+              return PopupMenuButton<String>(
+                onSelected: (value) => _handleMenuAction(value),
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Icon(Icons.more_vert),
+                ),
+                itemBuilder: (context) => [
+                  // Board Management
+                  PopupMenuItem<String>(
+                    value: 'board_management',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.dashboard, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Board Management'),
+                      ],
+                    ),
+                  ),
+                  // Board Selector
+                  if (_controller.boards.isNotEmpty) ...[
+                    const PopupMenuDivider(),
+                    ..._controller.boards.map((board) {
+                      return PopupMenuItem<String>(
+                        value: 'board_${board.id}',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.view_column,
+                              size: 20,
+                              color: board.id == _controller.currentBoardId.value
+                                  ? AppTheme.primaryOrange
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(board.name)),
+                            if (board.id == _controller.currentBoardId.value)
+                              const Icon(Icons.check, color: AppTheme.primaryOrange),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                  // Workspace Selector
+                  if (_controller.availableWorkspaces.isNotEmpty) ...[
+                    const PopupMenuDivider(),
+                    ..._controller.availableWorkspaces.map((workspace) {
+                      return PopupMenuItem<String>(
+                        value: 'workspace_${workspace['id']}',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.workspace_premium,
+                              size: 20,
+                              color: workspace['id'] == _controller.currentWorkspaceId.value
+                                  ? AppTheme.primaryOrange
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(workspace['name'] as String)),
+                            if (workspace['id'] == _controller.currentWorkspaceId.value)
+                              const Icon(Icons.check, color: AppTheme.primaryOrange),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    const PopupMenuDivider(),
+                    PopupMenuItem<String>(
+                      value: 'edit_workspace',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.edit, size: 20),
+                          const SizedBox(width: 12),
+                          const Text('Edit Workspace'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  // Refresh
+                  const PopupMenuDivider(),
+                  PopupMenuItem<String>(
+                    value: 'refresh',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.refresh, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Refresh'),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              // Show only Add Workspace when no workspaces
               return IconButton(
                 onPressed: () => _navigateToCreateWorkspace(),
                 icon: const Icon(Icons.add),
                 tooltip: 'Add Workspace',
               );
             }
-            return const SizedBox.shrink();
           }),
-          // Workspace selector - only show if user has workspaces
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search Indicator
           Obx(() {
-            if (_controller.hasWorkspaces && _controller.availableWorkspaces.isNotEmpty) {
-              return PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit_workspace') {
-                    _navigateToEditWorkspace();
-                  } else {
-                    _controller.switchWorkspace(value);
-                  }
-                },
-                itemBuilder: (context) => [
-                  ..._controller.availableWorkspaces
-                      .map((workspace) => PopupMenuItem<String>(
-                            value: workspace['id'] as String,
-                            child: Text(workspace['name'] as String),
-                          ))
-                      .toList(),
-                  const PopupMenuDivider(),
-                  PopupMenuItem<String>(
-                    value: 'edit_workspace',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.edit, size: 16),
-                        const SizedBox(width: 8),
-                        const Text('Edit Workspace'),
-                      ],
+            if (_controller.isSearching.value && _controller.searchQuery.value.isNotEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: Colors.blue[50],
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: Colors.blue[600], size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'ค้นหา: "${_controller.searchQuery.value}"',
+                        style: TextStyle(
+                          color: Colors.blue[800],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.workspace_premium),
+                    TextButton(
+                      onPressed: () => _controller.clearSearch(),
+                      child: Text(
+                        'ล้าง',
+                        style: TextStyle(color: Colors.blue[600]),
+                      ),
+                    ),
+                  ],
                 ),
               );
             }
             return const SizedBox.shrink();
           }),
+          
+          // Unified Filter Indicator
+          Obx(() {
+            final hasCustomerFilter = _controller.selectedCustomers.isNotEmpty;
+            final hasAssigneeFilter = _controller.selectedAssignees.isNotEmpty;
+            final hasHashtagFilter = _controller.selectedHashtags.isNotEmpty;
+            final hasDateFilter = _controller.selectedDateFilterType.value.isNotEmpty;
+            
+            if (hasCustomerFilter || hasAssigneeFilter || hasHashtagFilter || hasDateFilter) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: Colors.blue[50],
+                child: Row(
+                  children: [
+                    Icon(Icons.filter_alt, color: Colors.blue[600], size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (hasDateFilter) ...[
+                            Text(
+                              'วันที่: ${_controller.selectedDateFilterType.value}',
+                              style: TextStyle(
+                                color: Colors.blue[800],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (_controller.selectedStartDate.value != null || _controller.selectedEndDate.value != null)
+                              Text(
+                                '${_controller.selectedStartDate.value != null ? _formatDate(_controller.selectedStartDate.value!) : ''} - ${_controller.selectedEndDate.value != null ? _formatDate(_controller.selectedEndDate.value!) : ''}',
+                                style: TextStyle(
+                                  color: Colors.blue[600],
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                          if (hasAssigneeFilter) ...[
+                            Text(
+                              'ผู้รับผิดชอบ: ${_controller.selectedAssignees.map((uid) => _controller.getDisplayNameFromUid(uid)).join(', ')}',
+                              style: TextStyle(
+                                color: Colors.blue[800],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                          if (hasCustomerFilter) ...[
+                            Text(
+                              'ลูกค้า: ${_controller.selectedCustomers.join(', ')}',
+                              style: TextStyle(
+                                color: Colors.blue[800],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                          if (hasHashtagFilter) ...[
+                            Text(
+                              'แฮชแท็ก: ${_controller.selectedHashtags.map((tag) => '#$tag').join(', ')}',
+                              style: TextStyle(
+                                color: Colors.blue[800],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _controller.clearFilter(),
+                      child: Text(
+                        'ล้างทั้งหมด',
+                        style: TextStyle(color: Colors.blue[600]),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          // Status Summary Cards
+          Obx(() {
+            if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
+              final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
+                                 _controller.selectedCustomers.isNotEmpty ||
+                                 _controller.selectedHashtags.isNotEmpty ||
+                                 _controller.selectedDateFilterType.value.isNotEmpty;
+              final displayLanes = (_controller.isSearching.value || hasAnyFilter)
+                  ? _controller.filteredLanes 
+                  : _controller.lanes;
+              final allCards = displayLanes
+                  .expand((lane) => lane.cards)
+                  .toList();
+              return StatusSummaryCards(cards: allCards);
+            }
+            return const SizedBox.shrink();
+          }),
+          // Board View
+          Expanded(child: _buildBoardView()),
         ],
       ),
-      body: _buildBoardView(),
       floatingActionButton: Obx(() {
         // Only show FAB if user has workspaces
         if (_controller.hasWorkspaces) {
@@ -251,31 +531,127 @@ class _BoardPageState extends State<BoardPage> {
         );
       }
 
-      if (_controller.lanes.isEmpty && _controller.hasWorkspaces) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              const Text(
-                'No lanes found',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Create your first lane to get started',
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => _showAddLaneDialog(),
-                icon: const Icon(Icons.add),
-                label: const Text('Add Lane'),
-              ),
-            ],
-          ),
-        );
+      final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
+                         _controller.selectedCustomers.isNotEmpty ||
+                         _controller.selectedHashtags.isNotEmpty ||
+                         _controller.selectedDateFilterType.value.isNotEmpty;
+      final displayLanes = (_controller.isSearching.value || hasAnyFilter)
+          ? _controller.filteredLanes 
+          : _controller.lanes;
+
+      if (displayLanes.isEmpty && _controller.hasWorkspaces) {
+        if (hasAnyFilter) {
+          // Show filter no results
+          String filterMessage = '';
+          final hasAssignee = _controller.selectedAssignees.isNotEmpty;
+          final hasCustomer = _controller.selectedCustomers.isNotEmpty;
+          final hasHashtag = _controller.selectedHashtags.isNotEmpty;
+          final hasDate = _controller.selectedDateFilterType.value.isNotEmpty;
+          
+          // Count the number of active filters
+          final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasDate].where((x) => x).length;
+          
+          if (filterCount >= 3) {
+            filterMessage = 'ไม่พบงานสำหรับเงื่อนไขที่เลือกทั้งหมด';
+          } else if (hasAssignee && hasCustomer) {
+            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและลูกค้าที่เลือก';
+          } else if (hasAssignee && hasHashtag) {
+            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและแฮชแท็กที่เลือก';
+          } else if (hasAssignee && hasDate) {
+            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและช่วงวันที่ที่เลือก';
+          } else if (hasCustomer && hasHashtag) {
+            filterMessage = 'ไม่พบงานสำหรับลูกค้าและแฮชแท็กที่เลือก';
+          } else if (hasCustomer && hasDate) {
+            filterMessage = 'ไม่พบงานสำหรับลูกค้าและช่วงวันที่ที่เลือก';
+          } else if (hasHashtag && hasDate) {
+            filterMessage = 'ไม่พบงานสำหรับแฮชแท็กและช่วงวันที่ที่เลือก';
+          } else if (hasAssignee) {
+            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบที่เลือก';
+          } else if (hasCustomer) {
+            filterMessage = 'ไม่พบงานสำหรับลูกค้าที่เลือก';
+          } else if (hasHashtag) {
+            filterMessage = 'ไม่พบงานสำหรับแฮชแท็กที่เลือก';
+          } else if (hasDate) {
+            filterMessage = 'ไม่พบงานในช่วงวันที่ที่เลือก';
+          }
+          
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.filter_list_off, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  filterMessage,
+                  style: const TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'ลองเปลี่ยนเงื่อนไขการกรอง หรือ',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => _controller.clearFilter(),
+                  icon: const Icon(Icons.clear),
+                  label: const Text('ล้างการกรอง'),
+                ),
+              ],
+            ),
+          );
+        } else if (_controller.isSearching.value) {
+          // Show search no results
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                const Text(
+                  'ไม่พบผลการค้นหา',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'ลองค้นหาด้วยคำอื่น หรือ',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => _controller.clearSearch(),
+                  icon: const Icon(Icons.clear),
+                  label: const Text('ล้างการค้นหา'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          // Show no lanes
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                const Text(
+                  'No lanes found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Create your first lane to get started',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddLaneDialog(),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Lane'),
+                ),
+              ],
+            ),
+          );
+        }
       }
 
       return _buildBoard();
@@ -283,6 +659,10 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildBoard() {
+    final displayLanes = _controller.isSearching.value 
+        ? _controller.filteredLanes 
+        : _controller.lanes;
+        
     return BoardAutoScrollWrapper(
       child: DragAndDropLists(
         onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
@@ -295,8 +675,8 @@ class _BoardPageState extends State<BoardPage> {
         listWidth: 300,
         listPadding: const EdgeInsets.all(8),
         listDragHandle: null, // Disable lane drag handle
-        children: _controller.lanes.map((lane) {
-          final laneData = lane as Lane;
+        children: displayLanes.map((lane) {
+          final laneData = lane;
           return DragAndDropList(
             header: _buildLaneHeader(laneData),
             children: [
@@ -325,6 +705,11 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   void _navigateToCreateCardWithLane(Lane lane) {
+    print('🔄 Navigating to create card with lane:');
+    print('  - Lane ID: ${lane.id}');
+    print('  - Lane Name: ${lane.title}');
+    print('  - Workspace ID: ${_controller.currentWorkspaceId.value}');
+    
     Get.toNamed(
       '/create-card',
       parameters: {
@@ -368,7 +753,7 @@ class _BoardPageState extends State<BoardPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
-        onTap: () => _navigateToCreateCard(),
+        onTap: () => _navigateToCreateCardWithLane(lane),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -405,8 +790,8 @@ class _BoardPageState extends State<BoardPage> {
 
   void _handleCardReorder(int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
     try {
-      final oldLane = _controller.lanes[oldListIndex] as Lane;
-      final newLane = _controller.lanes[newListIndex] as Lane;
+      final oldLane = _controller.lanes[oldListIndex];
+      final newLane = _controller.lanes[newListIndex];
       final card = oldLane.cards[oldItemIndex];
 
       print('🔄 Card reordered: ${card.id} from ${oldLane.title} to ${newLane.title}');
@@ -739,63 +1124,136 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-  void _showAddCardDialog(Lane lane) {
-    final TextEditingController titleController = TextEditingController();
-    final TextEditingController assigneeController = TextEditingController();
+  void _showSearchDialog() {
+    if (_controller.isSearching.value) {
+      // If already searching, clear search
+      _controller.clearSearch();
+      return;
+    }
+
+    final TextEditingController searchController = TextEditingController(
+      text: _controller.searchQuery.value,
+    );
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Add Card to ${lane.title}'),
+        title: const Text('ค้นหางาน'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: titleController,
+              controller: searchController,
               decoration: const InputDecoration(
-                labelText: 'Card Title *',
-                hintText: 'Enter card title...',
+                labelText: 'คำค้นหา',
+                hintText: 'ชื่องาน, รหัสงาน, ลูกค้า, ผู้รับผิดชอบ...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
               ),
               autofocus: true,
+                                    onChanged: (value) {
+                // Real-time search as user types
+                _controller.updateSearchQuery(value);
+              },
+              onSubmitted: (value) {
+                _controller.updateSearchQuery(value);
+                Navigator.of(context).pop();
+              },
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: assigneeController,
-              decoration: const InputDecoration(
-                labelText: 'Assignee',
-                hintText: 'Enter assignee...',
+            // Debug button for testing search
+            ElevatedButton(
+              onPressed: () {
+                print('🔍 DEBUG: Testing search with common terms...');
+                final testTerms = ['New', 'Card', 'To Do', 'test', 'JB'];
+                for (final term in testTerms) {
+                  print('🔍 Testing search for: "$term"');
+                  _controller.updateSearchQuery(term);
+                  // Wait a bit then clear
+                  Future.delayed(Duration(milliseconds: 100), () {
+                    _controller.clearSearch();
+                  });
+                }
+              },
+              child: Text('Debug Search'),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue[600], size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'ค้นหาจาก',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• ชื่องาน\n'
+                    '• รายละเอียดงาน\n'
+                    '• รหัสงาน\n'
+                    '• ชื่อลูกค้า\n'
+                    '• ผู้รับผิดชอบ\n'
+                    '• สถานะงาน\n'
+                    '• ชื่อเลน',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
         actions: [
           TextButton(
+            onPressed: () {
+              _controller.clearSearch();
+              Navigator.of(context).pop();
+            },
+            child: const Text('ล้าง'),
+          ),
+          TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text('ยกเลิก'),
           ),
           ElevatedButton(
             onPressed: () {
-              if (titleController.text.trim().isNotEmpty) {
-                _controller.onAddCard(
-                  laneId: lane.id,
-                  title: titleController.text.trim(),
-                  assignee: assigneeController.text.trim(),
-                );
-                Navigator.of(context).pop();
-              } else {
-                // Show error for required fields
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Title is required'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+              final query = searchController.text.trim();
+              if (query.isNotEmpty) {
+                _controller.updateSearchQuery(query);
               }
+              Navigator.of(context).pop();
             },
-            child: const Text('Add Card'),
+            child: const Text('ค้นหา'),
           ),
         ],
       ),
     );
   }
+
+  void _showUnifiedFilterPage() {
+    Get.to(() => const UnifiedFilterPage());
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+
 }

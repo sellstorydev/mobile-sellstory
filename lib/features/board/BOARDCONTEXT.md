@@ -62,6 +62,82 @@ onListReorder: (int oldListIndex, int newListIndex) {
 3. **Add Card**: `Controller.onAddCard()` → `Presenter.onAddCard()` → `UseCase.execute()` → Optimistic UI update → Persist to repository
 4. **Add Lane**: `Controller.onAddLane()` → `Presenter.onAddLane()` → `UseCase.execute()` → Optimistic UI update → Persist to repository
 
+## Search Implementation
+
+### Search Features
+The board now includes comprehensive search functionality that allows users to find cards and lanes efficiently:
+
+#### Search Capabilities
+- **Multi-field Search**: Searches across card title, description, custom ID, customer, assignee, status, and lane title
+- **Real-time Filtering**: Immediate results as user types
+- **Smart Lane Inclusion**: Shows lanes with matching cards OR lanes whose title matches the search
+- **Case-insensitive**: Search is not case-sensitive for better user experience
+- **Visual Indicators**: Clear search state indicators and result counts
+
+#### Search UI Components
+- **Search Button**: Located in AppBar, toggles between search and clear modes
+- **Search Dialog**: Modal dialog with search input and helpful information
+- **Search Indicator**: Shows current search query with option to clear
+- **Empty States**: Different messages for "no results" vs "no lanes"
+
+#### Search Flow
+1. **Activate Search**: Click search icon in AppBar to open search dialog
+2. **Enter Query**: Type search terms in the input field
+3. **View Results**: See filtered lanes and cards instantly
+4. **Clear Search**: Use "ล้าง" button or search icon to return to full view
+
+### Search Technical Details
+```dart
+// Search state management
+final RxString searchQuery = ''.obs;
+final RxBool isSearching = false.obs;
+final RxList<Lane> filteredLanes = <Lane>[].obs;
+
+// Search methods
+void updateSearchQuery(String query)
+void clearSearch()
+void _performSearch(String query)
+bool _cardMatchesSearch(JobCard card, String searchLower)
+```
+
+## Filter Implementation
+
+### Filter Features
+The board now includes assignee filtering functionality that allows users to view cards assigned to specific people:
+
+#### Filter Capabilities
+- **Assignee Selection**: Choose from a list of available assignees in the system
+- **Visual Indicators**: Clear filter state indicators with assignee name
+- **Card Count Display**: Shows how many cards each assignee has
+- **Combined with Search**: Works together with search functionality
+- **Easy Clear**: Quick access to clear filter and return to full view
+
+#### Filter UI Components
+- **Filter Button**: Located in AppBar, toggles between filter and clear modes
+- **Filter Dialog**: Modal dialog showing list of available assignees
+- **Filter Indicator**: Shows current filter with assignee name and clear option
+- **Empty States**: Specific messages for "no results for this assignee"
+
+#### Filter Flow
+1. **Activate Filter**: Click filter icon in AppBar to open assignee selection
+2. **Select Assignee**: Choose from list of available assignees with card counts
+3. **View Results**: See only cards assigned to selected person
+4. **Clear Filter**: Use "ล้าง" button or filter icon to return to full view
+
+### Filter Technical Details
+```dart
+// Filter state management
+final RxString selectedAssignee = ''.obs;
+final RxBool isFiltering = false.obs;
+final RxList<String> availableAssignees = <String>[].obs;
+
+// Filter methods
+void updateAssigneeFilter(String assigneeId)
+void clearFilter()
+void _performFilter()
+void _updateAvailableAssignees()
+```
+
 ## Features
 
 ### Current Features
@@ -78,6 +154,8 @@ onListReorder: (int oldListIndex, int newListIndex) {
 - ✅ **Drag & drop card reordering within lanes**
 - ✅ **Drag & drop card movement between lanes**
 - ✅ **Auto-scroll during drag operations** (edge-triggered scrolling)
+- ✅ **Search functionality** (card and lane filtering with real-time results)
+- ✅ **Filter by assignee** (filter cards by assigned person with UI selection)
 
 ### Planned Features
 - 🔄 Drag & drop lane reordering
@@ -85,7 +163,7 @@ onListReorder: (int oldListIndex, int newListIndex) {
 - 🔄 Delete lane functionality
 - 🔄 Edit card functionality
 - 🔄 Delete card functionality
-- 🔄 Card filtering and search
+- ✅ Card filtering and search (COMPLETED)
 - 🔄 Lane collapsing/expanding
 
 ## Dependencies
@@ -116,3 +194,7 @@ The feature includes unit tests for:
 - Auto-scroll configuration
 
 Run tests with: `flutter test test/features/board/`
+
+Can read databas sturcture at firestore/backup-2025-08-25T02-47-08.json
+
+For better answer, when you done all task note everything you want to file SUMMARY.md for better answer my prompt

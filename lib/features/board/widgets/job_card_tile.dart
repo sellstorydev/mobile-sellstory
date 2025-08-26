@@ -27,8 +27,8 @@ class JobCardTile extends StatelessWidget {
     
     return GestureDetector(
       onTap: onTap ?? () {
-        // Navigate to card detail page
-        Get.toNamed(AppRoutes.cardDetail, arguments: card);
+        // Navigate to card view page (read-only)
+        Get.toNamed(AppRoutes.cardView, arguments: card);
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -65,18 +65,44 @@ class JobCardTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      // Navigate to card detail page
-                      Get.toNamed(AppRoutes.cardDetail, arguments: card);
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          Get.toNamed(AppRoutes.cardDetail, arguments: card);
+                          break;
+                        case 'detail':
+                          Get.toNamed(AppRoutes.cardView, arguments: card);
+                          break;
+                      }
                     },
-                    icon: const Icon(
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 16),
+                            SizedBox(width: 8),
+                            Text('Edit Card'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'detail',
+                        child: Row(
+                          children: [
+                            Icon(Icons.visibility, size: 16),
+                            SizedBox(width: 8),
+                            Text('View Details'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    child: const Icon(
                       Icons.more_vert,
                       size: 20,
                       color: AppTheme.textSecondary,
                     ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
                   ),
                 ],
               ),

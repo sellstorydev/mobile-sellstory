@@ -1,18 +1,23 @@
-import 'lane.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Board {
   final String id;
-  final String title;
-  final String userId;
-  final List<Lane> lanes;
+  final String name;
+  final String workspaceId;
+  final String createdBy;
+  final List<Map<String, dynamic>> members;
+  final List<String> memberUids;
+  final List<String> lanes;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   Board({
     required this.id,
-    required this.title,
-    required this.userId,
+    required this.name,
+    required this.workspaceId,
+    required this.createdBy,
+    required this.members,
+    required this.memberUids,
     required this.lanes,
     required this.createdAt,
     required this.updatedAt,
@@ -20,41 +25,56 @@ class Board {
 
   Board copyWith({
     String? id,
-    String? title,
-    String? userId,
-    List<Lane>? lanes,
+    String? name,
+    String? workspaceId,
+    String? createdBy,
+    List<Map<String, dynamic>>? members,
+    List<String>? memberUids,
+    List<String>? lanes,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return Board(
       id: id ?? this.id,
-      title: title ?? this.title,
-      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      workspaceId: workspaceId ?? this.workspaceId,
+      createdBy: createdBy ?? this.createdBy,
+      members: members ?? this.members,
+      memberUids: memberUids ?? this.memberUids,
       lanes: lanes ?? this.lanes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
     return {
-      'title': title,
-      'userId': userId,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
+      'name': name,
+      'workspaceId': workspaceId,
+      'createdBy': createdBy,
+      'members': members,
+      'memberUids': memberUids,
+      'lanes': lanes,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
 
-  // Create from Map from Firestore
   factory Board.fromMap(Map<String, dynamic> map, String id) {
     return Board(
       id: id,
-      title: map['title'] ?? '',
-      userId: map['userId'] ?? '',
-      lanes: [], // Lanes will be loaded separately
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      name: map['name'] ?? '',
+      workspaceId: map['workspaceId'] ?? '',
+      createdBy: map['createdBy'] ?? '',
+      members: List<Map<String, dynamic>>.from(map['members'] ?? []),
+      memberUids: List<String>.from(map['memberUids'] ?? []),
+      lanes: List<String>.from(map['lanes'] ?? []),
+      createdAt: (map['createdAt'] is Timestamp) 
+                 ? (map['createdAt'] as Timestamp).toDate()
+                 : DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
+      updatedAt: (map['updatedAt'] is Timestamp)
+                 ? (map['updatedAt'] as Timestamp).toDate()
+                 : DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
     );
   }
 
@@ -63,8 +83,11 @@ class Board {
     if (identical(this, other)) return true;
     return other is Board &&
         other.id == id &&
-        other.title == title &&
-        other.userId == userId &&
+        other.name == name &&
+        other.workspaceId == workspaceId &&
+        other.createdBy == createdBy &&
+        other.members == members &&
+        other.memberUids == memberUids &&
         other.lanes == lanes &&
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt;
@@ -73,8 +96,11 @@ class Board {
   @override
   int get hashCode {
     return id.hashCode ^
-        title.hashCode ^
-        userId.hashCode ^
+        name.hashCode ^
+        workspaceId.hashCode ^
+        createdBy.hashCode ^
+        members.hashCode ^
+        memberUids.hashCode ^
         lanes.hashCode ^
         createdAt.hashCode ^
         updatedAt.hashCode;
@@ -82,6 +108,6 @@ class Board {
 
   @override
   String toString() {
-    return 'Board(id: $id, title: $title, userId: $userId, lanes: $lanes, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Board(id: $id, name: $name, workspaceId: $workspaceId, createdBy: $createdBy, members: $members, memberUids: $memberUids, lanes: $lanes, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
