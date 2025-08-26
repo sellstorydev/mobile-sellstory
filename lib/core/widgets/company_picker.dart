@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_theme.dart';
 import '../services/company_service.dart';
 import '../../features/companies/view/add_edit_company_page.dart';
+import '../../data/repositories/firestore_repository.dart';
 
 class Company {
   final String id;
-  final String name;
+  final List<Map<String, dynamic>> companyNames;
   final String customId;
   final List<Map<String, dynamic>> emails;
   final List<Map<String, dynamic>> phones;
@@ -29,7 +31,7 @@ class Company {
 
   Company({
     required this.id,
-    required this.name,
+    required this.companyNames,
     required this.customId,
     required this.emails,
     required this.phones,
@@ -52,9 +54,26 @@ class Company {
   });
 
   factory Company.fromMap(Map<String, dynamic> map) {
+    // Handle both old 'name' field and new 'companyNames' array structure
+    List<Map<String, dynamic>> companyNames = [];
+    
+    if (map['companyNames'] != null) {
+      // New structure: companyNames array
+      companyNames = List<Map<String, dynamic>>.from(map['companyNames'] ?? []);
+    } else if (map['name'] != null) {
+      // Old structure: single name field - convert to new structure
+      companyNames = [
+        {
+          'id': map['id'] ?? '',
+          'label': 'Main',
+          'value': map['name'] as String,
+        }
+      ];
+    }
+    
     return Company(
       id: map['id'] ?? '',
-      name: map['name'] ?? '',
+      companyNames: companyNames,
       customId: map['customId'] ?? '',
       emails: List<Map<String, dynamic>>.from(map['emails'] ?? []),
       phones: List<Map<String, dynamic>>.from(map['phones'] ?? []),
@@ -80,7 +99,7 @@ class Company {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'name': name,
+      'companyNames': companyNames,
       'customId': customId,
       'emails': emails,
       'phones': phones,
@@ -101,6 +120,14 @@ class Company {
       'updatedBy': updatedBy,
       'associatedCustomerIds': associatedCustomerIds,
     };
+  }
+
+  // Helper method to get the main company name for display
+  String get displayName {
+    if (companyNames.isNotEmpty) {
+      return companyNames.first['value'] as String? ?? 'Unknown Company';
+    }
+    return 'Unknown Company';
   }
 }
 
@@ -129,19 +156,26 @@ class CompanyPicker extends StatefulWidget {
 class _CompanyPickerState extends State<CompanyPicker> {
   final TextEditingController _searchController = TextEditingController();
   final CompanyService _companyService = CompanyService();
+  final FirestoreRepository _repository = Get.find<FirestoreRepository>();
   
   List<Company> _availableCompanies = [];
   List<Company> _filteredCompanies = [];
   List<Company> _selectedCompanies = [];
   bool _isLoading = true;
   bool _isSearching = false;
+  
+  // User and workspace related
+  String _currentUserId = '';
+  String _currentWorkspaceId = '';
+  
+  // Modal state management
+  StateSetter? _currentModalStateSetter;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_onSearchChanged);
-    _selectedCompanies = widget.selectedCompanies ?? [];
-    _loadCompanies();
+    _selectedCompanies = List<Company>.from(widget.selectedCompanies ?? []);
+    _initializeUserAndWorkspace();
   }
 
   @override
@@ -149,7 +183,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedCompanies != widget.selectedCompanies) {
       setState(() {
-        _selectedCompanies = widget.selectedCompanies ?? [];
+        _selectedCompanies = List<Company>.from(widget.selectedCompanies ?? []);
       });
     }
   }
@@ -160,21 +194,70 @@ class _CompanyPickerState extends State<CompanyPicker> {
     super.dispose();
   }
 
+  Future<void> _initializeUserAndWorkspace() async {
+    try {
+      // Get current user ID from Firebase Auth
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        print('❌ No authenticated user found');
+        return;
+      }
+      
+      _currentUserId = currentUser.uid;
+      print('👤 Initializing company picker with user: $_currentUserId');
+      
+      // Get user's workspaces
+      print('📋 Fetching user workspaces...');
+      final workspaces = await _repository.getUserWorkspaces(_currentUserId);
+      
+      print('📋 User workspaces loaded: ${workspaces.length} workspaces');
+      
+      if (workspaces.isNotEmpty) {
+        // Use the first workspace as default
+        final firstWorkspace = workspaces.first;
+        _currentWorkspaceId = firstWorkspace['id'] as String;
+        
+        print('✅ Company picker initialized with workspace: ${firstWorkspace['name']}');
+        
+        // Load companies for the selected workspace
+        await _loadCompanies();
+      } else {
+        print('⚠️ No workspaces found for user: $_currentUserId');
+      }
+    } catch (e) {
+      print('❌ Failed to initialize user and workspace: $e');
+    }
+  }
+
   Future<void> _loadCompanies() async {
     try {
       setState(() {
         _isLoading = true;
       });
 
-      // Get workspace ID from current context
-      final workspaceId = 'GkEJ3c6u9QU4utYO6KVZ'; // TODO: Get from context
-      final companies = await _companyService.getCompanies(workspaceId);
+      if (_currentWorkspaceId.isEmpty) {
+        print('⚠️ CompanyPicker: No workspace ID available for companies');
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final companies = await _companyService.getCompanies(_currentWorkspaceId);
       
       setState(() {
         _availableCompanies = companies;
         _filteredCompanies = companies;
         _isLoading = false;
       });
+      
+      print('📋 Companies loaded: ${companies.length} companies');
+      
+      // Force rebuild of any open modal
+      if (mounted) {
+        setState(() {});
+        _currentModalStateSetter?.call(() {});
+      }
     } catch (e) {
       print('Error loading companies: $e');
       setState(() {
@@ -183,20 +266,21 @@ class _CompanyPickerState extends State<CompanyPicker> {
     }
   }
 
-  void _onSearchChanged() {
-    final searchQuery = _searchController.text.toLowerCase();
+  void _onSearchChanged(String value) {
+    final searchQuery = value.toLowerCase().trim();
     setState(() {
       _isSearching = searchQuery.isNotEmpty;
       if (searchQuery.isEmpty) {
-        _filteredCompanies = _availableCompanies;
+        _filteredCompanies = List<Company>.from(_availableCompanies);
       } else {
         _filteredCompanies = _availableCompanies.where((company) {
-          return company.name.toLowerCase().contains(searchQuery) ||
+          return company.displayName.toLowerCase().contains(searchQuery) ||
                  company.customId.toLowerCase().contains(searchQuery) ||
                  company.taxId.toLowerCase().contains(searchQuery);
         }).toList();
       }
     });
+    // Search query processed: "$searchQuery", Found: ${_filteredCompanies.length} companies
   }
 
   void _toggleCompany(Company company) {
@@ -210,7 +294,8 @@ class _CompanyPickerState extends State<CompanyPicker> {
         _selectedCompanies.add(company);
       }
     });
-    widget.onCompaniesChanged(_selectedCompanies);
+    // Notify parent immediately when selection changes
+    widget.onCompaniesChanged(List<Company>.from(_selectedCompanies));
   }
 
   void _showCompanyPicker() {
@@ -218,7 +303,12 @@ class _CompanyPickerState extends State<CompanyPicker> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildCompanyPickerModal(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          _currentModalStateSetter = setModalState;
+          return _buildCompanyPickerModal(setModalState);
+        },
+      ),
     );
   }
 
@@ -256,15 +346,23 @@ class _CompanyPickerState extends State<CompanyPicker> {
       MaterialPageRoute(
         builder: (context) => const AddEditCompanyPage(),
       ),
-    ).then((result) {
+    ).then((result) async {
       // Refresh companies list if a new company was added
       if (result == true) {
-        _loadCompanies();
+        await _loadCompanies();
+        // Clear search when returning from add company
+        _searchController.clear();
+        _onSearchChanged(''); // Reset search filter
+        // Force rebuild of the modal if it's open
+        if (mounted) {
+          setState(() {});
+          _currentModalStateSetter?.call(() {});
+        }
       }
     });
   }
 
-  Widget _buildCompanyPickerModal() {
+  Widget _buildCompanyPickerModal([StateSetter? setModalState]) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
@@ -292,7 +390,12 @@ class _CompanyPickerState extends State<CompanyPicker> {
                 ),
                 const Spacer(),
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    // Ensure the callback is called with the current selection
+                    widget.onCompaniesChanged(List<Company>.from(_selectedCompanies));
+                    _currentModalStateSetter = null; // Clean up
+                    Navigator.pop(context);
+                  },
                   child: const Text(
                     'เสร็จสิ้น',
                     style: TextStyle(
@@ -316,11 +419,27 @@ class _CompanyPickerState extends State<CompanyPicker> {
                      decoration: InputDecoration(
                        hintText: 'ค้นหาบริษัท...',
                        prefixIcon: const Icon(Icons.search),
+                                        suffixIcon: _searchController.text.isNotEmpty
+                     ? IconButton(
+                         icon: const Icon(Icons.clear),
+                         onPressed: () {
+                           _searchController.clear();
+                           _onSearchChanged('');
+                           setModalState?.call(() {});
+                         },
+                       )
+                     : null,
                        border: OutlineInputBorder(
                          borderRadius: BorderRadius.circular(12),
                        ),
                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                      ),
+                     onChanged: (value) {
+                       // Trigger search on each character change
+                       _onSearchChanged(value);
+                       // Force modal to rebuild with search results
+                       setModalState?.call(() {});
+                     },
                    ),
                  ),
                  const SizedBox(width: 12),
@@ -350,20 +469,12 @@ class _CompanyPickerState extends State<CompanyPicker> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'บริษัทที่เลือก',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: _selectedCompanies.map((company) {
-                      return _buildCompanyChip(company, true);
+                      return _buildCompanyChip(company, true, setModalState);
                     }).toList(),
                   ),
                 ],
@@ -380,10 +491,27 @@ class _CompanyPickerState extends State<CompanyPicker> {
                 ? _buildLoadingState()
                 : _filteredCompanies.isEmpty
                     ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _filteredCompanies.length,
-                        itemBuilder: (context, index) {
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Debug info (remove in production)
+                          if (_isSearching)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: Text(
+                                'Found ${_filteredCompanies.length} companies',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _filteredCompanies.length,
+                              itemBuilder: (context, index) {
                           final company = _filteredCompanies[index];
                           final isSelected = _selectedCompanies.any((c) => c.id == company.id);
                           
@@ -392,7 +520,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
                             leading: CircleAvatar(
                               backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
                               child: Text(
-                                company.name.isNotEmpty ? company.name[0].toUpperCase() : 'C',
+                                company.displayName.isNotEmpty ? company.displayName[0].toUpperCase() : 'C',
                                 style: const TextStyle(
                                   color: AppTheme.primaryOrange,
                                   fontWeight: FontWeight.bold,
@@ -400,7 +528,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
                               ),
                             ),
                             title: Text(
-                              company.name,
+                              company.displayName,
                               style: const TextStyle(
                                 fontSize: 16,
                                 color: AppTheme.textPrimary,
@@ -431,10 +559,18 @@ class _CompanyPickerState extends State<CompanyPicker> {
                               onChanged: (_) => _toggleCompany(company),
                               activeColor: AppTheme.primaryOrange,
                             ),
-                            onTap: () => _toggleCompany(company),
+                            onTap: () {
+                              _toggleCompany(company);
+                              // Force rebuild to show selection state immediately
+                              setState(() {});
+                              setModalState?.call(() {});
+                            },
                           );
                         },
                       ),
+                            ),
+                          ],
+                        ),
           ),
         ],
       ),
@@ -502,7 +638,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
     );
   }
 
-  Widget _buildCompanyChip(Company company, bool isSelected) {
+  Widget _buildCompanyChip(Company company, bool isSelected, [StateSetter? setModalState]) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -517,7 +653,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            company.name,
+            company.displayName,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -527,7 +663,12 @@ class _CompanyPickerState extends State<CompanyPicker> {
           if (isSelected) ...[
             const SizedBox(width: 4),
             GestureDetector(
-              onTap: () => _toggleCompany(company),
+              onTap: () {
+                _toggleCompany(company);
+                // Force modal to rebuild after removing company
+                setState(() {});
+                setModalState?.call(() {});
+              },
               child: Icon(
                 Icons.close,
                 size: 14,
@@ -552,6 +693,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          
           Row(
             children: [
               Text(
@@ -575,19 +717,6 @@ class _CompanyPickerState extends State<CompanyPicker> {
             ],
           ),
           const SizedBox(height: 8),
-          
-          // Selected companies display
-          if (_selectedCompanies.isNotEmpty) ...[
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _selectedCompanies.map((company) {
-                return _buildCompanyChip(company, true);
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-          ],
-          
           // Select button
           InkWell(
             onTap: _showCompanyPicker,
@@ -602,7 +731,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.add,
+                    _selectedCompanies.isEmpty ? Icons.add : Icons.edit,
                     size: 16,
                     color: Colors.grey.shade600,
                   ),
@@ -610,7 +739,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
                   Text(
                     _selectedCompanies.isEmpty 
                         ? (widget.hintText ?? 'เลือกบริษัท') 
-                        : 'แก้ไขบริษัท',
+                        : 'แก้ไขบริษัท (${_selectedCompanies.length})',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -620,6 +749,19 @@ class _CompanyPickerState extends State<CompanyPicker> {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          
+          // Selected companies display
+          if (_selectedCompanies.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+                          children: _selectedCompanies.map((company) {
+              return _buildCompanyChip(company, true, null);
+            }).toList(),
+            ),
+            const SizedBox(height: 12),
+          ],
         ],
       ),
     );

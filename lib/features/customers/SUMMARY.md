@@ -84,9 +84,16 @@ Successfully implemented a complete customer management system for the SellStory
      - Automatic custom ID generation for new customers
      - Editable custom ID field for existing customers
      - Data validation before saving
-  - Coming soon fields with placeholder UI:
-    - Assignees field
-    - Company field
+  - **Assignees field**: Multi-select dropdown for workspace members
+    - Fetches members from `workspaces/{workspaceId}/members`
+    - Matches with `users/{UID}` for full member data
+    - Saves UIDs to customer's `assignees` field
+    - Displays member names in UI, saves UIDs to database
+  - **Company field**: Multi-select company picker with search functionality
+    - Uses `CompanyPicker` widget for company selection
+    - Supports both old 'name' field and new 'companyNames' array structure
+    - Saves company data as array of objects: `[{id, label: "Main", value}]`
+    - Backward compatibility for existing company data
   - Form validation
   - Modern UI with consistent styling
 
@@ -181,6 +188,14 @@ The implementation correctly matches the Firebase backup data structure:
   - **WorkspaceMembersService**: Created service to fetch workspace members from `workspaces/{workspaceId}/members` and match with `users/{UID}` data
   - **AssigneesInputField**: Created multi-select widget for assignees with user avatars, names, emails, and permission badges
   - **UI Integration**: Replaced "Coming Soon" assignees field with functional multi-select dropdown in add/edit customer page
-  - **Display**: Added assignees display in customer detail page with chip-style UI
+  - **Display**: Added assignees display in customer detail page with chip-style UI showing display names instead of UIDs
   - **Data Parsing**: Added `parseAssigneesFromMap` method to handle various data formats (String, List, JSON)
   - **Dependency Injection**: Registered WorkspaceMembersService in locator.dart
+  - **Assignee Display Enhancement**: Updated customer detail page to fetch workspace members and display their display names instead of UIDs
+  - **Loading State**: Added loading indicator for assignees display while fetching member data
+  - **Fallback Handling**: If member data is not found, falls back to showing the UID
+- **Company Data Structure Fix**: 
+  - **Backward Compatibility**: Updated Company entity to handle both old 'name' field and new 'companyNames' array structure
+  - **Data Conversion**: Automatically converts old single 'name' field to new array format: `[{id, label: "Main", value}]`
+  - **Customer Integration**: Fixed customer form to properly save company data as array of objects instead of full company objects
+  - **Display Consistency**: Ensured company data is displayed and saved consistently across the application

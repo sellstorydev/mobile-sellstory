@@ -8,7 +8,7 @@ import '../../../core/widgets/company_picker.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/services/id_generation_service.dart';
-import '../../../core/services/company_service.dart';
+
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
 
@@ -167,8 +167,32 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
        
        // Parse companies from object format
        if (customer.companyNames.isNotEmpty) {
-         // TODO: Convert companyNames to Company objects
-         // For now, we'll leave it empty and let user select from available companies
+         // Convert companyNames to Company objects for display
+         _selectedCompanies = customer.companyNames.map((companyNameObj) {
+           return Company(
+             id: companyNameObj['id'] as String? ?? '',
+             companyNames: [companyNameObj],
+             customId: '',
+             emails: [],
+             phones: [],
+             taxId: '',
+             branch: '',
+             addressLine1: '',
+             subdistrict: '',
+             district: '',
+             province: '',
+             postalCode: '',
+             country: '',
+             hashtags: [],
+             website: '',
+             workspaceId: '',
+             createdAt: DateTime.now(),
+             updatedAt: DateTime.now(),
+             createdBy: '',
+             updatedBy: '',
+             associatedCustomerIds: [],
+           );
+         }).toList();
        }
       
       _selectedGender = _getSafeDropdownValue(customer.gender, _genderOptions);
@@ -963,7 +987,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           customerType: _selectedCustomerType,
           emails: emailsObjects,
           phones: phonesObjects,
-          companyNames: _selectedCompanies.map((company) => company.toMap()).toList(),
+          companyNames: _selectedCompanies.map((company) => company.companyNames).expand((names) => names).toList(),
           nationalId: _nationalIdController.text.trim(),
           address: _addressLine1Controller.text.trim(),
           source: _selectedSource,

@@ -96,6 +96,31 @@ class IdGenerationService {
     }
   }
 
+  /// Generate a company ID based on the rules
+  Future<String> generateCompanyId(String workspaceId) async {
+    try {
+      // Get the rules
+      final rules = await getIdGenerationRules(workspaceId, 'company');
+      
+      // Get the current sequence number
+      final sequence = await _getNextSequence(workspaceId, 'company');
+      
+      // Format the date according to the rules
+      final dateString = _formatDate(DateTime.now(), rules.dateFormat);
+      
+      // Format the sequence number with leading zeros
+      final sequenceString = sequence.toString().padLeft(rules.minLength, '0');
+      
+      // Combine all parts
+      return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
+    } catch (e) {
+      print('Error generating company ID: $e');
+      // Fallback to simple ID generation
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      return 'COM-$timestamp';
+    }
+  }
+
   /// Get the next sequence number from lastUsedCounters
   Future<int> _getNextSequence(String workspaceId, String entityType) async {
     try {

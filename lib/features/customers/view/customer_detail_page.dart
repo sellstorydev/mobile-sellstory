@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/hashtag_service.dart';
+import '../../../core/services/workspace_members_service.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
@@ -21,9 +22,12 @@ class CustomerDetailPage extends StatefulWidget {
 
 class _CustomerDetailPageState extends State<CustomerDetailPage> {
   final HashtagService _hashtagService = HashtagService();
+  final WorkspaceMembersService _workspaceMembersService = WorkspaceMembersService();
   final CustomersController _controller = Get.find<CustomersController>();
   List<HashtagOption> _availableHashtags = [];
+  List<WorkspaceMember> _workspaceMembers = [];
   bool _isLoadingHashtags = true;
+  bool _isLoadingMembers = true;
   
   // Current customer data that can be updated
   Customer? _currentCustomer;
@@ -86,6 +90,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
     super.initState();
     _currentCustomer = widget.customer;
     _loadHashtags();
+    _loadWorkspaceMembers();
     _listenToCustomerUpdates();
   }
 
@@ -133,6 +138,28 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
       print('Error loading hashtags: $e');
       setState(() {
         _isLoadingHashtags = false;
+      });
+    }
+  }
+
+  Future<void> _loadWorkspaceMembers() async {
+    try {
+      // Use controller to get current workspace ID
+      final workspaceId = _controller.currentWorkspaceId.value.isNotEmpty 
+          ? _controller.currentWorkspaceId.value 
+          : widget.customer.workspaceId;
+      
+      print('Loading workspace members for workspace: $workspaceId');
+      final members = await _workspaceMembersService.getWorkspaceMembers(workspaceId);
+      print('Loaded ${members.length} workspace members');
+      setState(() {
+        _workspaceMembers = members;
+        _isLoadingMembers = false;
+      });
+    } catch (e) {
+      print('Error loading workspace members: $e');
+      setState(() {
+        _isLoadingMembers = false;
       });
     }
   }
@@ -665,6 +692,51 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
       return _buildInfoRow('ผู้รับผิดชอบ', 'ไม่ระบุ');
     }
 
+    if (_isLoadingMembers) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 120,
+              child: Text(
+                'ผู้รับผิดชอบ',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Get display names for assignee IDs
+    final List<String> assigneeNames = [];
+    for (final assigneeId in assignees) {
+      final member = _workspaceMembers.firstWhere(
+        (member) => member.uid == assigneeId,
+        orElse: () => WorkspaceMember(
+          uid: assigneeId,
+          email: '',
+          displayName: assigneeId, // Fallback to ID if member not found
+          permission: 'member',
+        ),
+      );
+      assigneeNames.add(member.displayName);
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -686,7 +758,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             child: Wrap(
               spacing: 8,
               runSpacing: 4,
-              children: assignees.map((assigneeId) {
+              children: assigneeNames.map((displayName) {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -697,7 +769,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                     ),
                   ),
                   child: Text(
-                    assigneeId, // TODO: Get user display name from service
+                    displayName,
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppTheme.primaryOrange,
