@@ -770,22 +770,22 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                // New customer functionality will be implemented later
-              },
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('New'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
+            // const SizedBox(width: 8),
+            // ElevatedButton.icon(
+            //   onPressed: () {
+            //     // New customer functionality will be implemented later
+            //   },
+            //   icon: const Icon(Icons.add, size: 16),
+            //   label: const Text('New'),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: AppTheme.primaryOrange,
+            //     foregroundColor: Colors.white,
+            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(6),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ],
@@ -834,22 +834,22 @@ class _CreateCardPageState extends State<CreateCardPage> {
                  },
                ),
             ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                // New company functionality will be implemented later
-              },
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('New'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
+            // const SizedBox(width: 8),
+            // ElevatedButton.icon(
+            //   onPressed: () {
+            //     // New company functionality will be implemented later
+            //   },
+            //   icon: const Icon(Icons.add, size: 16),
+            //   label: const Text('New'),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: AppTheme.primaryOrange,
+            //     foregroundColor: Colors.white,
+            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(6),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ],
@@ -1028,22 +1028,22 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Add custom functionality will be implemented later
-              },
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add Custom'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[300],
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
+            // const SizedBox(width: 8),
+            // ElevatedButton.icon(
+            //   onPressed: () {
+            //     // Add custom functionality will be implemented later
+            //   },
+            //   icon: const Icon(Icons.add, size: 16),
+            //   label: const Text('Add Custom'),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: Colors.grey[300],
+            //     foregroundColor: Colors.black87,
+            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(6),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
         const SizedBox(height: 8),
@@ -1250,10 +1250,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   hintText: 'Write a comment...',
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  prefixIcon: CircleAvatar(
-                    radius: 12,
-                    backgroundColor: Colors.grey,
-                    child: Text('b', style: TextStyle(fontSize: 12, color: Colors.white)),
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey,
+                      child: Text('b', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ),
               ),
