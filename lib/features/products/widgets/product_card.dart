@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../domain/entities/product.dart';
 import '../../../core/theme/app_theme.dart';
+import '../view/product_detail_page.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -18,8 +19,10 @@ class ProductCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
+             child: InkWell(
+         onTap: onTap ?? () {
+           Get.to(() => ProductDetailPage(product: product));
+         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(

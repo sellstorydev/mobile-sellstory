@@ -54,7 +54,7 @@ Successfully implemented a complete product management system for the SellStory 
   - **Responsive font sizes** (14px/16px for name, 11px/13px for description)
   - **Description handling** - supports up to 3 lines with ellipsis overflow
   - **Wrap-based hashtags** - natural flow, shows all hashtags without scrolling
-  - **Highlighted price** - full-width gradient background with centered text
+  - **Highlighted price** - full-width color text with centered text
   - **Consistent spacing** - proper padding and margins throughout
   - **Natural content flow** - uses MainAxisSize.min for auto-height
   - **No overflow issues** - simplified layout prevents all overflow problems
@@ -82,7 +82,7 @@ Successfully implemented a complete product management system for the SellStory 
 - **Fully responsive grid layout** that adapts to all screen sizes
 - **Dynamic column count**: 2 columns (mobile), 3 columns (tablet), 4 columns (desktop)
 - Card-based layout with proper spacing and elevation
-- Gradient price highlighting
+- color price highlighting
 - Colorful hashtag display
 - Responsive image handling with loading states
 - Consistent with app theme and design system

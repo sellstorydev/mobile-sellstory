@@ -281,14 +281,6 @@ class ProductsPage extends StatelessWidget {
                                   ),
                                   child: ProductCard(
                                     product: product,
-                                    onTap: () {
-                                      // TODO: Navigate to product detail page
-                                      Get.snackbar(
-                                        'รายละเอียดสินค้า',
-                                        'ฟีเจอร์นี้จะเปิดใช้งานเร็วๆ นี้',
-                                        snackPosition: SnackPosition.BOTTOM,
-                                      );
-                                    },
                                   ),
                                 ),
                               );
