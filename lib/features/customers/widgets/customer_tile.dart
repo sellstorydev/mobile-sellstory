@@ -31,7 +31,10 @@ class CustomerTile extends StatelessWidget {
 
   bool _hasValidCompanies() {
     return customer.companyNames.isNotEmpty && 
-           customer.companyNames.trim().isNotEmpty;
+           customer.companyNames.any((company) => 
+             company['value'] != null && 
+             company['value'].toString().trim().isNotEmpty
+           );
   }
 
   @override

@@ -19,6 +19,27 @@ Customer is about company have customer for sale manage and create new customer
 - `cloud_firestore`: ^5.4.0
 - `dio`
 
+## FORM FIELDS:
+- **Assignees**: Multi-select dropdown for workspace members
+- **Customer Type**: Dropdown (Customer/Lead)
+- **Hashtags**: Multi-select with search functionality
+- **Source**: Dropdown (dynamic from database)
+- **National ID**: Text input
+- **Custom ID**: Text input (auto-generated for new customers, editable for existing)
+- **Prefix**: Text input
+- **Name**: Text input (required)
+- **Gender**: Dropdown (Male/Female/Other)
+- **Emails**: Multiple entries with add/edit/delete
+- **Phones**: Multiple entries with add/edit/delete
+- **Address**: Text area
+- **Location Fields**: All text inputs (no dropdowns):
+  - ตำบล/แขวง (Subdistrict)
+  - อำเภอ/เขต (District)
+  - จังหวัด (Province)
+  - รหัสไปรษณีย์ (Postal Code)
+  - ประเทศ (Country)
+- **Company**: Coming soon
+
 ## CONSIDERATIONS:
 - *important* You don't need to explain what you did. I don't want to know, it's a waste of time. Focus on editing the file to meet the task I gave you.
 - First read `lib\features\customers\SUMMARY.md` file for review your memory and brainstrom your self. 

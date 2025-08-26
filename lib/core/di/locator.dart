@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import '../services/logger_service.dart';
+import '../services/id_generation_service.dart';
+import '../services/workspace_members_service.dart';
 import '../../data/repositories/jobcard_repository.dart';
 import '../../data/repositories/firestore_repository.dart';
 import '../../data/repositories/customer_repository.dart';
@@ -27,8 +29,10 @@ class Locator {
     
     // Services
     Get.lazyPut<FirestoreService>(() => FirestoreService(), fenix: true);
+    Get.lazyPut<IdGenerationService>(() => IdGenerationService(), fenix: true);
+    Get.lazyPut<WorkspaceMembersService>(() => WorkspaceMembersService(), fenix: true);
     logger?.devTools('Services registered', {
-      'services': ['FirestoreService'],
+      'services': ['FirestoreService', 'IdGenerationService'],
     });
     
     // Repositories

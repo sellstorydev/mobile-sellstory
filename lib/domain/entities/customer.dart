@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 
 class Customer {
@@ -10,12 +9,12 @@ class Customer {
   final String customerType;
   final List<Map<String, dynamic>> emails;
   final List<Map<String, dynamic>> phones;
-  final String companyNames;
+  final List<Map<String, dynamic>> companyNames;
   final String nationalId;
   final String address;
   final String source;
   final List<Map<String, dynamic>> hashtags;
-  final String assignees;
+  final List<String> assignees;
   final String customId;
   final String workspaceId;
   final DateTime createdAt;
@@ -55,12 +54,12 @@ class Customer {
     String? customerType,
     List<Map<String, dynamic>>? emails,
     List<Map<String, dynamic>>? phones,
-    String? companyNames,
+    List<Map<String, dynamic>>? companyNames,
     String? nationalId,
     String? address,
     String? source,
     List<Map<String, dynamic>>? hashtags,
-    String? assignees,
+    List<String>? assignees,
     String? customId,
     String? workspaceId,
     DateTime? createdAt,
@@ -128,12 +127,12 @@ class Customer {
       customerType: map['customerType'] ?? '',
       emails: parseEmailsFromMap(map['emails']),
       phones: parsePhonesFromMap(map['phones']),
-      companyNames: map['companyNames'] ?? '',
+      companyNames: parseCompanyNamesFromMap(map['companyNames']),
       nationalId: map['nationalId'] ?? '',
       address: map['address'] ?? '',
       source: map['source'] ?? '',
       hashtags: _parseHashtagsFromMap(map['hashtags']),
-      assignees: map['assignees'] ?? '',
+      assignees: parseAssigneesFromMap(map['assignees']),
       customId: map['customId'] ?? '',
       workspaceId: map['workspaceId'] ?? '',
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
@@ -400,6 +399,113 @@ class Customer {
       print('Error parsing hashtags: $e');
       print('Hashtags data: $hashtagsData');
       print('Hashtags data type: ${hashtagsData.runtimeType}');
+      return [];
+    }
+  }
+
+  // Helper method to parse assignees from different data types
+  static List<String> parseAssigneesFromMap(dynamic assigneesData) {
+    try {
+      if (assigneesData == null || assigneesData.toString().isEmpty) {
+        return [];
+      }
+      
+      if (assigneesData is List) {
+        return assigneesData.map((item) => item.toString()).toList();
+      }
+      
+      if (assigneesData is String) {
+        try {
+          final List<dynamic> parsed = jsonDecode(assigneesData);
+          return parsed.map((item) => item.toString()).toList();
+        } catch (e) {
+          if (assigneesData.trim().isNotEmpty) {
+            return [assigneesData];
+          }
+          return [];
+        }
+      }
+      
+      return [assigneesData.toString()];
+    } catch (e) {
+      print('Error parsing assignees: $e');
+      print('Assignees data: $assigneesData');
+      print('Assignees data type: ${assigneesData.runtimeType}');
+      return [];
+    }
+  }
+
+  // Helper method to parse company names from different data types
+  static List<Map<String, dynamic>> parseCompanyNamesFromMap(dynamic companyNamesData) {
+    try {
+      if (companyNamesData == null || companyNamesData.toString().isEmpty) {
+        return [];
+      }
+      
+      if (companyNamesData is List) {
+        return companyNamesData.map((item) {
+          if (item is Map<String, dynamic>) {
+            // Handle the correct structure: {id, label, value}
+            return {
+              'id': item['id'] as String? ?? 'company-initial',
+              'label': item['label'] as String? ?? 'Main',
+              'value': item['value'] as String? ?? '',
+            };
+          } else if (item is String) {
+            return {
+              'id': 'company-initial',
+              'label': 'Main',
+              'value': item,
+            };
+          } else {
+            return {
+              'id': 'company-initial',
+              'label': 'Main',
+              'value': item.toString(),
+            };
+          }
+        }).toList();
+      }
+      
+      if (companyNamesData is String) {
+        try {
+          final List<dynamic> parsed = jsonDecode(companyNamesData);
+          return parsed.map((item) {
+            if (item is Map<String, dynamic>) {
+              return {
+                'id': item['id'] as String? ?? 'company-initial',
+                'label': item['label'] as String? ?? 'Main',
+                'value': item['value'] as String? ?? '',
+              };
+            } else {
+              return {
+                'id': 'company-initial',
+                'label': 'Main',
+                'value': item.toString(),
+              };
+            }
+          }).toList();
+        } catch (e) {
+          if (companyNamesData.trim().isNotEmpty) {
+            return [{
+              'id': 'company-initial',
+              'label': 'Main',
+              'value': companyNamesData,
+            }];
+          }
+          return [];
+        }
+      }
+      
+      return [{
+        'id': 'company-initial',
+        'label': 'Main',
+        'value': companyNamesData.toString(),
+      }];
+    } catch (e) {
+      print('Error parsing company names: $e');
+      print('Company names data: $companyNamesData');
+      print('Company names data type: ${companyNamesData.runtimeType}');
       return [];
     }
   }

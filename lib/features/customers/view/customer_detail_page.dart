@@ -21,51 +21,105 @@ class CustomerDetailPage extends StatefulWidget {
 
 class _CustomerDetailPageState extends State<CustomerDetailPage> {
   final HashtagService _hashtagService = HashtagService();
+  final CustomersController _controller = Get.find<CustomersController>();
   List<HashtagOption> _availableHashtags = [];
   bool _isLoadingHashtags = true;
+  
+  // Current customer data that can be updated
+  Customer? _currentCustomer;
+  
+  // Worker to manage the customer updates listener
+  Worker? _customerUpdateListener;
 
   // Helper methods to check for valid data
   bool _hasValidEmails() {
-    return widget.customer.emails.isNotEmpty && 
-           widget.customer.emails.any((email) => 
+    final customer = _currentCustomer ?? widget.customer;
+    return customer.emails.isNotEmpty && 
+           customer.emails.any((email) => 
              email['value'] != null && 
              email['value'].toString().trim().isNotEmpty
            );
   }
 
   bool _hasValidPhones() {
-    return widget.customer.phones.isNotEmpty && 
-           widget.customer.phones.any((phone) => 
+    final customer = _currentCustomer ?? widget.customer;
+    return customer.phones.isNotEmpty && 
+           customer.phones.any((phone) => 
              phone['value'] != null && 
              phone['value'].toString().trim().isNotEmpty
            );
   }
 
   bool _hasValidCompanies() {
-    return widget.customer.companyNames.isNotEmpty && 
-           widget.customer.companyNames.trim().isNotEmpty;
+    final customer = _currentCustomer ?? widget.customer;
+    return customer.companyNames.isNotEmpty && 
+           customer.companyNames.any((company) => 
+             company['value'] != null && 
+             company['value'].toString().trim().isNotEmpty
+           );
   }
 
   bool _hasValidHashtags() {
-    return widget.customer.hashtags.isNotEmpty && 
-           widget.customer.hashtags.any((hashtag) => 
+    final customer = _currentCustomer ?? widget.customer;
+    return customer.hashtags.isNotEmpty && 
+           customer.hashtags.any((hashtag) => 
              hashtag['id'] != null && 
              hashtag['id'].toString().trim().isNotEmpty
            );
   }
 
+  bool _hasValidAssignees() {
+    final customer = _currentCustomer ?? widget.customer;
+    return customer.assignees.isNotEmpty;
+  }
+
+  String _formatCompanyNames(List<Map<String, dynamic>> companyNames) {
+    if (companyNames.isEmpty) return '';
+    return companyNames
+        .where((company) => company['value'] != null && company['value'].toString().trim().isNotEmpty)
+        .map((company) => company['value'].toString())
+        .join(', ');
+  }
+
   @override
   void initState() {
     super.initState();
+    _currentCustomer = widget.customer;
     _loadHashtags();
+    _listenToCustomerUpdates();
+  }
+
+  @override
+  void dispose() {
+    // Dispose the customer update listener to prevent memory leaks
+    _customerUpdateListener?.dispose();
+    super.dispose();
+  }
+
+  void _listenToCustomerUpdates() {
+    // Listen to customer updates from the controller
+    _customerUpdateListener = ever(_controller.customers, (customers) {
+      if (customers.isNotEmpty && mounted) {
+        // Find the updated customer by ID
+        final updatedCustomer = customers.firstWhere(
+          (customer) => customer.id == widget.customer.id,
+          orElse: () => widget.customer,
+        );
+        
+        if (updatedCustomer != _currentCustomer) {
+          setState(() {
+            _currentCustomer = updatedCustomer;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _loadHashtags() async {
     try {
       // Use controller to get current workspace ID
-      final controller = Get.find<CustomersController>();
-      final workspaceId = controller.currentWorkspaceId.value.isNotEmpty 
-          ? controller.currentWorkspaceId.value 
+      final workspaceId = _controller.currentWorkspaceId.value.isNotEmpty 
+          ? _controller.currentWorkspaceId.value 
           : widget.customer.workspaceId;
       
       print('Loading hashtags for workspace: $workspaceId');
@@ -95,14 +149,12 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
         actions: [
           IconButton(
             onPressed: () {
-              // Get customer sources from controller
-              final controller = Get.find<CustomersController>();
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => AddEditCustomerPage(
-                    customer: widget.customer,
-                    customerSources: controller.customerSources,
+                    customer: _currentCustomer,
+                    customerSources: _controller.customerSources,
                   ),
                 ),
               );
@@ -123,11 +175,11 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             
             // Customer Information
             _buildInfoSection('ข้อมูลลูกค้า', [
-              _buildInfoRow('รหัสลูกค้า', widget.customer.customId),
-              _buildInfoRow('ชื่อ', '${widget.customer.prefix} ${widget.customer.name}'),
-              _buildInfoRow('เพศ', widget.customer.gender),
-              _buildInfoRow('อายุ', '${widget.customer.age} ปี'),
-              _buildInfoRow('ประเภท', widget.customer.customerType),
+              _buildInfoRow('รหัสลูกค้า', _currentCustomer!.customId),
+              _buildInfoRow('ชื่อ', '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
+              _buildInfoRow('เพศ', _currentCustomer!.gender),
+              _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
+              _buildInfoRow('ประเภท', _currentCustomer!.customerType),
             ]),
             
             const SizedBox(height: 16),
@@ -143,30 +195,30 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             // Company Information
             if (_hasValidCompanies()) ...[
               _buildInfoSection('ข้อมูลบริษัท', [
-                _buildInfoRow('ชื่อบริษัท', widget.customer.companyNames),
+                _buildInfoRow('ชื่อบริษัท', _formatCompanyNames(_currentCustomer!.companyNames)),
               ]),
               const SizedBox(height: 16),
             ],
             
             // Additional Information
             _buildInfoSection('ข้อมูลเพิ่มเติม', [
-              if (widget.customer.nationalId.isNotEmpty)
-                _buildInfoRow('เลขบัตรประชาชน', widget.customer.nationalId),
-              if (widget.customer.address.isNotEmpty)
-                _buildInfoRow('ที่อยู่', widget.customer.address),
-              if (widget.customer.source.isNotEmpty)
-                _buildInfoRow('แหล่งที่มา', widget.customer.source),
+              if (_currentCustomer!.nationalId.isNotEmpty)
+                _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
+              if (_currentCustomer!.address.isNotEmpty)
+                _buildInfoRow('ที่อยู่', _currentCustomer!.address),
+              if (_currentCustomer!.source.isNotEmpty)
+                _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
               _buildHashtagDisplay(), // Always show hashtag section
-              if (widget.customer.assignees.isNotEmpty)
-                _buildInfoRow('ผู้รับผิดชอบ', widget.customer.assignees),
+                             if (_hasValidAssignees())
+                 _buildAssigneesDisplay(),
             ]),
             
             const SizedBox(height: 16),
             
             // System Information
             _buildInfoSection('ข้อมูลระบบ', [
-              _buildInfoRow('สร้างเมื่อ', _formatDate(widget.customer.createdAt)),
-              _buildInfoRow('อัปเดตล่าสุด', _formatDate(widget.customer.updatedAt)),
+              _buildInfoRow('สร้างเมื่อ', _formatDate(_currentCustomer!.createdAt)),
+              _buildInfoRow('อัปเดตล่าสุด', _formatDate(_currentCustomer!.updatedAt)),
             ]),
           ],
         ),
@@ -205,7 +257,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
           
           // Name
           Text(
-            '${widget.customer.prefix} ${widget.customer.name}',
+            '${_currentCustomer!.prefix} ${_currentCustomer!.name}',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -223,7 +275,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              widget.customer.customId,
+              _currentCustomer!.customId,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -237,17 +289,17 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: widget.customer.customerType == 'Customer' 
+              color: _currentCustomer!.customerType == 'Customer' 
                   ? Colors.green.withOpacity(0.1)
                   : Colors.orange.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              widget.customer.customerType,
+              _currentCustomer!.customerType,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: widget.customer.customerType == 'Customer' 
+                color: _currentCustomer!.customerType == 'Customer' 
                     ? Colors.green
                     : Colors.orange,
               ),
@@ -260,7 +312,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
 
   Widget _buildHashtagDisplay() {
     // Get hashtag objects directly from the list
-    final hashtagObjects = widget.customer.hashtags;
+    final hashtagObjects = _currentCustomer!.hashtags;
     
     print('=== Hashtag Display Debug ===');
     print('Customer hashtags data: $hashtagObjects');
@@ -505,7 +557,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   }
 
   Widget _buildEmailsDisplay() {
-    final emails = widget.customer.emails;
+    final emails = _currentCustomer!.emails;
     
     if (!_hasValidEmails()) {
       return _buildInfoRow('อีเมล', 'ไม่ระบุ');
@@ -556,7 +608,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   }
 
   Widget _buildPhonesDisplay() {
-    final phones = widget.customer.phones;
+    final phones = _currentCustomer!.phones;
     
     if (!_hasValidPhones()) {
       return _buildInfoRow('เบอร์โทร', 'ไม่ระบุ');
@@ -595,6 +647,61 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppTheme.textPrimary,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssigneesDisplay() {
+    final assignees = _currentCustomer!.assignees;
+    
+    if (!_hasValidAssignees()) {
+      return _buildInfoRow('ผู้รับผิดชอบ', 'ไม่ระบุ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'ผู้รับผิดชอบ',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: assignees.map((assigneeId) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.primaryOrange.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    assigneeId, // TODO: Get user display name from service
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.primaryOrange,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 );
