@@ -222,7 +222,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             // Company Information
             if (_hasValidCompanies()) ...[
               _buildInfoSection('ข้อมูลบริษัท', [
-                _buildInfoRow('ชื่อบริษัท', _formatCompanyNames(_currentCustomer!.companyNames)),
+                _buildCompanyNamesDisplay(),
               ]),
               const SizedBox(height: 16),
             ],
@@ -674,6 +674,74 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppTheme.textPrimary,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompanyNamesDisplay() {
+    final companyNames = _currentCustomer!.companyNames;
+    
+    if (!_hasValidCompanies()) {
+      return _buildInfoRow('ชื่อบริษัท', 'ไม่ระบุ');
+    }
+
+    // Get company names from the object structure
+    final List<String> companyNameList = [];
+    for (final company in companyNames) {
+      final companyName = company['value'] as String? ?? '';
+      if (companyName.trim().isNotEmpty) {
+        companyNameList.add(companyName);
+      }
+    }
+
+    if (companyNameList.isEmpty) {
+      return _buildInfoRow('ชื่อบริษัท', 'ไม่ระบุ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'ชื่อบริษัท',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: companyNameList.map((companyName) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.primaryOrange.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    companyName,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.primaryOrange,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 );
