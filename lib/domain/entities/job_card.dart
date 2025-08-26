@@ -187,68 +187,207 @@ class JobCard {
 
   // Create from Map from Firestore
   factory JobCard.fromMap(Map<String, dynamic> map, String id) {
+    // Helpers to safely extract values that might come in different shapes
+    String _stringFrom(dynamic v) {
+      if (v == null) return '';
+      if (v is String) return v;
+      if (v is Map) {
+        // Prefer common name fields
+        if (v['name'] is String) return v['name'] as String;
+        if (v['displayName'] is String) return v['displayName'] as String;
+        if (v['text'] is String) return v['text'] as String;
+        if (v['id'] is String) return v['id'] as String;
+        return v.toString();
+      }
+      return v.toString();
+    }
+
+    String? _nullableStringFrom(dynamic v) {
+      if (v == null) return null;
+      if (v is String) return v;
+      if (v is Map) {
+        if (v['name'] is String) return v['name'] as String;
+        if (v['displayName'] is String) return v['displayName'] as String;
+        if (v['text'] is String) return v['text'] as String;
+        if (v['id'] is String) return v['id'] as String;
+        return v.toString();
+      }
+      return v.toString();
+    }
+
+    double _doubleFrom(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      if (v is String) {
+        final parsed = double.tryParse(v);
+        return parsed ?? 0.0;
+      }
+      return 0.0;
+    }
+
+    DateTime? _dateTimeFrom(dynamic v) {
+      if (v == null) return null;
+      if (v is Timestamp) return v.toDate();
+      if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
+      if (v is double) return DateTime.fromMillisecondsSinceEpoch(v.toInt());
+      return null;
+    }
+
     // Handle DTB.md structure mapping
-    String title = map['title'] ?? map['name'] ?? ''; // Support both title and name per DTB.md
-    String laneId = map['laneId'] ?? '';
-    
-    // Handle lanes array from DTB.md structure
+    final String title = _stringFrom(map['title'] ?? map['name'] ?? '');
+
+    // laneId can be string or lanes array with strings/maps
+    String laneId = _stringFrom(map['laneId']);
     if (laneId.isEmpty && map['lanes'] is List && (map['lanes'] as List).isNotEmpty) {
-      laneId = (map['lanes'] as List).first?.toString() ?? '';
+      final firstLane = (map['lanes'] as List).first;
+      laneId = _stringFrom(firstLane);
     }
 
     // Handle memberUids from DTB.md structure for watchers
     List<String> watchers = [];
     if (map['memberUids'] is List) {
-      watchers = List<String>.from(map['memberUids']);
+      try {
+        watchers = List<String>.from(map['memberUids']);
+      } catch (_) {
+        watchers = (map['memberUids'] as List).map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
+      }
     } else if (map['watchers'] is List) {
-      watchers = List<String>.from(map['watchers']);
+      try {
+        watchers = List<String>.from(map['watchers']);
+      } catch (_) {
+        watchers = (map['watchers'] as List).map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
+      }
     }
 
     // Handle timestamps - DTB.md uses epoch ms (number) but Firestore may use Timestamp
     DateTime createdAt = DateTime.now();
     DateTime updatedAt = DateTime.now();
-    
-    if (map['createdAt'] is Timestamp) {
-      createdAt = (map['createdAt'] as Timestamp).toDate();
-    } else if (map['createdAt'] is int) {
-      createdAt = DateTime.fromMillisecondsSinceEpoch(map['createdAt']);
+    final createdAtRaw = map['createdAt'];
+    final updatedAtRaw = map['updatedAt'];
+    if (createdAtRaw is Timestamp) {
+      createdAt = createdAtRaw.toDate();
+    } else if (createdAtRaw is int) {
+      createdAt = DateTime.fromMillisecondsSinceEpoch(createdAtRaw);
+    } else if (createdAtRaw is double) {
+      createdAt = DateTime.fromMillisecondsSinceEpoch(createdAtRaw.toInt());
     }
-    
-    if (map['updatedAt'] is Timestamp) {
-      updatedAt = (map['updatedAt'] as Timestamp).toDate();
-    } else if (map['updatedAt'] is int) {
-      updatedAt = DateTime.fromMillisecondsSinceEpoch(map['updatedAt']);
+    if (updatedAtRaw is Timestamp) {
+      updatedAt = updatedAtRaw.toDate();
+    } else if (updatedAtRaw is int) {
+      updatedAt = DateTime.fromMillisecondsSinceEpoch(updatedAtRaw);
+    } else if (updatedAtRaw is double) {
+      updatedAt = DateTime.fromMillisecondsSinceEpoch(updatedAtRaw.toInt());
+    }
+
+    // Parse hashtags: support List<Map> and List<String>
+    List<Map<String, dynamic>> hashtags = [];
+    if (map['hashtags'] is List) {
+      final raw = map['hashtags'] as List;
+      if (raw.isNotEmpty) {
+        if (raw.first is Map) {
+          hashtags = List<Map<String, dynamic>>.from(raw);
+        } else {
+          // Convert strings to {id,text,color}
+          final colors = ['#f97316', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f472b6', '#6b7280'];
+          hashtags = raw.asMap().entries.map((e) {
+            return {
+              'id': 'existing_${e.key}',
+              'text': _stringFrom(e.value),
+              'color': colors[e.key % colors.length],
+            };
+          }).toList();
+        }
+      }
+    }
+
+    // Badges: support List<String> or List<Map>
+    List<String> badges = [];
+    if (map['badges'] is List) {
+      final raw = map['badges'] as List;
+      if (raw.isNotEmpty) {
+        if (raw.first is String) {
+          badges = List<String>.from(raw);
+        } else {
+          badges = raw.map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
+        }
+      }
+    }
+
+    // AssignedTo can be string (uid) or map
+    String assignee = '';
+    if (map['assignedTo'] != null) {
+      final v = map['assignedTo'];
+      if (v is String) {
+        assignee = v;
+      } else if (v is Map) {
+        assignee = _stringFrom(v['id'] ?? v['uid'] ?? v['name'] ?? v);
+      } else {
+        assignee = _stringFrom(v);
+      }
+    } else if (map['assignee'] != null) {
+      assignee = _stringFrom(map['assignee']);
+    }
+
+    // Customer fields can be string or map
+    final customerRaw = map['customer'];
+    final String customer = customerRaw == null
+        ? ''
+        : (customerRaw is String ? customerRaw : _stringFrom(customerRaw['name'] ?? customerRaw));
+    final String? customerId = map['customerId'] is String
+        ? map['customerId'] as String
+        : (customerRaw is Map && customerRaw['id'] is String ? customerRaw['id'] as String : null);
+
+    // Company can be string or map
+    final companyRaw = map['company'];
+    final String? company = companyRaw == null
+        ? null
+        : (companyRaw is String ? companyRaw : _nullableStringFrom(companyRaw['name'] ?? companyRaw));
+
+    // Board/workspace may be direct strings
+    final String boardId = _stringFrom(map['boardId']);
+    final String workspaceId = _stringFrom(map['workspaceId']);
+
+    // Status from string or map
+    final String statusStr = _stringFrom(map['status']);
+
+    // Order as any numeric or string
+    int _orderFrom(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      if (v is double) return v.toInt();
+      if (v is num) return v.toInt();
+      return int.tryParse(v.toString()) ?? 0;
     }
 
     return JobCard(
       id: id,
       title: title,
-      description: map['description'] ?? '',
-      assignee: map['assignedTo'] ?? map['assignee'] ?? '',
-      status: map['status'] ?? 'To Do',
-      customId: map['customId'] ?? '',
-      dueDate: (map['dueDate'] as Timestamp?)?.toDate(),
-      badges: List<String>.from(map['badges'] ?? []),
-      amount: (map['amount'] ?? 0.0).toDouble(),
+      description: _stringFrom(map['description']),
+      assignee: assignee,
+      status: statusStr.isNotEmpty ? statusStr : 'To Do',
+      customId: _stringFrom(map['customId']),
+      dueDate: _dateTimeFrom(map['dueDate']),
+      badges: badges,
+      amount: _doubleFrom(map['amount']),
       laneId: laneId,
-      boardId: map['boardId'] ?? '',
-      workspaceId: map['workspaceId'] ?? '',
-      order: map['order'] ?? 0,
+      boardId: boardId,
+      workspaceId: workspaceId,
+      order: _orderFrom(map['order']),
       createdAt: createdAt,
       updatedAt: updatedAt,
-      customer: map['customer'] ?? '',
-      updatedByDisplayName: map['updatedByDisplayName'] ?? '',
-      customerId: map['customerId'],
-      company: map['company'],
-      hashtag: map['hashtag'],
-      hashtags: List<Map<String, dynamic>>.from(map['hashtags'] ?? []),
-      expenses: List<Map<String, dynamic>>.from(map['expenses'] ?? []),
-      todos: List<Map<String, dynamic>>.from(map['todos'] ?? []),
-      notes: List<Map<String, dynamic>>.from(map['notes'] ?? []),
+      customer: customer,
+      updatedByDisplayName: _stringFrom(map['updatedByDisplayName']),
+      customerId: customerId,
+      company: company,
+      hashtag: _nullableStringFrom(map['hashtag']),
+      hashtags: hashtags,
+      expenses: List<Map<String, dynamic>>.from(map['expenses'] ?? const []),
+      todos: List<Map<String, dynamic>>.from(map['todos'] ?? const []),
+      notes: List<Map<String, dynamic>>.from(map['notes'] ?? const []),
       watchers: watchers,
-      customFields: List<Map<String, dynamic>>.from(map['customFields'] ?? []),
-      createdBy: map['createdBy'] ?? '',
-      updatedBy: map['updatedBy'] ?? '',
+      customFields: List<Map<String, dynamic>>.from(map['customFields'] ?? const []),
+      createdBy: _stringFrom(map['createdBy']),
+      updatedBy: _stringFrom(map['updatedBy']),
     );
   }
 

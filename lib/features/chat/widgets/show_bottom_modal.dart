@@ -586,16 +586,23 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         await boardController.switchWorkspace(widget.workspaceId);
       }
 
+
+
       // Close the bottom sheet first, then navigate to detail page using Get.to
-      if (Navigator.canPop(context)) {
+      // Use Get.back() to dismiss the sheet without depending on this context after pop
+      if (Get.isOverlaysOpen) {
+        // Best effort close; if it's not a Get dialog/sheet, also try Navigator.pop
+        try { Get.back(); } catch (_) { /* ignore */ }
+      } else if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
+
+      // Schedule navigation on next microtask/frame without checking mounted
       await Future.microtask(() {});
-      if (!mounted) return;
       Get.to(() => CardDetailPage(card: job));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เปิด Job Card ไม่สำเร็จ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เปิด Job Card ไม่สำเร็จ')));
     }
   }
 
