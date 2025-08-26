@@ -19,6 +19,7 @@ class Product {
   final int targetStockLevel;
   final bool showInCatalog;
   final String status;
+  final String category;
   final String workspaceId;
   final List<String> searchableKeywords;
   final DateTime createdAt;
@@ -43,6 +44,7 @@ class Product {
     required this.targetStockLevel,
     required this.showInCatalog,
     required this.status,
+    required this.category,
     required this.workspaceId,
     required this.searchableKeywords,
     required this.createdAt,
@@ -68,6 +70,7 @@ class Product {
     int? targetStockLevel,
     bool? showInCatalog,
     String? status,
+    String? category,
     String? workspaceId,
     List<String>? searchableKeywords,
     DateTime? createdAt,
@@ -92,6 +95,7 @@ class Product {
       targetStockLevel: targetStockLevel ?? this.targetStockLevel,
       showInCatalog: showInCatalog ?? this.showInCatalog,
       status: status ?? this.status,
+      category: category ?? this.category,
       workspaceId: workspaceId ?? this.workspaceId,
       searchableKeywords: searchableKeywords ?? this.searchableKeywords,
       createdAt: createdAt ?? this.createdAt,
@@ -119,6 +123,7 @@ class Product {
       'targetStockLevel': targetStockLevel,
       'showInCatalog': showInCatalog,
       'status': status,
+      'category': category,
       'workspaceId': workspaceId,
       'searchableKeywords': searchableKeywords,
       'createdAt': createdAt.millisecondsSinceEpoch,
@@ -147,6 +152,7 @@ class Product {
       targetStockLevel: map['targetStockLevel'] ?? 0,
       showInCatalog: map['showInCatalog'] ?? true,
       status: map['status'] ?? 'active',
+      category: map['category'] ?? '',
       workspaceId: map['workspaceId'] ?? '',
       searchableKeywords: List<String>.from(map['searchableKeywords'] ?? []),
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),

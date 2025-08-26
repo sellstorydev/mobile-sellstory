@@ -3,12 +3,106 @@ import 'package:get/get.dart';
 import '../../../domain/entities/product.dart';
 import '../../../core/theme/app_theme.dart';
 import '../view/product_detail_page.dart';
+import '../view/add_edit_product_page.dart';
+import '../controller/products_controller.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onTap;
 
   const ProductCard({super.key, required this.product, this.onTap});
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('ยืนยันการลบสินค้า'),
+          content: Text('คุณต้องการลบสินค้า "${product.name}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('ยกเลิก'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteProduct(context);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('ลบ'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteProduct(BuildContext context) async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final controller = Get.find<ProductsController>();
+      final workspaceId = controller.currentWorkspaceId;
+      
+      if (workspaceId.isEmpty) {
+        Navigator.of(context).pop(); // Close loading dialog
+        Get.snackbar(
+          'ข้อผิดพลาด',
+          'ไม่สามารถลบสินค้าได้: ไม่พบ Workspace',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      final success = await controller.deleteProduct(workspaceId, product.id);
+      
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      if (success) {
+        Get.snackbar(
+          'สำเร็จ',
+          'ลบสินค้าเรียบร้อยแล้ว',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        // Refresh the products list to ensure it's updated
+        controller.refreshProducts();
+      } else {
+        Get.snackbar(
+          'ข้อผิดพลาด',
+          'ไม่สามารถลบสินค้าได้',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      Navigator.of(context).pop();
+      
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'เกิดข้อผิดพลาดในการลบสินค้า: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,23 +254,13 @@ class ProductCard extends StatelessWidget {
                             ),
                           ),
                         ],
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            // TODO: Navigate to edit product page
-                            Get.snackbar(
-                              'แก้ไขสินค้า',
-                              'ฟีเจอร์นี้จะเปิดใช้งานเร็วๆ นี้',
-                              snackPosition: SnackPosition.BOTTOM,
-                            );
-                          } else if (value == 'delete') {
-                            // TODO: Show delete confirmation dialog
-                            Get.snackbar(
-                              'ลบสินค้า',
-                              'ฟีเจอร์นี้จะเปิดใช้งานเร็วๆ นี้',
-                              snackPosition: SnackPosition.BOTTOM,
-                            );
-                          }
-                        },
+                                                 onSelected: (value) {
+                           if (value == 'edit') {
+                             Get.to(() => AddEditProductPage(product: product));
+                           } else if (value == 'delete') {
+                             _showDeleteConfirmation(context);
+                           }
+                         },
                       ),
                     ),
                   ),

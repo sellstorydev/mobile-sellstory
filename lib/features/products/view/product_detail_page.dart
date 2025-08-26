@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../domain/entities/product.dart';
 import '../../../core/theme/app_theme.dart';
+import '../controller/products_controller.dart';
+import 'add_edit_product_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -15,13 +17,20 @@ class ProductDetailPage extends StatefulWidget {
 class _ProductDetailPageState extends State<ProductDetailPage> {
   final PageController _pageController = PageController();
   int _currentImageIndex = 0;
+  late Product _currentProduct;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentProduct = widget.product;
+  }
 
   List<String> get allImages {
     final images = <String>[];
-    if (widget.product.imageUrl.isNotEmpty) {
-      images.add(widget.product.imageUrl);
+    if (_currentProduct.imageUrl.isNotEmpty) {
+      images.add(_currentProduct.imageUrl);
     }
-    images.addAll(widget.product.imageSet);
+    images.addAll(_currentProduct.imageSet);
     return images;
   }
 
@@ -29,6 +38,124 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshProductData() async {
+    try {
+      // Get the updated product from the controller
+      final controller = Get.find<ProductsController>();
+      final workspaceId = controller.currentWorkspaceId;
+      
+      if (workspaceId.isNotEmpty) {
+        final updatedProduct = await controller.getProduct(workspaceId, _currentProduct.id);
+        if (updatedProduct != null) {
+          setState(() {
+            _currentProduct = updatedProduct;
+            _currentImageIndex = 0; // Reset to first image
+          });
+        }
+      }
+    } catch (e) {
+      print('Error refreshing product data: $e');
+    }
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('ยืนยันการลบสินค้า'),
+          content: Text('คุณต้องการลบสินค้า "${_currentProduct.name}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('ยกเลิก'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteProduct();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('ลบ'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteProduct() async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final controller = Get.find<ProductsController>();
+      final workspaceId = controller.currentWorkspaceId;
+      
+      if (workspaceId.isEmpty) {
+        Navigator.of(context).pop(); // Close loading dialog
+        Get.snackbar(
+          'ข้อผิดพลาด',
+          'ไม่สามารถลบสินค้าได้: ไม่พบ Workspace',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      final success = await controller.deleteProduct(workspaceId, _currentProduct.id);
+      
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      if (success) {
+        // Navigate back to products list and refresh
+        final controller = Get.find<ProductsController>();
+        controller.refreshProducts();
+        
+        // Navigate back to the previous page (products list)
+        Get.back();
+        
+        // Show success message after navigation
+        Get.snackbar(
+          'สำเร็จ',
+          'ลบสินค้าเรียบร้อยแล้ว',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      } else {
+        Get.snackbar(
+          'ข้อผิดพลาด',
+          'ไม่สามารถลบสินค้าได้',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      Navigator.of(context).pop();
+      
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'เกิดข้อผิดพลาดในการลบสินค้า: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _showFullScreenImage(int initialIndex) {
@@ -89,7 +216,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
         title: Text(
-          widget.product.name,
+          _currentProduct.name,
           style: const TextStyle(
             fontSize: AppTheme.fontSize18,
             fontWeight: FontWeight.bold,
@@ -99,26 +226,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
-          // Edit button
+                     // Edit button
           IconButton(
-            onPressed: () {
-              Get.snackbar(
-                'แก้ไขสินค้า',
-                'ฟีเจอร์นี้จะเปิดใช้งานเร็วๆ นี้',
-                snackPosition: SnackPosition.BOTTOM,
-              );
+            onPressed: () async {
+              final result = await Get.to(() => AddEditProductPage(product: _currentProduct));
+              if (result == true) {
+                // Refresh product data from the controller
+                await _refreshProductData();
+              }
             },
             icon: const Icon(Icons.edit, color: AppTheme.primaryBlue),
           ),
           // Delete button
           IconButton(
-            onPressed: () {
-              Get.snackbar(
-                'ลบสินค้า',
-                'ฟีเจอร์นี้จะเปิดใช้งานเร็วๆ นี้',
-                snackPosition: SnackPosition.BOTTOM,
-              );
-            },
+            onPressed: () => _showDeleteConfirmation(),
             icon: const Icon(Icons.delete, color: AppTheme.errorRed),
           ),
         ],
@@ -142,6 +263,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ],
               ),
               child: Stack(
+                alignment: Alignment.center,
                 children: [
                   // Image Slider
                   if (allImages.isNotEmpty)
@@ -202,7 +324,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
 
                   // Discontinued Overlay
-                  if (widget.product.status == 'discontinued')
+                  if (_currentProduct.status == 'discontinued')
                     Positioned.fill(
                       child: IgnorePointer(
                         child: Container(
@@ -360,7 +482,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 children: [
                   // Product Name
                   Text(
-                    widget.product.name,
+                    _currentProduct.name,
                     style: const TextStyle(
                       fontSize: AppTheme.fontSize24,
                       fontWeight: FontWeight.bold,
@@ -376,7 +498,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       vertical: 6,
                     ),
                     child: Text(
-                      '฿${widget.product.price.toStringAsFixed(2)}',
+                      '฿${_currentProduct.price.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: AppTheme.fontSize20,
                         fontWeight: FontWeight.bold,
@@ -388,7 +510,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 16),
 
                   // Description
-                  if (widget.product.description.isNotEmpty) ...[
+                  if (_currentProduct.description.isNotEmpty) ...[
                     const Text(
                       'รายละเอียด',
                       style: TextStyle(
@@ -399,7 +521,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      widget.product.description,
+                      _currentProduct.description,
                       style: const TextStyle(
                         fontSize: AppTheme.fontSize14,
                         color: AppTheme.textSecondary,
@@ -421,44 +543,50 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 12),
 
                   // SKU
-                  _buildDetailRow('SKU', widget.product.sku),
+                  _buildDetailRow('SKU', _currentProduct.sku),
                   const SizedBox(height: 8),
 
                   // Unit
-                  if (widget.product.unit.isNotEmpty) ...[
-                    _buildDetailRow('หน่วย', widget.product.unit),
+                  if (_currentProduct.unit.isNotEmpty) ...[
+                    _buildDetailRow('หน่วย', _currentProduct.unit),
                     const SizedBox(height: 8),
                   ],
 
                   // Barcode
-                  if (widget.product.barcode.isNotEmpty) ...[
-                    _buildDetailRow('บาร์โค้ด', widget.product.barcode),
+                  if (_currentProduct.barcode.isNotEmpty) ...[
+                    _buildDetailRow('บาร์โค้ด', _currentProduct.barcode),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // Category
+                  if (_currentProduct.category.isNotEmpty) ...[
+                    _buildDetailRow('หมวดหมู่', _currentProduct.category),
                     const SizedBox(height: 8),
                   ],
 
                   // Cost Price
                   _buildDetailRow(
                     'ต้นทุน',
-                    '฿${widget.product.costPrice.toStringAsFixed(2)}',
+                    '฿${_currentProduct.costPrice.toStringAsFixed(2)}',
                   ),
                   const SizedBox(height: 8),
 
                   // Stock Info
                   _buildDetailRow(
                     'สต็อกเริ่มต้น',
-                    widget.product.initialStock.toString(),
+                    _currentProduct.initialStock.toString(),
                   ),
                   const SizedBox(height: 8),
 
                   // Status
                   _buildDetailRow(
                     'สถานะ',
-                    _getStatusText(widget.product.status),
+                    _getStatusText(_currentProduct.status),
                   ),
                   const SizedBox(height: 16),
 
                   // Hashtags
-                  if (widget.product.hashtags.isNotEmpty) ...[
+                  if (_currentProduct.hashtags.isNotEmpty) ...[
                     const Text(
                       'แท็ก',
                       style: TextStyle(
@@ -471,7 +599,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: widget.product.hashtags.map((hashtag) {
+                      children: _currentProduct.hashtags.map((hashtag) {
                         final color = _parseColor(
                           hashtag['color'] ?? '#3b82f6',
                         );

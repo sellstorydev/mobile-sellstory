@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controller/products_controller.dart';
 import '../widgets/product_card.dart';
+import 'add_edit_product_page.dart';
 
 class ProductsPage extends StatelessWidget {
   const ProductsPage({super.key});
@@ -22,12 +23,7 @@ class ProductsPage extends StatelessWidget {
           // Add product button
           TextButton.icon(
             onPressed: () {
-              // TODO: Navigate to add product page
-              Get.snackbar(
-                'เพิ่มสินค้า',
-                'ฟีเจอร์นี้จะเปิดใช้งานเร็วๆ นี้',
-                snackPosition: SnackPosition.BOTTOM,
-              );
+              Get.to(() => const AddEditProductPage());
             },
             icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
             label: const Text(
@@ -94,17 +90,12 @@ class ProductsPage extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 )),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Navigate to add product page
-                    Get.snackbar(
-                      'เพิ่มสินค้า',
-                      'ฟีเจอร์นี้จะเปิดใช้งานเร็วๆ นี้',
-                      snackPosition: SnackPosition.BOTTOM,
-                    );
-                  },
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('เพิ่มสินค้า'),
+                                 ElevatedButton.icon(
+                   onPressed: () {
+                     Get.to(() => const AddEditProductPage());
+                   },
+                   icon: const Icon(Icons.add, size: 18),
+                   label: const Text('เพิ่มสินค้า'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryOrange,
                     foregroundColor: Colors.white,
@@ -175,46 +166,41 @@ class ProductsPage extends StatelessWidget {
 
               if (controller.filteredProducts.isEmpty) {
                 return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
                       const Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 64,
-                        color: AppTheme.textSecondary,
-                      ),
+              Icons.shopping_bag_outlined,
+              size: 64,
+              color: AppTheme.textSecondary,
+            ),
                       const SizedBox(height: 16),
-                      Text(
+            Text(
                         controller.searchQuery.value.isEmpty
                             ? 'ไม่มีสินค้า'
                             : 'ไม่พบสินค้าที่ค้นหา',
                         style: const TextStyle(
                           fontSize: AppTheme.fontSize18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
                       const SizedBox(height: 8),
-                      Text(
+            Text(
                         controller.searchQuery.value.isEmpty
                             ? 'เริ่มต้นเพิ่มสินค้าแรกของคุณ'
                             : 'ลองค้นหาด้วยคำอื่น',
                         style: const TextStyle(
                           fontSize: AppTheme.fontSize14,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
+                color: AppTheme.textSecondary,
+              ),
+            ),
                       if (controller.searchQuery.value.isEmpty) ...[
                         const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: Navigate to add product page
-                            Get.snackbar(
-                              'เพิ่มสินค้า',
-                              'ฟีเจอร์นี้จะเปิดใช้งานเร็วๆ นี้',
-                              snackPosition: SnackPosition.BOTTOM,
-                            );
-                          },
+                                                 ElevatedButton.icon(
+                           onPressed: () {
+                             Get.to(() => const AddEditProductPage());
+                           },
                           icon: const Icon(Icons.add),
                           label: const Text('เพิ่มสินค้า'),
                           style: ElevatedButton.styleFrom(

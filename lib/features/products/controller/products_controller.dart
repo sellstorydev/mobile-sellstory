@@ -142,4 +142,106 @@ class ProductsController extends GetxController {
 
   // Get current user ID
   String get currentUserId => _currentUserId;
+
+  // Add a new product
+  Future<bool> addProduct(String workspaceId, Product product) async {
+    try {
+      _logger.methodEntry('ProductsController.addProduct', {
+        'workspaceId': workspaceId,
+        'productName': product.name,
+      });
+
+      final productId = await _repository.createProduct(workspaceId, product);
+      
+      if (productId != null) {
+        _logger.methodExit('ProductsController.addProduct', {
+          'productId': productId,
+          'success': true,
+        });
+        return true;
+      } else {
+        _logger.error('Failed to create product');
+        return false;
+      }
+    } catch (e) {
+      _logger.error('Error adding product: $e');
+      return false;
+    }
+  }
+
+  // Update an existing product
+  Future<bool> updateProduct(String workspaceId, Product product) async {
+    try {
+      _logger.methodEntry('ProductsController.updateProduct', {
+        'workspaceId': workspaceId,
+        'productId': product.id,
+      });
+
+      final success = await _repository.updateProduct(workspaceId, product);
+      
+      if (success) {
+        _logger.methodExit('ProductsController.updateProduct', {
+          'success': true,
+        });
+      } else {
+        _logger.error('Failed to update product');
+      }
+      
+      return success;
+    } catch (e) {
+      _logger.error('Error updating product: $e');
+      return false;
+    }
+  }
+
+  // Get a single product by ID
+  Future<Product?> getProduct(String workspaceId, String productId) async {
+    try {
+      _logger.methodEntry('ProductsController.getProduct', {
+        'workspaceId': workspaceId,
+        'productId': productId,
+      });
+
+      final product = await _repository.getProduct(workspaceId, productId);
+      
+      if (product != null) {
+        _logger.methodExit('ProductsController.getProduct', {
+          'productName': product.name,
+          'success': true,
+        });
+      } else {
+        _logger.error('Product not found: $productId');
+      }
+      
+      return product;
+    } catch (e) {
+      _logger.error('Error getting product: $e');
+      return null;
+    }
+  }
+
+  // Delete a product
+  Future<bool> deleteProduct(String workspaceId, String productId) async {
+    try {
+      _logger.methodEntry('ProductsController.deleteProduct', {
+        'workspaceId': workspaceId,
+        'productId': productId,
+      });
+
+      final success = await _repository.deleteProduct(workspaceId, productId);
+      
+      if (success) {
+        _logger.methodExit('ProductsController.deleteProduct', {
+          'success': true,
+        });
+      } else {
+        _logger.error('Failed to delete product');
+      }
+      
+      return success;
+    } catch (e) {
+      _logger.error('Error deleting product: $e');
+      return false;
+    }
+  }
 }
