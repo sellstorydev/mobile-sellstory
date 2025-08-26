@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 
+import '../../board/controller/board_controller.dart';
 import 'chat_status_button.dart';
 import 'chat_menu_tile.dart';
 import 'notes_sheet.dart';
 import 'user_picker_sheet.dart';
 import 'customer_picker_sheet.dart';
 import 'jobcard_picker_sheet.dart';
+import '../../board/view/card_detail_page.dart';
+import '../../../domain/entities/job_card.dart';
+import 'package:get/get.dart';
 
 const _accent = Color(0xFFFF7A00); // โทมส้มตามภาพ
 
@@ -39,27 +43,33 @@ class ShowBottomModal {
       backgroundColor: Colors.white,
       showDragHandle: true,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _ChatMoreSheet(
-        current: current,
-        pinned: pinned,
-        botEnabled: botEnabled,
-        assignOptions: assignOptions,
-        selectedAssign: selectedAssign,
-        onStatusChange: onStatusChange,
-        onPinChanged: onPinChanged,
-        onBotStatusChanged: onBotStatusChanged,
-        onAssignChanged: onAssignChanged,
-        onNote: onNote,
-        onAddSale: onAddSale,
-        onRename: onRename,
-        onResetName: onResetName,
-        onDelete: onDelete,
-        workspaceId: workspaceId,
-        chatroomId: chatroomId,
-        customerId: customerId,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.92, // leave a small gap at the top for easier dismiss
+        child: _ChatMoreSheet(
+          current: current,
+          pinned: pinned,
+          botEnabled: botEnabled,
+          assignOptions: assignOptions,
+          selectedAssign: selectedAssign,
+          onStatusChange: onStatusChange,
+          onPinChanged: onPinChanged,
+          onBotStatusChanged: onBotStatusChanged,
+          onAssignChanged: onAssignChanged,
+          onNote: onNote,
+          onAddSale: onAddSale,
+          onRename: onRename,
+          onResetName: onResetName,
+          onDelete: onDelete,
+          workspaceId: workspaceId,
+          chatroomId: chatroomId,
+          customerId: customerId,
+        ),
       ),
     );
   }
@@ -551,12 +561,51 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     }
   }
 
+  Future<void> _openJobCardDetail() async {
+    if (_jobCardId == null || _jobCardId!.isEmpty) return;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.workspaceId)
+          .collection('cards')
+          .doc(_jobCardId)
+          .get();
+      if (!snap.exists) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ Job Card ที่เชื่อม')));
+        return;
+      }
+      final data = snap.data() ?? {};
+      final job = JobCard.fromMap(data, snap.id);
+
+      // Ensure BoardController is ready with the current workspace for CardDetailPage
+      final boardController = Get.isRegistered<BoardController>()
+          ? Get.find<BoardController>()
+          : Get.put(BoardController());
+      if (boardController.currentWorkspaceId.value != widget.workspaceId) {
+        await boardController.switchWorkspace(widget.workspaceId);
+      }
+
+      // Close the bottom sheet first, then navigate to detail page using Get.to
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+      await Future.microtask(() {});
+      if (!mounted) return;
+      Get.to(() => CardDetailPage(card: job));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เปิด Job Card ไม่สำเร็จ: $e')));
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return SafeArea(
-      top: false,
+      top: true,
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
         child: Column(
@@ -773,50 +822,53 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               // ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Card(
-
-                  color: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 18,
-                          backgroundColor: Color(0xFFE9ECEF),
-                          child: Icon(Icons.style_outlined, color: Colors.black87),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                (_jobCardTitle?.isNotEmpty == true)
-                                    ? _jobCardTitle!
-                                    : 'กำลังดึงชื่อการ์ด...',
-                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'แก้ไข/เปลี่ยนการ์ด',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                            ],
+                child: InkWell(
+                  onTap: _openJobCardDetail,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Card(
+                    color: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Color(0xFFE9ECEF),
+                            child: Icon(Icons.style_outlined, color: Colors.black87),
                           ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _openJobCardPicker,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            minimumSize: const Size(0, 36),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  (_jobCardTitle?.isNotEmpty == true)
+                                      ? _jobCardTitle!
+                                      : 'กำลังดึงชื่อการ์ด...',
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'แตะเพื่อเปิดรายละเอียด',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
                           ),
-                          icon: const Icon(Icons.swap_horiz, size: 16),
-                          label: const Text('เปลี่ยน', style: TextStyle(fontSize: 13)),
-                        ),
-                      ],
+                          OutlinedButton.icon(
+                            onPressed: _openJobCardPicker,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              minimumSize: const Size(0, 36),
+                            ),
+                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            label: const Text('เปลี่ยน', style: TextStyle(fontSize: 13)),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
