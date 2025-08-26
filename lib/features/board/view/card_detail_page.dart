@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
+import '../widgets/hashtag_selection_modal.dart';
 
 class CardDetailPage extends StatefulWidget {
   final JobCard card;
@@ -22,10 +23,12 @@ class _CardDetailPageState extends State<CardDetailPage> {
   // Form controllers
   final TextEditingController _jobIdController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _hashtagController = TextEditingController();
   final TextEditingController _assigneeController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
+  
+  // Hashtag state
+  List<Map<String, dynamic>> _selectedHashtags = [];
   
   // Form state
   String _selectedBoard = '';
@@ -67,8 +70,10 @@ class _CardDetailPageState extends State<CardDetailPage> {
     // Initialize form with current card data
     _jobIdController.text = _currentCard.customId.isNotEmpty ? _currentCard.customId : 'JB-${_currentCard.id.substring(0, 8)}';
     _titleController.text = _currentCard.title;
-    _hashtagController.text = _currentCard.hashtag ?? '';
     _assigneeController.text = _currentCard.assignee;
+    
+    // Initialize hashtags from current card
+    _initializeHashtags();
     _detailsController.text = _currentCard.description;
     _selectedStatus = _currentCard.status;
     _expectedClosingDate = _currentCard.dueDate;
@@ -315,11 +320,32 @@ class _CardDetailPageState extends State<CardDetailPage> {
   void dispose() {
     _jobIdController.dispose();
     _titleController.dispose();
-    _hashtagController.dispose();
     _assigneeController.dispose();
     _detailsController.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+  
+  void _initializeHashtags() {
+    // Parse existing hashtag string into hashtag objects
+    if (_currentCard.hashtag?.isNotEmpty == true) {
+      final hashtagText = _currentCard.hashtag!;
+      final hashtags = hashtagText
+          .split(RegExp(r'[,\s]+'))
+          .where((tag) => tag.isNotEmpty)
+          .map((tag) => tag.trim().replaceFirst('#', ''))
+          .where((tag) => tag.isNotEmpty)
+          .toList();
+      
+      _selectedHashtags = hashtags.asMap().entries.map((entry) {
+        final colors = ['#f97316', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f472b6', '#6b7280'];
+        return {
+          'id': 'existing_${entry.key}',
+          'text': entry.value,
+          'color': colors[entry.key % colors.length],
+        };
+      }).toList();
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -600,15 +626,50 @@ class _CardDetailPageState extends State<CardDetailPage> {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _hashtagController,
-          decoration: const InputDecoration(
-            hintText: 'e.g. #Urgent #FollowUp',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        InkWell(
+          onTap: _openHashtagModal,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[400]!),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: _selectedHashtags.isEmpty
+                ? const Text(
+                    'Tap to select hashtags...',
+                    style: TextStyle(color: Colors.grey),
+                  )
+                : Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _selectedHashtags.map((hashtag) {
+                      return Chip(
+                        label: Text('#${hashtag['text']}'),
+                        backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
+                        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      );
+                    }).toList(),
+                  ),
           ),
         ),
       ],
+    );
+  }
+  
+  void _openHashtagModal() {
+    showDialog(
+      context: context,
+      builder: (context) => HashtagSelectionModal(
+        selectedHashtags: _selectedHashtags,
+        onHashtagsSelected: (selectedHashtags) {
+          setState(() {
+            _selectedHashtags = selectedHashtags;
+          });
+        },
+      ),
     );
   }
 
@@ -1453,7 +1514,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
         assignee: _assigneeController.text.trim(),
         customer: _selectedCustomer.isNotEmpty ? _availableCustomers.firstWhere((c) => c['id'] == _selectedCustomer)['name'] : '',
         company: _selectedCompany != 'none' ? _availableCompanies.firstWhere((c) => c['id'] == _selectedCompany)['name'] : null,
-        hashtag: _hashtagController.text.trim().isNotEmpty ? _hashtagController.text.trim() : null,
+        hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
         status: _selectedStatus,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,

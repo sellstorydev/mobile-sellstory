@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
+import '../widgets/hashtag_selection_modal.dart';
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -27,10 +28,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
   // Form controllers
   final TextEditingController _jobIdController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _hashtagController = TextEditingController();
   final TextEditingController _assigneeController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
+  
+  // Hashtag state
+  List<Map<String, dynamic>> _selectedHashtags = [];
   
   // Form state
   String _selectedBoard = '';
@@ -256,7 +259,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
     print('🔄 CreateCardPage.dispose - Page being disposed');
     _jobIdController.dispose();
     _titleController.dispose();
-    _hashtagController.dispose();
     _assigneeController.dispose();
     _detailsController.dispose();
     _commentController.dispose();
@@ -342,7 +344,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         status: _selectedStatus,
         customId: '', // Will be auto-generated with counter
         dueDate: _expectedClosingDate,
-        badges: _hashtagController.text.trim().isNotEmpty ? [_hashtagController.text.trim()] : [],
+        badges: _selectedHashtags.map((h) => h['text'] as String).toList(),
         amount: 0.0,
         laneId: _selectedLane.isNotEmpty ? _selectedLane : '',
         boardId: currentBoardId,
@@ -354,7 +356,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         updatedByDisplayName: assigneeDisplayName, // Use assignee display name
         customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
         company: companyName,
-        hashtag: _hashtagController.text.trim().isNotEmpty ? _hashtagController.text.trim() : null,
+        hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
         expenses: [],
         todos: [],
         notes: [],
@@ -672,15 +674,50 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _hashtagController,
-          decoration: const InputDecoration(
-            hintText: 'e.g. #Urgent #FollowUp',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        InkWell(
+          onTap: _openHashtagModal,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[400]!),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: _selectedHashtags.isEmpty
+                ? const Text(
+                    'Tap to select hashtags...',
+                    style: TextStyle(color: Colors.grey),
+                  )
+                : Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _selectedHashtags.map((hashtag) {
+                      return Chip(
+                        label: Text('#${hashtag['text']}'),
+                        backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
+                        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      );
+                    }).toList(),
+                  ),
           ),
         ),
       ],
+    );
+  }
+  
+  void _openHashtagModal() {
+    showDialog(
+      context: context,
+      builder: (context) => HashtagSelectionModal(
+        selectedHashtags: _selectedHashtags,
+        onHashtagsSelected: (selectedHashtags) {
+          setState(() {
+            _selectedHashtags = selectedHashtags;
+          });
+        },
+      ),
     );
   }
 

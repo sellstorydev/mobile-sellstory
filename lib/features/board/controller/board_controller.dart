@@ -1105,4 +1105,48 @@ class BoardController extends GetxController implements BoardView {
     }
     return lanes;
   }
+
+  // Get hashtags from workspace hashtagSettings
+  Future<List<Map<String, dynamic>>> getWorkspaceHashtags() async {
+    try {
+      final workspaceId = currentWorkspaceId.value;
+      if (workspaceId.isEmpty) {
+        print('⚠️ No workspace selected for loading hashtags');
+        return [];
+      }
+
+      print('🔄 Loading hashtags for workspace: $workspaceId');
+      
+      // Get workspace data
+      final workspaceData = await _repository.getWorkspace(workspaceId);
+      
+      if (workspaceData != null) {
+        final hashtagSettings = workspaceData['companyProfile']?['hashtagSettings'] as Map<String, dynamic>?;
+        
+        if (hashtagSettings != null && hashtagSettings['isEnabled'] == true) {
+          final masterList = hashtagSettings['masterList'] as List<dynamic>?;
+          
+          if (masterList != null) {
+            final hashtags = masterList
+                .where((hashtag) => hashtag['enabled'] == true && hashtag['scopes']?['jobBoard'] == true)
+                .map((hashtag) => {
+                  'id': hashtag['id'] ?? '',
+                  'text': hashtag['name'] ?? '',
+                  'color': hashtag['color'] ?? '#f97316',
+                })
+                .toList();
+            
+            print('✅ Loaded ${hashtags.length} hashtags from workspace settings');
+            return List<Map<String, dynamic>>.from(hashtags);
+          }
+        }
+      }
+      
+      print('⚠️ No hashtag settings found for workspace');
+      return [];
+    } catch (e) {
+      print('❌ Failed to load workspace hashtags: $e');
+      return [];
+    }
+  }
 }
