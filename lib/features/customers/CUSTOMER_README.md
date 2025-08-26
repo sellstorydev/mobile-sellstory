@@ -38,7 +38,7 @@ Customer is about company have customer for sale manage and create new customer
   - จังหวัด (Province)
   - รหัสไปรษณีย์ (Postal Code)
   - ประเทศ (Country)
-- **Company**: Coming soon
+- **Company**: Multi-select company picker with search functionality
 
 ## CONSIDERATIONS:
 - *important* You don't need to explain what you did. I don't want to know, it's a waste of time. Focus on editing the file to meet the task I gave you.

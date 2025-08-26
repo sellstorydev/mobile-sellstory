@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../services/logger_service.dart';
 import '../services/id_generation_service.dart';
 import '../services/workspace_members_service.dart';
+import '../services/company_service.dart';
 import '../../data/repositories/jobcard_repository.dart';
 import '../../data/repositories/firestore_repository.dart';
 import '../../data/repositories/customer_repository.dart';
@@ -31,8 +32,9 @@ class Locator {
     Get.lazyPut<FirestoreService>(() => FirestoreService(), fenix: true);
     Get.lazyPut<IdGenerationService>(() => IdGenerationService(), fenix: true);
     Get.lazyPut<WorkspaceMembersService>(() => WorkspaceMembersService(), fenix: true);
+    Get.lazyPut<CompanyService>(() => CompanyService(), fenix: true);
     logger?.devTools('Services registered', {
-      'services': ['FirestoreService', 'IdGenerationService'],
+      'services': ['FirestoreService', 'IdGenerationService', 'WorkspaceMembersService', 'CompanyService'],
     });
     
     // Repositories
@@ -83,6 +85,7 @@ class Locator {
     Get.delete<FirestoreRepository>(force: true);
     Get.delete<CustomerRepository>(force: true);
     Get.delete<FirestoreService>(force: true);
+    Get.delete<CompanyService>(force: true);
     Get.delete<JobCardRepository>(force: true);
     Get.delete<MoveCardUseCase>(force: true);
     Get.delete<ReorderCardInLaneUseCase>(force: true);
@@ -96,6 +99,7 @@ class Locator {
         'FirestoreRepository',
         'CustomerRepository',
         'FirestoreService',
+        'CompanyService',
         'JobCardRepository',
         'MoveCardUseCase',
         'ReorderCardInLaneUseCase',

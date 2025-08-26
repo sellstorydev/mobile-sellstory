@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/widgets/assignees_input_field.dart';
+import '../../../core/widgets/company_picker.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/services/id_generation_service.dart';
+import '../../../core/services/company_service.dart';
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
 
@@ -45,6 +47,9 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   List<WorkspaceMember> _availableMembers = [];
   List<String> _selectedAssignees = [];
   bool _isLoadingMembers = true;
+  
+  // Company related
+  List<Company> _selectedCompanies = [];
   
   String _selectedGender = 'Male';
   String _selectedCustomerType = 'Customer';
@@ -157,8 +162,14 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         _hashtagsController.text = hashtagTexts.join(', ');
       }
       
-      // Parse assignees
-      _selectedAssignees = List<String>.from(customer.assignees);
+             // Parse assignees
+       _selectedAssignees = List<String>.from(customer.assignees);
+       
+       // Parse companies from object format
+       if (customer.companyNames.isNotEmpty) {
+         // TODO: Convert companyNames to Company objects
+         // For now, we'll leave it empty and let user select from available companies
+       }
       
       _selectedGender = _getSafeDropdownValue(customer.gender, _genderOptions);
       _selectedCustomerType = _getSafeDropdownValue(customer.customerType, _customerTypeOptions);
@@ -353,8 +364,17 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               _buildLocationSection(),
               const SizedBox(height: 16),
               
-              // Company (Coming Soon)
-              _buildComingSoonField('บริษัท', 'company'),
+              // Company
+              CompanyPicker(
+                selectedCompanies: _selectedCompanies,
+                onCompaniesChanged: (companies) {
+                  setState(() {
+                    _selectedCompanies = companies;
+                  });
+                },
+                label: 'บริษัท',
+                hintText: 'เลือกบริษัท',
+              ),
             ],
           ),
         ),
@@ -943,7 +963,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           customerType: _selectedCustomerType,
           emails: emailsObjects,
           phones: phonesObjects,
-          companyNames: <Map<String, dynamic>>[], // TODO: Add company field to form
+          companyNames: _selectedCompanies.map((company) => company.toMap()).toList(),
           nationalId: _nationalIdController.text.trim(),
           address: _addressLine1Controller.text.trim(),
           source: _selectedSource,
