@@ -62,7 +62,7 @@ class ChatMenuTile extends StatelessWidget {
             onTap?.call();
           },
         ),
-        const Divider(height: 1),
+
       ],
     );
   }
