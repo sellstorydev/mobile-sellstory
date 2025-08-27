@@ -7,6 +7,7 @@ import '../services/company_service.dart';
 import '../../data/repositories/jobcard_repository.dart';
 import '../../data/repositories/firestore_repository.dart';
 import '../../data/repositories/customer_repository.dart';
+import '../../data/repositories/product_repository.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/chat_service.dart'; // เพิ่มการ import ChatService
 import '../../data/services/upload_service.dart'; // เพิ่มการ import UploadService
@@ -72,11 +73,13 @@ class Locator {
       () => CustomerRepository(Get.find<FirestoreService>()),
       fenix: true,
     );
+    Get.lazyPut<ProductRepository>(() => ProductRepository(), fenix: true);
     logger?.devTools('Repositories registered', {
       'repositories': [
         'JobCardRepository',
         'FirestoreRepository',
         'CustomerRepository',
+        'ProductRepository',
       ],
     });
 
