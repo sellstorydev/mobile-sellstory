@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ConversationTile extends StatelessWidget {
   final Map<String, dynamic> conversation;
@@ -310,28 +311,81 @@ class ConversationTile extends StatelessWidget {
 
                   // Assignees
                   Builder(builder: (_) {
-                    final raw = conversation['assigneeNames'];
-                    final names = (raw is List)
-                        ? raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList()
+                    final rawNames = conversation['assigneeNames'];
+                    final names = (rawNames is List)
+                        ? rawNames.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList()
                         : const <String>[];
-                    if (names.isEmpty) return const SizedBox.shrink();
-                    final joined = names.join(', ');
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.person_outline, size: 14, color: Colors.black54),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              joined,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade800, fontWeight: FontWeight.w600),
+                    if (names.isNotEmpty) {
+                      final joined = names.join(', ');
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.person_outline, size: 14, color: Colors.black54),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                joined,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade800, fontWeight: FontWeight.w600),
+                              ),
                             ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // Fallback: resolve from chatroom-level assignees (assigneeIds or assignees)
+                    final rawIds = conversation['assigneeIds'] ?? conversation['assignees'];
+                    final ids = (rawIds is List)
+                        ? rawIds.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList()
+                        : const <String>[];
+                    if (ids.isEmpty) return const SizedBox.shrink();
+
+                    Future<List<String>> _loadNames(List<String> uids) async {
+                      // Limit to reduce reads; UI shows first few names
+                      final limited = uids.take(5).toList();
+                      final results = await Future.wait(limited.map((uid) async {
+                        try {
+                          final u = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+                          final m = u.data() ?? {};
+                          final dn = (m['displayName'] ?? m['name'] ?? '').toString().trim();
+                          return dn.isNotEmpty ? dn : uid;
+                        } catch (_) {
+                          return uid;
+                        }
+                      }));
+                      return results;
+                    }
+
+                    return FutureBuilder<List<String>>(
+                      future: _loadNames(ids),
+                      builder: (context, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const SizedBox.shrink();
+                        }
+                        final fetched = (snap.data ?? []).where((s) => s.trim().isNotEmpty).toList();
+                        if (fetched.isEmpty) return const SizedBox.shrink();
+                        final joined = fetched.join(', ');
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person_outline, size: 14, color: Colors.black54),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  joined,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade800, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   }),
                 ],

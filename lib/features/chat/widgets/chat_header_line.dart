@@ -13,6 +13,8 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onMore;
   // New: optional assignee (sales) display names
   final List<String>? assigneeNames;
+  // New: optional add-sales action callback
+  final VoidCallback? onAddSales;
 
   const ChatHeaderLine({
     Key? key,
@@ -26,6 +28,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
     this.onSearch,
     this.onMore,
     this.assigneeNames,
+    this.onAddSales,
   }) : super(key: key);
 
   @override
@@ -148,6 +151,13 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
+        if (onAddSales != null)
+          IconButton(
+            icon: const Icon(Icons.person_add_alt, color: Colors.black87),
+            onPressed: onAddSales,
+            splashRadius: 22,
+            tooltip: 'เพิ่มเซล',
+          ),
         IconButton(
           icon: const Icon(Icons.search, color: Colors.black87),
           onPressed: onSearch,

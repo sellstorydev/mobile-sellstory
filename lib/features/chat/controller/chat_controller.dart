@@ -474,6 +474,14 @@ class ChatController extends GetxController {
 
           // Attach provider info if possible
           final enriched = _attachProviderInfo(data);
+          // Carry chatroom-level assignees (when no customer linked)
+          try {
+            final ids = ((enriched['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+            if (ids.isNotEmpty) {
+              enriched['assigneeIds'] = ids;
+            }
+
+          } catch (_) {}
           // Attach hashtag meta (name + color from master list)
           try {
             enriched['hashtagMeta'] = _buildHashtagMeta(enriched);
@@ -715,6 +723,7 @@ class ChatController extends GetxController {
     super.onClose();
   }
 
+
   Future<void> _augmentAssignees(List<Map<String, dynamic>> items) async {
     final wsId = _currentWorkspaceId;
     if (wsId == null || wsId.isEmpty) return;
@@ -722,46 +731,97 @@ class ChatController extends GetxController {
     for (final item in items) {
       // Resolve customerId from various fields
       final cid = (item['customerId'] ?? item['customer_id'] ?? item['customer']?['id'])?.toString();
-      if (cid == null || cid.isEmpty) continue;
 
-      List<String>? names = _assigneesCache[cid];
-      List<String> uids = const [];
-      if (names == null) {
-        try {
-          final cSnap = await FirestoreService.to
-              .getWorkspaceCustomersCollection(wsId)
-              .doc(cid)
-              .get();
-          final cData = cSnap.data() ?? {};
-          uids = ((cData['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
-          if (uids.isEmpty) {
+      if (cid != null && cid.isNotEmpty) {
+        List<String>? names = _assigneesCache[cid];
+        List<String> uids = const [];
+        if (names == null) {
+          try {
+            final cSnap = await FirestoreService.to
+                .getWorkspaceCustomersCollection(wsId)
+                .doc(cid)
+                .get();
+            final cData = cSnap.data() ?? {};
+            uids = ((cData['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+            if (uids.isEmpty) {
+              names = const [];
+            } else {
+              final futures = uids.map((uid) async {
+                final u = await FirestoreService.to.usersCollection.doc(uid).get();
+                final m = u.data() ?? {};
+                final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+                return dn.isNotEmpty ? dn : uid;
+              });
+              names = await Future.wait(futures);
+            }
+            _assigneesCache[cid] = names;
+          } catch (_) {
             names = const [];
-          } else {
-            final futures = uids.map((uid) async {
-              final u = await FirestoreService.to.usersCollection.doc(uid).get();
-              final m = u.data() ?? {};
-              final dn = (m['displayName'] ?? m['name'] ?? '').toString();
-              return dn.isNotEmpty ? dn : uid;
-            });
-            names = await Future.wait(futures);
+            uids = const [];
           }
-          _assigneesCache[cid] = names;
-        } catch (_) {
-          names = const [];
-          uids = const [];
         }
-      }
 
-      // Update the item in conversations list
-      final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
-      if (idx >= 0) {
-        conversations[idx]['assigneeNames'] = names;
-        // If we fetched uids in this round, store them for filtering
-        if (uids.isNotEmpty) {
-          conversations[idx]['assigneeIds'] = uids;
+        // Update the item in conversations list
+        final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
+        if (idx >= 0) {
+          conversations[idx]['assigneeNames'] = names;
+          // If we fetched uids in this round, store them for filtering
+          if (uids.isNotEmpty) {
+            conversations[idx]['assigneeIds'] = uids;
+          }
+          conversations.refresh();
         }
-        conversations.refresh();
+      } else {
+        // No customer linked: use chatroom-level assigneeIds
+        try {
+          List<String> uids = const [];
+          final raw = item['assigneeIds'];
+          if (raw is List) {
+            uids = raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+          } else {
+            // Fallback: read from chatroom doc
+            final doc = await _firestoreService
+                .getChatroomsCollection(wsId)
+                .doc((item['id'] ?? '').toString())
+                .get();
+            final m = doc.data() ?? {};
+            uids = ((m['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+          }
+          if (uids.isEmpty) continue;
+          final futures = uids.map((uid) async {
+            final u = await FirestoreService.to.usersCollection.doc(uid).get();
+            final m = u.data() ?? {};
+            final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+            return dn.isNotEmpty ? dn : uid;
+          });
+          final names = await Future.wait(futures);
+          final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
+          if (idx >= 0) {
+            conversations[idx]['assigneeNames'] = names;
+            conversations[idx]['assigneeIds'] = uids;
+            conversations.refresh();
+          }
+        } catch (_) {
+          // ignore errors for UX
+        }
       }
     }
+  }
+
+  // Optimistically add an assignee to a conversation and refresh UI
+  void addAssigneeLocal(String chatId, String uid, String displayName) {
+    final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+    if (idx < 0) return;
+    final existingIds = (conversations[idx]['assigneeIds'] is List)
+        ? (conversations[idx]['assigneeIds'] as List).map((e) => e.toString()).toSet()
+        : <String>{};
+    final existingNames = (conversations[idx]['assigneeNames'] is List)
+        ? (conversations[idx]['assigneeNames'] as List).map((e) => e.toString()).toSet()
+        : <String>{};
+    existingIds.add(uid);
+    if (displayName.trim().isNotEmpty) existingNames.add(displayName.trim());
+    conversations[idx]['assigneeIds'] = existingIds.toList();
+    conversations[idx]['assigneeNames'] = existingNames.toList();
+    conversations.refresh();
   }
 }

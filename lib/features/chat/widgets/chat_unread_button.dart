@@ -51,14 +51,14 @@ class ChatUnreadButton extends StatelessWidget {
           icon: Stack(
             clipBehavior: Clip.none,
             children: [
-              const Icon(Icons.chat_bubble_outline),
+              const Icon(Icons.chat_bubble_outline, size: 21),
               if (unreadTotal > 0)
                 Positioned(
                   right: -2,
                   top: -2,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                    constraints: const BoxConstraints(minWidth: 5, minHeight: 5),
                     decoration: BoxDecoration(
                       color: Colors.redAccent,
                       borderRadius: BorderRadius.circular(9),
@@ -69,7 +69,7 @@ class ChatUnreadButton extends StatelessWidget {
                       badgeText,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 7,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

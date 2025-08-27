@@ -169,7 +169,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ยืนยันการผูกเซล'),
-        content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับลูกค้าหรือไม่?'),
+        content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
@@ -191,20 +191,33 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       } catch (_) {}
     }
 
-    if (customerId == null || customerId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเชื่อมลูกค้ากับห้องแชทก่อน')),
-      );
-      return;
-    }
-
     try {
-      await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(wsId)
-          .collection('customers')
-          .doc(customerId)
-          .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+      if (customerId != null && customerId.isNotEmpty) {
+        // Assign to customer-level assignees
+        await FirebaseFirestore.instance
+            .collection('workspaces')
+            .doc(wsId)
+            .collection('customers')
+            .doc(customerId)
+            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+      } else {
+        // No customer linked: assign to chatroom-level assignees
+        await FirestoreService.to
+            .getChatroomsCollection(wsId)
+            .doc(chatId)
+            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+      }
+
+      // Optimistically update the list tile to show assignee immediately
+      String displayName = '';
+      try {
+        final u = await FirebaseFirestore.instance.collection('users').doc(pickedUid).get();
+        final m = u.data() ?? {};
+        displayName = (m['displayName'] ?? m['name'] ?? '').toString();
+      } catch (_) {}
+      if (displayName.isEmpty) displayName = pickedUid;
+      _controller.addAssigneeLocal(chatId, pickedUid, displayName);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
       );
@@ -214,6 +227,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       );
     }
   }
+
 
   Future<void> _onChangeStatus(Map<String, dynamic> conversation) async {
     final ref = _chatroomRef(conversation);
@@ -290,20 +304,20 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
             onPressed: () => _controller.refresh(),
             color: Colors.black87,
           ),
-          IconButton(
-            tooltip: 'กรอง',
-            icon: const Icon(Icons.filter_list_rounded),
-            onPressed: () => _openFilterSheet(context),
-            color: Colors.black87,
-          ),
-          const SizedBox(width: 4),
-          PopupMenuButton<int>(
-            icon: const Icon(Icons.more_vert, color: Colors.black87),
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 1, child: Text('ตั้งค่า')),
-            ],
-          ),
-          const SizedBox(width: 8),
+          // IconButton(
+          //   tooltip: 'กรอง',
+          //   icon: const Icon(Icons.filter_list_rounded),
+          //   onPressed: () => _openFilterSheet(context),
+          //   color: Colors.black87,
+          // ),
+          // const SizedBox(width: 4),
+          // PopupMenuButton<int>(
+          //   icon: const Icon(Icons.more_vert, color: Colors.black87),
+          //   itemBuilder: (_) => const [
+          //     PopupMenuItem(value: 1, child: Text('ตั้งค่า')),
+          //   ],
+          // ),
+          // const SizedBox(width: 8),
         ],
       ),
       body: Column(

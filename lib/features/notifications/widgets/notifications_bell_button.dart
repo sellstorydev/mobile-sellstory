@@ -57,8 +57,8 @@ class NotificationsBellButton extends StatelessWidget {
                   right: 0,
                   top: 0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                    constraints: const BoxConstraints(minWidth: 2, minHeight: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    constraints: const BoxConstraints(minWidth: 5, minHeight: 5),
                     decoration: BoxDecoration(
                       color: Colors.redAccent,
                       borderRadius: BorderRadius.circular(9),

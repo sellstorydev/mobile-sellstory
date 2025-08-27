@@ -11,6 +11,7 @@ import '../widgets/message_bubble.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/show_bottom_modal.dart';
 import '../../../data/services/firestore_service.dart';
+import '../widgets/user_picker_sheet.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -62,7 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _nearBottom = true;
 
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
-  String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? 'แชท');
+  String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? '���ชท');
   String? get _avatarUrl => widget.conversationData['avatar'];
   String get _sourceType => widget.conversationData['source_type'] ?? 'unknown';
 
@@ -70,10 +71,100 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Cache salesperson names (assignees) for header display
   List<String>? _assigneeNames;
+  // Track last seen chatroom-level assignee UIDs to avoid redundant lookups
+  List<String> _lastChatAssigneeUids = const [];
   // Stream sub for customer updates
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _customerSub;
   // Simple cache for userId -> displayName
   final Map<String, String> _userNameCache = {};
+  // Track currently subscribed customerId to allow dynamic re-subscription
+  String? _subscribedCustomerId;
+
+  Future<void> _openAddSales() async {
+    try {
+      // Get latest chatroom snapshot to know current customer linkage
+      final chatSnap = await _chatService
+          .getChatroomsCollection(widget.workspaceId)
+          .doc(widget.conversationId)
+          .get();
+      final chatData = (chatSnap.data() ?? {}) as Map<String, dynamic>;
+      final customerId = (chatData['customerId'] ?? chatData['customer_id'] ?? chatData['customer']?['id'])?.toString();
+
+      final pickedUid = await showModalBottomSheet<String>(
+        context: context,
+        useSafeArea: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (ctx) {
+          final h = MediaQuery.of(ctx).size.height;
+          return SizedBox(
+            height: h * 0.9,
+            child: UserPickerSheet(workspaceId: widget.workspaceId),
+          );
+        },
+      );
+
+      if (pickedUid == null || pickedUid.isEmpty) return;
+
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('ยืนยันการผูกเซล'),
+          content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+
+      // Persist to customer if linked, otherwise to chatroom-level assignees
+      if (customerId != null && customerId.isNotEmpty) {
+        await FirestoreService.to
+            .getWorkspaceCustomersCollection(widget.workspaceId)
+            .doc(customerId)
+            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+      } else {
+        await _chatService
+            .getChatroomsCollection(widget.workspaceId)
+            .doc(widget.conversationId)
+            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+      }
+
+      // Optimistically resolve and update header names; live listeners will reconcile
+      try {
+        final u = await FirestoreService.to.usersCollection.doc(pickedUid).get();
+        final m = u.data() ?? {};
+        final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+        if (dn.isNotEmpty) {
+          _userNameCache[pickedUid] = dn;
+          if (mounted) {
+            setState(() {
+              final existing = _assigneeNames ?? const <String>[];
+              final next = <String>{...existing, dn}.toList();
+              _assigneeNames = next;
+            });
+          }
+        }
+      } catch (_) {}
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ผูกเซลไม���สำเร็จ: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -554,6 +645,52 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (_) {}
   }
 
+  Future<void> _resolveUserNames(List<String> uids) async {
+    // Use cache where possible, fetch missing, preserve input order
+    final names = <String>[];
+    final toFetch = <String>[];
+    for (final uid in uids) {
+      final cached = _userNameCache[uid];
+      if (cached != null && cached.isNotEmpty) {
+        names.add(cached);
+      } else {
+        toFetch.add(uid);
+      }
+    }
+    for (final uid in toFetch) {
+      try {
+        final u = await FirestoreService.to.usersCollection.doc(uid).get();
+        final m = u.data() ?? {};
+        final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+        final resolved = dn.isNotEmpty ? dn : uid;
+        _userNameCache[uid] = resolved;
+        names.add(resolved);
+      } catch (_) {
+        names.add(uid);
+      }
+    }
+    if (!mounted) return;
+    setState(() => _assigneeNames = names);
+  }
+
+  void _maybeUpdateAssigneesFromChatroom(Map<String, dynamic> data) {
+    final raw = data['assignees'];
+    if (raw is! List) return;
+    final uids = raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+    // Compare with last to avoid redundant fetches
+    final same = uids.length == _lastChatAssigneeUids.length &&
+        Set<String>.from(uids).containsAll(_lastChatAssigneeUids) &&
+        Set<String>.from(_lastChatAssigneeUids).containsAll(uids);
+    if (same) return;
+    _lastChatAssigneeUids = List<String>.from(uids);
+    if (uids.isEmpty) {
+      if (mounted) setState(() => _assigneeNames = const []);
+      return;
+    }
+    // Resolve names asynchronously after this frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveUserNames(uids));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -630,6 +767,18 @@ class _ChatScreenState extends State<ChatScreen> {
             final statusRaw = (data['chatroom_status'] ?? '').toString().toUpperCase();
             final bool isInProgress = statusRaw == 'IN_PROGRESS';
 
+            // If no customer is linked, resolve assignees from chatroom-level 'assignees' array
+            final customerId = (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString();
+            if (customerId == null || customerId.isEmpty) {
+              _maybeUpdateAssigneesFromChatroom(data);
+            } else {
+              // Ensure live subscription when a customer becomes linked dynamically
+              if (_subscribedCustomerId != customerId) {
+                _subscribedCustomerId = customerId;
+                _subscribeCustomerAssignees(customerId);
+              }
+            }
+
             // Prefer state-loaded names, fallback to any carried list on the map
             final List<String>? headerAssignees = _assigneeNames ?? (() {
               final raw = widget.conversationData['assigneeNames'];
@@ -688,6 +837,7 @@ class _ChatScreenState extends State<ChatScreen> {
                    customerId: (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString(),
                 );
               },
+              onAddSales: _openAddSales,
             );
           },
         ),
