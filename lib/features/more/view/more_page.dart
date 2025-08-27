@@ -11,7 +11,7 @@ class MorePage extends StatelessWidget {
     final controller = Get.put(MoreController());
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundGrey,
+      backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
         title: const Text('อื่น ๆ'),
         backgroundColor: AppTheme.backgroundWhite,
@@ -32,160 +32,70 @@ class MorePage extends StatelessWidget {
           child: Column(
             children: [
               // Profile Section
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.backgroundWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      // Profile Picture
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: AppTheme.primaryOrange,
-                        backgroundImage: controller.photoURL != null
-                            ? NetworkImage(controller.photoURL!)
-                            : null,
-                        child: controller.photoURL == null
-                            ? Text(
-                                controller.displayName.isNotEmpty
-                                    ? controller.displayName[0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 16),
-                      
-                      // User Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              controller.displayName,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              controller.email,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Edit Profile Icon
-                      IconButton(
-                        onPressed: () {
-                          Get.snackbar(
-                            'Info',
-                            'Edit profile feature coming soon',
-                            snackPosition: SnackPosition.BOTTOM,
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.edit,
-                          color: AppTheme.primaryOrange,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Menu Items
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
+                child: Row(
                   children: [
-                    // Profile Menu Item
-                    ListTile(
-                      leading: const Icon(
-                        Icons.person_outline,
-                        color: AppTheme.primaryOrange,
-                      ),
-                      title: const Text(
-                        'โปรไฟล์',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: const Text('จัดการข้อมูลส่วนตัว'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Profile page coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      },
+                    // Profile Picture
+                    CircleAvatar(
+                      radius: 25,
+                      backgroundColor: AppTheme.primaryOrange,
+                      backgroundImage: controller.photoURL != null
+                          ? NetworkImage(controller.photoURL!)
+                          : null,
+                      child: controller.photoURL == null
+                          ? Text(
+                              controller.displayName.isNotEmpty
+                                  ? controller.displayName[0].toUpperCase()
+                                  : 'U',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
                     ),
+                    const SizedBox(width: 16),
                     
-                    const Divider(height: 1),
-                    
-                    // Settings Menu Item
-                    ListTile(
-                      leading: const Icon(
-                        Icons.settings_outlined,
-                        color: AppTheme.primaryOrange,
+                    // User Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.person_outline,
+                                size: 16,
+                                color: AppTheme.primaryOrange,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Profile',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            controller.displayName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
-                      title: const Text(
-                        'ตั้งค่า',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: const Text('การตั้งค่าแอปพลิเคชัน'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Settings page coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      },
-                    ),
-                    
-                    const Divider(height: 1),
-                    
-                    // Help Menu Item
-                    ListTile(
-                      leading: const Icon(
-                        Icons.help_outline,
-                        color: AppTheme.primaryOrange,
-                      ),
-                      title: const Text(
-                        'ช่วยเหลือ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: const Text('คู่มือการใช้งาน'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Help page coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      },
                     ),
                   ],
                 ),
@@ -193,19 +103,139 @@ class MorePage extends StatelessWidget {
               
               const SizedBox(height: 24),
               
-              // Logout Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: controller.logout,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('ออกจากระบบ'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              // Menu Items
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.backgroundWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    _buildMenuItem(
+                      icon: Icons.dashboard_outlined,
+                      title: 'Operation บอร์ด',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Operation Board coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.people_outline,
+                      title: 'บริหารจัดการเซล',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Sales Management coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.archive_outlined,
+                      title: 'Archive',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Archive coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.shopping_cart_outlined,
+                      title: 'แหล่งที่มาลูกค้า',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Customer Source coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.tag_outlined,
+                      title: '# Hashtag Center',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Hashtag Center coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.business_outlined,
+                      title: 'ตั้งค่าบริษัท',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Company Settings coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.privacy_tip_outlined,
+                      title: 'การยินยอมเปิดเผยข้อมูล',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Data Disclosure Consent coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.switch_account_outlined,
+                      title: 'สลับบัญชี',
+                      subtitle: 'BewLnwZa007',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Switch Account coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.logout,
+                      title: 'Logout',
+                      isLogout: true,
+                      onTap: controller.logout,
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Delete Account Button
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Get.snackbar(
+                      'Info',
+                      'Delete Account feature coming soon',
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  },
+                  child: const Text(
+                    'ลบบัญชี ยกเลิกการใช้งาน',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -214,16 +244,63 @@ class MorePage extends StatelessWidget {
               const SizedBox(height: 16),
               
               // App Version
-              Text(
-                'SellStory v1.0.0',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
+              Center(
+                child: Text(
+                  'SellStory v1.10.8',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
               ),
             ],
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+    bool isLogout = false,
+  }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isLogout ? Colors.red : AppTheme.primaryOrange,
+        size: 20,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: isLogout ? Colors.red : AppTheme.textPrimary,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+              ),
+            )
+          : null,
+      trailing: isLogout
+          ? const Icon(Icons.arrow_forward, color: Colors.red, size: 16)
+          : const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    );
+  }
+
+  Widget _buildDivider() {
+    return const Divider(
+      height: 1,
+      indent: 56,
+      endIndent: 16,
     );
   }
 }
