@@ -11,6 +11,10 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBack;
   final VoidCallback? onSearch;
   final VoidCallback? onMore;
+  // New: optional assignee (sales) display names
+  final List<String>? assigneeNames;
+  // New: optional add-sales action callback
+  final VoidCallback? onAddSales;
 
   const ChatHeaderLine({
     Key? key,
@@ -23,21 +27,9 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
     this.onBack,
     this.onSearch,
     this.onMore,
+    this.assigneeNames,
+    this.onAddSales,
   }) : super(key: key);
-
-  // Small helper for platform color/icon
-  (Color, IconData) _platformStyle(String p) {
-    switch (p.toUpperCase()) {
-      case 'FACEBOOK':
-        return (const Color(0xFF1877F2), Icons.public);
-      case 'INSTAGRAM':
-        return (const Color(0xFFE1306C), Icons.camera_alt_outlined);
-      case 'LINE':
-        return (const Color(0xFF06C755), Icons.chat);
-      default:
-        return (Colors.grey.shade600, Icons.chat_bubble_outline);
-    }
-  }
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -45,9 +37,6 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final platformUpper = platform.toUpperCase();
-    final style = _platformStyle(platformUpper);
-    final Color platformColor = style.$1;
-    final IconData platformIcon = style.$2;
 
     return AppBar(
       elevation: 0,
@@ -74,7 +63,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 4, offset: const Offset(0, 2),
                     ),
                   ],
@@ -118,27 +107,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (pageTitle != null && pageTitle!.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      Icon(platformIcon, size: 14, color: platformColor),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          pageTitle!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: platformColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                ],
+
                 Text(
                   title,
                   maxLines: 1,
@@ -146,12 +115,49 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
                   style: const TextStyle(
                       color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
+                // New: Sales names under the main title
+                Builder(builder: (_) {
+                  final names = assigneeNames
+                          ?.map((e) => e.toString())
+                          .where((s) => s.trim().isNotEmpty)
+                          .toList() ??
+                      const <String>[];
+                  if (names.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline, size: 14, color: Colors.black54),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            names.join(', '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade800,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           ),
         ],
       ),
       actions: [
+        if (onAddSales != null)
+          IconButton(
+            icon: const Icon(Icons.person_add_alt, color: Colors.black87),
+            onPressed: onAddSales,
+            splashRadius: 22,
+            tooltip: 'เพิ่มเซล',
+          ),
         IconButton(
           icon: const Icon(Icons.search, color: Colors.black87),
           onPressed: onSearch,

@@ -28,6 +28,56 @@ class ChatController extends GetxController {
   List<Map<String, dynamic>> _wsFacebook = const [];
   List<Map<String, dynamic>> _wsInstagram = const [];
   List<Map<String, dynamic>> _wsLine = const [];
+  // Hashtag master cache: id->item and name(lower)->item
+  final Map<String, Map<String, dynamic>> _hashtagById = {};
+  final Map<String, Map<String, dynamic>> _hashtagByNameLower = {};
+
+  // Cache assignees for customerId -> [displayNames]
+  final Map<String, List<String>> _assigneesCache = {};
+
+  // Filters (reactive)
+  final RxSet<String> platformFilters = <String>{}.obs; // 'facebook','instagram','line'
+  final RxString statusFilter = ''.obs; // '', 'NEW','IN_PROGRESS','DONE'
+  final RxList<String> hashtagIdFilters = <String>[].obs; // selected hashtag IDs
+  final RxString salesIdFilter = ''.obs; // single sales/user id
+  final RxString customerIdFilter = ''.obs; // single customer id
+
+  // Helpers to set/clear filters
+  void setPlatformFilters(Set<String> values) {
+    platformFilters
+      ..clear()
+      ..addAll(values.map((e) => e.toLowerCase()));
+    conversations.refresh();
+  }
+
+  void setStatusFilter(String value) {
+    statusFilter.value = value.toUpperCase();
+  }
+
+  void setHashtagFilters(List<String> ids) {
+    hashtagIdFilters
+      ..clear()
+      ..addAll(ids);
+    conversations.refresh();
+  }
+
+  void setSalesFilter(String? uid) {
+    salesIdFilter.value = (uid ?? '').trim();
+  }
+
+  void setCustomerFilter(String? cid) {
+    customerIdFilter.value = (cid ?? '').trim();
+  }
+
+  void clearAllFilters() {
+    platformFilters.clear();
+    statusFilter.value = '';
+    hashtagIdFilters.clear();
+    salesIdFilter.value = '';
+    customerIdFilter.value = '';
+    activeFilter.value = 'all'; // keep legacy no-op
+    conversations.refresh();
+  }
 
   bool get _isListening => _chatroomsSub != null;
 
@@ -115,36 +165,89 @@ class ChatController extends GetxController {
       _wsInstagram = asList(connections?['instagram']);
       _wsLine = asList(connections?['line']);
 
-      _logger.info('Loaded workspace connections: fb=${_wsFacebook.length}, ig=${_wsInstagram.length}, line=${_wsLine.length}');
+      // Load hashtag settings (master list)
+      final hs = (ws['hashtagSettings'] ?? ws['companyProfile']?['hashtagSettings']) as Map<String, dynamic>?;
+      final master = asList(hs?['masterList']);
+      _hashtagById.clear();
+      _hashtagByNameLower.clear();
+      for (final item in master) {
+        final id = (item['id'] ?? '').toString();
+        final name = (item['name'] ?? '').toString();
+        if (id.isNotEmpty) _hashtagById[id] = item;
+        if (name.isNotEmpty) _hashtagByNameLower[name.toLowerCase()] = item;
+      }
+
+      _logger.info('Loaded workspace connections: fb=${_wsFacebook.length}, ig=${_wsInstagram.length}, line=${_wsLine.length}; hashtags=${master.length}');
     } catch (e) {
       _logger.warning('Failed to load workspace connections: $e');
     }
   }
 
+  List<Map<String, String>> _buildHashtagMeta(Map<String, dynamic> chatData) {
+    // Prefer hashtagIds for exact match; fallback to names
+    final List ids = (chatData['hashtagIds'] is List) ? (chatData['hashtagIds'] as List) : const [];
+    final List namesRaw = (chatData['hashtags'] is List) ? (chatData['hashtags'] as List) : const [];
+
+    final List<Map<String, String>> out = [];
+
+    if (ids.isNotEmpty) {
+      for (final v in ids) {
+        final id = v.toString();
+        final item = _hashtagById[id];
+        if (item != null) {
+          final name = (item['name'] ?? id).toString();
+          final color = (item['color'] ?? '').toString();
+          if (name.isNotEmpty) {
+            out.add({'name': name.startsWith('#') ? name : '#$name', 'color': color});
+          }
+        }
+      }
+    }
+
+    // Also include names that might not have ids
+    for (final n in namesRaw) {
+      final raw = n.toString().trim();
+      if (raw.isEmpty) continue;
+      // Avoid duplicates by normalized name (strip leading #)
+      final norm = raw.startsWith('#') ? raw.substring(1) : raw;
+      final already = out.any((m) => (m['name'] ?? '').replaceFirst('#', '') == norm);
+      if (already) continue;
+      final item = _hashtagByNameLower[norm.toLowerCase()];
+      if (item != null) {
+        final color = (item['color'] ?? '').toString();
+        out.add({'name': raw.startsWith('#') ? raw : '#$raw', 'color': color});
+      } else {
+        // No master match; keep name without color
+        out.add({'name': raw.startsWith('#') ? raw : '#$raw'});
+      }
+    }
+
+    return out;
+  }
+
   Map<String, dynamic> _attachProviderInfo(Map<String, dynamic> data) {
     String platform = (data['source_type'] ?? data['sourceType'] ?? '').toString().toLowerCase();
 
+    Map<String, dynamic>? firstWhereOrNull(List<Map<String, dynamic>> list, bool Function(Map<String, dynamic>) test) {
+      for (final e in list) {
+        if (test(e)) return e;
+      }
+      return null;
+    }
+
     Map<String, dynamic>? matched;
 
-    // Prefer connections embedded on the chatroom document itself
     final docConnections = (data['connections'] ?? data['companyProfile']?['connections']) as Map<String, dynamic>?;
-
-    List<Map<String, dynamic>> asList(dynamic v) {
-      if (v is List) return v.cast<Map<String, dynamic>>();
-      return const [];
-    }
+    List<Map<String, dynamic>> asList(dynamic v) => (v is List) ? v.cast<Map<String, dynamic>>() : const [];
 
     final docFacebook = asList(docConnections?['facebook']);
     final docInstagram = asList(docConnections?['instagram']);
     final docLine = asList(docConnections?['line']);
 
+    final fbCandidates = docFacebook.isNotEmpty ? docFacebook : _wsFacebook;
+    final igCandidates = docInstagram.isNotEmpty ? docInstagram : _wsInstagram;
+    final lineCandidates = docLine.isNotEmpty ? docLine : _wsLine;
 
-    // Select candidates: prefer doc-level connections, else workspace-level
-    List<Map<String, dynamic>> fbCandidates = docFacebook.isNotEmpty ? docFacebook : _wsFacebook;
-    List<Map<String, dynamic>> igCandidates = docInstagram.isNotEmpty ? docInstagram : _wsInstagram;
-    List<Map<String, dynamic>> lineCandidates = docLine.isNotEmpty ? docLine : _wsLine;
-
-    // Infer platform if missing/unknown
     bool isUnknown = platform.isEmpty || platform == 'unknown';
     if (isUnknown) {
       final hasPageId = (data['pageId']?.toString().isNotEmpty ?? false);
@@ -158,7 +261,6 @@ class ChatController extends GetxController {
       } else if (hasLineIds) {
         platform = 'line';
       } else {
-        // Infer from available connection arrays (prefer doc-level)
         final available = <String, int>{
           'facebook': fbCandidates.length,
           'instagram': igCandidates.length,
@@ -170,7 +272,6 @@ class ChatController extends GetxController {
       }
 
       if (platform.isNotEmpty) {
-        // Save back for UI consistency
         data['source_type'] = data['source_type'] ?? platform;
         data['sourceType'] = data['sourceType'] ?? platform;
       }
@@ -179,21 +280,20 @@ class ChatController extends GetxController {
     if (platform.contains('facebook')) {
       final pageId = (data['pageId'] ?? data['connection']?['pageId'])?.toString();
       if (pageId != null && pageId.isNotEmpty) {
-        matched = fbCandidates.firstWhereOrNull((e) => (e['pageId']?.toString() ?? '') == pageId);
+        matched = firstWhereOrNull(fbCandidates, (e) => (e['pageId']?.toString() ?? '') == pageId);
       }
-      matched ??= fbCandidates.length == 1 ? fbCandidates.first : null;
+      matched ??= fbCandidates.length == 1 ? (fbCandidates.isNotEmpty ? fbCandidates.first : null) : null;
       matched ??= fbCandidates.isNotEmpty ? fbCandidates.first : null;
     } else if (platform.contains('instagram') || platform == 'ig') {
       final igUserId = (data['igUserId'] ?? data['connection']?['igUserId'])?.toString();
       final pageId = (data['pageId'] ?? data['connection']?['pageId'])?.toString();
       if (igUserId != null && igUserId.isNotEmpty) {
-        matched = igCandidates.firstWhereOrNull((e) => (e['igUserId']?.toString() ?? '') == igUserId);
+        matched = firstWhereOrNull(igCandidates, (e) => (e['igUserId']?.toString() ?? '') == igUserId);
       }
-      // Fallback to pageId matching if present on IG connection
       if (matched == null && pageId != null && pageId.isNotEmpty) {
-        matched = igCandidates.firstWhereOrNull((e) => (e['pageId']?.toString() ?? '') == pageId);
+        matched = firstWhereOrNull(igCandidates, (e) => (e['pageId']?.toString() ?? '') == pageId);
       }
-      matched ??= igCandidates.length == 1 ? igCandidates.first : null;
+      matched ??= igCandidates.length == 1 ? (igCandidates.isNotEmpty ? igCandidates.first : null) : null;
       matched ??= igCandidates.isNotEmpty ? igCandidates.first : null;
     } else if (platform.contains('line')) {
       final channelId = (data['channelId'] ?? data['connection']?['channelId'])?.toString();
@@ -201,29 +301,28 @@ class ChatController extends GetxController {
       final userId = (data['lineUserId'] ?? data['connection']?['userId'])?.toString();
 
       if (channelId != null && channelId.isNotEmpty) {
-        matched = lineCandidates.firstWhereOrNull((e) => (e['channelId']?.toString() ?? '') == channelId);
+        matched = firstWhereOrNull(lineCandidates, (e) => (e['channelId']?.toString() ?? '') == channelId);
       }
       matched ??= (botId != null && botId.isNotEmpty)
-          ? lineCandidates.firstWhereOrNull((e) => (e['botId']?.toString() ?? '') == botId)
+          ? firstWhereOrNull(lineCandidates, (e) => (e['botId']?.toString() ?? '') == botId)
           : null;
       matched ??= (userId != null && userId.isNotEmpty)
-          ? lineCandidates.firstWhereOrNull((e) => (e['userId']?.toString() ?? '') == userId)
+          ? firstWhereOrNull(lineCandidates, (e) => (e['userId']?.toString() ?? '') == userId)
           : null;
 
       if (matched == null && lineCandidates.isNotEmpty) {
         final title = (data['name'] ?? data['customerName'] ?? data['who_name'] ?? '').toString();
         if (title.isNotEmpty) {
-          matched = lineCandidates.firstWhereOrNull((e) {
+          matched = firstWhereOrNull(lineCandidates, (e) {
             final dn = (e['displayName'] ?? e['statusMessage'] ?? '').toString();
             return dn.isNotEmpty && title.contains(dn);
           });
         }
       }
 
-      matched ??= lineCandidates.length == 1 ? lineCandidates.first : null;
+      matched ??= lineCandidates.length == 1 ? (lineCandidates.isNotEmpty ? lineCandidates.first : null) : null;
       matched ??= lineCandidates.isNotEmpty ? lineCandidates.first : null;
     } else {
-      // Platform still unknown: if there is a single connection overall, use it
       final all = <Map<String, dynamic>>[]
         ..addAll(fbCandidates)
         ..addAll(igCandidates)
@@ -237,7 +336,6 @@ class ChatController extends GetxController {
           platform = p;
         }
       } else if (all.isNotEmpty) {
-        // Pick a reasonable default order: line > facebook > instagram
         if (lineCandidates.isNotEmpty) {
           matched = lineCandidates.first;
           platform = 'line';
@@ -266,7 +364,6 @@ class ChatController extends GetxController {
         'platform': platformLabel,
       };
 
-      // Flatten a few helpful fields for UI
       final existingPageName = (data['pageName'] ?? '').toString().trim();
       final matchedPageName = (matched['pageName'] ?? matched['displayName'] ?? matched['igUsername'] ?? '').toString().trim();
       if (existingPageName.isEmpty && matchedPageName.isNotEmpty) {
@@ -278,13 +375,11 @@ class ChatController extends GetxController {
       data['channelId'] = data['channelId'] ?? matched['channelId'];
       data['botId'] = data['botId'] ?? matched['botId'];
 
-      // Avatar fallback from connection profile images
       data['avatarUrl'] = data['avatarUrl'] ?? data['avatar'] ??
           matched['pageImageUrl'] ?? matched['profilePictureUrl'] ?? matched['pictureUrl'];
 
-      _logger.info('Provider matched for chatroom ${data['id']}: ${data['pageName']} (${platformLabel})');
+      _logger.info('Provider matched for chatroom ${data['id']}: ${data['pageName']} ($platformLabel)');
     } else {
-      // Final fallback: set pageName from first available candidate by platform
       String candidateName = '';
       Map<String, dynamic>? candidate;
       if (platform.contains('facebook') && fbCandidates.isNotEmpty) {
@@ -298,17 +393,15 @@ class ChatController extends GetxController {
         candidateName = (candidate['displayName'] ?? '').toString();
       }
 
-
       if ((data['pageName'] ?? '').toString().isEmpty && candidateName.isNotEmpty) {
         data['pageName'] = candidateName;
-        // Attach minimal connection info for UI consistency
         data['connection'] = {
           ...?candidate,
           'platform': platform.isEmpty ? 'unknown' : platform,
         };
         data['avatarUrl'] = data['avatarUrl'] ?? data['avatar'] ??
             candidate?['pageImageUrl'] ?? candidate?['profilePictureUrl'] ?? candidate?['pictureUrl'];
-        _logger.info('Provider fallback set for chatroom ${data['id']}: ${data['pageName']} (${platform})');
+        _logger.info('Provider fallback set for chatroom ${data['id']}: ${data['pageName']} ($platform)');
       } else {
         _logger.warning('No provider matched for chatroom ${data['id']} (platform: ${platform.isEmpty ? 'unknown' : platform})');
       }
@@ -379,15 +472,30 @@ class ChatController extends GetxController {
           data['lastMessageAt'] = parseDate(lastMessageInfo['last_upd']);
           data['createdAt'] = parseDate(data['created']);
 
-
           // Attach provider info if possible
-          return _attachProviderInfo(data);
+          final enriched = _attachProviderInfo(data);
+          // Carry chatroom-level assignees (when no customer linked)
+          try {
+            final ids = ((enriched['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+            if (ids.isNotEmpty) {
+              enriched['assigneeIds'] = ids;
+            }
+
+          } catch (_) {}
+          // Attach hashtag meta (name + color from master list)
+          try {
+            enriched['hashtagMeta'] = _buildHashtagMeta(enriched);
+          } catch (_) {}
+          return enriched;
         }).toList();
 
         // Preserve list identity to reduce widget rebuild/flicker
         conversations.assignAll(items);
         isLoading.value = false;
         error.value = '';
+
+        // Asynchronously enrich with assignee display names
+        _augmentAssignees(items);
       }, onError: (e) {
         isLoading.value = false;
         error.value = 'Failed to get realtime chatrooms: $e';
@@ -428,25 +536,136 @@ class ChatController extends GetxController {
     var filtered = conversations.where((conv) {
       // Search filter
       if (searchQuery.value.isNotEmpty) {
-        final query = searchQuery.value.toLowerCase();
-        final name = (conv['name'] ?? '').toString().toLowerCase();
-        final lastMessage = (conv['lastMessage'] ?? '').toString().toLowerCase();
-        final customerName = (conv['customerName'] ?? '').toString().toLowerCase();
+        final rawQ = searchQuery.value.trim();
+        final query = rawQ.toLowerCase();
+        String normHash(String s) => s.replaceAll('#', '').toLowerCase();
+        final queryNoHash = normHash(rawQ);
 
-        if (!name.contains(query) &&
-            !lastMessage.contains(query) &&
-            !customerName.contains(query)) {
-          return false;
+        bool contains(String? s) => (s ?? '').toLowerCase().contains(query);
+        bool containsNoHash(String? s) => normHash(s ?? '').contains(queryNoHash);
+
+        final fields = <String?>[
+          conv['name']?.toString(),
+          conv['customerName']?.toString(),
+          conv['lastMessage']?.toString() ?? conv['last_message']?.toString(),
+          conv['who_name']?.toString(),
+          conv['displayName']?.toString(),
+          conv['pageName']?.toString(),
+          conv['company']?.toString(),
+          conv['companyName']?.toString(),
+          conv['company_name']?.toString(),
+          conv['customerCompany']?.toString(),
+        ];
+        final rawTags = conv['hashtags'];
+        if (rawTags is List) {
+          for (final t in rawTags) {
+            final s = t.toString();
+            fields.add(s);
+            fields.add(s.startsWith('#') ? s.substring(1) : s);
+          }
         }
+        final meta = conv['hashtagMeta'];
+        if (meta is List) {
+          for (final m in meta) {
+            if (m is Map) {
+              final n = (m['name'] ?? m['title'] ?? '').toString();
+              if (n.isNotEmpty) {
+                fields.add(n);
+                fields.add(n.startsWith('#') ? n.substring(1) : n);
+              }
+            }
+          }
+        }
+        final assignees = conv['assigneeNames'];
+        if (assignees is List) {
+          for (final a in assignees) {
+            fields.add(a.toString());
+          }
+        }
+        final matched = fields.any((s) => contains(s) || containsNoHash(s));
+        if (!matched) return false;
       }
 
-      // Status filter based on your JSON structure
+      // Platform filters
+      if (platformFilters.isNotEmpty) {
+        String platform = '';
+        try {
+          final conn = conv['connection'];
+          if (conn is Map && (conn['platform']?.toString().isNotEmpty ?? false)) {
+            platform = conn['platform'].toString().toLowerCase();
+          } else {
+            platform = (conv['source_type'] ?? conv['sourceType'] ?? '').toString().toLowerCase();
+          }
+        } catch (_) {}
+        if (platform.isEmpty && (conv['pageId']?.toString().isNotEmpty ?? false)) platform = 'facebook';
+        if (platform.isEmpty && (conv['igUserId']?.toString().isNotEmpty ?? false)) platform = 'instagram';
+        if (platform.isEmpty && ((conv['channelId'] ?? conv['botId'])?.toString().isNotEmpty ?? false)) platform = 'line';
+        if (!platformFilters.contains(platform)) return false;
+      }
+
+      // Status filter
+      final sf = statusFilter.value;
+      if (sf.isNotEmpty) {
+        final isNew = (conv['is_new'] ?? conv['isNew']) == 'Y';
+        final status = (conv['chatroom_status'] ?? '').toString().toUpperCase();
+        bool ok;
+        switch (sf) {
+          case 'NEW':
+            ok = isNew;
+            break;
+          case 'DONE':
+            ok = status == 'DONE';
+            break;
+          case 'IN_PROGRESS':
+            ok = status == 'IN_PROGRESS' || status == 'ACTIVE';
+            break;
+          default:
+            ok = true;
+        }
+        if (!ok) return false;
+      }
+
+      // Hashtag filter (IDs)
+      if (hashtagIdFilters.isNotEmpty) {
+        final ids = (conv['hashtagIds'] is List) ? (conv['hashtagIds'] as List).map((e) => e.toString()).toSet() : <String>{};
+        bool ok = ids.intersection(hashtagIdFilters.toSet()).isNotEmpty;
+        // Fallback: match by names via hashtagMeta if no ids present
+        if (!ok && (conv['hashtagMeta'] is List)) {
+          final meta = (conv['hashtagMeta'] as List)
+              .whereType<Map>()
+              .map((m) => (m['name'] ?? '').toString().replaceFirst('#', '').toLowerCase())
+              .toSet();
+          final selectedNames = hashtagIdFilters
+              .map((id) => _hashtagById[id]?['name']?.toString().toLowerCase())
+              .whereType<String>()
+              .toSet();
+          if (selectedNames.isNotEmpty) {
+            ok = meta.intersection(selectedNames).isNotEmpty;
+          }
+        }
+        if (!ok) return false;
+      }
+
+      // Sales filter (single uid)
+      final sid = salesIdFilter.value;
+      if (sid.isNotEmpty) {
+        final assigneeIds = (conv['assigneeIds'] is List) ? (conv['assigneeIds'] as List).map((e) => e.toString()).toSet() : <String>{};
+        if (!assigneeIds.contains(sid)) return false;
+      }
+
+      // Customer filter
+      final cidFilter = customerIdFilter.value;
+      if (cidFilter.isNotEmpty) {
+        final cid = (conv['customerId'] ?? conv['customer_id'] ?? conv['customer']?['id'])?.toString() ?? '';
+        if (cid != cidFilter) return false;
+      }
+
+      // Legacy activeFilter: keep any additional filters if used
       switch (activeFilter.value) {
         case 'unread':
           final unreadCount = int.tryParse(conv['count']?.toString() ?? '0') ?? 0;
           return unreadCount > 0;
         case 'assigned':
-        // You might need to add assignedUsers field or use a different logic
           return conv['chatroom_status'] == 'assigned';
         case 'inProgress':
           return conv['chatroom_status'] == 'in_progress' || conv['chatroom_status'] == 'active';
@@ -469,26 +688,6 @@ class ChatController extends GetxController {
       final bVal = bTime ?? DateTime.fromMillisecondsSinceEpoch(0);
       return bVal.compareTo(aVal);
     });
-
-    // Sort strictly by latest message time (descending)
-    // filtered.sort((a, b) {
-    //   // Prioritize pinned chats
-    //   final aPinned = a['chat_pin'] == 'Y';
-    //   final bPinned = b['chat_pin'] == 'Y';
-    //
-    //   if (aPinned && !bPinned) return -1;
-    //   if (!aPinned && bPinned) return 1;
-    //
-    //   // Then sort by last message time
-    //   final aTime = a['lastMessageAt'] as DateTime?;
-    //   final bTime = b['lastMessageAt'] as DateTime?;
-    //
-    //   if (aTime == null && bTime == null) return 0;
-    //   if (aTime == null) return 1;
-    //   if (bTime == null) return -1;
-    //
-    //   return bTime.compareTo(aTime);
-    // });
 
     return filtered;
   }
@@ -523,5 +722,106 @@ class ChatController extends GetxController {
     stopRealtime();
     super.onClose();
   }
-}
 
+
+  Future<void> _augmentAssignees(List<Map<String, dynamic>> items) async {
+    final wsId = _currentWorkspaceId;
+    if (wsId == null || wsId.isEmpty) return;
+
+    for (final item in items) {
+      // Resolve customerId from various fields
+      final cid = (item['customerId'] ?? item['customer_id'] ?? item['customer']?['id'])?.toString();
+
+      if (cid != null && cid.isNotEmpty) {
+        List<String>? names = _assigneesCache[cid];
+        List<String> uids = const [];
+        if (names == null) {
+          try {
+            final cSnap = await FirestoreService.to
+                .getWorkspaceCustomersCollection(wsId)
+                .doc(cid)
+                .get();
+            final cData = cSnap.data() ?? {};
+            uids = ((cData['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+            if (uids.isEmpty) {
+              names = const [];
+            } else {
+              final futures = uids.map((uid) async {
+                final u = await FirestoreService.to.usersCollection.doc(uid).get();
+                final m = u.data() ?? {};
+                final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+                return dn.isNotEmpty ? dn : uid;
+              });
+              names = await Future.wait(futures);
+            }
+            _assigneesCache[cid] = names;
+          } catch (_) {
+            names = const [];
+            uids = const [];
+          }
+        }
+
+        // Update the item in conversations list
+        final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
+        if (idx >= 0) {
+          conversations[idx]['assigneeNames'] = names;
+          // If we fetched uids in this round, store them for filtering
+          if (uids.isNotEmpty) {
+            conversations[idx]['assigneeIds'] = uids;
+          }
+          conversations.refresh();
+        }
+      } else {
+        // No customer linked: use chatroom-level assigneeIds
+        try {
+          List<String> uids = const [];
+          final raw = item['assigneeIds'];
+          if (raw is List) {
+            uids = raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+          } else {
+            // Fallback: read from chatroom doc
+            final doc = await _firestoreService
+                .getChatroomsCollection(wsId)
+                .doc((item['id'] ?? '').toString())
+                .get();
+            final m = doc.data() ?? {};
+            uids = ((m['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+          }
+          if (uids.isEmpty) continue;
+          final futures = uids.map((uid) async {
+            final u = await FirestoreService.to.usersCollection.doc(uid).get();
+            final m = u.data() ?? {};
+            final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+            return dn.isNotEmpty ? dn : uid;
+          });
+          final names = await Future.wait(futures);
+          final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
+          if (idx >= 0) {
+            conversations[idx]['assigneeNames'] = names;
+            conversations[idx]['assigneeIds'] = uids;
+            conversations.refresh();
+          }
+        } catch (_) {
+          // ignore errors for UX
+        }
+      }
+    }
+  }
+
+  // Optimistically add an assignee to a conversation and refresh UI
+  void addAssigneeLocal(String chatId, String uid, String displayName) {
+    final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+    if (idx < 0) return;
+    final existingIds = (conversations[idx]['assigneeIds'] is List)
+        ? (conversations[idx]['assigneeIds'] as List).map((e) => e.toString()).toSet()
+        : <String>{};
+    final existingNames = (conversations[idx]['assigneeNames'] is List)
+        ? (conversations[idx]['assigneeNames'] as List).map((e) => e.toString()).toSet()
+        : <String>{};
+    existingIds.add(uid);
+    if (displayName.trim().isNotEmpty) existingNames.add(displayName.trim());
+    conversations[idx]['assigneeIds'] = existingIds.toList();
+    conversations[idx]['assigneeNames'] = existingNames.toList();
+    conversations.refresh();
+  }
+}

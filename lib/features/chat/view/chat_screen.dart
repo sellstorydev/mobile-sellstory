@@ -3,12 +3,15 @@ import 'package:flutter/scheduler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'dart:async';
 import '../../../data/services/chat_service.dart';
 import '../widgets/chat_header_line.dart';
 import '../widgets/chat_status_button.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/show_bottom_modal.dart';
+import '../../../data/services/firestore_service.dart';
+import '../widgets/user_picker_sheet.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -52,18 +55,139 @@ class _ChatScreenState extends State<ChatScreen> {
   // Quote reply state
   String? _replyPreviewText;
 
+
+
+  // Track previous message count to avoid redundant auto-scrolls that cause flicker
+  int _prevMessageCount = -1;
+  // Track if user is already near bottom; gate auto-scroll to reduce jumps
+  bool _nearBottom = true;
+
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
-  String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? 'แชท');
+  String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? '���ชท');
   String? get _avatarUrl => widget.conversationData['avatar'];
   String get _sourceType => widget.conversationData['source_type'] ?? 'unknown';
 
   String? _chatroomNameState; // refreshed name after reset
 
+  // Cache salesperson names (assignees) for header display
+  List<String>? _assigneeNames;
+  // Track last seen chatroom-level assignee UIDs to avoid redundant lookups
+  List<String> _lastChatAssigneeUids = const [];
+  // Stream sub for customer updates
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _customerSub;
+  // Simple cache for userId -> displayName
+  final Map<String, String> _userNameCache = {};
+  // Track currently subscribed customerId to allow dynamic re-subscription
+  String? _subscribedCustomerId;
+
+  Future<void> _openAddSales() async {
+    try {
+      // Get latest chatroom snapshot to know current customer linkage
+      final chatSnap = await _chatService
+          .getChatroomsCollection(widget.workspaceId)
+          .doc(widget.conversationId)
+          .get();
+      final chatData = (chatSnap.data() ?? {}) as Map<String, dynamic>;
+      final customerId = (chatData['customerId'] ?? chatData['customer_id'] ?? chatData['customer']?['id'])?.toString();
+
+      final pickedUid = await showModalBottomSheet<String>(
+        context: context,
+        useSafeArea: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (ctx) {
+          final h = MediaQuery.of(ctx).size.height;
+          return SizedBox(
+            height: h * 0.9,
+            child: UserPickerSheet(workspaceId: widget.workspaceId),
+          );
+        },
+      );
+
+      if (pickedUid == null || pickedUid.isEmpty) return;
+
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('ยืนยันการผูกเซล'),
+          content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+
+      // Persist to customer if linked, otherwise to chatroom-level assignees
+      if (customerId != null && customerId.isNotEmpty) {
+        await FirestoreService.to
+            .getWorkspaceCustomersCollection(widget.workspaceId)
+            .doc(customerId)
+            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+      } else {
+        await _chatService
+            .getChatroomsCollection(widget.workspaceId)
+            .doc(widget.conversationId)
+            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+      }
+
+      // Optimistically resolve and update header names; live listeners will reconcile
+      try {
+        final u = await FirestoreService.to.usersCollection.doc(pickedUid).get();
+        final m = u.data() ?? {};
+        final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+        if (dn.isNotEmpty) {
+          _userNameCache[pickedUid] = dn;
+          if (mounted) {
+            setState(() {
+              final existing = _assigneeNames ?? const <String>[];
+              final next = <String>{...existing, dn}.toList();
+              _assigneeNames = next;
+            });
+          }
+        }
+      } catch (_) {}
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ผูกเซลไม���สำเร็จ: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _markAsRead();
+    _loadAssigneesIfNeeded();
+    // If a customerId is known, subscribe for live changes
+    final data = widget.conversationData;
+    final cid = (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString();
+    if (cid != null && cid.isNotEmpty) {
+      _subscribeCustomerAssignees(cid);
+    }
+    // Listen for visible positions to detect if user is near bottom
+    _itemPositionsListener.itemPositions.addListener(() {
+      final positions = _itemPositionsListener.itemPositions.value;
+      if (positions.isEmpty) return;
+      // With reverse=true, bottom is index 0. If any visible index <= 2, treat as near bottom
+      int minIndex = positions.map((p) => p.index).fold<int>(999999, (a, b) => b < a ? b : a);
+      final near = minIndex <= 2; // threshold
+      // No rebuild needed; used only to decide auto-scroll later
+      _nearBottom = near;
+    });
+
     // เพิ่ม delay เล็กน้อยเพื่อให้ ListView build เสร็จก่อน
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -76,6 +200,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     // _scrollController.dispose();
     _searchController.dispose();
+    _customerSub?.cancel();
     super.dispose();
   }
 
@@ -110,8 +235,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
-    setState(() => _isLoading = true);
-    setState(() => _error = null); // Clear previous errors
+    // Do not toggle _isLoading for quick text sends to avoid UI flicker
+    // setState(() => _error = null); // Clear previous errors
 
     try {
       final result = await _chatService.sendTextMessage(
@@ -129,20 +254,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
       if (result['success'] == true) {
         // Clear reply state after successful send
+        if(_replyPreviewText != null)
         if (mounted) setState(() => _replyPreviewText = null);
-        _scrollToBottom();
+        // Don't call _scrollToBottom here; stream listener will autoscroll when appropriate
       }
     } catch (e) {
-      setState(() => _error = 'ส่งข้อความไม่สำเร็จ: $e');
+      _error = 'ส่งข้อความไม่สำเร็จ';
       _showErrorSnackBar(_error!);
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _sendImageMessage(String imageUrl) async {
-    setState(() => _isLoading = true);
-    setState(() => _error = null);
+    _isLoading = true;
+    _error = null;
 
     try {
       final result = await _chatService.sendImageMessage(
@@ -158,11 +282,13 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (result['success'] == true) {
-        print('Image sent successfully. ID: ${result['messageId']}');
-        _scrollToBottom();
+        // Clear reply preview on successful send
+        if(_replyPreviewText != null)
+        if (mounted) setState(() => _replyPreviewText = null);
+        // Don't force scroll; will autoscroll if user is near bottom
       }
     } catch (e) {
-      setState(() => _error = 'ส่งรูปภาพไม่สำเร็จ: $e');
+      setState(() => _error = 'ส่งรูปภาพไม่สำเร็จ');
       _showErrorSnackBar(_error!);
     } finally {
       setState(() => _isLoading = false);
@@ -170,8 +296,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendFileMessage(String fileUrl, String fileName) async {
-    setState(() => _isLoading = true);
-    setState(() => _error = null);
+    _isLoading = true;
+    _error = null;
 
     try {
       final result = await _chatService.sendFileMessage(
@@ -188,11 +314,13 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (result['success'] == true) {
-        print('File sent successfully. ID: ${result['messageId']}');
-        _scrollToBottom();
+        // Clear reply preview on successful send
+        if(_replyPreviewText != null)
+        if (mounted) setState(() => _replyPreviewText = null);
+        // No manual scroll
       }
     } catch (e) {
-      setState(() => _error = 'ส่งไฟล์ไม่สำเร็จ: $e');
+      setState(() => _error = 'ส่งไฟล์ไม่สำเร็จ');
       _showErrorSnackBar(_error!);
     } finally {
       setState(() => _isLoading = false);
@@ -201,8 +329,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // เพิ่มฟังก์ชันส่งข้อความประเภทอื่นๆ
   Future<void> _sendVideoMessage(String videoUrl) async {
-    setState(() => _isLoading = true);
-    setState(() => _error = null);
+    _isLoading = true;
+    _error = null;
 
     try {
       final result = await _chatService.sendVideoMessage(
@@ -218,11 +346,13 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (result['success'] == true) {
-        print('Video sent successfully. ID: ${result['messageId']}');
-        _scrollToBottom();
+        // Clear reply preview on successful send
+        if(_replyPreviewText != null)
+        if (mounted) setState(() => _replyPreviewText = null);
+        // No manual scroll
       }
     } catch (e) {
-      setState(() => _error = 'ส่งวิดีโอไม่สำเร็จ: $e');
+      setState(() => _error = 'ส่งวิดีโอไม่สำเร็จ');
       _showErrorSnackBar(_error!);
     } finally {
       setState(() => _isLoading = false);
@@ -234,9 +364,9 @@ class _ChatScreenState extends State<ChatScreen> {
       _showErrorSnackBar('สติ๊กเกอร์รองรับเฉพาะ LINE เท่านั้น');
       return;
     }
+    _isLoading = true;
+    _error = null;
 
-    setState(() => _isLoading = true);
-    setState(() => _error = null);
 
     try {
       final result = await _chatService.sendStickerMessage(
@@ -254,8 +384,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
 
       if (result['success'] == true) {
-        print('Sticker sent successfully. ID: ${result['messageId']}');
-        _scrollToBottom();
+        // Clear reply preview on successful send
+        if(_replyPreviewText != null)
+        if (mounted) setState(() => _replyPreviewText = null);
+        // No manual scroll
       }
     } catch (e) {
       setState(() => _error = 'ส่งสติ๊กเกอร์ไม่สำเร็จ: $e');
@@ -436,6 +568,129 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _subscribeCustomerAssignees(String customerId) {
+    _customerSub?.cancel();
+    _customerSub = FirestoreService.to
+        .getWorkspaceCustomersCollection(widget.workspaceId)
+        .doc(customerId)
+        .snapshots()
+        .listen((snap) async {
+      final cData = snap.data() ?? {};
+      final uids = ((cData['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+      if (uids.isEmpty) {
+        if (!mounted) return;
+        setState(() => _assigneeNames = const []);
+        return;
+      }
+      // Resolve names with cache
+      final names = <String>[];
+      for (final uid in uids) {
+        final cached = _userNameCache[uid];
+        if (cached != null && cached.isNotEmpty) {
+          names.add(cached);
+          continue;
+        }
+        try {
+          final u = await FirestoreService.to.usersCollection.doc(uid).get();
+          final m = u.data() ?? {};
+          final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+          final resolved = dn.isNotEmpty ? dn : uid;
+          _userNameCache[uid] = resolved;
+          names.add(resolved);
+        } catch (_) {
+          names.add(uid);
+        }
+      }
+      if (!mounted) return;
+      setState(() => _assigneeNames = names);
+    });
+  }
+
+  // Load assignee display names from workspace customers -> users
+  Future<void> _loadAssigneesIfNeeded() async {
+    try {
+      // Prefer any names already carried in conversationData
+      final carried = widget.conversationData['assigneeNames'];
+      if (carried is List && carried.isNotEmpty) {
+        final names = carried.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+        if (names.isNotEmpty) {
+          setState(() => _assigneeNames = names);
+          return;
+        }
+      }
+
+      final wsId = widget.workspaceId;
+      final data = widget.conversationData;
+      final customerId = (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString();
+      if (wsId.isEmpty || customerId == null || customerId.isEmpty) return;
+
+      final cSnap = await FirestoreService.to
+          .getWorkspaceCustomersCollection(wsId)
+          .doc(customerId)
+          .get();
+      final cData = cSnap.data() ?? {};
+      final assignees = ((cData['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+      if (assignees.isEmpty) return;
+
+      final futures = assignees.map((uid) async {
+        final u = await FirestoreService.to.usersCollection.doc(uid).get();
+        final m = u.data() ?? {};
+        final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+        return dn.isNotEmpty ? dn : uid;
+      }).toList();
+
+      final names = await Future.wait(futures);
+      if (!mounted) return;
+      setState(() => _assigneeNames = names);
+    } catch (_) {}
+  }
+
+  Future<void> _resolveUserNames(List<String> uids) async {
+    // Use cache where possible, fetch missing, preserve input order
+    final names = <String>[];
+    final toFetch = <String>[];
+    for (final uid in uids) {
+      final cached = _userNameCache[uid];
+      if (cached != null && cached.isNotEmpty) {
+        names.add(cached);
+      } else {
+        toFetch.add(uid);
+      }
+    }
+    for (final uid in toFetch) {
+      try {
+        final u = await FirestoreService.to.usersCollection.doc(uid).get();
+        final m = u.data() ?? {};
+        final dn = (m['displayName'] ?? m['name'] ?? '').toString();
+        final resolved = dn.isNotEmpty ? dn : uid;
+        _userNameCache[uid] = resolved;
+        names.add(resolved);
+      } catch (_) {
+        names.add(uid);
+      }
+    }
+    if (!mounted) return;
+    setState(() => _assigneeNames = names);
+  }
+
+  void _maybeUpdateAssigneesFromChatroom(Map<String, dynamic> data) {
+    final raw = data['assignees'];
+    if (raw is! List) return;
+    final uids = raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+    // Compare with last to avoid redundant fetches
+    final same = uids.length == _lastChatAssigneeUids.length &&
+        Set<String>.from(uids).containsAll(_lastChatAssigneeUids) &&
+        Set<String>.from(_lastChatAssigneeUids).containsAll(uids);
+    if (same) return;
+    _lastChatAssigneeUids = List<String>.from(uids);
+    if (uids.isEmpty) {
+      if (mounted) setState(() => _assigneeNames = const []);
+      return;
+    }
+    // Resolve names asynchronously after this frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveUserNames(uids));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -456,14 +711,46 @@ class _ChatScreenState extends State<ChatScreen> {
             final platform = platformRaw.toUpperCase();
 
             String pickPageTitle() {
+              // 1) direct fields
               final direct = (data['pageName'] ?? widget.conversationData['pageName'] ?? '').toString();
               if (direct.isNotEmpty) return direct;
+
+              // 2) legacy single connection object
               final conn = data['connection'] ?? widget.conversationData['connection'];
               if (conn is Map) {
                 final nested = (conn['pageName'] ?? conn['name'] ?? conn['displayName'] ?? conn['igUsername'] ?? '').toString();
                 if (nested.isNotEmpty) return nested;
               }
-              // Fallback to platform label if nothing else
+
+              // 3) nested connections map (facebook/instagram/line arrays)
+              final connections = data['connections'] ?? widget.conversationData['connections'];
+              if (connections is Map) {
+                switch (platform) {
+                  case 'FACEBOOK':
+                    final fb = connections['facebook'];
+                    if (fb is List && fb.isNotEmpty && fb.first is Map) {
+                      final v = (fb.first['pageName'] ?? fb.first['name'] ?? '').toString();
+                      if (v.isNotEmpty) return v;
+                    }
+                    break;
+                  case 'INSTAGRAM':
+                    final ig = connections['instagram'];
+                    if (ig is List && ig.isNotEmpty && ig.first is Map) {
+                      final v = (ig.first['pageName'] ?? ig.first['igUsername'] ?? ig.first['name'] ?? '').toString();
+                      if (v.isNotEmpty) return v;
+                    }
+                    break;
+                  case 'LINE':
+                    final line = connections['line'];
+                    if (line is List && line.isNotEmpty && line.first is Map) {
+                      final v = (line.first['displayName'] ?? line.first['name'] ?? '').toString();
+                      if (v.isNotEmpty) return v;
+                    }
+                    break;
+                }
+              }
+
+              // 4) Fallback to platform label if nothing else
               switch (platform) {
                 case 'FACEBOOK':
                   return 'Facebook';
@@ -476,7 +763,31 @@ class _ChatScreenState extends State<ChatScreen> {
               }
             }
             final pageTitle = pickPageTitle();
-            final botEnabled = (data['bot_status'] ?? 'N') == 'Y';
+            // Determine if chat is in-progress (Thai: กำลังดำเนินการ) only when status == IN_PROGRESS.
+            final statusRaw = (data['chatroom_status'] ?? '').toString().toUpperCase();
+            final bool isInProgress = statusRaw == 'IN_PROGRESS';
+
+            // If no customer is linked, resolve assignees from chatroom-level 'assignees' array
+            final customerId = (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString();
+            if (customerId == null || customerId.isEmpty) {
+              _maybeUpdateAssigneesFromChatroom(data);
+            } else {
+              // Ensure live subscription when a customer becomes linked dynamically
+              if (_subscribedCustomerId != customerId) {
+                _subscribedCustomerId = customerId;
+                _subscribeCustomerAssignees(customerId);
+              }
+            }
+
+            // Prefer state-loaded names, fallback to any carried list on the map
+            final List<String>? headerAssignees = _assigneeNames ?? (() {
+              final raw = widget.conversationData['assigneeNames'];
+              if (raw is List) {
+                final v = raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+                return v.isEmpty ? null : v;
+              }
+              return null;
+            })();
 
             return ChatHeaderLine(
               title: title,
@@ -484,7 +795,8 @@ class _ChatScreenState extends State<ChatScreen> {
               platform: platform,
               pageTitle: pageTitle,
               showBack: false,
-              showAutoReplyBubble: botEnabled,
+              showAutoReplyBubble: isInProgress,
+              assigneeNames: headerAssignees,
               onSearch: () {
                 setState(() {
                   _showSearch = !_showSearch;
@@ -525,208 +837,240 @@ class _ChatScreenState extends State<ChatScreen> {
                    customerId: (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString(),
                 );
               },
+              onAddSales: _openAddSales,
             );
           },
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Error display
-          if (_error != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              color: Colors.red.shade100,
-              child: Text(
-                _error!,
-                style: TextStyle(color: Colors.red.shade800),
-                textAlign: TextAlign.center,
-              ),
-            ),
+          Column(
+            children: [
+              // Error display
+              if (_error != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.red.shade100,
+                  child: Text(
+                    _error!,
+                    style: TextStyle(color: Colors.red.shade800),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
 
-          // In-chat search bar
-          if (_showSearch)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      autofocus: true,
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: 'ค้นหาในแชท...',
-                        prefixIcon: const Icon(Icons.search),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              // In-chat search bar
+              if (_showSearch)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          autofocus: true,
+                          textInputAction: TextInputAction.search,
+                          decoration: InputDecoration(
+                            hintText: 'ค้นหาในแชท...',
+                            prefixIcon: const Icon(Icons.search),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onChanged: (v) {
+                            setState(() {
+                              final q = v.trim();
+                              _searchQuery = q;
+                              if (q.isEmpty) {
+                                _matchedIds = [];
+                                _focusedMatchIndex = 0;
+                                _lastFocusedQuery = '';
+                              } else {
+                                // recompute immediately against current messages
+                                _lastFocusedQuery = '';
+                                _recomputeMatches(_currentMessages);
+                              }
+                            });
+                            if (_searchQuery.isNotEmpty) {
+                              // focus after layout updates
+                              WidgetsBinding.instance.addPostFrameCallback((_) => _focusCurrentMatch());
+                            }
+                          },
+                        ),
                       ),
-                      onChanged: (v) {
-                        setState(() {
-                          final q = v.trim();
-                          _searchQuery = q;
-                          if (q.isEmpty) {
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: 'ล้าง',
+                        onPressed: () {
+                          setState(() {
+                            _showSearch = false;
+                            _searchQuery = '';
+                            _searchController.clear();
                             _matchedIds = [];
                             _focusedMatchIndex = 0;
                             _lastFocusedQuery = '';
-                          } else {
-                            // recompute immediately against current messages
-                            _lastFocusedQuery = '';
-                            _recomputeMatches(_currentMessages);
-                          }
-                        });
-                        if (_searchQuery.isNotEmpty) {
-                          // focus after layout updates
-                          WidgetsBinding.instance.addPostFrameCallback((_) => _focusCurrentMatch());
+                          });
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // แสดงแถบสรุปผลเฉพาะเมื่อมีคำค้นหา (ไม่ว่าง)
+              if (_showSearch && _searchQuery.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.filter_alt, size: 18, color: Colors.grey[600]),
+                      const SizedBox(width: 6),
+                      Text(
+                        _matchedIds.isEmpty ? 'ไม่พบผลลัพธ์' : '${_focusedMatchIndex + 1}/${_matchedIds.length}',
+                        style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w600),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: 'ก่อนหน้า',
+                        onPressed: _matchedIds.isEmpty ? null : _gotoPrevMatch,
+                        icon: const Icon(Icons.keyboard_arrow_up),
+                      ),
+                      IconButton(
+                        tooltip: 'ถัดไป',
+                        onPressed: _matchedIds.isEmpty ? null : _gotoNextMatch,
+                        icon: const Icon(Icons.keyboard_arrow_down),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Messages list
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _chatService.getMessagesStream(
+                    workspaceId: widget.workspaceId,
+                    chatroomId: widget.conversationId,
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
+                    }
+
+                    final messages = snapshot.data?.docs ?? [];
+                    // cache latest messages for instant search recompute
+                    _currentMessages = messages;
+                    // Recompute matches when data changes
+                    _recomputeMatches(messages);
+
+                    // determine if we should autoscroll (only when new messages arrive and not searching)
+                    final prevCount = _prevMessageCount;
+                    final hasNew = messages.length > (prevCount < 0 ? 0 : prevCount);
+                    final shouldAutoScroll = _searchQuery.isEmpty && hasNew && _nearBottom;
+
+                    // reset visual index map for this build
+                    _listIndexById.clear();
+                    _lastItemCount = messages.length;
+                    _prevMessageCount = messages.length;
+
+                    if (messages.isEmpty) {
+                      return const Center(
+                        child: Text('ยังไม่มีข้อความในแชทนี้\nเริ่มต้นการสนทนาได้เลย!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey)),
+                      );
+                    }
+
+                    // Keep auto-scroll to bottom only when new messages came in and user is near bottom
+                    if (shouldAutoScroll) {
+                      // Decide animation: if newest is from current user, jump without animation to avoid flicker
+                      bool newestFromSelf = false;
+                      try {
+                        if (messages.isNotEmpty) {
+                          final m0 = messages[0].data() as Map<String, dynamic>;
+                          final sid = m0['sender']?['id']?.toString();
+                          newestFromSelf = sid != null && sid == _currentUserId;
                         }
+                      } catch (_) {}
+                      final animate = !newestFromSelf;
+                      SchedulerBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animate: animate));
+                    }
+
+                    return ScrollablePositionedList.builder(
+                      itemScrollController: _itemScrollController,
+                      itemPositionsListener: _itemPositionsListener,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: messages.length,
+                      reverse: _isReversed,
+                      itemBuilder: (context, index) {
+                        final messageData = messages[index].data() as Map<String, dynamic>;
+                        final messageId = messages[index].id;
+
+                        // register visual index for alignment logic
+                        _listIndexById[messageId] = index;
+
+                        final isHighlighted = _searchQuery.isNotEmpty && _matchesQuery(messageData, _searchQuery);
+                        final isFocused = _searchQuery.isNotEmpty &&
+                            _matchedIds.isNotEmpty &&
+                            messageId == _matchedIds[_focusedMatchIndex];
+
+                        return RepaintBoundary(
+                          child: MessageBubble(
+                            key: ValueKey(messageId),
+                            messageId: messageId,
+                            messageData: messageData,
+                            isFromCurrentUser: _isMessageFromCurrentUser(messageData),
+                            highlight: isHighlighted,
+                            highlightQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+                            focused: isFocused,
+                            onLongPress: () => _onLongPressMessage(messageData),
+                          ),
+                        );
                       },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    tooltip: 'ล้าง',
-                    onPressed: () {
-                      setState(() {
-                        _showSearch = false;
-                        _searchQuery = '';
-                        _searchController.clear();
-                        _matchedIds = [];
-                        _focusedMatchIndex = 0;
-                        _lastFocusedQuery = '';
-                      });
-                    },
-                    icon: const Icon(Icons.clear),
-                  ),
-                ],
-              ),
-            ),
-
-          // แสดงแถบสรุปผลเฉพาะเมื่อมีคำค้นหา (ไม่ว่าง)
-          if (_showSearch && _searchQuery.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Row(
-                children: [
-                  Icon(Icons.filter_alt, size: 18, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(
-                    _matchedIds.isEmpty ? 'ไม่พบผลลัพธ์' : '${_focusedMatchIndex + 1}/${_matchedIds.length}',
-                    style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w600),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: 'ก่อนหน้า',
-                    onPressed: _matchedIds.isEmpty ? null : _gotoPrevMatch,
-                    icon: const Icon(Icons.keyboard_arrow_up),
-                  ),
-                  IconButton(
-                    tooltip: 'ถัดไป',
-                    onPressed: _matchedIds.isEmpty ? null : _gotoNextMatch,
-                    icon: const Icon(Icons.keyboard_arrow_down),
-                  ),
-                ],
-              ),
-            ),
-
-          // Messages list
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _chatService.getMessagesStream(
-                workspaceId: widget.workspaceId,
-                chatroomId: widget.conversationId,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
-                }
-
-                final messages = snapshot.data?.docs ?? [];
-                // cache latest messages for instant search recompute
-                _currentMessages = messages;
-                // Recompute matches when data changes
-                _recomputeMatches(messages);
-                // reset visual index map for this build
-                _listIndexById.clear();
-                _lastItemCount = messages.length;
-
-                if (messages.isEmpty) {
-                  return const Center(
-                    child: Text('ยังไม่มีข้อความในแชทนี้\nเริ่มต้นการสนทนาได้เลย!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey)),
-                  );
-                }
-
-                // Keep auto-scroll to bottom for non-search state
-                if (_searchQuery.isEmpty) {
-                  SchedulerBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-                }
-
-                return ScrollablePositionedList.builder(
-                  itemScrollController: _itemScrollController,
-                  itemPositionsListener: _itemPositionsListener,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  reverse: _isReversed,
-                  itemBuilder: (context, index) {
-                    final messageData = messages[index].data() as Map<String, dynamic>;
-                    final messageId = messages[index].id;
-
-                    // register visual index for alignment logic
-                    _listIndexById[messageId] = index;
-
-                    final isHighlighted = _searchQuery.isNotEmpty && _matchesQuery(messageData, _searchQuery);
-                    final isFocused = _searchQuery.isNotEmpty &&
-                        _matchedIds.isNotEmpty &&
-                        messageId == _matchedIds[_focusedMatchIndex];
-
-                    return MessageBubble(
-                      key: ValueKey(messageId),
-                      messageId: messageId,
-                      messageData: messageData,
-                      isFromCurrentUser: _isMessageFromCurrentUser(messageData),
-                      highlight: isHighlighted,
-                      highlightQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-                      focused: isFocused,
-                      onLongPress: () => _onLongPressMessage(messageData),
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+
+              // Input area
+              ChatInput(
+                onSendText: _sendMessage,
+                onSendImage: _sendImageMessage,
+                onSendFile: (fileUrl, fileName) => _sendFileMessage(fileUrl, fileName),
+                workspaceId: widget.workspaceId,
+                chatroomId: widget.conversationId,
+                enabled: !_isLoading,
+                replyPreview: _replyPreviewText,
+                onCancelReply: () => setState(() => _replyPreviewText = null),
+              ),
+            ],
           ),
 
-          // Loading indicator
+
+          // Loading indicator overlay (does not shift layout)
           if (_isLoading)
-            Container(
-              padding: const EdgeInsets.all(8),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 64, // slightly above input
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  SizedBox(width: 8),
-                  Text('กำลังส่งข้อความ...'),
-                ],
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                      SizedBox(width: 8),
+                      Text('กำลังส่ง...', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
               ),
             ),
-
-          // Input area
-          ChatInput(
-            onSendText: _sendMessage,
-            onSendImage: _sendImageMessage,
-            onSendFile: (fileUrl, fileName) => _sendFileMessage(fileUrl, fileName),
-            workspaceId: widget.workspaceId,
-            chatroomId: widget.conversationId,
-            enabled: !_isLoading,
-            replyPreview: _replyPreviewText,
-            onCancelReply: () => setState(() => _replyPreviewText = null),
-          ),
         ],
       ),
     );

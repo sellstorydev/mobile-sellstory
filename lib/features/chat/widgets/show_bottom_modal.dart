@@ -261,10 +261,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     _pinned = widget.pinned;
     _botEnabled = widget.botEnabled; // Initialize bot status
     _currentCustomerId = widget.customerId;
+    // Always load assignees: from customer if present, otherwise from chatroom
+    _loadAssignees();
     if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
-      _loadAssignees();
       _loadCustomerNameById(_currentCustomerId!);
     }
+
+
     // Realtime sync with chatroom document
     _chatroomSub = _chatroomDoc.snapshots().listen((snap) {
       final data = snap.data();
@@ -286,8 +289,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         if ((cid ?? '') != (_currentCustomerId ?? '')) {
           _currentCustomerId = cid;
           _assignees = [];
+          _loadAssignees();
           if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
-            _loadAssignees();
             if (cname.isNotEmpty) {
               _currentCustomerName = cname;
             } else {
@@ -299,6 +302,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         } else {
           // same id; update name if present in doc
           if (cname.isNotEmpty) _currentCustomerName = cname;
+          // If no customer linked, update assignees from chatroom realtime
+          if ((_currentCustomerId ?? '').isEmpty) {
+            _loadAssignees();
+          }
         }
         // Sync job card fields
         final prevJobId = _jobCardId ?? '';
@@ -328,17 +335,25 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Future<void> _loadAssignees() async {
-    if (_currentCustomerId == null || _currentCustomerId!.isEmpty) return;
+    setState(() => _loadingAssignees = true);
     try {
-      setState(() => _loadingAssignees = true);
-      final doc = await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(widget.workspaceId)
-          .collection('customers')
-          .doc(_currentCustomerId)
-          .get();
-      final data = doc.data() ?? {};
-      final ids = ((data['assignees'] as List?) ?? []).cast<String>();
+      List<String> ids = const [];
+      if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
+        // Load from customer doc
+        final doc = await FirebaseFirestore.instance
+            .collection('workspaces')
+            .doc(widget.workspaceId)
+            .collection('customers')
+            .doc(_currentCustomerId)
+            .get();
+        final data = doc.data() ?? {};
+        ids = ((data['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+      } else {
+        // Load from chatroom doc (no customer linked)
+        final snap = await _chatroomDoc.get();
+        final m = snap.data() ?? {};
+        ids = ((m['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+      }
       final users = await Future.wait(ids.map((uid) async {
         final u = await FirebaseFirestore.instance.collection('users').doc(uid).get();
         final m = u.data() ?? {};
@@ -356,7 +371,6 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       if (mounted) setState(() => _loadingAssignees = false);
     }
   }
-
 
   Future<void> _openNotes() async {
 
@@ -410,44 +424,49 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('ยืนยันการผูกเซล'),
-          content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับลูกค้าหรือไม่?'),
+          content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
             ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
           ],
         ),
       );
-      if (ok == true && _currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('workspaces')
-            .doc(widget.workspaceId)
-            .collection('customers')
-            .doc(_currentCustomerId)
-            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
-        await _loadAssignees();
-        widget.onAssignChanged?.call(pickedUid);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
-          );
-        }
-      } else if (ok == true) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('กรุณาเชื่อมลูกค้ากับห้องแชทก่อน')),
-          );
+      if (ok == true) {
+        try {
+          if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
+            await FirebaseFirestore.instance
+                .collection('workspaces')
+                .doc(widget.workspaceId)
+                .collection('customers')
+                .doc(_currentCustomerId)
+                .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+          } else {
+            await _chatroomDoc.set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+          }
+          await _loadAssignees();
+          widget.onAssignChanged?.call(pickedUid);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('ผูกเซลไม่สำเร็จ: $e')),
+            );
+          }
         }
       }
     }
   }
 
   Future<void> _removeAssignee(UserItem user) async {
-    if (_currentCustomerId == null || _currentCustomerId!.isEmpty) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('ยืนยันการลบเซล'),
-        content: Text('ยืนยันลบ ${user.displayName} ออกจากผู้รับผิดชอบลูกค้ารายนี้?'),
+        content: Text('ยืนยันลบ ${user.displayName} ออกจากผู้ดูแลหรือไม่?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ลบ')),
@@ -457,18 +476,22 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     if (ok != true) return;
 
     try {
-      await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(widget.workspaceId)
-          .collection('customers')
-          .doc(_currentCustomerId)
-          .set({'assignees': FieldValue.arrayRemove([user.uid])}, SetOptions(merge: true));
+      if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('workspaces')
+            .doc(widget.workspaceId)
+            .collection('customers')
+            .doc(_currentCustomerId)
+            .set({'assignees': FieldValue.arrayRemove([user.uid])}, SetOptions(merge: true));
+      } else {
+        await _chatroomDoc.set({'assignees': FieldValue.arrayRemove([user.uid])}, SetOptions(merge: true));
+      }
       if (!mounted) return;
       setState(() => _assignees.removeWhere((u) => u.uid == user.uid));
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ลบเซลเรียบร้อย')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ลบไม่สำเร็จ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('��บไม่สำเร็จ: $e')));
     }
   }
 
@@ -622,7 +645,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // จุดส้มตกแต่งซ้ายบนเหมือนภาพ
+                // จุดส้มต��แต่งซ้ายบนเหมือนภาพ
                 Container(
                   width: 6, height: 22,
                   margin: const EdgeInsets.only(top: 6, right: 10),

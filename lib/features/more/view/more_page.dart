@@ -251,7 +251,7 @@ class MorePage extends StatelessWidget {
               // App Version
               Center(
                 child: Text(
-                  'SellStory v1.10.8',
+                  'SellStory v1.10.9',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppTheme.textSecondary,
                   ),
