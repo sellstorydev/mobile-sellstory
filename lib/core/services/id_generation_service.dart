@@ -121,6 +121,31 @@ class IdGenerationService {
     }
   }
 
+  /// Generate a product SKU based on the rules
+  Future<String> generateProductSku(String workspaceId) async {
+    try {
+      // Get the rules
+      final rules = await getIdGenerationRules(workspaceId, 'product');
+      
+      // Get the current sequence number
+      final sequence = await _getNextSequence(workspaceId, 'product');
+      
+      // Format the date according to the rules
+      final dateString = _formatDate(DateTime.now(), rules.dateFormat);
+      
+      // Format the sequence number with leading zeros
+      final sequenceString = sequence.toString().padLeft(rules.minLength, '0');
+      
+      // Combine all parts
+      return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
+    } catch (e) {
+      print('Error generating product SKU: $e');
+      // Fallback to simple ID generation
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      return 'P-$timestamp';
+    }
+  }
+
   /// Get the next sequence number from lastUsedCounters
   Future<int> _getNextSequence(String workspaceId, String entityType) async {
     try {
