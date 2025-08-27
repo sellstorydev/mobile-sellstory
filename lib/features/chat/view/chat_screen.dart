@@ -626,7 +626,9 @@ class _ChatScreenState extends State<ChatScreen> {
               }
             }
             final pageTitle = pickPageTitle();
-            final botEnabled = (data['bot_status'] ?? 'N') == 'Y';
+            // Determine if chat is in-progress (Thai: กำลังดำเนินการ) only when status == IN_PROGRESS.
+            final statusRaw = (data['chatroom_status'] ?? '').toString().toUpperCase();
+            final bool isInProgress = statusRaw == 'IN_PROGRESS';
 
             // Prefer state-loaded names, fallback to any carried list on the map
             final List<String>? headerAssignees = _assigneeNames ?? (() {
@@ -644,7 +646,7 @@ class _ChatScreenState extends State<ChatScreen> {
               platform: platform,
               pageTitle: pageTitle,
               showBack: false,
-              showAutoReplyBubble: botEnabled,
+              showAutoReplyBubble: isInProgress,
               assigneeNames: headerAssignees,
               onSearch: () {
                 setState(() {

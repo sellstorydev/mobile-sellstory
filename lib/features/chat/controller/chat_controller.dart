@@ -35,6 +35,50 @@ class ChatController extends GetxController {
   // Cache assignees for customerId -> [displayNames]
   final Map<String, List<String>> _assigneesCache = {};
 
+  // Filters (reactive)
+  final RxSet<String> platformFilters = <String>{}.obs; // 'facebook','instagram','line'
+  final RxString statusFilter = ''.obs; // '', 'NEW','IN_PROGRESS','DONE'
+  final RxList<String> hashtagIdFilters = <String>[].obs; // selected hashtag IDs
+  final RxString salesIdFilter = ''.obs; // single sales/user id
+  final RxString customerIdFilter = ''.obs; // single customer id
+
+  // Helpers to set/clear filters
+  void setPlatformFilters(Set<String> values) {
+    platformFilters
+      ..clear()
+      ..addAll(values.map((e) => e.toLowerCase()));
+    conversations.refresh();
+  }
+
+  void setStatusFilter(String value) {
+    statusFilter.value = value.toUpperCase();
+  }
+
+  void setHashtagFilters(List<String> ids) {
+    hashtagIdFilters
+      ..clear()
+      ..addAll(ids);
+    conversations.refresh();
+  }
+
+  void setSalesFilter(String? uid) {
+    salesIdFilter.value = (uid ?? '').trim();
+  }
+
+  void setCustomerFilter(String? cid) {
+    customerIdFilter.value = (cid ?? '').trim();
+  }
+
+  void clearAllFilters() {
+    platformFilters.clear();
+    statusFilter.value = '';
+    hashtagIdFilters.clear();
+    salesIdFilter.value = '';
+    customerIdFilter.value = '';
+    activeFilter.value = 'all'; // keep legacy no-op
+    conversations.refresh();
+  }
+
   bool get _isListening => _chatroomsSub != null;
 
 
@@ -484,25 +528,136 @@ class ChatController extends GetxController {
     var filtered = conversations.where((conv) {
       // Search filter
       if (searchQuery.value.isNotEmpty) {
-        final query = searchQuery.value.toLowerCase();
-        final name = (conv['name'] ?? '').toString().toLowerCase();
-        final lastMessage = (conv['lastMessage'] ?? '').toString().toLowerCase();
-        final customerName = (conv['customerName'] ?? '').toString().toLowerCase();
+        final rawQ = searchQuery.value.trim();
+        final query = rawQ.toLowerCase();
+        String normHash(String s) => s.replaceAll('#', '').toLowerCase();
+        final queryNoHash = normHash(rawQ);
 
-        if (!name.contains(query) &&
-            !lastMessage.contains(query) &&
-            !customerName.contains(query)) {
-          return false;
+        bool contains(String? s) => (s ?? '').toLowerCase().contains(query);
+        bool containsNoHash(String? s) => normHash(s ?? '').contains(queryNoHash);
+
+        final fields = <String?>[
+          conv['name']?.toString(),
+          conv['customerName']?.toString(),
+          conv['lastMessage']?.toString() ?? conv['last_message']?.toString(),
+          conv['who_name']?.toString(),
+          conv['displayName']?.toString(),
+          conv['pageName']?.toString(),
+          conv['company']?.toString(),
+          conv['companyName']?.toString(),
+          conv['company_name']?.toString(),
+          conv['customerCompany']?.toString(),
+        ];
+        final rawTags = conv['hashtags'];
+        if (rawTags is List) {
+          for (final t in rawTags) {
+            final s = t.toString();
+            fields.add(s);
+            fields.add(s.startsWith('#') ? s.substring(1) : s);
+          }
         }
+        final meta = conv['hashtagMeta'];
+        if (meta is List) {
+          for (final m in meta) {
+            if (m is Map) {
+              final n = (m['name'] ?? m['title'] ?? '').toString();
+              if (n.isNotEmpty) {
+                fields.add(n);
+                fields.add(n.startsWith('#') ? n.substring(1) : n);
+              }
+            }
+          }
+        }
+        final assignees = conv['assigneeNames'];
+        if (assignees is List) {
+          for (final a in assignees) {
+            fields.add(a.toString());
+          }
+        }
+        final matched = fields.any((s) => contains(s) || containsNoHash(s));
+        if (!matched) return false;
       }
 
-      // Status filter based on your JSON structure
+      // Platform filters
+      if (platformFilters.isNotEmpty) {
+        String platform = '';
+        try {
+          final conn = conv['connection'];
+          if (conn is Map && (conn['platform']?.toString().isNotEmpty ?? false)) {
+            platform = conn['platform'].toString().toLowerCase();
+          } else {
+            platform = (conv['source_type'] ?? conv['sourceType'] ?? '').toString().toLowerCase();
+          }
+        } catch (_) {}
+        if (platform.isEmpty && (conv['pageId']?.toString().isNotEmpty ?? false)) platform = 'facebook';
+        if (platform.isEmpty && (conv['igUserId']?.toString().isNotEmpty ?? false)) platform = 'instagram';
+        if (platform.isEmpty && ((conv['channelId'] ?? conv['botId'])?.toString().isNotEmpty ?? false)) platform = 'line';
+        if (!platformFilters.contains(platform)) return false;
+      }
+
+      // Status filter
+      final sf = statusFilter.value;
+      if (sf.isNotEmpty) {
+        final isNew = (conv['is_new'] ?? conv['isNew']) == 'Y';
+        final status = (conv['chatroom_status'] ?? '').toString().toUpperCase();
+        bool ok;
+        switch (sf) {
+          case 'NEW':
+            ok = isNew;
+            break;
+          case 'DONE':
+            ok = status == 'DONE';
+            break;
+          case 'IN_PROGRESS':
+            ok = status == 'IN_PROGRESS' || status == 'ACTIVE';
+            break;
+          default:
+            ok = true;
+        }
+        if (!ok) return false;
+      }
+
+      // Hashtag filter (IDs)
+      if (hashtagIdFilters.isNotEmpty) {
+        final ids = (conv['hashtagIds'] is List) ? (conv['hashtagIds'] as List).map((e) => e.toString()).toSet() : <String>{};
+        bool ok = ids.intersection(hashtagIdFilters.toSet()).isNotEmpty;
+        // Fallback: match by names via hashtagMeta if no ids present
+        if (!ok && (conv['hashtagMeta'] is List)) {
+          final meta = (conv['hashtagMeta'] as List)
+              .whereType<Map>()
+              .map((m) => (m['name'] ?? '').toString().replaceFirst('#', '').toLowerCase())
+              .toSet();
+          final selectedNames = hashtagIdFilters
+              .map((id) => _hashtagById[id]?['name']?.toString().toLowerCase())
+              .whereType<String>()
+              .toSet();
+          if (selectedNames.isNotEmpty) {
+            ok = meta.intersection(selectedNames).isNotEmpty;
+          }
+        }
+        if (!ok) return false;
+      }
+
+      // Sales filter (single uid)
+      final sid = salesIdFilter.value;
+      if (sid.isNotEmpty) {
+        final assigneeIds = (conv['assigneeIds'] is List) ? (conv['assigneeIds'] as List).map((e) => e.toString()).toSet() : <String>{};
+        if (!assigneeIds.contains(sid)) return false;
+      }
+
+      // Customer filter
+      final cidFilter = customerIdFilter.value;
+      if (cidFilter.isNotEmpty) {
+        final cid = (conv['customerId'] ?? conv['customer_id'] ?? conv['customer']?['id'])?.toString() ?? '';
+        if (cid != cidFilter) return false;
+      }
+
+      // Legacy activeFilter: keep any additional filters if used
       switch (activeFilter.value) {
         case 'unread':
           final unreadCount = int.tryParse(conv['count']?.toString() ?? '0') ?? 0;
           return unreadCount > 0;
         case 'assigned':
-        // You might need to add assignedUsers field or use a different logic
           return conv['chatroom_status'] == 'assigned';
         case 'inProgress':
           return conv['chatroom_status'] == 'in_progress' || conv['chatroom_status'] == 'active';
@@ -525,26 +680,6 @@ class ChatController extends GetxController {
       final bVal = bTime ?? DateTime.fromMillisecondsSinceEpoch(0);
       return bVal.compareTo(aVal);
     });
-
-    // Sort strictly by latest message time (descending)
-    // filtered.sort((a, b) {
-    //   // Prioritize pinned chats
-    //   final aPinned = a['chat_pin'] == 'Y';
-    //   final bPinned = b['chat_pin'] == 'Y';
-    //
-    //   if (aPinned && !bPinned) return -1;
-    //   if (!aPinned && bPinned) return 1;
-    //
-    //   // Then sort by last message time
-    //   final aTime = a['lastMessageAt'] as DateTime?;
-    //   final bTime = b['lastMessageAt'] as DateTime?;
-    //
-    //   if (aTime == null && bTime == null) return 0;
-    //   if (aTime == null) return 1;
-    //   if (bTime == null) return -1;
-    //
-    //   return bTime.compareTo(aTime);
-    // });
 
     return filtered;
   }
@@ -590,6 +725,7 @@ class ChatController extends GetxController {
       if (cid == null || cid.isEmpty) continue;
 
       List<String>? names = _assigneesCache[cid];
+      List<String> uids = const [];
       if (names == null) {
         try {
           final cSnap = await FirestoreService.to
@@ -597,7 +733,7 @@ class ChatController extends GetxController {
               .doc(cid)
               .get();
           final cData = cSnap.data() ?? {};
-          final uids = ((cData['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+          uids = ((cData['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
           if (uids.isEmpty) {
             names = const [];
           } else {
@@ -612,6 +748,7 @@ class ChatController extends GetxController {
           _assigneesCache[cid] = names;
         } catch (_) {
           names = const [];
+          uids = const [];
         }
       }
 
@@ -619,6 +756,10 @@ class ChatController extends GetxController {
       final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
       if (idx >= 0) {
         conversations[idx]['assigneeNames'] = names;
+        // If we fetched uids in this round, store them for filtering
+        if (uids.isNotEmpty) {
+          conversations[idx]['assigneeIds'] = uids;
+        }
         conversations.refresh();
       }
     }
