@@ -35,6 +35,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
   // Hashtag state
   List<Map<String, dynamic>> _selectedHashtags = [];
   
+  // Todo state
+  List<Map<String, dynamic>> _todoItems = [];
+  
   // Form state
   String _selectedBoard = '';
   String _selectedLane = '';
@@ -257,6 +260,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
   @override
   void dispose() {
     print('🔄 CreateCardPage.dispose - Page being disposed');
+    
+    // Dispose todo controllers
+    for (var todo in _todoItems) {
+      todo['controller']?.dispose();
+    }
+    
     _jobIdController.dispose();
     _titleController.dispose();
     _assigneeController.dispose();
@@ -1138,9 +1147,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
             ),
             const SizedBox(width: 8),
             ElevatedButton.icon(
-              onPressed: () {
-                // Add item functionality will be implemented later
-              },
+              onPressed: _addTodoItem,
               icon: const Icon(Icons.add, size: 16),
               label: const Text('Add Item'),
               style: ElevatedButton.styleFrom(
@@ -1155,20 +1162,31 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ],
         ),
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Center(
-            child: Text(
-              'No to-do items yet. Add one to get started!',
-              style: TextStyle(color: Colors.grey),
+        
+        // Todo items list
+        if (_todoItems.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(4),
             ),
+            child: const Center(
+              child: Text(
+                'No to-do items yet. Add one to get started!',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          )
+        else
+          Column(
+            children: _todoItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final todo = entry.value;
+              return _buildTodoItem(index, todo);
+            }).toList(),
           ),
-        ),
       ],
     );
   }
@@ -1349,4 +1367,494 @@ class _CreateCardPageState extends State<CreateCardPage> {
       ],
     );
   }
+
+  // Todo methods
+  void _addTodoItem() {
+    setState(() {
+          _todoItems.add({
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'text': '',
+      'isCompleted': false,
+      'dueDate': null,
+      'duration': null,
+      'endTime': null,
+      'controller': TextEditingController(),
+    });
+    });
+  }
+
+  void _removeTodoItem(int index) {
+    setState(() {
+      // Dispose controller to prevent memory leaks
+      _todoItems[index]['controller']?.dispose();
+      _todoItems.removeAt(index);
+    });
+  }
+
+  void _setTodoTime(int index) async {
+    if (!mounted) return;
+    
+    // Show options dialog first
+    final String? timeOption = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Todo Time'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Current time status
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current: ${_getCurrentTimeType(index)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _getCurrentTimeValue(index),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Time options
+            ListTile(
+              leading: Icon(
+                Icons.today, 
+                color: _todoItems[index]['dueDate'] != null ? Colors.green : Colors.blue
+              ),
+              title: Text(
+                'Set Due Date & Time',
+                style: TextStyle(
+                  fontWeight: _todoItems[index]['dueDate'] != null ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              subtitle: _todoItems[index]['dueDate'] != null 
+                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
+                : null,
+              onTap: () => Navigator.of(context).pop('datetime'),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.schedule, 
+                color: _todoItems[index]['endTime'] != null ? Colors.green : Colors.green
+              ),
+              title: Text(
+                'Set Duration',
+                style: TextStyle(
+                  fontWeight: _todoItems[index]['endTime'] != null ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              subtitle: _todoItems[index]['endTime'] != null 
+                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
+                : null,
+              onTap: () => Navigator.of(context).pop('duration'),
+            ),
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              const Divider(),
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              ListTile(
+                leading: const Icon(Icons.clear, color: Colors.red),
+                title: const Text('Clear All Times'),
+                onTap: () => Navigator.of(context).pop('clear'),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (timeOption != null && mounted) {
+      switch (timeOption) {
+        case 'datetime':
+          _clearAllTimes(index); // Clear existing times first
+          await _setDueDateTime(index);
+          break;
+        case 'duration':
+          _clearAllTimes(index); // Clear existing times first
+          await _setDuration(index);
+          break;
+        case 'clear':
+          _clearAllTimes(index);
+          break;
+      }
+    }
+  }
+
+  Future<void> _setDueDateTime(int index) async {
+    if (!mounted) return;
+    
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _todoItems[index]['dueDate'] ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (pickedDate != null && mounted) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: _todoItems[index]['dueDate'] != null 
+          ? TimeOfDay.fromDateTime(_todoItems[index]['dueDate'])
+          : TimeOfDay.now(),
+      );
+
+      if (pickedTime != null && mounted) {
+        setState(() {
+          _todoItems[index]['dueDate'] = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      }
+    }
+  }
+
+
+
+  Future<void> _setDuration(int index) async {
+    if (!mounted) return;
+    
+    // Calculate end time based on current time + duration
+    final DateTime now = DateTime.now();
+    final int? currentDuration = _todoItems[index]['duration'];
+    final DateTime? endTime = currentDuration != null 
+      ? now.add(Duration(minutes: currentDuration))
+      : null;
+    
+    final TextEditingController durationController = TextEditingController(
+      text: currentDuration?.toString() ?? '',
+    );
+    
+    final int? duration = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Duration'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (endTime != null)
+              Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule, size: 16, color: Colors.green[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'End time: ${_formatDateTime(endTime)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            TextField(
+              controller: durationController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Duration (minutes)',
+                hintText: 'Enter duration in minutes',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Quick select:',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                _buildDurationChip('15 min', 15, durationController, now),
+                _buildDurationChip('30 min', 30, durationController, now),
+                _buildDurationChip('1 hour', 60, durationController, now),
+                _buildDurationChip('2 hours', 120, durationController, now),
+                _buildDurationChip('4 hours', 240, durationController, now),
+                _buildDurationChip('8 hours', 480, durationController, now),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = int.tryParse(durationController.text);
+              Navigator.of(context).pop(value);
+            },
+            child: const Text('Set'),
+          ),
+        ],
+      ),
+    );
+
+    durationController.dispose();
+
+    if (duration != null && mounted) {
+      setState(() {
+        _todoItems[index]['duration'] = duration;
+        // Calculate and store the end time
+        _todoItems[index]['endTime'] = now.add(Duration(minutes: duration));
+      });
+    }
+  }
+
+  Widget _buildDurationChip(String label, int minutes, TextEditingController controller, DateTime now) {
+    final DateTime endTime = now.add(Duration(minutes: minutes));
+    return ActionChip(
+      label: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          Text(
+            '→ ${_formatDateTime(endTime)}',
+            style: const TextStyle(fontSize: 10),
+          ),
+        ],
+      ),
+      onPressed: () {
+        controller.text = minutes.toString();
+      },
+      backgroundColor: Colors.blue[50],
+      labelStyle: TextStyle(color: Colors.blue[700]),
+    );
+  }
+
+  void _clearAllTimes(int index) {
+    setState(() {
+      _todoItems[index]['dueDate'] = null;
+      _todoItems[index]['duration'] = null;
+      _todoItems[index]['endTime'] = null;
+    });
+  }
+
+  String _getCurrentTimeType(int index) {
+    if (_todoItems[index]['dueDate'] != null) {
+      return 'Due Date & Time';
+    } else if (_todoItems[index]['endTime'] != null) {
+      return 'Duration';
+    }
+    return 'None';
+  }
+
+  String _getCurrentTimeValue(int index) {
+    if (_todoItems[index]['dueDate'] != null) {
+      return _formatDateTime(_todoItems[index]['dueDate']);
+    } else if (_todoItems[index]['endTime'] != null) {
+      return _formatDateTime(_todoItems[index]['endTime']);
+    }
+    return '';
+  }
+
+  Widget _buildTodoItem(int index, Map<String, dynamic> todo) {
+    final TextEditingController controller = todo['controller'];
+    final DateTime? dueDate = todo['dueDate'];
+    final DateTime? endTime = todo['endTime'];
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Input field
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter todo item...',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                  onChanged: (value) {
+                    todo['text'] = value;
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              
+              // Add button (save current todo)
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    // Add button functionality - could save or mark as added
+                    if (controller.text.trim().isNotEmpty) {
+                      // You can add any save logic here
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Todo "${controller.text.trim()}" added!'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ),
+              const SizedBox(width: 8),
+              
+              // Set time button with indicator
+              Container(
+                decoration: BoxDecoration(
+                  color: (dueDate != null || endTime != null) 
+                    ? Colors.green 
+                    : Colors.blue,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: IconButton(
+                  onPressed: () => _setTodoTime(index),
+                  icon: Icon(
+                    (dueDate != null || endTime != null) 
+                      ? Icons.schedule_send 
+                      : Icons.access_time, 
+                    color: Colors.white, 
+                    size: 20
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ),
+              const SizedBox(width: 8),
+              
+              // Delete button
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: IconButton(
+                  onPressed: () => _removeTodoItem(index),
+                  icon: const Icon(Icons.delete, color: Colors.white, size: 20),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ),
+            ],
+          ),
+          
+          // Show time information if any is set
+          if (dueDate != null || endTime != null)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              child: Column(
+                children: [
+                  // Due date
+                  if (dueDate != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.blue[200]!),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.today, size: 16, color: Colors.blue[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Due: ${_formatDateTime(dueDate)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+
+                  
+                  // Duration/End Time
+                  if (endTime != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.green[200]!),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.timer, size: 16, color: Colors.green[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'End: ${_formatDateTime(endTime)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+
+
 }
