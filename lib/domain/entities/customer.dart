@@ -118,28 +118,73 @@ class Customer {
 
   // Create from Map from Firestore
   factory Customer.fromMap(Map<String, dynamic> map, String id) {
-    return Customer(
-      id: id,
-      name: map['name'] ?? '',
-      prefix: map['prefix'] ?? '',
-      gender: map['gender'] ?? '',
-      age: map['age'] ?? '',
-      customerType: map['customerType'] ?? '',
-      emails: parseEmailsFromMap(map['emails']),
-      phones: parsePhonesFromMap(map['phones']),
-      companyNames: parseCompanyNamesFromMap(map['companyNames']),
-      nationalId: map['nationalId'] ?? '',
-      address: map['address'] ?? '',
-      source: map['source'] ?? '',
-      hashtags: _parseHashtagsFromMap(map['hashtags']),
-      assignees: parseAssigneesFromMap(map['assignees']),
-      customId: map['customId'] ?? '',
-      workspaceId: map['workspaceId'] ?? '',
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
-      createdBy: map['createdBy'] ?? '',
-      updatedBy: map['updatedBy'] ?? '',
-    );
+    try {
+      return Customer(
+        id: id,
+        name: map['name']?.toString() ?? '',
+        prefix: map['prefix']?.toString() ?? '',
+        gender: map['gender']?.toString() ?? '',
+        age: map['age']?.toString() ?? '',
+        customerType: map['customerType']?.toString() ?? '',
+        emails: parseEmailsFromMap(map['emails']),
+        phones: parsePhonesFromMap(map['phones']),
+        companyNames: parseCompanyNamesFromMap(map['companyNames']),
+        nationalId: map['nationalId']?.toString() ?? '',
+        address: map['address']?.toString() ?? '',
+        source: map['source']?.toString() ?? '',
+        hashtags: _parseHashtagsFromMap(map['hashtags']),
+        assignees: parseAssigneesFromMap(map['assignees']),
+        customId: map['customId']?.toString() ?? '',
+        workspaceId: map['workspaceId']?.toString() ?? '',
+        createdAt: _parseDateTime(map['createdAt']),
+        updatedAt: _parseDateTime(map['updatedAt']),
+        createdBy: map['createdBy']?.toString() ?? '',
+        updatedBy: map['updatedBy']?.toString() ?? '',
+      );
+    } catch (e) {
+      print('Error creating Customer from map: $e');
+      print('Map data: $map');
+      print('Customer ID: $id');
+      rethrow;
+    }
+  }
+
+  // Helper method to parse DateTime from different formats
+  static DateTime _parseDateTime(dynamic dateData) {
+    try {
+      if (dateData == null) {
+        return DateTime.now();
+      }
+      
+      if (dateData is DateTime) {
+        return dateData;
+      }
+      
+      if (dateData is int) {
+        return DateTime.fromMillisecondsSinceEpoch(dateData);
+      }
+      
+      if (dateData is String) {
+        // Try to parse as ISO string first
+        try {
+          return DateTime.parse(dateData);
+        } catch (e) {
+          // If that fails, try to parse as milliseconds
+          final milliseconds = int.tryParse(dateData);
+          if (milliseconds != null) {
+            return DateTime.fromMillisecondsSinceEpoch(milliseconds);
+          }
+        }
+      }
+      
+      // Fallback to current time
+      return DateTime.now();
+    } catch (e) {
+      print('Error parsing DateTime: $e');
+      print('Date data: $dateData');
+      print('Date data type: ${dateData.runtimeType}');
+      return DateTime.now();
+    }
   }
 
   @override
@@ -411,13 +456,19 @@ class Customer {
       }
       
       if (assigneesData is List) {
-        return assigneesData.map((item) => item.toString()).toList();
+        return assigneesData.map((item) {
+          if (item == null) return '';
+          return item.toString();
+        }).where((item) => item.isNotEmpty).toList();
       }
       
       if (assigneesData is String) {
         try {
           final List<dynamic> parsed = jsonDecode(assigneesData);
-          return parsed.map((item) => item.toString()).toList();
+          return parsed.map((item) {
+            if (item == null) return '';
+            return item.toString();
+          }).where((item) => item.isNotEmpty).toList();
         } catch (e) {
           if (assigneesData.trim().isNotEmpty) {
             return [assigneesData];
@@ -426,7 +477,12 @@ class Customer {
         }
       }
       
-      return [assigneesData.toString()];
+      // Handle other types (int, double, etc.)
+      if (assigneesData != null) {
+        return [assigneesData.toString()];
+      }
+      
+      return [];
     } catch (e) {
       print('Error parsing assignees: $e');
       print('Assignees data: $assigneesData');
