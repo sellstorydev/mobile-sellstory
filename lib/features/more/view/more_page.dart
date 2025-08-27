@@ -32,72 +32,77 @@ class MorePage extends StatelessWidget {
           child: Column(
             children: [
               // Profile Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.backgroundWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    // Profile Picture
-                    CircleAvatar(
-                      radius: 25,
-                      backgroundColor: AppTheme.primaryOrange,
-                      backgroundImage: controller.photoURL != null
-                          ? NetworkImage(controller.photoURL!)
-                          : null,
-                      child: controller.photoURL == null
-                          ? Text(
-                              controller.displayName.isNotEmpty
-                                  ? controller.displayName[0].toUpperCase()
-                                  : 'U',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 16),
-                    
-                    // User Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                size: 16,
-                                color: AppTheme.primaryOrange,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Profile',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppTheme.textSecondary,
+              GestureDetector(
+                onTap: () {
+                  Get.toNamed('/edit-profile');
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.backgroundWhite,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      // Profile Picture
+                      CircleAvatar(
+                        radius: 25,
+                        backgroundColor: AppTheme.primaryOrange,
+                        backgroundImage: controller.photoURL != null
+                            ? NetworkImage(controller.photoURL!)
+                            : null,
+                        child: controller.photoURL == null
+                            ? Text(
+                                controller.displayName.isNotEmpty
+                                    ? controller.displayName[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            controller.displayName,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                        ],
+                              )
+                            : null,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 16),
+                      
+                      // User Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.person_outline,
+                                  size: 16,
+                                  color: AppTheme.primaryOrange,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Profile',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              controller.displayName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               
