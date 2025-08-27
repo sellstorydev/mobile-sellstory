@@ -204,6 +204,7 @@ class MessageBubble extends StatelessWidget {
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
+                  gaplessPlayback: true,
                   errorBuilder: (c, e, s) => Container(
                     width: 280,
                     height: 200,
@@ -214,6 +215,7 @@ class MessageBubble extends StatelessWidget {
               ),
             ),
           ),
+
         if ((messageData['text'] ?? '').toString().isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),

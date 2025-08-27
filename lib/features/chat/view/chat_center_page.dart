@@ -7,6 +7,11 @@ import '../widgets/conversation_tile.dart';
 import '../widgets/chat_filter_chips.dart';
 import '../../../core/services/logger_service.dart'; // Add this import
 import 'chat_screen.dart'; // Import ChatScreen
+import '../../../data/services/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../widgets/user_picker_sheet.dart';
+import '../widgets/hashtag_picker_sheet.dart';
+
 
 class ChatCenterPage extends StatefulWidget {
   const ChatCenterPage({Key? key}) : super(key: key);
@@ -44,6 +49,215 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     _searchController.dispose();
     _listScrollController.dispose();
     super.dispose();
+  }
+
+  // Helpers to update chatroom document
+  DocumentReference<Map<String, dynamic>>? _chatroomRef(Map<String, dynamic> conversation) {
+    final wsId = _controller.getCurrentWorkspaceId();
+    final chatId = conversation['id']?.toString();
+    if (wsId == null || wsId.isEmpty || chatId == null || chatId.isEmpty) return null;
+    return FirestoreService.to.getChatroomsCollection(wsId).doc(chatId);
+  }
+
+  Future<void> _onAddHashtag(Map<String, dynamic> conversation) async {
+    final wsId = _controller.getCurrentWorkspaceId();
+    final chatId = (conversation['id'] ?? '').toString();
+    if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
+      _logger.warning('No workspace/chatroom id for add hashtag');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ workspace หรือ chatroom')));
+      return;
+    }
+
+    // Load existing hashtags from chatroom doc for pre-selection
+    List<String> initialIds = const [];
+    List<String> initialNames = const [];
+    try {
+      final snap = await FirestoreService.to
+          .getChatroomsCollection(wsId)
+          .doc(chatId)
+          .get();
+      final m = snap.data() ?? {};
+      initialIds = ((m['hashtagIds'] as List?) ?? []).map((e) => e.toString()).toList();
+      initialNames = ((m['hashtags'] as List?) ?? []).map((e) => e.toString()).toList();
+    } catch (_) {}
+
+    // Open picker sheet
+    final result = await showModalBottomSheet<HashtagPickerResult>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final h = MediaQuery.of(ctx).size.height;
+        return SizedBox(
+          height: h * 0.9,
+          child: HashtagPickerSheet(
+            workspaceId: wsId,
+            initialIds: initialIds,
+            initialNames: initialNames,
+          ),
+        );
+      },
+    );
+
+    if (result == null) return;
+
+    // Normalize names to include '#'
+    final ids = result.ids.toSet().toList();
+    final names = result.names
+        .map((n) => n.toString().trim())
+        .where((n) => n.isNotEmpty)
+        .map((n) => n.startsWith('#') ? n : '#$n')
+        .toSet()
+        .toList();
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(wsId)
+          .collection('chatrooms')
+          .doc(chatId)
+          .set({
+            'hashtagIds': ids,
+            'hashtags': names,
+          }, SetOptions(merge: true));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('อัปเดต Hashtag แล้ว (${names.length})')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('อัปเดต Hashtag ไม่สำเร็จ: $e')),
+      );
+    }
+  }
+
+  Future<void> _onAssignSale(Map<String, dynamic> conversation) async {
+    final wsId = _controller.getCurrentWorkspaceId();
+    final chatId = (conversation['id'] ?? '').toString();
+    if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ workspace หรือ chatroom')));
+      return;
+    }
+
+    // Pick a user via bottom sheet
+    final pickedUid = await showModalBottomSheet<String>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final h = MediaQuery.of(ctx).size.height;
+        return SizedBox(
+          height: h * 0.9,
+          child: UserPickerSheet(workspaceId: wsId),
+        );
+      },
+    );
+    if (pickedUid == null || pickedUid.isEmpty) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยืนยันการผูกเซล'),
+        content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับลูกค้าหรือไม่?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    // Resolve current customerId from conversation or chatroom doc
+    String? customerId = (conversation['customerId'] ?? conversation['customer_id'] ?? conversation['customer']?['id'])?.toString();
+    if (customerId == null || customerId.isEmpty) {
+      try {
+        final snap = await FirestoreService.to
+            .getChatroomsCollection(wsId)
+            .doc(chatId)
+            .get();
+        final m = snap.data();
+        customerId = (m != null ? (m['customerId'] ?? m['customer_id'] ?? m['customer']?['id']) : null)?.toString();
+      } catch (_) {}
+    }
+
+    if (customerId == null || customerId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเชื่อมลูกค้ากับห้องแชทก่อน')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(wsId)
+          .collection('customers')
+          .doc(customerId)
+          .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ผูกเซลไม่สำเร็จ: $e')),
+      );
+    }
+  }
+
+  Future<void> _onChangeStatus(Map<String, dynamic> conversation) async {
+    final ref = _chatroomRef(conversation);
+    if (ref == null) {
+      _logger.warning('No workspace/chatroom id for status');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ workspace หรือ chatroom')));
+      return;
+    }
+
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('สถานะแชท', style: TextStyle(fontWeight: FontWeight.w700))),
+            ListTile(
+              leading: const Icon(Icons.play_arrow, color: Colors.blue),
+              title: const Text('กำลังดำเนินการ'),
+              onTap: () => Navigator.pop(ctx, 'IN_PROGRESS'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: const Text('เสร็จสิ้น'),
+              onTap: () => Navigator.pop(ctx, 'DONE'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || choice.isEmpty) return;
+
+    try {
+      await ref.set({'chatroom_status': choice}, SetOptions(merge: true));
+      final label = choice == 'DONE' ? 'เสร็จสิ้น' : 'กำลังดำเนินการ';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปเดตสถานะ: $label')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปเดตสถานะไม่สำเร็จ: $e')));
+    }
   }
 
   @override
@@ -112,7 +326,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
               controller: _searchController,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'ค้นหาด้วย ชื่อ นามสกุล ชื่อบริษัท หรือ ข้อความแชท',
+                hintText: 'ค้นหาด้วย ชื่อ นามสกุล ชื่อบริษัท หรือ ข้อความแชท hashtag เซล',
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
                 fillColor: Colors.white,
@@ -241,6 +455,9 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
                   conversation: conversation,
                   currentUserId: _currentUserId ?? '',
                   onTap: () => _onConversationTap(conversation),
+                  onAddHashtag: () => _onAddHashtag(conversation),
+                  onAssignSale: () => _onAssignSale(conversation),
+                  onChangeStatus: () => _onChangeStatus(conversation),
                 ),
               );
             },

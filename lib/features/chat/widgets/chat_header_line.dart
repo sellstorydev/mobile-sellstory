@@ -11,6 +11,8 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBack;
   final VoidCallback? onSearch;
   final VoidCallback? onMore;
+  // New: optional assignee (sales) display names
+  final List<String>? assigneeNames;
 
   const ChatHeaderLine({
     Key? key,
@@ -23,6 +25,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
     this.onBack,
     this.onSearch,
     this.onMore,
+    this.assigneeNames,
   }) : super(key: key);
 
   // Small helper for platform color/icon
@@ -74,7 +77,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 4, offset: const Offset(0, 2),
                     ),
                   ],
@@ -146,6 +149,36 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
                   style: const TextStyle(
                       color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
+                // New: Sales names under the main title
+                Builder(builder: (_) {
+                  final names = assigneeNames
+                          ?.map((e) => e.toString())
+                          .where((s) => s.trim().isNotEmpty)
+                          .toList() ??
+                      const <String>[];
+                  if (names.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline, size: 14, color: Colors.black54),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            names.join(', '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade800,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           ),
