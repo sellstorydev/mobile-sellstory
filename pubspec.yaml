@@ -91,6 +91,9 @@ dependencies:
   # URL launcher for opening links
   url_launcher: ^6.2.1
 
+  # SVG support for custom icons
+  flutter_svg: ^2.0.10+1
+
   # Image processing for resizing
   image: ^4.1.3
 

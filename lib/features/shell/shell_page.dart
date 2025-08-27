@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
@@ -51,35 +52,35 @@ class ShellPage extends StatelessWidget {
                 _buildNavItem(
                   index: 0,
                   currentIndex: controller.currentIndex.value,
-                  icon: _buildJobCardIcon(controller.currentIndex.value == 0),
+                  icon: _buildSvgIcon('assets/icons/icon-ss-dashboard.svg', controller.currentIndex.value == 0),
                   label: 'Job Card',
                   onTap: () => controller.onTabTapped(0),
                 ),
                 _buildNavItem(
                   index: 1,
                   currentIndex: controller.currentIndex.value,
-                  icon: const Icon(Icons.receipt_long_outlined),
+                  icon: _buildSvgIcon('assets/icons/icon-doc.svg', controller.currentIndex.value == 1),
                   label: 'คำสั่งซื้อ',
                   onTap: () => controller.onTabTapped(1),
                 ),
                 _buildNavItem(
                   index: 2,
                   currentIndex: controller.currentIndex.value,
-                  icon: const Icon(Icons.people_outline),
+                  icon: _buildSvgIcon('assets/icons/icon-person-outline.svg', controller.currentIndex.value == 2),
                   label: 'ลูกค้า',
                   onTap: () => controller.onTabTapped(2),
                 ),
                 _buildNavItem(
                   index: 3,
                   currentIndex: controller.currentIndex.value,
-                  icon: const Icon(Icons.inventory_2_outlined),
+                  icon: _buildSvgIcon('assets/icons/icon-shopping-outline.svg', controller.currentIndex.value == 3),
                   label: 'สินค้า',
                   onTap: () => controller.onTabTapped(3),
                 ),
                 _buildNavItem(
                   index: 4,
                   currentIndex: controller.currentIndex.value,
-                  icon: const Icon(Icons.more_horiz),
+                  icon: _buildSvgIcon('assets/icons/icon-dashboard-outline.svg', controller.currentIndex.value == 4),
                   label: 'อื่น ๆ',
                   onTap: () => controller.onTabTapped(4),
                 ),
@@ -150,11 +151,15 @@ class ShellPage extends StatelessWidget {
     );
   }
 
-  Widget _buildJobCardIcon(bool isSelected) {
-    return Icon(
-      Icons.work_outline,
-      color: isSelected ? AppTheme.figmaRed : AppTheme.textSecondary,
-      size: AppTheme.iconSize28,
+  Widget _buildSvgIcon(String assetPath, bool isSelected) {
+    return SvgPicture.asset(
+      assetPath,
+      width: AppTheme.iconSize28,
+      height: AppTheme.iconSize28,
+      colorFilter: ColorFilter.mode(
+        isSelected ? AppTheme.figmaRed : AppTheme.textSecondary,
+        BlendMode.srcIn,
+      ),
     );
   }
 }
