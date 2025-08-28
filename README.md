@@ -332,3 +332,11 @@ flutter test test/features/login/login_page_test.dart
 ## License
 
 This project is licensed under the MIT License.
+
+
+**User Permission Notice**:
+{roleId: owner, roleName: Owner, permissions: [*]}
+
+{roleId: admin, roleName: Admin, permissions: [jobcard:view:all, jobcard:create, jobcard:edit:all, jobcard:delete:all, jobcard:move, customer:view:all, customer:create, customer:edit:all, customer:delete, customer:import, company:view, company:create, company:edit:all, company:delete, company:import, product:view, product:create, product:edit:all, product:delete, product:import, user:manage, settings:board:manage, settings:company:manage, settings:id:manage, settings:catalog:manage, settings:roles:manage]}
+
+

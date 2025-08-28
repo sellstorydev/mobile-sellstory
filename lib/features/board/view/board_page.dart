@@ -12,6 +12,7 @@ import 'unified_filter_page.dart';
 import '../../../domain/entities/lane.dart';
 import '../../notifications/widgets/notifications_bell_button.dart';
 import '../../chat/widgets/chat_unread_button.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class BoardPage extends StatefulWidget {
   const BoardPage({super.key});
@@ -22,6 +23,7 @@ class BoardPage extends StatefulWidget {
 
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
+  Worker? _wsWorker;
 
   @override
   void initState() {
@@ -30,6 +32,24 @@ class _BoardPageState extends State<BoardPage> {
     
     // Initialize with current user
     _initializeWithCurrentUser();
+
+    // React to workspace changes to prefetch permissions
+    _wsWorker = ever<String>(_controller.currentWorkspaceId, (wsId) {
+      if (wsId.isNotEmpty) {
+        _ensurePermissions(wsId);
+      }
+    });
+  }
+
+  Future<void> _ensurePermissions(String workspaceId) async {
+    try {
+      final permsSvc = MobilePermissionsService.to;
+      if (permsSvc.current.value == null || permsSvc.currentWorkspaceId.value != workspaceId) {
+        await permsSvc.getMyPermissions(workspaceId: workspaceId);
+      }
+    } catch (_) {
+      // Ignore on UI page; actions will simply be hidden
+    }
   }
 
   @override
@@ -37,6 +57,12 @@ class _BoardPageState extends State<BoardPage> {
     super.didChangeDependencies();
     // Refresh data when returning to this page
     _refreshDataIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    _wsWorker?.dispose();
+    super.dispose();
   }
 
   void _refreshDataIfNeeded() {
@@ -88,6 +114,12 @@ class _BoardPageState extends State<BoardPage> {
       
       // Load user's assigned cards
       await _controller.loadUserAssignedCards();
+
+      // Prefetch permissions for current workspace if available
+      final wsId = _controller.currentWorkspaceId.value;
+      if (wsId.isNotEmpty) {
+        _ensurePermissions(wsId);
+      }
     } catch (e) {
       print('❌ Failed to initialize board page: $e');
     }
@@ -124,9 +156,9 @@ class _BoardPageState extends State<BoardPage> {
           Obx(() {
             if (_controller.hasWorkspaces) {
               final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
-                                 _controller.selectedCustomers.isNotEmpty ||
-                                 _controller.selectedDateFilterType.value.isNotEmpty;
-              
+                                  _controller.selectedCustomers.isNotEmpty ||
+                                  _controller.selectedDateFilterType.value.isNotEmpty;
+
               return IconButton(
                 onPressed: () => _showUnifiedFilterPage(),
                 icon: Icon(
@@ -174,97 +206,101 @@ class _BoardPageState extends State<BoardPage> {
           // Main Menu Button - combines all actions
           Obx(() {
             if (_controller.hasWorkspaces) {
-              return PopupMenuButton<String>(
-                onSelected: (value) => _handleMenuAction(value),
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.more_vert),
-                ),
-                itemBuilder: (context) => [
-                  // Board Management
-                  PopupMenuItem<String>(
-                    value: 'board_management',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.dashboard, size: 20),
-                        const SizedBox(width: 12),
-                        const Text('Board Management'),
-                      ],
-                    ),
-                  ),
-                  // Board Selector
-                  if (_controller.boards.isNotEmpty) ...[
-                    const PopupMenuDivider(),
-                    ..._controller.boards.map((board) {
-                      return PopupMenuItem<String>(
-                        value: 'board_${board.id}',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.view_column,
-                              size: 20,
-                              color: board.id == _controller.currentBoardId.value
-                                  ? AppTheme.primaryOrange
-                                  : null,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text(board.name)),
-                            if (board.id == _controller.currentBoardId.value)
-                              const Icon(Icons.check, color: AppTheme.primaryOrange),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ],
-                  // Workspace Selector
-                  if (_controller.availableWorkspaces.isNotEmpty) ...[
-                    const PopupMenuDivider(),
-                    ..._controller.availableWorkspaces.map((workspace) {
-                      return PopupMenuItem<String>(
-                        value: 'workspace_${workspace['id']}',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.workspace_premium,
-                              size: 20,
-                              color: workspace['id'] == _controller.currentWorkspaceId.value
-                                  ? AppTheme.primaryOrange
-                                  : null,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text(workspace['name'] as String)),
-                            if (workspace['id'] == _controller.currentWorkspaceId.value)
-                              const Icon(Icons.check, color: AppTheme.primaryOrange),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    const PopupMenuDivider(),
-                    PopupMenuItem<String>(
-                      value: 'edit_workspace',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.edit, size: 20),
-                          const SizedBox(width: 12),
-                          const Text('Edit Workspace'),
-                        ],
-                      ),
-                    ),
-                  ],
-                  // Refresh
-                  const PopupMenuDivider(),
-                  PopupMenuItem<String>(
-                    value: 'refresh',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.refresh, size: 20),
-                        const SizedBox(width: 12),
-                        const Text('Refresh'),
-                      ],
-                    ),
-                  ),
-                ],
-              );
+              final canManageBoard = MobilePermissionsService.to.isOwner ||
+                  MobilePermissionsService.to.can('settings:board:manage');
+               return PopupMenuButton<String>(
+                 onSelected: (value) => _handleMenuAction(value),
+                 child: const Padding(
+                   padding: EdgeInsets.all(8.0),
+                   child: Icon(Icons.more_vert),
+                 ),
+                 itemBuilder: (context) => [
+                   // Board Management
+                   if (canManageBoard)
+                     PopupMenuItem<String>(
+                       value: 'board_management',
+                       child: Row(
+                         children: [
+                           const Icon(Icons.dashboard, size: 20),
+                           const SizedBox(width: 12),
+                           const Text('Board Management'),
+                         ],
+                       ),
+                     ),
+                   // Board Selector
+                   if (_controller.boards.isNotEmpty) ...[
+                     const PopupMenuDivider(),
+                     ..._controller.boards.map((board) {
+                       return PopupMenuItem<String>(
+                         value: 'board_${board.id}',
+                         child: Row(
+                           children: [
+                             Icon(
+                               Icons.view_column,
+                               size: 20,
+                               color: board.id == _controller.currentBoardId.value
+                                   ? AppTheme.primaryOrange
+                                   : null,
+                             ),
+                             const SizedBox(width: 12),
+                             Expanded(child: Text(board.name)),
+                             if (board.id == _controller.currentBoardId.value)
+                               const Icon(Icons.check, color: AppTheme.primaryOrange),
+                           ],
+                         ),
+                       );
+                     }).toList(),
+                   ],
+                   // Workspace Selector
+                   if (_controller.availableWorkspaces.isNotEmpty) ...[
+                     const PopupMenuDivider(),
+                     ..._controller.availableWorkspaces.map((workspace) {
+                       return PopupMenuItem<String>(
+                         value: 'workspace_${workspace['id']}',
+                         child: Row(
+                           children: [
+                             Icon(
+                               Icons.workspace_premium,
+                               size: 20,
+                               color: workspace['id'] == _controller.currentWorkspaceId.value
+                                   ? AppTheme.primaryOrange
+                                   : null,
+                             ),
+                             const SizedBox(width: 12),
+                             Expanded(child: Text(workspace['name'] as String)),
+                             if (workspace['id'] == _controller.currentWorkspaceId.value)
+                               const Icon(Icons.check, color: AppTheme.primaryOrange),
+                           ],
+                         ),
+                       );
+                     }).toList(),
+                     const PopupMenuDivider(),
+                     if (canManageBoard)
+                       PopupMenuItem<String>(
+                         value: 'edit_workspace',
+                         child: Row(
+                           children: [
+                             const Icon(Icons.edit, size: 20),
+                             const SizedBox(width: 12),
+                             const Text('Edit Workspace'),
+                           ],
+                         ),
+                       ),
+                   ],
+                   // Refresh
+                   const PopupMenuDivider(),
+                   PopupMenuItem<String>(
+                     value: 'refresh',
+                     child: Row(
+                       children: [
+                         const Icon(Icons.refresh, size: 20),
+                         const SizedBox(width: 12),
+                         const Text('Refresh'),
+                       ],
+                     ),
+                   ),
+                 ],
+               );
             } else {
               // Show only Add Workspace when no workspaces
               return IconButton(
@@ -418,18 +454,21 @@ class _BoardPageState extends State<BoardPage> {
         ],
       ),
       floatingActionButton: Obx(() {
-        // Only show FAB if user has workspaces
+        // Only show FAB if user has workspaces and has permission to create jobcards
         if (_controller.hasWorkspaces) {
-          return FloatingActionButton(
-            onPressed: () => _showAddOptionsDialog(),
-            child: const Icon(Icons.add),
-            tooltip: 'Add New Item',
-          );
-        }
-        return const SizedBox.shrink(); // Hide FAB when no workspaces
-      }),
-    );
-  }
+          final canCreate = MobilePermissionsService.to.isOwner ||
+              MobilePermissionsService.to.can('jobcard:create');
+          if (!canCreate) return const SizedBox.shrink();
+           return FloatingActionButton(
+             onPressed: () => _showAddOptionsDialog(),
+             child: const Icon(Icons.add),
+             tooltip: 'Add New Item',
+           );
+         }
+         return const SizedBox.shrink(); // Hide FAB when no workspaces
+       }),
+     );
+   }
 
   Widget _buildBoardView() {
     return Obx(() {
@@ -564,7 +603,7 @@ class _BoardPageState extends State<BoardPage> {
           } else if (hasAssignee && hasCustomer) {
             filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและลูกค้าที่เลือก';
           } else if (hasAssignee && hasHashtag) {
-            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและแฮชแท็กที่เลือก';
+            filterMessage = 'ไม่พบงานสำหรับผู้ร��บผิดชอบและแฮชแท็กที่เลือก';
           } else if (hasAssignee && hasDate) {
             filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและช่วงวันที่ที่เลือก';
           } else if (hasCustomer && hasHashtag) {
@@ -651,11 +690,13 @@ class _BoardPageState extends State<BoardPage> {
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddLaneDialog(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Lane'),
-                ),
+                if (MobilePermissionsService.to.isOwner ||
+                    MobilePermissionsService.to.can('settings:board:manage'))
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddLaneDialog(),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Lane'),
+                  ),
               ],
             ),
           );
@@ -735,22 +776,25 @@ class _BoardPageState extends State<BoardPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit Lane'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showEditLaneDialog(lane);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('Delete Lane'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showDeleteLaneConfirmation(lane);
-              },
-            ),
+            if (MobilePermissionsService.to.isOwner ||
+                MobilePermissionsService.to.can('settings:board:manage')) ...[
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Edit Lane'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showEditLaneDialog(lane);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete),
+                title: const Text('Delete Lane'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showDeleteLaneConfirmation(lane);
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -758,6 +802,9 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildAddCardButton(Lane lane) {
+    final canCreate = MobilePermissionsService.to.isOwner ||
+        MobilePermissionsService.to.can('jobcard:create');
+    if (!canCreate) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
@@ -932,25 +979,29 @@ class _BoardPageState extends State<BoardPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.view_column),
-              title: const Text('Add New Lane'),
-              subtitle: const Text('Create a new column in the board'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showAddLaneDialog();
-              },
-            ),
+            if (MobilePermissionsService.to.isOwner ||
+                MobilePermissionsService.to.can('settings:board:manage'))
+              ListTile(
+                leading: const Icon(Icons.view_column),
+                title: const Text('Add New Lane'),
+                subtitle: const Text('Create a new column in the board'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showAddLaneDialog();
+                },
+              ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.note_add),
-              title: const Text('Create New Card'),
-              subtitle: const Text('Create a new card with full details'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _navigateToCreateCard();
-              },
-            ),
+            if (MobilePermissionsService.to.isOwner ||
+                MobilePermissionsService.to.can('jobcard:create'))
+              ListTile(
+                leading: const Icon(Icons.note_add),
+                title: const Text('Create New Card'),
+                subtitle: const Text('Create a new card with full details'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _navigateToCreateCard();
+                },
+              ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.workspace_premium),
@@ -1216,7 +1267,7 @@ class _BoardPageState extends State<BoardPage> {
                     '• รหัสงาน\n'
                     '• ชื่อลูกค้า\n'
                     '• ผู้รับผิดชอบ\n'
-                    '• สถานะงาน\n'
+                    '• สถานะ��าน\n'
                     '• ชื่อเลน',
                     style: TextStyle(
                       fontSize: 12,

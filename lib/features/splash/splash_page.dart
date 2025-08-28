@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../app/routes.dart';
+import '../../data/services/chat_service.dart';
+import '../../data/services/mobile_permissions_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -11,6 +13,25 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
+  void _prefetchPermissions() {
+    // Fire-and-forget startup fetch; don't block navigation
+    Future(() async {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
+
+        final chatService = Get.find<ChatService>();
+        String? workspaceId = await chatService.getUserCurrentWorkspaceId(user.uid);
+        workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
+        if (workspaceId == null || workspaceId.isEmpty) return;
+
+        await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
+      } catch (_) {
+        // Silently ignore on splash; UI can handle missing permissions later
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -22,6 +43,7 @@ class _SplashPageState extends State<SplashPage> {
       // Check if user is already signed in
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
+        _prefetchPermissions();
         Get.offAllNamed(AppRoutes.shell);
       } else {
         Get.offAllNamed(AppRoutes.login);

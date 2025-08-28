@@ -4,6 +4,8 @@ import '../../../data/services/firebase_auth_service.dart';
 import '../../../core/di/locator.dart';
 import '../../../core/services/fcm_service.dart';
 import '../../../core/services/analytics_service.dart';
+import '../../../data/services/chat_service.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 
 class LoginController extends GetxController {
@@ -58,6 +60,22 @@ class LoginController extends GetxController {
         await AnalyticsService.to.logLogin(method: 'password');
       }
 
+
+      // Prefetch permissions for user's active workspace
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final chatService = Get.find<ChatService>();
+          String? workspaceId = await chatService.getUserCurrentWorkspaceId(user.uid);
+          workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
+          if (workspaceId != null && workspaceId.isNotEmpty) {
+            await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
+          }
+        }
+      } catch (_) {
+        // Ignore errors; UI will hide actions if permissions not available
+      }
+
       Get.offAllNamed('/shell');
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
@@ -74,9 +92,6 @@ class LoginController extends GetxController {
       isLoading.value = false;
     }
   }
-
-
-
 
   // Google Sign-In
   Future<void> signInWithGoogle() async {
@@ -97,6 +112,21 @@ class LoginController extends GetxController {
       if (uid != null && Get.isRegistered<AnalyticsService>()) {
         await AnalyticsService.to.setUserId(uid);
         await AnalyticsService.to.logLogin(method: 'google');
+      }
+
+      // Prefetch permissions for user's active workspace
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final chatService = Get.find<ChatService>();
+          String? workspaceId = await chatService.getUserCurrentWorkspaceId(user.uid);
+          workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
+          if (workspaceId != null && workspaceId.isNotEmpty) {
+            await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
+          }
+        }
+      } catch (_) {
+        // Ignore errors; UI will hide actions if permissions not available
       }
 
       Get.offAllNamed('/shell');
