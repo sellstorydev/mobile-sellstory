@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controller/more_controller.dart';
 import '../../../app/routes.dart';
+import '../../board/controller/board_controller.dart';
 
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
@@ -10,6 +11,7 @@ class MorePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(MoreController());
+    final boardController = Get.find<BoardController>();
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -119,18 +121,6 @@ class MorePage extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildMenuItem(
-                      icon: Icons.dashboard_outlined,
-                      title: 'Operation บอร์ด',
-                      onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Operation Board coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildMenuItem(
                       icon: Icons.people_outline,
                       title: 'บริหารจัดการเซล',
                       onTap: () {
@@ -155,26 +145,21 @@ class MorePage extends StatelessWidget {
                     ),
                     _buildDivider(),
                     _buildMenuItem(
-                      icon: Icons.shopping_cart_outlined,
-                      title: 'แหล่งที่มาลูกค้า',
-                      onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Customer Source coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildMenuItem(
                       icon: Icons.tag_outlined,
-                      title: '# Hashtag Center',
+                      title: 'Hashtag Center',
                       onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Hashtag Center coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openHashtagSettings(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
                       },
                     ),
                     _buildDivider(),
@@ -204,11 +189,189 @@ class MorePage extends StatelessWidget {
                       icon: Icons.business_outlined,
                       title: 'ตั้งค่าบริษัท',
                       onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Company Settings coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openCompanySettings(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.dashboard_outlined,
+                      title: 'ตั้งค่า Board',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openBoardSettings(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.notifications_outlined,
+                      title: 'ตั้งค่าการแจ้งเตือน',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openNotificationSettings(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.message_outlined,
+                      title: 'ข้อความต้อนรับ',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openWelcomeMessageSettings(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.smart_toy_outlined,
+                      title: 'ตั้งค่า Chatbot',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openChatbotSettings(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.rule_outlined,
+                      title: 'กฎการสร้าง ID',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openIdGenerationRules(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.security_outlined,
+                      title: 'บทบาทและสิทธิ์',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openRolesPermissions(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.approval_outlined,
+                      title: 'เงื่อนไขการอนุมัติ',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openApprovalConditions(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.description_outlined,
+                      title: 'ตั้งค่าเอกสาร',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openDocumentSettings(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'ตั้งค่าแคตตาล็อก',
+                      onTap: () {
+                        final workspaceId = boardController.currentWorkspaceId.value;
+                        if (workspaceId.isNotEmpty) {
+                          controller.openCatalogSettings(workspaceId);
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'No workspace selected',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+                            colorText: Get.theme.colorScheme.error,
+                          );
+                        }
                       },
                     ),
                     _buildDivider(),
@@ -219,19 +382,6 @@ class MorePage extends StatelessWidget {
                         Get.snackbar(
                           'Info',
                           'Data Disclosure Consent coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.switch_account_outlined,
-                      title: 'สลับบัญชี',
-                      subtitle: 'BewLnwZa007',
-                      onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Switch Account coming soon',
                           snackPosition: SnackPosition.BOTTOM,
                         );
                       },

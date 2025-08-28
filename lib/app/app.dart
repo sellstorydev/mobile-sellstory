@@ -46,6 +46,7 @@ class SellStoryApp extends StatelessWidget {
     Get.put<Dio>(
       Dio(
         BaseOptions(
+          baseUrl: 'https://workspace.sellstory.me', // Base URL for SellStory API
           connectTimeout: const Duration(seconds: 7),
           receiveTimeout: const Duration(seconds: 7),
         ),
