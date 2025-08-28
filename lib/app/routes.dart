@@ -13,6 +13,8 @@ import '../features/board/view/edit_card_page.dart';
 import '../features/board/view/create_board_page.dart';
 import '../features/board/view/edit_board_page.dart';
 import '../features/board/view/board_management_page.dart';
+import '../features/more/view/edit_profile_page.dart';
+import '../features/webview/view/webview_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -29,6 +31,8 @@ class AppRoutes {
   static const String boardManagement = '/board-management';
   static const String createWorkspace = '/create-workspace';
   static const String editWorkspace = '/edit-workspace';
+  static const String editProfile = '/edit-profile';
+  static const String webview = '/webview';
 
   static final routes = [
     GetPage(
@@ -92,6 +96,18 @@ class AppRoutes {
       page: () => EditWorkspacePage(
         workspaceId: Get.parameters['workspaceId'] ?? '',
         currentName: Get.parameters['currentName'] ?? '',
+      ),
+    ),
+    GetPage(
+      name: editProfile,
+      page: () => const EditProfilePage(),
+    ),
+    GetPage(
+      name: webview,
+      page: () => WebViewPage(
+        url: Get.parameters['url'],
+        title: Get.parameters['title'],
+        parameters: Get.arguments as Map<String, dynamic>?,
       ),
     ),
   ];
