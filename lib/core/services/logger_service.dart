@@ -6,6 +6,10 @@ class LoggerService extends GetxService {
   
   late Logger _logger;
   
+  // Keep a rolling buffer of recent FCM logs for in-app viewing
+  final RxList<Map<String, dynamic>> fcmLogs = <Map<String, dynamic>>[].obs;
+  final int _maxFcmLogs = 200;
+
   @override
   void onInit() {
     super.onInit();
@@ -70,6 +74,29 @@ class LoggerService extends GetxService {
   // Firebase specific logging
   void firebase(String message, [dynamic error, StackTrace? stackTrace]) {
     _logger.i('🔥 Firebase: $message', error: error, stackTrace: stackTrace);
+    // Also store to in-memory FCM logs for UI visibility
+    addFcmLog('firebase', message: message);
+  }
+
+  // Add a structured FCM log entry
+  void addFcmLog(String event, {String? message, Map<String, dynamic>? data}) {
+    final entry = <String, dynamic>{
+      'ts': DateTime.now().toIso8601String(),
+      'event': event,
+      if (message != null && message.isNotEmpty) 'message': message,
+      if (data != null && data.isNotEmpty) 'data': data,
+    };
+    fcmLogs.add(entry);
+    // Enforce rolling buffer size
+    if (fcmLogs.length > _maxFcmLogs) {
+      final overflow = fcmLogs.length - _maxFcmLogs;
+      fcmLogs.removeRange(0, overflow);
+    }
+  }
+
+  // Clear FCM logs
+  void clearFcmLogs() {
+    fcmLogs.clear();
   }
   
   // API specific logging
@@ -317,5 +344,3 @@ class LoggerService extends GetxService {
     }
   }
 }
-
-

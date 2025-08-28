@@ -28,63 +28,63 @@ void main() async {
   
   // Initialize Logger Service first
   Get.put(LoggerService(), permanent: true);
-  LoggerService.to.info('Application starting...');
-  LoggerService.to.devTools('SellStory App Starting', {
-    'version': '1.0.0',
-    'timestamp': DateTime.now().toIso8601String(),
-    'platform': 'mobile',
-  });
+  //LoggerService.to.info('Application starting...');
+  //LoggerService.to.devTools('SellStory App Starting', {
+  //   'version': '1.0.0',
+  //   'timestamp': DateTime.now().toIso8601String(),
+  //   'platform': 'mobile',
+  // });
   
   // Initialize Firebase
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    LoggerService.to.firebase('Firebase initialized successfully');
+    //LoggerService.to.firebase('Firebase initialized successfully');
   } catch (e) {
-    LoggerService.to.failure('Failed to initialize Firebase', e);
+    //LoggerService.to.failure('Failed to initialize Firebase', e);
   }
 
   // Register FCM background handler
   try {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } catch (e) {
-    LoggerService.to.failure('Failed to register FCM background handler', e);
+    //LoggerService.to.failure('Failed to register FCM background handler', e);
   }
 
   // Initialize GetStorage
   try {
     await GetStorage.init();
-    LoggerService.to.cache('GetS torage initialized successfully');
+    //LoggerService.to.cache('GetS torage initialized successfully');
   } catch (e) {
-    LoggerService.to.failure('Failed to initialize GetStorage', e);
+    //LoggerService.to.failure('Failed to initialize GetStorage', e);
   }
   
   // Setup dependency injection
   try {
-    LoggerService.to.devTools('Setting up dependencies...');
+    // //LoggerService.to.devTools('Setting up dependencies...');
     SellStoryApp.setupDependencies();
-    LoggerService.to.di('Dependency injection setup completed');
-    LoggerService.to.devTools('Dependencies setup completed', {
-      'timestamp': DateTime.now().toIso8601String(),
-      'status': 'success',
-    });
+    // //LoggerService.to.di('Dependency injection setup completed');
+    // //LoggerService.to.devTools('Dependencies setup completed', {
+    //   'timestamp': DateTime.now().toIso8601String(),
+    //   'status': 'success',
+    // });
   } catch (e) {
-    LoggerService.to.failure('Failed to setup dependency injection', e);
-    LoggerService.to.devTools('Dependencies setup failed', {
-      'error': e.toString(),
-      'timestamp': DateTime.now().toIso8601String(),
-      'status': 'failed',
-    });
+    // //LoggerService.to.failure('Failed to setup dependency injection', e);
+    // //LoggerService.to.devTools('Dependencies setup failed', {
+    //   'error': e.toString(),
+    //   'timestamp': DateTime.now().toIso8601String(),
+    //   'status': 'failed',
+    // });
   }
 
   // Register theme and locale controllers
   try {
     Get.put(ThemeController(), permanent: true);
     Get.put(LocaleController(), permanent: true);
-    LoggerService.to.config('Theme and locale controllers registered');
+    //LoggerService.to.config('Theme and locale controllers registered');
   } catch (e) {
-    LoggerService.to.failure('Failed to register controllers', e);
+    //LoggerService.to.failure('Failed to register controllers', e);
   }
 
   // Init FCM service and auto-register device token on login
@@ -103,10 +103,10 @@ void main() async {
     });
   } catch (e) {
     print(e);
-    LoggerService.to.failure('Failed to initialize FCM service', e);
+    //LoggerService.to.failure('Failed to initialize FCM service', e);
   }
 
-  LoggerService.to.success('Application initialization completed');
+  //LoggerService.to.success('Application initialization completed');
   
   runApp(
       const SellStoryApp()

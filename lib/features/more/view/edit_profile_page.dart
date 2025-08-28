@@ -412,7 +412,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                      }
                                    });
                                  },
-                                 activeThumbColor: AppTheme.primaryOrange,
+                                 // activeThumbColor: AppTheme.primaryOrange,
                                ),
                             ],
                           ),
