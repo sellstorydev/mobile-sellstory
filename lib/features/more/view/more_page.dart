@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controller/more_controller.dart';
+import '../../../app/routes.dart';
 
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
@@ -197,6 +198,7 @@ class MorePage extends StatelessWidget {
                         });
                       },
                     ),
+
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.business_outlined,
@@ -323,10 +325,6 @@ class MorePage extends StatelessWidget {
   }
 
   Widget _buildDivider() {
-    return const Divider(
-      height: 1,
-      indent: 56,
-      endIndent: 16,
-    );
+    return Divider(height: 1, color: Colors.grey.shade200, indent: 16, endIndent: 16);
   }
 }

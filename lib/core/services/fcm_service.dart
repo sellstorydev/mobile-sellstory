@@ -29,16 +29,19 @@ class FcmService extends GetxService {
         if (apns != null && apns.isNotEmpty) {
           LoggerService.to.firebase('APNs token ready');
           LoggerService.to.firebase('APNs token: $apns');
+          LoggerService.to.addFcmLog('apns_ready', data: {'apnsToken': apns});
           break;
         }
       } catch (_) {}
       if (DateTime.now().difference(start) > timeout) {
         LoggerService.to.warning('APNs token not ready within timeout; proceeding');
+        LoggerService.to.addFcmLog('apns_timeout');
         break;
       }
       await Future.delayed(const Duration(milliseconds: 250));
     }
   }
+
 
   Future<FcmService> init() async {
     if (_isInitialized.value) return this;
@@ -63,35 +66,51 @@ class FcmService extends GetxService {
     try {
       _cachedToken = await _messaging.getToken();
       LoggerService.to.firebase('FCM initial token: ${_cachedToken ?? '-'}');
+      LoggerService.to.addFcmLog('token_initial', data: {'token': _cachedToken});
     } catch (e) {
       LoggerService.to.failure('FCM getToken failed', e);
+      LoggerService.to.addFcmLog('token_error', message: 'getToken failed', data: {'error': e.toString()});
     }
 
     // Listen for token refresh
     _messaging.onTokenRefresh.listen((newToken) async {
       LoggerService.to.firebase('FCM token refreshed: $newToken');
+      LoggerService.to.addFcmLog('token_refreshed', data: {'token': newToken});
       _cachedToken = newToken;
       try {
         await _saveTokenToFirestore();
       } catch (e) {
         LoggerService.to.failure('Failed to update token on refresh', e);
+        LoggerService.to.addFcmLog('token_refresh_save_error', data: {'error': e.toString()});
       }
     });
 
     // Foreground message handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      LoggerService.to.firebase('FCM onMessage: ${message.messageId} data=${message.data}');
+      // LoggerService.to.firebase('FCM onMessage: ${message.messageId} data=${message.data}');
+      LoggerService.to.addFcmLog('onMessage', data: {
+        'id': message.messageId,
+        'title': message.notification?.title,
+        'body': message.notification?.body,
+        'data': message.data,
+      });
       final title = message.notification?.title ?? 'New Notification';
       final body = message.notification?.body ?? '';
       if (Get.isRegistered<LoggerService>()) {
         // Also show a non-intrusive in-app banner
-        Get.snackbar(title, body, snackPosition: SnackPosition.TOP);
+        // Get.snackbar(title, body, snackPosition: SnackPosition.TOP);
       }
     });
 
     // App opened from a notification (background -> foreground)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       LoggerService.to.firebase('FCM onMessageOpenedApp: ${message.messageId} data=${message.data}');
+      LoggerService.to.addFcmLog('onMessageOpenedApp', data: {
+        'id': message.messageId,
+        'title': message.notification?.title,
+        'body': message.notification?.body,
+        'data': message.data,
+      });
       // TODO: Deep link to a page based on message.data if needed
     });
 
@@ -99,10 +118,17 @@ class FcmService extends GetxService {
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       LoggerService.to.firebase('FCM getInitialMessage: ${initialMessage.messageId} data=${initialMessage.data}');
+      LoggerService.to.addFcmLog('getInitialMessage', data: {
+        'id': initialMessage.messageId,
+        'title': initialMessage.notification?.title,
+        'body': initialMessage.notification?.body,
+        'data': initialMessage.data,
+      });
       // TODO: Handle deep link on cold start
     }
 
     _isInitialized.value = true;
+    LoggerService.to.addFcmLog('fcm_initialized');
 
     // Start device guard for current session
     if (_auth.currentUser != null) {
@@ -116,13 +142,16 @@ class FcmService extends GetxService {
     if (!_isInitialized.value) {
       await init();
     }
+    LoggerService.to.addFcmLog('register_device_start');
     // Ensure APNs ready on iOS before saving
     await _awaitApnsToken();
     await _ensureDeviceId();
     try {
       await _saveTokenToFirestore();
+      LoggerService.to.addFcmLog('register_device_success', data: {'deviceId': _cachedDeviceId});
     } catch (e) {
       LoggerService.to.warning('registerDeviceForPush: token save skipped due to transient error: $e');
+      LoggerService.to.addFcmLog('register_device_error', data: {'error': e.toString()});
     }
     await _enforceMaxActiveDevices(2);
     _startDeviceWatcher();
@@ -130,7 +159,7 @@ class FcmService extends GetxService {
 
   void _startDeviceWatcher() {
     final uid = _auth.currentUser?.uid;
-    if (uid == null || _cachedDeviceId == null || _cachedDeviceId!.isEmpty) return;
+    if (uid == null || _cachedDeviceId == null || _cachedDeviceId!.isNotEmpty == false) return;
 
     // Cancel previous watcher
     _deviceWatcher?.cancel();
@@ -147,6 +176,10 @@ class FcmService extends GetxService {
       final isActive = data['isActive'] != false; // default true if missing
       final forceSignOut = data['forceSignOut'] == true;
       if (!isActive || forceSignOut) {
+        LoggerService.to.addFcmLog('device_signout_trigger', data: {
+          'deviceId': _cachedDeviceId,
+          'reason': !isActive ? 'inactive' : 'forceSignOut',
+        });
         // Prevent loops by stopping watcher before sign out
         await _deviceWatcher?.cancel();
         _deviceWatcher = null;
@@ -201,6 +234,9 @@ class FcmService extends GetxService {
         }, SetOptions(merge: true));
         disabled++;
       }
+      if (disabled > 0) {
+        LoggerService.to.addFcmLog('enforce_max_devices', data: {'disabled': disabled});
+      }
     } catch (e) {
       LoggerService.to.failure('Failed to enforce max active devices', e);
     }
@@ -218,8 +254,15 @@ class FcmService extends GetxService {
         sound: true,
       );
       LoggerService.to.firebase('Notification permission: ${settings.authorizationStatus}');
+      LoggerService.to.addFcmLog('permission', data: {
+        'status': settings.authorizationStatus.toString(),
+        'alert': settings.alert,
+        'badge': settings.badge,
+        'sound': settings.sound,
+      });
     } catch (e) {
       LoggerService.to.failure('Requesting notification permission failed', e);
+      LoggerService.to.addFcmLog('permission_error', data: {'error': e.toString()});
     }
   }
 
@@ -256,6 +299,7 @@ class FcmService extends GetxService {
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
       LoggerService.to.warning('Skipping FCM token save: no authenticated user');
+      LoggerService.to.addFcmLog('token_save_skipped', message: 'No user');
       return;
     }
 
@@ -277,6 +321,7 @@ class FcmService extends GetxService {
     }
     if (_cachedToken == null || _cachedToken!.isEmpty) {
       LoggerService.to.warning('Skipping FCM token save: token is null/empty');
+      LoggerService.to.addFcmLog('token_missing');
       return;
     }
 
@@ -305,6 +350,7 @@ class FcmService extends GetxService {
     try {
       await deviceDoc.set(meta, SetOptions(merge: true));
       LoggerService.to.firebase('Saved FCM token for device $_cachedDeviceId');
+      LoggerService.to.addFcmLog('token_saved_device', data: {'deviceId': _cachedDeviceId});
 
       // Also update token at user root document for simple lookups
       final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
@@ -315,8 +361,10 @@ class FcmService extends GetxService {
         'lastPlatform': Platform.operatingSystem,
       }, SetOptions(merge: true));
       LoggerService.to.firebase('Saved FCM token at /users/$uid');
+      LoggerService.to.addFcmLog('token_saved_user', data: {'userId': uid});
     } catch (e) {
       LoggerService.to.failure('Failed to save FCM token to Firestore', e);
+      LoggerService.to.addFcmLog('token_save_error', data: {'error': e.toString()});
     }
   }
 }

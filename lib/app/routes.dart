@@ -15,6 +15,7 @@ import '../features/board/view/edit_board_page.dart';
 import '../features/board/view/board_management_page.dart';
 import '../features/more/view/edit_profile_page.dart';
 import '../features/webview/view/webview_page.dart';
+import '../features/more/view/fcm_logs_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -33,6 +34,7 @@ class AppRoutes {
   static const String editWorkspace = '/edit-workspace';
   static const String editProfile = '/edit-profile';
   static const String webview = '/webview';
+  static const String fcmLogs = '/fcm-logs';
 
   static final routes = [
     GetPage(
@@ -109,6 +111,10 @@ class AppRoutes {
         title: Get.parameters['title'],
         parameters: Get.arguments as Map<String, dynamic>?,
       ),
+    ),
+    GetPage(
+      name: fcmLogs,
+      page: () => const FcmLogsPage(),
     ),
   ];
 }
