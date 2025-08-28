@@ -605,7 +605,7 @@ class _BoardPageState extends State<BoardPage> {
           } else if (hasAssignee && hasHashtag) {
             filterMessage = 'ไม่พบงานสำหรับผู้ร��บผิดชอบและแฮชแท็กที่เลือก';
           } else if (hasAssignee && hasDate) {
-            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและช่วงวันที่ที่เลือก';
+            filterMessage = 'ไม่พบงานสำหรับผู้ร���บผิดชอบและช่วงวันที่ที่เลือก';
           } else if (hasCustomer && hasHashtag) {
             filterMessage = 'ไม่พบงานสำหรับลูกค้าและแฮชแท็กที่เลือก';
           } else if (hasCustomer && hasDate) {
@@ -845,21 +845,32 @@ class _BoardPageState extends State<BoardPage> {
 
   void _handleCardReorder(int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
     try {
-      final oldLane = _controller.lanes[oldListIndex];
-      final newLane = _controller.lanes[newListIndex];
-      final card = oldLane.cards[oldItemIndex];
+      // Permission check: moving cards
+      final canMove = MobilePermissionsService.to.isOwner ||
+          MobilePermissionsService.to.can('jobcard:move');
+      if (!canMove) {
+        Get.snackbar(
+          'Permission',
+          'You do not have permission to move cards',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+       final oldLane = _controller.lanes[oldListIndex];
+       final newLane = _controller.lanes[newListIndex];
+       final card = oldLane.cards[oldItemIndex];
 
-      print('🔄 Card reordered: ${card.id} from ${oldLane.title} to ${newLane.title}');
+       print('🔄 Card reordered: ${card.id} from ${oldLane.title} to ${newLane.title}');
 
-      _controller.onMoveCard(
-        cardId: card.id,
-        fromLaneId: oldLane.id,
-        toLaneId: newLane.id,
-        toIndex: newItemIndex,
-      );
-    } catch (e) {
-      print('❌ Failed to handle card reorder: $e');
-    }
+       _controller.onMoveCard(
+         cardId: card.id,
+         fromLaneId: oldLane.id,
+         toLaneId: newLane.id,
+         toIndex: newItemIndex,
+       );
+     } catch (e) {
+       print('❌ Failed to handle card reorder: $e');
+     }
   }
 
   void _showAddLaneDialog() {

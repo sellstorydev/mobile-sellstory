@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CardDetailPage extends StatefulWidget {
   final JobCard card;
@@ -417,27 +418,31 @@ class _CardDetailPageState extends State<CardDetailPage> {
             PopupMenuButton<String>(
               onSelected: (value) => _handleAction(value),
               itemBuilder: (context) => [
-                PopupMenuItem<String>(
-                  value: 'duplicate',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.copy, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Duplicate Card'),
-                    ],
+                if (MobilePermissionsService.to.isOwner ||
+                    MobilePermissionsService.to.can('jobcard:create'))
+                  PopupMenuItem<String>(
+                    value: 'duplicate',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.copy, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Duplicate Card'),
+                      ],
+                    ),
                   ),
-                ),
                 const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.delete, color: Colors.red, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Delete Card', style: TextStyle(color: Colors.red)),
-                    ],
+                if (MobilePermissionsService.to.isOwner ||
+                    MobilePermissionsService.to.can('jobcard:delete:all'))
+                  PopupMenuItem<String>(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete, color: Colors.red, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Delete Card', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
                   ),
-                ),
               ],
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
@@ -1311,6 +1316,8 @@ class _CardDetailPageState extends State<CardDetailPage> {
   }
 
   Widget _buildActionButtons() {
+    final canEdit = MobilePermissionsService.to.isOwner ||
+        MobilePermissionsService.to.can('jobcard:edit:all');
     return Row(
       children: [
         Expanded(
@@ -1327,7 +1334,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
         const SizedBox(width: 16),
         Expanded(
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _saveChanges,
+            onPressed: _isLoading || !canEdit ? null : _saveChanges,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,
@@ -1497,6 +1504,11 @@ class _CardDetailPageState extends State<CardDetailPage> {
   }
 
   Future<void> _saveChanges() async {
+    if (!(MobilePermissionsService.to.isOwner ||
+        MobilePermissionsService.to.can('jobcard:edit:all'))) {
+      Get.snackbar('Permission', 'You do not have permission to edit cards');
+      return;
+    }
     // Validate required fields
     if (_titleController.text.trim().isEmpty) {
       Get.snackbar(
@@ -1609,3 +1621,4 @@ class _CardDetailPageState extends State<CardDetailPage> {
     }
   }
 }
+

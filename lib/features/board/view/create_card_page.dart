@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -123,7 +124,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     await _loadLanesForBoard(_selectedBoard);
     
 
-    
+
+
     // Load users from current workspace
     await _loadWorkspaceUsers();
     
@@ -276,6 +278,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
   }
 
   Future<void> _saveCard() async {
+    if (!(MobilePermissionsService.to.isOwner ||
+        MobilePermissionsService.to.can('jobcard:create')))
+    {
+      _showError('You do not have permission to create cards');
+      return;
+    }
     // Validate required fields
     if (_titleController.text.trim().isEmpty) {
       _showError('Job Card Title is required');
@@ -1341,7 +1349,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
         const SizedBox(width: 16),
         Expanded(
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _saveCard,
+            onPressed: _isLoading ||
+                    !(MobilePermissionsService.to.isOwner ||
+                      MobilePermissionsService.to.can('jobcard:create'))
+                ? null
+                : _saveCard,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,

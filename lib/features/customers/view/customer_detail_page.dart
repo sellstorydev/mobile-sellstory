@@ -7,6 +7,7 @@ import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
 import 'add_edit_customer_page.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class CustomerDetailPage extends StatefulWidget {
   final Customer customer;
@@ -174,20 +175,23 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AddEditCustomerPage(
-                    customer: _currentCustomer,
-                    customerSources: _controller.customerSources,
+          PermissionGuard(
+            permission: 'customer:edit:all',
+            child: IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddEditCustomerPage(
+                      customer: _currentCustomer,
+                      customerSources: _controller.customerSources,
+                    ),
                   ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.edit),
-            tooltip: 'แก้ไขลูกค้า',
+                );
+              },
+              icon: const Icon(Icons.edit),
+              tooltip: 'แก้ไขลูกค้า',
+            ),
           ),
         ],
       ),
@@ -853,5 +857,4 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
     );
   }
 }
-
 

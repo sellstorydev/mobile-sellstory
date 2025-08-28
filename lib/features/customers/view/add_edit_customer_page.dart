@@ -11,6 +11,8 @@ import '../../../core/services/id_generation_service.dart';
 
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
+import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class AddEditCustomerPage extends StatefulWidget {
   final Customer? customer; // null for add, not null for edit
@@ -265,7 +267,10 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         elevation: 0,
         actions: [
           TextButton(
-            onPressed: _saveCustomer,
+            onPressed: () {
+              final needed = widget.customer != null ? 'customer:edit:all' : 'customer:create';
+              guardAction(context, needed, _saveCustomer);
+            },
             child: const Text(
               'บันทึก',
               style: TextStyle(
@@ -1012,12 +1017,23 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         // Close loading dialog
         Navigator.pop(context);
 
+        // If controller recorded an error (e.g., permission denied), show it and stop
+        if (controller.errorMessage.value.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(controller.errorMessage.value),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               widget.customer != null 
-                ? 'อัปเดตข้อมูลลูกค้าเรียบร้อยแล้ว' 
+                ? 'อั���เดตข้อมูลลูกค้าเรียบร้อยแล้ว'
                 : 'เพิ่มลูกค้าใหม่เรียบร้อยแล้ว'
             ),
             backgroundColor: Colors.green,

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/repositories/customer_repository.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/customer.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CustomersController extends GetxController {
   final CustomerRepository _customerRepository;
@@ -22,6 +23,9 @@ class CustomersController extends GetxController {
   final RxList<Map<String, dynamic>> userWorkspaces = <Map<String, dynamic>>[].obs;
 
   CustomersController(this._customerRepository);
+
+  bool _can(String permission) =>
+      MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can(permission);
 
   @override
   void onInit() {
@@ -167,6 +171,10 @@ class CustomersController extends GetxController {
 
   // Add new customer
   Future<void> addCustomer(String workspaceId, Customer customer) async {
+    if (!_can('customer:create')) {
+      errorMessage.value = 'Permission denied: customer:create';
+      return;
+    }
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -181,6 +189,10 @@ class CustomersController extends GetxController {
 
   // Update customer
   Future<void> updateCustomer(String workspaceId, Customer customer) async {
+    if (!_can('customer:edit:all')) {
+      errorMessage.value = 'Permission denied: customer:edit:all';
+      return;
+    }
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -195,6 +207,10 @@ class CustomersController extends GetxController {
 
   // Delete customer
   Future<void> deleteCustomer(String workspaceId, String customerId) async {
+    if (!_can('customer:delete')) {
+      errorMessage.value = 'Permission denied: customer:delete';
+      return;
+    }
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -228,5 +244,3 @@ class CustomersController extends GetxController {
     }
   }
 }
-
-

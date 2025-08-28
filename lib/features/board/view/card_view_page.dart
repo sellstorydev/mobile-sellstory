@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import 'card_detail_page.dart'; // For edit functionality
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CardViewPage extends StatefulWidget {
   final JobCard card;
@@ -222,39 +223,45 @@ class _CardViewPageState extends State<CardViewPage> {
           elevation: 0,
           actions: [
             // Edit button
-            IconButton(
-              onPressed: () {
-                Get.to(() => CardDetailPage(card: _currentCard));
-              },
-              icon: const Icon(Icons.edit),
-              tooltip: 'Edit Card',
-            ),
+            if (MobilePermissionsService.to.isOwner ||
+                MobilePermissionsService.to.can('jobcard:edit:all'))
+              IconButton(
+                onPressed: () {
+                  Get.to(() => CardDetailPage(card: _currentCard));
+                },
+                icon: const Icon(Icons.edit),
+                tooltip: 'Edit Card',
+              ),
             // Action menu
             PopupMenuButton<String>(
               onSelected: (value) => _handleAction(value),
               itemBuilder: (context) => [
-                PopupMenuItem<String>(
-                  value: 'duplicate',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.copy, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Duplicate Card'),
-                    ],
+                if (MobilePermissionsService.to.isOwner ||
+                    MobilePermissionsService.to.can('jobcard:create'))
+                  PopupMenuItem<String>(
+                    value: 'duplicate',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.copy, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Duplicate Card'),
+                      ],
+                    ),
                   ),
-                ),
                 const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.delete, color: Colors.red, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Delete Card', style: TextStyle(color: Colors.red)),
-                    ],
+                if (MobilePermissionsService.to.isOwner ||
+                    MobilePermissionsService.to.can('jobcard:delete:all'))
+                  PopupMenuItem<String>(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete, color: Colors.red, size: 20),
+                        const SizedBox(width: 12),
+                        const Text('Delete Card', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+               ],
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Icon(Icons.more_vert),
