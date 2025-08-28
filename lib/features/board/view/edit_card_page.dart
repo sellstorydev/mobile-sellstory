@@ -176,21 +176,9 @@ class _EditCardPageState extends State<EditCardPage> {
 
       print('🔄 Loading users for workspace: $workspaceId');
       
-      // Get users from the workspace
+      // Get users from the workspace - data is already properly formatted from repository
       final users = await _controller.getWorkspaceUsers(workspaceId);
-      // Map users and remove duplicates based on uid
-      final userMap = <String, Map<String, dynamic>>{};
-      for (final user in users) {
-        final uid = user['uid'] as String? ?? '';
-        if (uid.isNotEmpty && !userMap.containsKey(uid)) {
-          userMap[uid] = {
-            'id': uid,
-            'name': user['displayName'] ?? user['email'] ?? 'Unknown User',
-            'email': user['email'] ?? '',
-          };
-        }
-      }
-      _availableAssignees = userMap.values.toList();
+      _availableAssignees = users;
       
       print('✅ Loaded ${_availableAssignees.length} users for workspace');
       
