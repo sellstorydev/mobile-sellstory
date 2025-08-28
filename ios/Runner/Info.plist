@@ -34,7 +34,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>7</string>
+	<string>10</string>
 	<key>GIDClientID</key>
 	<string>489911602258-0pt2sm59lvef95pnkmge98bjkkfmg8v6.apps.googleusercontent.com</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -68,5 +68,33 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	
+	<!-- Google Sign-In Configuration -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>REVERSED_CLIENT_ID</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.489911602258-0pt2sm59lvef95pnkmge98bjkkfmg8v6</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>489911602258-0pt2sm59lvef95pnkmge98bjkkfmg8v6.apps.googleusercontent.com</string>
+	
+	<!-- Privacy - add camera and photo library usage descriptions -->
+	<key>NSCameraUsageDescription</key>
+	<string>ต้องการใช้กล้องเพื่อถ่ายรูปส่งในแชท</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ต้องการเข้าถึงรูปภาพเพื่อส่งในแชท</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>ต้องการบันทึกรูปภาพลงคลังรูปภาพของคุณ</string>
+
 </dict>
 </plist>
