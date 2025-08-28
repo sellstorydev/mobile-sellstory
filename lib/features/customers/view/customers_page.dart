@@ -5,6 +5,7 @@ import '../controller/customers_controller.dart';
 import '../widgets/customer_tile.dart';
 import 'customer_detail_page.dart';
 import 'add_edit_customer_page.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
@@ -43,19 +44,28 @@ class _CustomersPageState extends State<CustomersPage> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          // Search Bar
-          _buildSearchBar(),
-          
-          // Customer Count and Add Button
-          _buildHeaderSection(),
-          
-          // Customer List
-          Expanded(
-            child: _buildCustomerList(),
+      body: PermissionGuard(
+        permission: 'customer:view:all',
+        fallback: Center(
+          child: Text(
+            'คุณไม่มีสิทธิ์ดูรายชื่อลูกค้า',
+            style: const TextStyle(color: AppTheme.textSecondary),
           ),
-        ],
+        ),
+        child: Column(
+          children: [
+            // Search Bar
+            _buildSearchBar(),
+
+            // Customer Count and Add Button
+            _buildHeaderSection(),
+
+            // Customer List
+            Expanded(
+              child: _buildCustomerList(),
+            ),
+          ],
+        ),
       ),
 
     );
@@ -111,25 +121,30 @@ class _CustomersPageState extends State<CustomersPage> {
           )),
           const Spacer(),
           // Add Button
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AddEditCustomerPage(
-                    customerSources: _controller.customerSources,
-                  ),
+          PermissionGuard(
+            permission: 'customer:create',
+            child: ElevatedButton.icon(
+              onPressed: () {
+                guardAction(context, 'customer:create', () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddEditCustomerPage(
+                        customerSources: _controller.customerSources,
+                      ),
+                    ),
+                  );
+                });
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('เพิ่มลูกค้า'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              );
-            },
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('เพิ่มลูกค้า'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryOrange,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
               ),
             ),
           ),
@@ -214,7 +229,7 @@ class _CustomersPageState extends State<CustomersPage> {
               const SizedBox(height: 8),
               Text(
                 _searchController.text.isEmpty 
-                    ? 'เริ่มต้นเพิ่มลูกค้าคนแรกของคุณ'
+                    ? 'เริ่��ต้นเพิ่มลูกค้าคนแรกของคุณ'
                     : 'ลองค้นหาด้วยคำอื่น',
                 style: TextStyle(
                   fontSize: 14,

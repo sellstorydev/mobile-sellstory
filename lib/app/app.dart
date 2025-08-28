@@ -11,6 +11,7 @@ import '../core/i18n/app_translations.dart';
 import '../core/di/locator.dart';
 import 'routes.dart';
 import '../core/services/analytics_service.dart';
+import '../data/services/mobile_permissions_service.dart';
 
 class SellStoryApp extends StatelessWidget {
   const SellStoryApp({super.key});
@@ -58,6 +59,9 @@ class SellStoryApp extends StatelessWidget {
 
     // Firebase Auth service setup
     Get.put<FirebaseAuthService>(FirebaseAuthService(), permanent: true);
+
+    // Mobile permissions service
+    Get.put<MobilePermissionsService>(MobilePermissionsService(), permanent: true);
 
     // Analytics service setup
     // Get.put<AnalyticsService>(AnalyticsService(), permanent: true);

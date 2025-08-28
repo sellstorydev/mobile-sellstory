@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class JobCardPage extends StatelessWidget {
   const JobCardPage({super.key});
@@ -28,7 +29,37 @@ class JobCardPage extends StatelessWidget {
             Positioned(
               right: 16,
               bottom: 96,
-              child: _buildFloatingActionButton(),
+              child: PermissionGuard(
+                permission: 'jobcard:create',
+                hideIfUnauthorized: true,
+                child: Builder(
+                  builder: (context) => GestureDetector(
+                    onTap: () {
+                      guardAction(context, 'jobcard:create', () {
+                        // TODO: navigate to create jobcard
+                      });
+                    },
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: const BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x4CFB3327),
+                            blurRadius: 4,
+                            offset: Offset(0.75, 3),
+                          ),
+                        ],
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFFF3312), Color(0xFFFF6C0C)],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white, size: 24),
+                    ),
+                  ),
+                ),
+              ),
             ),
 
             // Main Content with Status Bar and Header

@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../controller/more_controller.dart';
 import '../../../app/routes.dart';
 import '../../board/controller/board_controller.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
@@ -120,6 +121,21 @@ class MorePage extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
+                    PermissionGuard(
+                      anyOf: const ['settings:board:manage'],
+                      child: _buildMenuItem(
+                        icon: Icons.dashboard_outlined,
+                        title: 'Operation บอร์ด',
+                        onTap: () {
+                          Get.snackbar(
+                            'Info',
+                            'Operation Board coming soon',
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        },
+                      ),
+                    ),
+                    _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.people_outline,
                       title: 'บริหารจัดการเซล',
@@ -161,6 +177,21 @@ class MorePage extends StatelessWidget {
                           );
                         }
                       },
+                    ),
+                    _buildDivider(),
+                    PermissionGuard(
+                      anyOf: const ['settings:catalog:manage'],
+                      child: _buildMenuItem(
+                        icon: Icons.tag_outlined,
+                        title: '# Hashtag Center',
+                        onTap: () {
+                          Get.snackbar(
+                            'Info',
+                            'Hashtag Center coming soon',
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        },
+                      ),
                     ),
                     _buildDivider(),
                     _buildMenuItem(
@@ -373,6 +404,19 @@ class MorePage extends StatelessWidget {
                           );
                         }
                       },
+                    PermissionGuard(
+                      anyOf: const ['settings:company:manage'],
+                      child: _buildMenuItem(
+                        icon: Icons.business_outlined,
+                        title: 'ตั้งค่าบริษัท',
+                        onTap: () {
+                          Get.snackbar(
+                            'Info',
+                            'Company Settings coming soon',
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        },
+                      ),
                     ),
                     _buildDivider(),
                     _buildMenuItem(

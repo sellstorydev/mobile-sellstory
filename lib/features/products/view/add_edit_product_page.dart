@@ -11,6 +11,7 @@ import '../../../core/services/hashtag_service.dart';
 import '../../../core/services/id_generation_service.dart';
 import '../../../domain/entities/product.dart';
 import '../controller/products_controller.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class AddEditProductPage extends StatefulWidget {
   final Product? product; // null for add, not null for edit
@@ -229,7 +230,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
 
         Get.snackbar(
           'สำเร็จ',
-          'อัปโหลดรูปภาพหลักเรียบร้อยแล้ว',
+          'อัปโหลดรูปภาพหลัก��รียบร้อยแล้ว',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -383,7 +384,10 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         elevation: 0,
         actions: [
           TextButton(
-            onPressed: _saveProduct,
+            onPressed: () {
+              final needed = widget.product != null ? 'product:edit:all' : 'product:create';
+              guardAction(context, needed, _saveProduct);
+            },
             child: const Text(
               'บันทึก',
               style: TextStyle(
@@ -471,7 +475,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
               const SizedBox(height: 16),
 
               // Barcode
-              _buildTextField('บาร์โค้ด', _barcodeController),
+              _buildTextField('บาร์โค���ด', _barcodeController),
               const SizedBox(height: 16),
 
               // Show in Online Catalog
@@ -536,7 +540,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
             items: [
               const DropdownMenuItem<String>(
                 value: '',
-                child: Text('ไม่ระบุหมวดหมู่'),
+                child: Text('ไม่ร���บุหมวดหมู่'),
               ),
               ..._availableCategories.map((category) {
                 return DropdownMenuItem<String>(
@@ -1205,16 +1209,27 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
           updatedAt: DateTime.now(),
         );
 
+        bool success;
         if (widget.product != null) {
           // Update existing product
-          await controller.updateProduct(workspaceId, product);
+          success = await controller.updateProduct(workspaceId, product);
         } else {
           // Add new product
-          await controller.addProduct(workspaceId, product);
+          success = await controller.addProduct(workspaceId, product);
         }
 
         // Close loading dialog
         Navigator.pop(context);
+
+        if (!success) {
+          final msg = controller.errorMessage.value.isNotEmpty
+              ? controller.errorMessage.value
+              : 'ไม่สามารถบันทึกสินค้าได้';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
+          return;
+        }
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(

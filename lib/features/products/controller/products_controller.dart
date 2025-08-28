@@ -4,6 +4,7 @@ import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/product.dart';
 import '../../../core/services/logger_service.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class ProductsController extends GetxController {
   final ProductRepository _repository = Get.find<ProductRepository>();
@@ -22,6 +23,9 @@ class ProductsController extends GetxController {
   // User and workspace data
   String _currentUserId = '';
   String _currentWorkspaceId = '';
+
+  bool _can(String permission) =>
+      MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can(permission);
 
   @override
   void onInit() {
@@ -145,6 +149,11 @@ class ProductsController extends GetxController {
 
   // Add a new product
   Future<bool> addProduct(String workspaceId, Product product) async {
+    if (!_can('product:create')) {
+      _logger.error('Permission denied: product:create');
+      errorMessage.value = 'Permission denied: product:create';
+      return false;
+    }
     try {
       _logger.methodEntry('ProductsController.addProduct', {
         'workspaceId': workspaceId,
@@ -171,6 +180,11 @@ class ProductsController extends GetxController {
 
   // Update an existing product
   Future<bool> updateProduct(String workspaceId, Product product) async {
+    if (!_can('product:edit:all')) {
+      _logger.error('Permission denied: product:edit:all');
+      errorMessage.value = 'Permission denied: product:edit:all';
+      return false;
+    }
     try {
       _logger.methodEntry('ProductsController.updateProduct', {
         'workspaceId': workspaceId,
@@ -222,6 +236,11 @@ class ProductsController extends GetxController {
 
   // Delete a product
   Future<bool> deleteProduct(String workspaceId, String productId) async {
+    if (!_can('product:delete')) {
+      _logger.error('Permission denied: product:delete');
+      errorMessage.value = 'Permission denied: product:delete';
+      return false;
+    }
     try {
       _logger.methodEntry('ProductsController.deleteProduct', {
         'workspaceId': workspaceId,
