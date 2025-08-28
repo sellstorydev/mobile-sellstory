@@ -404,6 +404,8 @@ class MorePage extends StatelessWidget {
                           );
                         }
                       },
+                    ),
+                    _buildDivider(),
                     PermissionGuard(
                       anyOf: const ['settings:company:manage'],
                       child: _buildMenuItem(
