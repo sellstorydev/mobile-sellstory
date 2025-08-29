@@ -847,20 +847,13 @@ class _BoardPageState extends State<BoardPage> {
         MobilePermissionsService.to.can('jobcard:create');
     if (!canCreate) return const SizedBox.shrink();
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+
       child: InkWell(
         onTap: () => _navigateToCreateCardWithLane(lane),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: Colors.grey[300]!,
-              width: 1,
-            ),
-          ),
+
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
