@@ -129,59 +129,92 @@ class _BoardPageState extends State<BoardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: Colors.black87,
         title: Obx(() {
           if (_controller.hasWorkspaces) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _controller.currentWorkspaceName.value.isNotEmpty 
-                    ? _controller.currentWorkspaceName.value 
-                    : 'Board',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            return GestureDetector(
+              onTap: _showWorkspaceBoardSelector,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
                 ),
-                if (_controller.currentBoardName.value.isNotEmpty)
-                  Text(
-                    _controller.currentBoardName.value,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-              ],
+                child: Row(
+                  children: [
+                    // Icon with app icon
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Image.asset(
+                        'assets/app_icon_original.png',
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Text content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _controller.currentWorkspaceName.value.isNotEmpty 
+                              ? _controller.currentWorkspaceName.value 
+                              : 'My Workspace1',
+                            style: const TextStyle(
+                              fontSize: 16, 
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          if (_controller.currentBoardName.value.isNotEmpty)
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF6B35),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _controller.currentBoardName.value,
+                                  style: TextStyle(
+                                    fontSize: 12, 
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: Colors.grey[600]!,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           }
           return const Text('Board');
         }),
         actions: [
-          // Unified Filter Button
-          Obx(() {
-            if (_controller.hasWorkspaces) {
-              final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
-                                  _controller.selectedCustomers.isNotEmpty ||
-                                  _controller.selectedDateFilterType.value.isNotEmpty;
 
-              return IconButton(
-                onPressed: () => _showUnifiedFilterPage(),
-                icon: Icon(
-                  hasAnyFilter ? Icons.filter_alt : Icons.filter_alt_outlined,
-                  color: hasAnyFilter ? Colors.blue[600] : null,
-                ),
-                tooltip: hasAnyFilter ? 'Active Filters' : 'Filter Jobs',
-              );
-            }
-            return const SizedBox.shrink();
-          }),
           
-          // Search Button
-          Obx(() {
-            if (_controller.hasWorkspaces) {
-              return IconButton(
-                onPressed: () => _showSearchDialog(),
-                icon: Icon(_controller.isSearching.value ? Icons.search_off : Icons.search),
-                tooltip: _controller.isSearching.value ? 'Clear Search' : 'Search',
-              );
-            }
-            return const SizedBox.shrink();
-          }),
+
 
           // Notifications Button
           Obx(() {
@@ -314,31 +347,111 @@ class _BoardPageState extends State<BoardPage> {
       ),
       body: Column(
         children: [
-          // Search Indicator
+
+          
+          // Search and Filter Section
           Obx(() {
-            if (_controller.isSearching.value && _controller.searchQuery.value.isNotEmpty) {
+            if (_controller.hasWorkspaces) {
               return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: Colors.blue[50],
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
                   children: [
-                    Icon(Icons.search, color: Colors.blue[600], size: 16),
-                    const SizedBox(width: 8),
+                    // Search Bar
                     Expanded(
-                      child: Text(
-                        'ค้นหา: "${_controller.searchQuery.value}"',
-                        style: TextStyle(
-                          color: Colors.blue[800],
-                          fontWeight: FontWeight.w500,
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: TextField(
+                          controller: TextEditingController(text: _controller.searchQuery.value),
+                          onChanged: _controller.updateSearchQuery,
+                          textAlign: TextAlign.left,
+                          textDirection: TextDirection.ltr,
+                          decoration: InputDecoration(
+                            hintText: 'รหัส Job Card ชื่อ-นามสกุล ลูกค้าและเซล',
+                            hintStyle: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 14,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            suffixIcon: Obx(() {
+                              if (_controller.searchQuery.value.isNotEmpty) {
+                                return GestureDetector(
+                                  onTap: () {
+                                    _controller.updateSearchQuery('');
+                                  },
+                                  child: Icon(
+                                    Icons.close,
+                                    color: Colors.grey[500],
+                                    size: 20,
+                                  ),
+                                );
+                              } else {
+                                return Icon(
+                                  Icons.search,
+                                  color: Colors.grey[500],
+                                  size: 20,
+                                );
+                              }
+                            }),
+                          ),
                         ),
                       ),
                     ),
-                    TextButton(
-                      onPressed: () => _controller.clearSearch(),
-                      child: Text(
-                        'ล้าง',
-                        style: TextStyle(color: Colors.blue[600]),
+                    
+                    const SizedBox(width: 12),
+                    
+                    // Filter Button
+                    GestureDetector(
+                      onTap: _showUnifiedFilterPage,
+                      child: Container(
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Check if screen width is mobile (less than 600px)
+                            final isMobile = MediaQuery.of(context).size.width < 600;
+                            
+                            if (isMobile) {
+                              // Mobile: show only icon
+                              return Icon(
+                                Icons.filter_list,
+                                color: Colors.grey[600],
+                                size: 20,
+                              );
+                            } else {
+                              // Desktop/Tablet: show icon + text
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.filter_list,
+                                    color: Colors.grey[600],
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'ตัวกรอง',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                          },
+                        ),
                       ),
                     ),
                   ],
@@ -348,90 +461,6 @@ class _BoardPageState extends State<BoardPage> {
             return const SizedBox.shrink();
           }),
           
-          // Unified Filter Indicator
-          Obx(() {
-            final hasCustomerFilter = _controller.selectedCustomers.isNotEmpty;
-            final hasAssigneeFilter = _controller.selectedAssignees.isNotEmpty;
-            final hasHashtagFilter = _controller.selectedHashtags.isNotEmpty;
-            final hasDateFilter = _controller.selectedDateFilterType.value.isNotEmpty;
-            
-            if (hasCustomerFilter || hasAssigneeFilter || hasHashtagFilter || hasDateFilter) {
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: Colors.blue[50],
-                child: Row(
-                  children: [
-                    Icon(Icons.filter_alt, color: Colors.blue[600], size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (hasDateFilter) ...[
-                            Text(
-                              'วันที่: ${_controller.selectedDateFilterType.value}',
-                              style: TextStyle(
-                                color: Colors.blue[800],
-                                fontWeight: FontWeight.w500,
-                                fontSize: 12,
-                              ),
-                            ),
-                            if (_controller.selectedStartDate.value != null || _controller.selectedEndDate.value != null)
-                              Text(
-                                '${_controller.selectedStartDate.value != null ? _formatDate(_controller.selectedStartDate.value!) : ''} - ${_controller.selectedEndDate.value != null ? _formatDate(_controller.selectedEndDate.value!) : ''}',
-                                style: TextStyle(
-                                  color: Colors.blue[600],
-                                  fontSize: 11,
-                                ),
-                              ),
-                          ],
-                          if (hasAssigneeFilter) ...[
-                            Text(
-                              'ผู้รับผิดชอบ: ${_controller.selectedAssignees.map((uid) => _controller.getDisplayNameFromUid(uid)).join(', ')}',
-                              style: TextStyle(
-                                color: Colors.blue[800],
-                                fontWeight: FontWeight.w500,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                          if (hasCustomerFilter) ...[
-                            Text(
-                              'ลูกค้า: ${_controller.selectedCustomers.join(', ')}',
-                              style: TextStyle(
-                                color: Colors.blue[800],
-                                fontWeight: FontWeight.w500,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                          if (hasHashtagFilter) ...[
-                            Text(
-                              'แฮชแท็ก: ${_controller.selectedHashtags.map((tag) => '#$tag').join(', ')}',
-                              style: TextStyle(
-                                color: Colors.blue[800],
-                                fontWeight: FontWeight.w500,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => _controller.clearFilter(),
-                      child: Text(
-                        'ล้างทั้งหมด',
-                        style: TextStyle(color: Colors.blue[600]),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
           // Status Summary Cards
           Obx(() {
             if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
@@ -445,7 +474,13 @@ class _BoardPageState extends State<BoardPage> {
               final allCards = displayLanes
                   .expand((lane) => lane.cards)
                   .toList();
-              return StatusSummaryCards(cards: allCards);
+              return SizedBox(
+                height: 65,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: StatusSummaryCards(cards: allCards),
+                ),
+              );
             }
             return const SizedBox.shrink();
           }),
@@ -724,10 +759,15 @@ class _BoardPageState extends State<BoardPage> {
         listWidth: 300,
         listPadding: const EdgeInsets.all(8),
         listDragHandle: null, // Disable lane drag handle
+
         children: displayLanes.map((lane) {
           final laneData = lane;
           return DragAndDropList(
             header: _buildLaneHeader(laneData),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9F9F9),
+              borderRadius: BorderRadius.circular(8),
+            ),
             children: [
               ...laneData.cards.map((card) {
                 return DragAndDropItem(
@@ -739,6 +779,7 @@ class _BoardPageState extends State<BoardPage> {
                 child: _buildAddCardButton(laneData),
               ),
             ],
+
           );
         }).toList(),
       ),
@@ -1323,6 +1364,282 @@ class _BoardPageState extends State<BoardPage> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _showWorkspaceBoardSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Current Workspace Section
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: const BoxDecoration(color: Color(0xFFD9D9D9)),
+                        child: Image.asset(
+                          'assets/app_icon_original.png',
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Workspace ปัจจุบัน',
+                              style: TextStyle(
+                                color: Color(0xFFFF6C0C),
+                                fontSize: 12,
+                                fontFamily: 'Prompt',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Text(
+                              'My Workspace1',
+                              style: TextStyle(
+                                color: Color(0xFF4D4D4D),
+                                fontSize: 16,
+                                fontFamily: 'Prompt',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.settings, color: Colors.grey[400], size: 20),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Current Boards Section
+                const Text(
+                  'บอร์ดปัจจุบัน',
+                  style: TextStyle(
+                    color: Color(0xFFFF6C0C),
+                    fontSize: 12,
+                    fontFamily: 'Prompt',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                
+                _buildBoardItemSimple('ชื่อบอร์ด 1', 'Job Card ของคุณ 23 ใบ', const Color(0xFFFAB73F)),
+                _buildBoardItemSimple('ชื่อบอร์ดดดดดด 2', 'Job Card ของคุณ 2,288 ใบ', const Color(0xFF049BE5)),
+                _buildBoardItemSimple('Board Nameee', 'Job Card ของคุณ 589 ใบ', const Color(0xFF68B82B)),
+                
+                const SizedBox(height: 24),
+                
+                // Your Workspaces Section
+                const Text(
+                  'Workspace ของคุณ',
+                  style: TextStyle(
+                    color: Color(0xFFB3B3B3),
+                    fontSize: 12,
+                    fontFamily: 'Prompt',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                
+                _buildWorkspaceItemSimple('My Workspace 2', 'Job Board ของคุณ 599 บอร์ด', false),
+                _buildWorkspaceItemSimple('My Workspace 3', 'Job Board ของคุณ 1 บอร์ด', true),
+                
+                // Boards under My Workspace 3
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.only(left: 24),
+                  child: const Text(
+                    'บอร์ดของคุณ',
+                    style: TextStyle(
+                      color: Color(0xFFB3B3B3),
+                      fontSize: 12,
+                      fontFamily: 'Prompt',
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildBoardItemSimple('Test', '', const Color(0xFF44B87B)),
+                
+                const SizedBox(height: 24),
+                
+                // Create Workspace Button
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFF6C0C)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF6C0C),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.add, color: Colors.white, size: 12),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'สร้าง Workspace',
+                        style: TextStyle(
+                          color: Color(0xFFFF6C0C),
+                          fontSize: 14,
+                          fontFamily: 'Prompt',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 40), // Extra space for scrolling
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBoardItemSimple(String title, String subtitle, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF4D4D4D),
+                    fontSize: 16,
+                    fontFamily: 'Prompt',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFF999999),
+                      fontSize: 14,
+                      fontFamily: 'Prompt',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Icon(Icons.settings, color: Colors.grey[400], size: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkspaceItemSimple(String title, String subtitle, bool isExpanded) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+            color: Colors.grey[500],
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF4D4D4D),
+                    fontSize: 16,
+                    fontFamily: 'Prompt',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Color(0xFF999999),
+                    fontSize: 14,
+                    fontFamily: 'Prompt',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.settings, color: Colors.grey[400], size: 20),
+        ],
+      ),
+    );
   }
 
 

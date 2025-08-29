@@ -161,3 +161,154 @@ GET /api/mobile/settings/notifications?userId=ABC123XYZ&workspaceId=WKS456PQR
   "webviewUrl": "https://workspace.sellstory.me/settings/notifications?token=[CUSTOM_AUTH_TOKEN]&workspaceId=WKS456PQR"
 }
 ```
+---
+
+## Get Welcome Message Settings Webview URL
+
+This endpoint generates a secure, single-use URL for the Welcome Message Settings page.
+
+### Endpoint
+
+```
+GET /api/mobile/settings/welcome-messages
+```
+
+### Query Parameters
+Same as other endpoints (`userId`, `workspaceId`).
+
+### Example Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "webviewUrl": "https://workspace.sellstory.me/settings/welcome-messages?token=[CUSTOM_AUTH_TOKEN]&workspaceId=WKS456PQR"
+}
+```
+---
+
+## Get Chatbot Settings Webview URL
+
+This endpoint generates a secure, single-use URL for the Chatbot Settings page.
+
+### Endpoint
+
+```
+GET /api/mobile/settings/chatbot
+```
+
+### Query Parameters
+Same as other endpoints (`userId`, `workspaceId`).
+
+### Example Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "webviewUrl": "https://workspace.sellstory.me/settings/chatbot?token=[CUSTOM_AUTH_TOKEN]&workspaceId=WKS456PQR"
+}
+```
+---
+## Get ID Generation Rules Webview URL
+
+This endpoint generates a secure, single-use URL for the ID Generation Rules page.
+
+### Endpoint
+
+```
+GET /api/mobile/settings/id-rules
+```
+### Query Parameters
+Same as other endpoints (`userId`, `workspaceId`).
+
+### Example Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "webviewUrl": "https://workspace.sellstory.me/settings/id-rules?token=[CUSTOM_AUTH_TOKEN]&workspaceId=WKS456PQR"
+}
+```
+---
+## Get Roles & Permissions Webview URL
+
+This endpoint generates a secure, single-use URL for the Roles & Permissions page.
+
+### Endpoint
+
+```
+GET /api/mobile/settings/roles
+```
+### Query Parameters
+Same as other endpoints (`userId`, `workspaceId`).
+
+### Example Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "webviewUrl": "https://workspace.sellstory.me/settings/roles?token=[CUSTOM_AUTH_TOKEN]&workspaceId=WKS456PQR"
+}
+```
+---
+## Get Approval Conditions Webview URL
+
+This endpoint generates a secure, single-use URL for the Approval Conditions page.
+
+### Endpoint
+
+```
+GET /api/mobile/settings/approvals
+```
+### Query Parameters
+Same as other endpoints (`userId`, `workspaceId`).
+
+### Example Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "webviewUrl": "https://workspace.sellstory.me/settings/approvals?token=[CUSTOM_AUTH_TOKEN]&workspaceId=WKS456PQR"
+}
+```
+---
+## Get Document Settings Webview URL
+
+This endpoint generates a secure, single-use URL for the Document Settings page.
+
+### Endpoint
+
+```
+GET /api/mobile/settings/documents
+```
+### Query Parameters
+Same as other endpoints (`userId`, `workspaceId`).
+
+### Example Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "webviewUrl": "https://workspace.sellstory.me/settings/documents?token=[CUSTOM_AUTH_TOKEN]&workspaceId=WKS456PQR"
+}
+```
+---
+## Get Catalog Settings Webview URL
+
+This endpoint generates a secure, single-use URL for the Public Catalog Settings page.
+
+### Endpoint
+
+```
+GET /api/mobile/settings/catalog
+```
+### Query Parameters
+Same as other endpoints (`userId`, `workspaceId`).
+
+### Example Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "webviewUrl": "https://workspace.sellstory.me/settings/catalog?token=[CUSTOM_AUTH_TOKEN]&workspaceId=WKS456PQR"
+}
+```

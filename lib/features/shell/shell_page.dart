@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
 import '../board/view/board_page.dart';
-import '../orders/view/orders_page.dart';
+import '../document/view/document_center_page.dart';
 import '../customers/view/customers_page.dart';
 import '../products/view/products_page.dart';
 import '../more/view/more_page.dart';
@@ -24,7 +24,7 @@ class ShellPage extends StatelessWidget {
           index: controller.currentIndex.value,
           children: const [
             BoardPage(),
-            OrdersPage(),
+            DocumentCenterPage(),
             CustomersPage(),
             ProductsPage(),
             MorePage(),
@@ -59,8 +59,8 @@ class ShellPage extends StatelessWidget {
                 _buildNavItem(
                   index: 1,
                   currentIndex: controller.currentIndex.value,
-                  icon: _buildSvgIcon('assets/icons/icon-doc.svg', controller.currentIndex.value == 1),
-                  label: 'คำสั่งซื้อ',
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: 'เอกสาร',
                   onTap: () => controller.onTabTapped(1),
                 ),
                 _buildNavItem(

@@ -109,6 +109,9 @@ void main() async {
   //LoggerService.to.success('Application initialization completed');
   
   runApp(
-      const SellStoryApp()
+    DevicePreview(
+      enabled: true, // Enable device preview
+      builder: (context) => const SellStoryApp(),
+    ),
   );
 }

@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart'; // Add this import
+import '../network/api_client.dart'; // เพิ่มการ import ApiClient
 import '../services/logger_service.dart';
 import '../services/id_generation_service.dart';
 import '../services/workspace_members_service.dart';
@@ -11,6 +12,7 @@ import '../../data/repositories/product_repository.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/chat_service.dart'; // เพิ่มการ import ChatService
 import '../../data/services/upload_service.dart'; // เพิ่มการ import UploadService
+import '../../data/services/webview_api_service.dart'; // เพิ่มการ import WebviewApiService
 import '../../domain/usecases/add_card_usecase.dart';
 import '../../domain/usecases/add_lane_usecase.dart';
 import '../../domain/usecases/move_card_usecase.dart';
@@ -48,6 +50,10 @@ class Locator {
       () => UploadService(),
       fenix: true,
     ); // เพิ่ม UploadService
+    Get.lazyPut<WebviewApiService>(
+      () => WebviewApiService(Get.find<ApiClient>()),
+      fenix: true,
+    ); // เพิ่ม WebviewApiService
 
     // Repositories
     Get.lazyPut<JobCardRepository>(

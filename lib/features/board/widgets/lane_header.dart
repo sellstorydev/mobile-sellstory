@@ -19,7 +19,7 @@ class LaneHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16, vertical: AppTheme.spacing12),
       decoration: const BoxDecoration(
-        color: AppTheme.backgroundWhite,
+        color: Color(0xFFF9F9F9),
         borderRadius: BorderRadius.zero, // เอา border radius ออกให้ชนขอบจอ
         boxShadow: [
           BoxShadow(
