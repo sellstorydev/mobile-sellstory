@@ -17,24 +17,15 @@ class LaneHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16, vertical: AppTheme.spacing12),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.zero, // เอา border radius ออกให้ชนขอบจอ
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.shadowColor,
-            blurRadius: AppTheme.spacing4,
-            offset: Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
-        border: Border(
-          bottom: BorderSide(
-            color: AppTheme.borderGrey,
-            width: 1,
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing12,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F9F9),
+        borderRadius: BorderRadius.circular(
+          8,
+        ), // เอา border radius ออกให้ชนขอบจอ
       ),
       child: Row(
         children: [
@@ -50,9 +41,9 @@ class LaneHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          
+
           Container(width: 4),
-          
+
           // Card count badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -69,9 +60,9 @@ class LaneHeader extends StatelessWidget {
               ),
             ),
           ),
-          
+
           Container(width: 6),
-          
+
           // Total amount (pricePerUnit)
           Expanded(
             flex: 1,
@@ -86,9 +77,9 @@ class LaneHeader extends StatelessWidget {
               textAlign: TextAlign.end,
             ),
           ),
-          
+
           Container(width: AppTheme.spacing8),
-          
+
           // Create card button - REMOVED as per user request
           // if (onCreateCard != null)
           //   GestureDetector(
@@ -106,9 +97,8 @@ class LaneHeader extends StatelessWidget {
           //       ),
           //     ),
           //   ),
-          
           Container(width: 4),
-          
+
           // Menu button
           if (onMenuTap != null)
             GestureDetector(
