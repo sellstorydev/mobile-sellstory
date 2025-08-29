@@ -159,19 +159,21 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   void _showTopSnack(String message, {bool isError = false}) {
+
     // Dismiss existing to avoid stacking many
     try { Get.closeAllSnackbars(); } catch (_) {}
+
     Get.snackbar(
       isError ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน',
+      margin: const EdgeInsets.all(12),
       message,
       snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(12),
-      borderRadius: 12,
-      backgroundColor: isError ? Colors.redAccent : Colors.black87,
-      colorText: Colors.white,
-      icon: Icon(isError ? Icons.error_outline : Icons.check_circle, color: Colors.white),
       duration: const Duration(seconds: 2),
+      icon: Icon(isError ? Icons.error_outline : Icons.check_circle, color: Colors.white),
+
     );
+
+
   }
 
   Future<void> _loadCustomerNameById(String cid) async {

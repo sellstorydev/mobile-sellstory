@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:async';
 import '../../../data/services/chat_service.dart';
@@ -12,6 +13,7 @@ import '../widgets/chat_input.dart';
 import '../widgets/show_bottom_modal.dart';
 import '../../../data/services/firestore_service.dart';
 import '../widgets/user_picker_sheet.dart';
+import '../../../core/widgets/top_snack.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -153,15 +155,13 @@ class _ChatScreenState extends State<ChatScreen> {
       } catch (_) {}
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
-        );
+        _showSuccessSnackBar("ผูกเซลเรียบร้อย");
+
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ผูกเซลไม���สำเร็จ: $e')),
-        );
+        _showErrorSnackBar("ผูกเซลไม่สำเร็จ");
+
       }
     }
   }
@@ -322,7 +322,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // เพิ่มฟังก์ชันส่งข้อความประเภทอื่นๆ
+  // เพิ่มฟังก์��ันส่งข้อความประเภทอื่นๆ
   Future<void> _sendVideoMessage(String videoUrl) async {
     _isLoading = true;
     _error = null;
@@ -393,14 +393,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
 
+    TopSnack.error(message);
+  }
+  void _showSuccessSnackBar(String message) {
+
+    TopSnack.success(message);
   }
 
   void _recomputeMatches(List<QueryDocumentSnapshot> docs) {
@@ -495,7 +493,7 @@ class _ChatScreenState extends State<ChatScreen> {
       await _chatService.getChatroomsCollection(widget.workspaceId)
           .doc(widget.conversationId)
           .update({'chatroom_status': map[status]});
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('อัปเดตสถานะแล้ว')));
+      _showSuccessSnackBar("อัปเดตสถานะแล้ว");
       // setState(() {});
     } catch (e) {
       _showErrorSnackBar('อัปเดตสถานะไม่สำเร็จ: $e');
@@ -514,20 +512,22 @@ class _ChatScreenState extends State<ChatScreen> {
         'chat_pin': pinned ? 'Y' : 'N',
         'bot_status': currentBot ? 'Y' : 'N',
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว')));
+      _showSuccessSnackBar(pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว');
     } catch (e) {
       _showErrorSnackBar('อัปเดตปักหมุดไม่สำเร็จ: $e');
     }
   }
-
+  void _showTopSnack(String message, {bool isError = false, String? title}) {
+    // Delegate to centralized TopSnack helper for consistent UI
+    TopSnack.show(message, isError: isError, title: title);
+  }
   Future<void> _updateBotStatus(bool enabled) async {
     try {
       await _chatService.getChatroomsCollection(widget.workspaceId)
           .doc(widget.conversationId)
           .update({'bot_status': enabled ? 'Y' : 'N'});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(enabled ? 'เปิดโหมดตอบกลับอัตโนมัติ' : 'ปิดโหมดตอบกลับอัตโนมัติ')),
-      );
+      _showTopSnack(enabled ? 'เปิดโหมดตอบกลับอัตโนมัติ' : 'ปิดโหมดตอบกลับอัตโนมัติ');
+
     } catch (e) {
       _showErrorSnackBar('อัปเดตตอบกลับอัตโนมัติไม่สำเร็จ: $e');
     }
@@ -556,10 +556,11 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _chatroomNameState = data['name'] ?? data['who_name'] ?? 'แชท';
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('โหลดข้อมูลห้องแชทใหม่แล้ว')));
+        _showSuccessSnackBar("โหลดข้อมูลห้องแชทใหม่แล้ว");
+
       }
     } catch (e) {
-      _showErrorSnackBar('ดึงข้อมูลไม่สำเร็จ: $e');
+      _showErrorSnackBar('ดึงข้อมูลไม่สำเ��็จ: $e');
     }
   }
 
@@ -774,6 +775,7 @@ class _ChatScreenState extends State<ChatScreen> {
               }
             }
 
+
             // Prefer state-loaded names, fallback to any carried list on the map
             final List<String>? headerAssignees = _assigneeNames ?? (() {
               final raw = widget.conversationData['assigneeNames'];
@@ -931,7 +933,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         icon: const Icon(Icons.keyboard_arrow_up),
                       ),
                       IconButton(
-                        tooltip: 'ถัดไป',
+                        tooltip: 'ถัด���ป',
                         onPressed: _matchedIds.isEmpty ? null : _gotoNextMatch,
                         icon: const Icon(Icons.keyboard_arrow_down),
                       ),

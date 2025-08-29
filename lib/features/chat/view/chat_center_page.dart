@@ -37,14 +37,12 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     try { Get.closeAllSnackbars(); } catch (_) {}
     Get.snackbar(
       isError ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน',
-      message,
-      snackPosition: SnackPosition.TOP,
       margin: const EdgeInsets.all(12),
-      borderRadius: 12,
-      backgroundColor: isError ? Colors.redAccent : Colors.black87,
-      colorText: Colors.white,
-      icon: Icon(isError ? Icons.error_outline : Icons.check_circle, color: Colors.white),
+      'Sales Management coming soon',
+      snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 2),
+      icon: Icon(isError ? Icons.error_outline : Icons.check_circle, color: Colors.white),
+
     );
   }
 
