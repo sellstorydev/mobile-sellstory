@@ -10,6 +10,7 @@ class AssigneesInputField extends StatefulWidget {
   final String hintText;
   final bool isLoading;
   final bool allowMultipleSelection;
+  final bool showBorder;
 
   const AssigneesInputField({
     super.key,
@@ -20,6 +21,7 @@ class AssigneesInputField extends StatefulWidget {
     this.hintText = 'เลือกเซลที่รับผิดชอบ',
     this.isLoading = false,
     this.allowMultipleSelection = true,
+    this.showBorder = true,
   });
 
   @override
@@ -49,9 +51,15 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
       _isSearching = _searchController.text.isNotEmpty;
       if (_isSearching) {
         _filteredMembers = widget.availableMembers
-            .where((member) =>
-                member.displayName.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-                member.email.toLowerCase().contains(_searchController.text.toLowerCase()))
+            .where(
+              (member) =>
+                  member.displayName.toLowerCase().contains(
+                    _searchController.text.toLowerCase(),
+                  ) ||
+                  member.email.toLowerCase().contains(
+                    _searchController.text.toLowerCase(),
+                  ),
+            )
             .toList();
       } else {
         _filteredMembers = List.from(widget.availableMembers);
@@ -62,25 +70,29 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+      padding: widget.showBorder ? const EdgeInsets.all(16) : null,
+      decoration: widget.showBorder
+          ? BoxDecoration(
+              color: AppTheme.backgroundWhite,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            widget.label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.textSecondary,
+          if (widget.showBorder)
+            Text(
+              widget.label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
             ),
-          ),
+
           const SizedBox(height: 8),
-          
+
           if (widget.isLoading)
             const Center(
               child: Padding(
@@ -110,7 +122,10 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
                 InkWell(
                   onTap: _showAssigneesFullPage,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade400),
                       borderRadius: BorderRadius.circular(8),
@@ -133,7 +148,9 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          widget.allowMultipleSelection ? 'เลือกสมาชิก' : 'เลือกสมาชิก',
+                          widget.allowMultipleSelection
+                              ? 'เลือกผู้รับผิดชอบ'
+                              : 'เลือกผู้รับผิดชอบ',
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 14,
@@ -149,14 +166,14 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                                 // Selected assignees display
-                 if (widget.selectedAssignees.isNotEmpty) ...[
-                   Wrap(
-                     alignment: WrapAlignment.start,
-                     crossAxisAlignment: WrapCrossAlignment.start,
-                     spacing: 8,
-                     runSpacing: 4,
-                     children: widget.selectedAssignees.map((assigneeId) {
+                // Selected assignees display
+                if (widget.selectedAssignees.isNotEmpty) ...[
+                  Wrap(
+                    alignment: WrapAlignment.start,
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: widget.selectedAssignees.map((assigneeId) {
                       final member = widget.availableMembers.firstWhere(
                         (m) => m.uid == assigneeId,
                         orElse: () => WorkspaceMember(
@@ -166,9 +183,12 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
                           permission: 'member',
                         ),
                       );
-                      
+
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryOrange.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -186,43 +206,55 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: member.photoURL != null && member.photoURL!.isNotEmpty
+                              child:
+                                  member.photoURL != null &&
+                                      member.photoURL!.isNotEmpty
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.network(
                                         member.photoURL!,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Container(
-                                            decoration: BoxDecoration(
-                                              color: AppTheme.primaryOrange.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                member.displayName.isNotEmpty 
-                                                    ? member.displayName[0].toUpperCase()
-                                                    : '?',
-                                                style: const TextStyle(
-                                                  fontSize: 8,
-                                                  color: AppTheme.primaryOrange,
-                                                  fontWeight: FontWeight.bold,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Container(
+                                                decoration: BoxDecoration(
+                                                  color: AppTheme.primaryOrange
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
-                                              ),
-                                            ),
-                                          );
-                                        },
+                                                child: Center(
+                                                  child: Text(
+                                                    member
+                                                            .displayName
+                                                            .isNotEmpty
+                                                        ? member.displayName[0]
+                                                              .toUpperCase()
+                                                        : '?',
+                                                    style: const TextStyle(
+                                                      fontSize: 8,
+                                                      color: AppTheme
+                                                          .primaryOrange,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                       ),
                                     )
                                   : Container(
                                       decoration: BoxDecoration(
-                                        color: AppTheme.primaryOrange.withOpacity(0.1),
+                                        color: AppTheme.primaryOrange
+                                            .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Center(
                                         child: Text(
-                                          member.displayName.isNotEmpty 
-                                              ? member.displayName[0].toUpperCase()
+                                          member.displayName.isNotEmpty
+                                              ? member.displayName[0]
+                                                    .toUpperCase()
                                               : '?',
                                           style: const TextStyle(
                                             fontSize: 8,
@@ -245,8 +277,9 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
                             const SizedBox(width: 4),
                             GestureDetector(
                               onTap: () {
-                                final newAssignees = List<String>.from(widget.selectedAssignees)
-                                  ..remove(assigneeId);
+                                final newAssignees = List<String>.from(
+                                  widget.selectedAssignees,
+                                )..remove(assigneeId);
                                 widget.onAssigneesChanged(newAssignees);
                               },
                               child: Icon(
@@ -328,9 +361,15 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
       _isSearching = _searchController.text.isNotEmpty;
       if (_isSearching) {
         _filteredMembers = widget.availableMembers
-            .where((member) =>
-                member.displayName.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-                member.email.toLowerCase().contains(_searchController.text.toLowerCase()))
+            .where(
+              (member) =>
+                  member.displayName.toLowerCase().contains(
+                    _searchController.text.toLowerCase(),
+                  ) ||
+                  member.email.toLowerCase().contains(
+                    _searchController.text.toLowerCase(),
+                  ),
+            )
             .toList();
       } else {
         _filteredMembers = List.from(widget.availableMembers);
@@ -377,27 +416,18 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: AppTheme.backgroundWhite,
-        foregroundColor: AppTheme.textPrimary,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back),
-        ),
         actions: [
-          if (_tempSelectedAssignees.isNotEmpty)
-            TextButton(
-              onPressed: _clearSelection,
-              child: const Text(
-                'ล้าง',
-                style: TextStyle(
-                  color: AppTheme.primaryOrange,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+          TextButton(
+            onPressed: _clearSelection,
+            child: const Text(
+              'ล้าง',
+              style: TextStyle(
+                color: AppTheme.primaryOrange,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
             ),
+          ),
         ],
       ),
       body: Column(
@@ -408,10 +438,7 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border(
-                bottom: BorderSide(
-                  color: Colors.grey.shade200,
-                  width: 1,
-                ),
+                bottom: BorderSide(color: Colors.grey.shade200, width: 1),
               ),
             ),
             child: TextField(
@@ -501,7 +528,9 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
                     itemCount: _filteredMembers.length,
                     itemBuilder: (context, index) {
                       final member = _filteredMembers[index];
-                      final isSelected = _tempSelectedAssignees.contains(member.uid);
+                      final isSelected = _tempSelectedAssignees.contains(
+                        member.uid,
+                      );
 
                       return Container(
                         margin: const EdgeInsets.symmetric(
@@ -526,13 +555,19 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
                             vertical: 8,
                           ),
                           leading: CircleAvatar(
-                            backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-                            backgroundImage: member.photoURL != null && member.photoURL!.isNotEmpty
+                            backgroundColor: AppTheme.primaryOrange.withOpacity(
+                              0.1,
+                            ),
+                            backgroundImage:
+                                member.photoURL != null &&
+                                    member.photoURL!.isNotEmpty
                                 ? NetworkImage(member.photoURL!)
                                 : null,
-                            child: member.photoURL == null || member.photoURL!.isEmpty
+                            child:
+                                member.photoURL == null ||
+                                    member.photoURL!.isEmpty
                                 ? Text(
-                                    member.displayName.isNotEmpty 
+                                    member.displayName.isNotEmpty
                                         ? member.displayName[0].toUpperCase()
                                         : '?',
                                     style: const TextStyle(
@@ -545,7 +580,9 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
                           title: Text(
                             member.displayName,
                             style: TextStyle(
-                              color: isSelected ? AppTheme.primaryOrange : AppTheme.textPrimary,
+                              color: isSelected
+                                  ? AppTheme.primaryOrange
+                                  : AppTheme.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -553,14 +590,21 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
                           subtitle: Text(
                             member.email,
                             style: TextStyle(
-                              color: isSelected ? AppTheme.primaryOrange.withOpacity(0.7) : AppTheme.textSecondary,
+                              color: isSelected
+                                  ? AppTheme.primaryOrange.withOpacity(0.7)
+                                  : AppTheme.textSecondary,
                               fontSize: 14,
                             ),
                           ),
                           trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: _getPermissionColor(member.permission).withOpacity(0.1),
+                              color: _getPermissionColor(
+                                member.permission,
+                              ).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -585,10 +629,7 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(
-            top: BorderSide(
-              color: Colors.grey.shade200,
-              width: 1,
-            ),
+            top: BorderSide(color: Colors.grey.shade200, width: 1),
           ),
         ),
         child: Row(
