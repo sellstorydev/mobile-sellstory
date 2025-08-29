@@ -812,6 +812,7 @@ class _BoardPageState extends State<BoardPage> {
   void _showLaneMenu(Lane lane) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       builder: (context) => Container(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -821,15 +822,54 @@ class _BoardPageState extends State<BoardPage> {
                 MobilePermissionsService.to.can('settings:board:manage')) ...[
               ListTile(
                 leading: const Icon(Icons.edit),
-                title: const Text('Edit Lane'),
+                title: const Text('แก้ไข Lane'),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showEditLaneDialog(lane);
                 },
               ),
               ListTile(
+                leading: const Icon(Icons.copy),
+                title: const Text('คัดลอก Lane'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  // TODO: Implement copy lane functionality
+                  Get.snackbar(
+                    'Info',
+                    'Copy Lane functionality coming soon',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.open_with),
+                title: const Text('Move Lane'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  // TODO: Implement move lane functionality
+                  Get.snackbar(
+                    'Info',
+                    'Move Lane functionality coming soon',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.archive),
+                title: const Text('Archive Lane'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  // TODO: Implement archive lane functionality
+                  Get.snackbar(
+                    'Info',
+                    'Archive Lane functionality coming soon',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.delete),
-                title: const Text('Delete Lane'),
+                title: const Text('ลบ Lane'),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showDeleteLaneConfirmation(lane);
