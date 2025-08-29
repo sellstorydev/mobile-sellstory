@@ -15,8 +15,10 @@ class StatusSummaryCards extends StatelessWidget {
       height: 100,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
+          SizedBox(
+            width: 200,
             child: _buildSummaryCard(
               title: 'งานทั้งหมด',
               amount: _calculateTotalAmount(),
@@ -26,8 +28,9 @@ class StatusSummaryCards extends StatelessWidget {
               showTotal: true,
             ),
           ),
-          const SizedBox(width: 4),
-          Expanded(
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 200,
             child: _buildSummaryCard(
               title: 'ปิดงานสำเร็จ',
               amount: _calculateAmountByStatus('Closed Successfully'),
@@ -36,8 +39,9 @@ class StatusSummaryCards extends StatelessWidget {
               icon: Icons.sentiment_satisfied,
             ),
           ),
-          const SizedBox(width: 4),
-          Expanded(
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 200,
             child: _buildSummaryCard(
               title: 'กำลังดำเนินการ',
               amount: _calculateAmountByStatus('In Progress'),
@@ -46,8 +50,9 @@ class StatusSummaryCards extends StatelessWidget {
               icon: Icons.schedule,
             ),
           ),
-          const SizedBox(width: 4),
-          Expanded(
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 200,
             child: _buildSummaryCard(
               title: 'ปิดงานไม่สำเร็จ',
               amount: _calculateAmountByStatus('Closed Unsuccessfully'),

@@ -474,7 +474,14 @@ class _BoardPageState extends State<BoardPage> {
               final allCards = displayLanes
                   .expand((lane) => lane.cards)
                   .toList();
-              return StatusSummaryCards(cards: allCards);
+              return SizedBox(
+                height: 120,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: StatusSummaryCards(cards: allCards),
+                ),
+              );
             }
             return const SizedBox.shrink();
           }),
