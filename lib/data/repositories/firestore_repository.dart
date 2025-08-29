@@ -1137,6 +1137,45 @@ class FirestoreRepository {
     }
   }
 
+  // Get documents for workspace
+  Future<List<Map<String, dynamic>>> getDocuments({
+    required String workspaceId,
+    int? limit,
+  }) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getDocuments', {
+        'workspaceId': workspaceId,
+        'limit': limit,
+      });
+      
+      print('🔄 FirestoreRepository.getDocuments:');
+      print('  - Workspace ID: $workspaceId');
+      print('  - Limit: $limit');
+      
+      final documentsCollection = _firestoreService.getWorkspaceDocumentsCollection(workspaceId);
+      
+      Query<Map<String, dynamic>> query = documentsCollection;
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+      
+      final querySnapshot = await query.orderBy('createdAt', descending: true).get();
+      
+      final documents = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id; // Add document ID to the data
+        return data;
+      }).toList();
+      
+      print('✅ Documents loaded successfully - ${documents.length} documents');
+      return documents;
+    } catch (e) {
+      print('❌ Failed to get documents: $e');
+      _logger.error('Failed to get documents', e);
+      rethrow;
+    }
+  }
+
   // Get users for a specific workspace
   Future<List<Map<String, dynamic>>> getWorkspaceUsers(String workspaceId) async {
     try {
