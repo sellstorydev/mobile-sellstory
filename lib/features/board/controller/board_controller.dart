@@ -8,6 +8,7 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../presenter/board_presenter.dart';
 import '../contract/board_view.dart';
 import '../state/board_state.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class BoardController extends GetxController implements BoardView {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -80,52 +81,62 @@ class BoardController extends GetxController implements BoardView {
         final firstWorkspace = workspaces.first;
         currentWorkspaceId.value = firstWorkspace['id'] as String;
         
-        print('✅ User initialized with workspace: ${firstWorkspace['name']}');
-        
-        // Load boards for the selected workspace
-        await getBoards();
-        
-        // Auto-select first board if available
-        if (boards.isNotEmpty) {
-          await switchBoard(boards.first.id);
-        }
-      } else {
-        print('⚠️ No workspaces found for user: $userId');
-        error.value = 'No workspaces found for this user';
-      }
-    } catch (e) {
-      print('❌ Failed to initialize user: $e');
-      error.value = 'Failed to initialize user data';
-    }
-  }
-  
-  // Switch workspace
-  Future<void> switchWorkspace(String workspaceId) async {
-    try {
-      print('🔄 Switching to workspace: $workspaceId');
-      currentWorkspaceId.value = workspaceId;
-      
-      // Clear current data
-      lanes.clear();
-      userAssignedCards.clear();
-      boards.clear();
-      currentBoardId.value = '';
-      currentBoardName.value = '';
-      
-      // Load boards for the new workspace
-      await getBoards();
-      
-      // Auto-select first board if available
-      if (boards.isNotEmpty) {
-        await switchBoard(boards.first.id);
-      }
-      
-      print('✅ Workspace switched successfully');
-    } catch (e) {
-      print('❌ Failed to switch workspace: $e');
-      error.value = 'Failed to switch workspace';
-    }
-  }
+        // Prefetch permissions for selected workspace
+        try {
+          await MobilePermissionsService.to.getMyPermissions(workspaceId: currentWorkspaceId.value);
+        } catch (_) {}
+
+         print('✅ User initialized with workspace: ${firstWorkspace['name']}');
+
+         // Load boards for the selected workspace
+         await getBoards();
+
+         // Auto-select first board if available
+         if (boards.isNotEmpty) {
+           await switchBoard(boards.first.id);
+         }
+       } else {
+         print('⚠️ No workspaces found for user: $userId');
+         error.value = 'No workspaces found for this user';
+       }
+     } catch (e) {
+       print('❌ Failed to initialize user: $e');
+       error.value = 'Failed to initialize user data';
+     }
+   }
+
+   // Switch workspace
+   Future<void> switchWorkspace(String workspaceId) async {
+     try {
+       print('🔄 Switching to workspace: $workspaceId');
+       currentWorkspaceId.value = workspaceId;
+
+       // Refresh permissions for the new workspace (company change)
+       try {
+         await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
+       } catch (_) {}
+
+       // Clear current data
+       lanes.clear();
+       userAssignedCards.clear();
+       boards.clear();
+       currentBoardId.value = '';
+       currentBoardName.value = '';
+
+       // Load boards for the new workspace
+       await getBoards();
+
+       // Auto-select first board if available
+       if (boards.isNotEmpty) {
+         await switchBoard(boards.first.id);
+       }
+
+       print('✅ Workspace switched successfully');
+     } catch (e) {
+       print('❌ Failed to switch workspace: $e');
+       error.value = 'Failed to switch workspace';
+     }
+   }
 
   // Switch board
   Future<void> switchBoard(String boardId) async {

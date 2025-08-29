@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -123,7 +124,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     await _loadLanesForBoard(_selectedBoard);
     
 
-    
+
+
     // Load users from current workspace
     await _loadWorkspaceUsers();
     
@@ -227,23 +229,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
       print('🔄 Loading users for workspace: $workspaceId');
       
-      // Get users from the workspace
+      // Get users from the workspace - data is already properly formatted from repository
       final users = await _controller.getWorkspaceUsers(workspaceId);
-      
-      // Map users and remove duplicates based on uid
-      final userMap = <String, Map<String, dynamic>>{};
-      for (final user in users) {
-        final uid = user['uid'] as String? ?? '';
-        if (uid.isNotEmpty && !userMap.containsKey(uid)) {
-          userMap[uid] = {
-            'id': uid,
-            'name': user['displayName'] ?? user['email'] ?? 'Unknown User',
-            'displayName': user['displayName'] ?? user['email'] ?? 'Unknown User', // Add displayName field
-            'email': user['email'] ?? '',
-          };
-        }
-      }
-      _availableUsers = userMap.values.toList();
+      _availableUsers = users;
       
       print('✅ Loaded ${_availableUsers.length} users for workspace');
     } catch (e) {
@@ -290,6 +278,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
   }
 
   Future<void> _saveCard() async {
+    if (!(MobilePermissionsService.to.isOwner ||
+        MobilePermissionsService.to.can('jobcard:create')))
+    {
+      _showError('You do not have permission to create cards');
+      return;
+    }
     // Validate required fields
     if (_titleController.text.trim().isEmpty) {
       _showError('Job Card Title is required');
@@ -1355,7 +1349,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
         const SizedBox(width: 16),
         Expanded(
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _saveCard,
+            onPressed: _isLoading ||
+                    !(MobilePermissionsService.to.isOwner ||
+                      MobilePermissionsService.to.can('jobcard:create'))
+                ? null
+                : _saveCard,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,

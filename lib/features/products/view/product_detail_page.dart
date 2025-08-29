@@ -4,6 +4,7 @@ import '../../../domain/entities/product.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controller/products_controller.dart';
 import 'add_edit_product_page.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -226,21 +227,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
-                     // Edit button
-          IconButton(
-            onPressed: () async {
-              final result = await Get.to(() => AddEditProductPage(product: _currentProduct));
-              if (result == true) {
-                // Refresh product data from the controller
-                await _refreshProductData();
-              }
-            },
-            icon: const Icon(Icons.edit, color: AppTheme.primaryBlue),
+          // Edit button
+          PermissionGuard(
+            permission: 'product:edit:all',
+            child: IconButton(
+              onPressed: () async {
+                final result = await Get.to(() => AddEditProductPage(product: _currentProduct));
+                if (result == true) {
+                  // Refresh product data from the controller
+                  await _refreshProductData();
+                }
+              },
+              icon: const Icon(Icons.edit, color: AppTheme.primaryBlue),
+            ),
           ),
           // Delete button
-          IconButton(
-            onPressed: () => _showDeleteConfirmation(),
-            icon: const Icon(Icons.delete, color: AppTheme.errorRed),
+          PermissionGuard(
+            permission: 'product:delete',
+            child: IconButton(
+              onPressed: () => _showDeleteConfirmation(),
+              icon: const Icon(Icons.delete, color: AppTheme.errorRed),
+            ),
           ),
         ],
       ),

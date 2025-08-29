@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../view/product_detail_page.dart';
 import '../view/add_edit_product_page.dart';
 import '../controller/products_controller.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -201,66 +202,77 @@ class ProductCard extends StatelessWidget {
                     top: 4,
                     right: 0,
                     child: Container(
-                      child: PopupMenuButton<String>(
-                        icon: Icon(
-                          Icons.more_vert,
-                          color: product.status == 'discontinued' ? Colors.white : Colors.black,
-                          size: 20,
-                        ),
-                        iconSize: 10,
-                        padding: const EdgeInsets.all(4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        itemBuilder: (context) => [
-                          PopupMenuItem<String>(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.edit,
-                                  size: 18,
-                                  color: AppTheme.primaryBlue,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'แก้ไข',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: AppTheme.textPrimary,
+                      child: Builder(
+                        builder: (context) {
+                          final canEdit = MobilePermissionsService.to.isOwner ||
+                              MobilePermissionsService.to.can('product:edit:all');
+                          final canDelete = MobilePermissionsService.to.isOwner ||
+                              MobilePermissionsService.to.can('product:delete');
+                          if (!canEdit && !canDelete) return const SizedBox.shrink();
+                          return PopupMenuButton<String>(
+                         icon: Icon(
+                           Icons.more_vert,
+                           color: product.status == 'discontinued' ? Colors.white : Colors.black,
+                           size: 20,
+                         ),
+                         iconSize: 10,
+                         padding: const EdgeInsets.all(4),
+                         shape: RoundedRectangleBorder(
+                           borderRadius: BorderRadius.circular(8),
+                         ),
+                         itemBuilder: (context) => [
+                          if (canEdit)
+                            PopupMenuItem<String>(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.edit,
+                                    size: 18,
+                                    color: AppTheme.primaryBlue,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'แก้ไข',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.delete,
-                                  size: 18,
-                                  color: AppTheme.errorRed,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'ลบ',
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                          if (canDelete)
+                            PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.delete,
+                                    size: 18,
                                     color: AppTheme.errorRed,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'ลบ',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppTheme.errorRed,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                         ],
                                                  onSelected: (value) {
-                           if (value == 'edit') {
-                             Get.to(() => AddEditProductPage(product: product));
-                           } else if (value == 'delete') {
-                             _showDeleteConfirmation(context);
-                           }
-                         },
+                            if (value == 'edit') {
+                              Get.to(() => AddEditProductPage(product: product));
+                            } else if (value == 'delete') {
+                              _showDeleteConfirmation(context);
+                            }
+                          },
+                          );
+                        },
                       ),
                     ),
                   ),

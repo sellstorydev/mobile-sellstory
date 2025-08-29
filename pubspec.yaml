@@ -18,7 +18,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # of the product and file versions while build-number is used as the build suffix.
 # Version is managed by Xcode for iOS builds
 # This version should match the iOS version in Xcode
-version: 1.10.8+9
+version: 1.10.8+11
 
 environment:
   sdk: ^3.8.1
@@ -93,6 +93,9 @@ dependencies:
 
   # SVG support for custom icons
   flutter_svg: ^2.0.10+1
+
+  # WebView support
+  webview_flutter: ^4.7.0
 
   # Image processing for resizing
   image: ^4.1.3

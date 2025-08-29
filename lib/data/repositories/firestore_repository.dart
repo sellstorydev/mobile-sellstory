@@ -1202,15 +1202,40 @@ class FirestoreRepository {
         });
         
         if (belongsToWorkspace) {
+          // Get user's role in this specific workspace
+          String userRole = 'member';
+          try {
+            final workspaceData = workspaces.firstWhere(
+              (w) => w is Map<String, dynamic> && w['id'] == workspaceId,
+              orElse: () => <String, dynamic>{}
+            );
+            if (workspaceData is Map<String, dynamic>) {
+              userRole = workspaceData['role'] as String? ?? 'member';
+            }
+          } catch (e) {
+            print('⚠️ Error getting user role for ${userData['uid']}: $e');
+          }
+          
+          // Extract display name - prefer displayName, fallback to email
+          String displayName = '';
+          if (userData['displayName'] != null && userData['displayName'].toString().isNotEmpty) {
+            displayName = userData['displayName'].toString();
+          } else if (userData['email'] != null && userData['email'].toString().isNotEmpty) {
+            displayName = userData['email'].toString();
+          } else {
+            displayName = 'Unknown User';
+          }
+          
           userList.add({
             'uid': userData['uid'] ?? '',
+            'id': userData['uid'] ?? '', // Add id field for consistency
             'email': userData['email'] ?? '',
-            'displayName': userData['displayName'] ?? '',
-            'role': workspaces.firstWhere(
-              (w) => w is Map<String, dynamic> && w['id'] == workspaceId,
-              orElse: () => {'role': 'member'}
-            )['role'] ?? 'member',
+            'displayName': displayName,
+            'name': displayName, // Add name field for UI compatibility
+            'role': userRole,
           });
+          
+          print('👤 User found: ${displayName} (${userData['uid']}) - Role: $userRole');
         }
       }
       

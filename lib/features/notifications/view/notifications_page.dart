@@ -12,6 +12,7 @@ class NotificationsPage extends StatefulWidget {
   final String workspaceId;
   const NotificationsPage({super.key, required this.workspaceId});
 
+
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
