@@ -32,6 +32,9 @@ class FirestoreService extends GetxService {
   CollectionReference<Map<String, dynamic>> getWorkspaceBoardsCollection(String workspaceId) => 
       _firestore.collection('workspaces').doc(workspaceId).collection('boards');
   
+  CollectionReference<Map<String, dynamic>> getWorkspaceDocumentsCollection(String workspaceId) => 
+      _firestore.collection('workspaces').doc(workspaceId).collection('documents');
+  
   // Get user's workspaces
   Future<List<Map<String, dynamic>>> getUserWorkspaces(String userId) async {
     try {

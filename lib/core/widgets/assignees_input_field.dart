@@ -9,6 +9,7 @@ class AssigneesInputField extends StatefulWidget {
   final String label;
   final String hintText;
   final bool isLoading;
+  final bool allowMultipleSelection;
 
   const AssigneesInputField({
     super.key,
@@ -18,6 +19,7 @@ class AssigneesInputField extends StatefulWidget {
     this.label = 'เซลที่รับผิดชอบ',
     this.hintText = 'เลือกเซลที่รับผิดชอบ',
     this.isLoading = false,
+    this.allowMultipleSelection = true,
   });
 
   @override
@@ -25,6 +27,38 @@ class AssigneesInputField extends StatefulWidget {
 }
 
 class _AssigneesInputFieldState extends State<AssigneesInputField> {
+  final TextEditingController _searchController = TextEditingController();
+  List<WorkspaceMember> _filteredMembers = [];
+  bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredMembers = List.from(widget.availableMembers);
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _isSearching = _searchController.text.isNotEmpty;
+      if (_isSearching) {
+        _filteredMembers = widget.availableMembers
+            .where((member) =>
+                member.displayName.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+                member.email.toLowerCase().contains(_searchController.text.toLowerCase()))
+            .toList();
+      } else {
+        _filteredMembers = List.from(widget.availableMembers);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -72,9 +106,9 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
           else
             Column(
               children: [
-                // Button to add new assignees
+                // Button to open full page selection
                 InkWell(
-                  onTap: _showAssigneesDialog,
+                  onTap: _showAssigneesFullPage,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
@@ -99,7 +133,7 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'เลือกสมาชิก',
+                          widget.allowMultipleSelection ? 'เลือกสมาชิก' : 'เลือกสมาชิก',
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 14,
@@ -234,86 +268,375 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
     );
   }
 
-  void _showAssigneesDialog() {
-    final availableMembers = widget.availableMembers
-        .where((member) => !widget.selectedAssignees.contains(member.uid))
-        .toList();
-
-    if (availableMembers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ไม่มีสมาชิกที่สามารถเลือกได้'),
-          backgroundColor: Colors.orange,
+  void _showAssigneesFullPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AssigneesSelectionPage(
+          selectedAssignees: List.from(widget.selectedAssignees),
+          availableMembers: widget.availableMembers,
+          onAssigneesChanged: widget.onAssigneesChanged,
+          label: widget.label,
+          allowMultipleSelection: widget.allowMultipleSelection,
         ),
-      );
-      return;
-    }
+      ),
+    );
+  }
+}
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(widget.label),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: availableMembers.length,
-              itemBuilder: (context, index) {
-                final member = availableMembers[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-                    backgroundImage: member.photoURL != null && member.photoURL!.isNotEmpty
-                        ? NetworkImage(member.photoURL!)
-                        : null,
-                    child: member.photoURL == null || member.photoURL!.isEmpty
-                        ? Text(
-                            member.displayName.isNotEmpty 
-                                ? member.displayName[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                              color: AppTheme.primaryOrange,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
-                  ),
-                  title: Text(member.displayName),
-                  subtitle: Text(member.email),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _getPermissionColor(member.permission).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      member.permission,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: _getPermissionColor(member.permission),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    final newAssignees = List<String>.from(widget.selectedAssignees)
-                      ..add(member.uid);
-                    widget.onAssigneesChanged(newAssignees);
-                    Navigator.of(context).pop();
-                  },
-                );
-              },
+class AssigneesSelectionPage extends StatefulWidget {
+  final List<String> selectedAssignees;
+  final List<WorkspaceMember> availableMembers;
+  final Function(List<String>) onAssigneesChanged;
+  final String label;
+  final bool allowMultipleSelection;
+
+  const AssigneesSelectionPage({
+    super.key,
+    required this.selectedAssignees,
+    required this.availableMembers,
+    required this.onAssigneesChanged,
+    required this.label,
+    required this.allowMultipleSelection,
+  });
+
+  @override
+  State<AssigneesSelectionPage> createState() => _AssigneesSelectionPageState();
+}
+
+class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
+  final TextEditingController _searchController = TextEditingController();
+  List<WorkspaceMember> _filteredMembers = [];
+  List<String> _tempSelectedAssignees = [];
+  bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempSelectedAssignees = List.from(widget.selectedAssignees);
+    _filteredMembers = List.from(widget.availableMembers);
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _isSearching = _searchController.text.isNotEmpty;
+      if (_isSearching) {
+        _filteredMembers = widget.availableMembers
+            .where((member) =>
+                member.displayName.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+                member.email.toLowerCase().contains(_searchController.text.toLowerCase()))
+            .toList();
+      } else {
+        _filteredMembers = List.from(widget.availableMembers);
+      }
+    });
+  }
+
+  void _toggleSelection(String assigneeId) {
+    setState(() {
+      if (_tempSelectedAssignees.contains(assigneeId)) {
+        _tempSelectedAssignees.remove(assigneeId);
+      } else {
+        if (widget.allowMultipleSelection) {
+          _tempSelectedAssignees.add(assigneeId);
+        } else {
+          // Single selection mode - replace current selection
+          _tempSelectedAssignees = [assigneeId];
+        }
+      }
+    });
+  }
+
+  void _applySelection() {
+    widget.onAssigneesChanged(_tempSelectedAssignees);
+    Navigator.of(context).pop();
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _tempSelectedAssignees.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundWhite,
+      appBar: AppBar(
+        title: Text(
+          widget.label,
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: AppTheme.backgroundWhite,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        actions: [
+          if (_tempSelectedAssignees.isNotEmpty)
+            TextButton(
+              onPressed: _clearSelection,
+              child: const Text(
+                'ล้าง',
+                style: TextStyle(
+                  color: AppTheme.primaryOrange,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search bar
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                bottom: BorderSide(
+                  color: Colors.grey.shade200,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'ค้นหาสมาชิก...',
+                hintStyle: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppTheme.textSecondary,
+                ),
+                filled: true,
+                fillColor: AppTheme.backgroundGrey,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('ยกเลิก'),
+
+          // Selection mode indicator
+          if (widget.allowMultipleSelection)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryOrange.withOpacity(0.05),
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppTheme.primaryOrange.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: AppTheme.primaryOrange,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'เลือกแล้ว ${_tempSelectedAssignees.length} รายการ',
+                    style: TextStyle(
+                      color: AppTheme.primaryOrange,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Members list
+          Expanded(
+            child: _filteredMembers.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 48,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'ไม่พบสมาชิกที่ตรงกับคำค้นหา',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _filteredMembers.length,
+                    itemBuilder: (context, index) {
+                      final member = _filteredMembers[index];
+                      final isSelected = _tempSelectedAssignees.contains(member.uid);
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppTheme.primaryOrange.withOpacity(0.1)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppTheme.primaryOrange
+                                : Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+                            backgroundImage: member.photoURL != null && member.photoURL!.isNotEmpty
+                                ? NetworkImage(member.photoURL!)
+                                : null,
+                            child: member.photoURL == null || member.photoURL!.isEmpty
+                                ? Text(
+                                    member.displayName.isNotEmpty 
+                                        ? member.displayName[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      color: AppTheme.primaryOrange,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          title: Text(
+                            member.displayName,
+                            style: TextStyle(
+                              color: isSelected ? AppTheme.primaryOrange : AppTheme.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            member.email,
+                            style: TextStyle(
+                              color: isSelected ? AppTheme.primaryOrange.withOpacity(0.7) : AppTheme.textSecondary,
+                              fontSize: 14,
+                            ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _getPermissionColor(member.permission).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              member.permission,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: _getPermissionColor(member.permission),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          onTap: () => _toggleSelection(member.uid),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: Colors.grey.shade200,
+              width: 1,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(color: Colors.grey.shade400),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'ยกเลิก',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _applySelection,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'ยืนยัน',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
