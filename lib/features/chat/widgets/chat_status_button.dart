@@ -50,7 +50,9 @@ class ChatStatusButton extends StatelessWidget {
                 height: 1.15,
                 color: ic,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+
               ),
+              maxLines: 2,
             ),
             const SizedBox(height: 6),
             Opacity(

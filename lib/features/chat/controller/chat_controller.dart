@@ -23,6 +23,10 @@ class ChatController extends GetxController {
   // Subscription for realtime updates
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatroomsSub;
 
+  // Workspace change listener (GetX Worker)
+  Worker? _wsListener;
+
+
   // Cached workspace info
   Map<String, dynamic>? _workspaceData;
   List<Map<String, dynamic>> _wsFacebook = const [];
@@ -34,6 +38,10 @@ class ChatController extends GetxController {
 
   // Cache assignees for customerId -> [displayNames]
   final Map<String, List<String>> _assigneesCache = {};
+
+  // Cache customer hashtags to avoid repeated reads: customerId -> ids/meta
+  final Map<String, List<String>> _customerHashtagIdsCache = {};
+  final Map<String, List<Map<String, String>>> _customerHashtagMetaCache = {};
 
   // Filters (reactive)
   final RxSet<String> platformFilters = <String>{}.obs; // 'facebook','instagram','line'
@@ -86,6 +94,22 @@ class ChatController extends GetxController {
   void onInit() {
     super.onInit();
     _logger.info('ChatController initialized');
+    // React to workspace changes from BoardController
+    if (Get.isRegistered<BoardController>()) {
+      final bc = Get.find<BoardController>();
+      _wsListener = ever<String>(bc.currentWorkspaceId, (wsId) async {
+        final newId = (wsId).toString();
+        if (newId.isEmpty) return;
+        if (newId == (_currentWorkspaceId ?? '')) return;
+        _logger.info('Workspace changed to $newId -> restart chat realtime');
+        _currentWorkspaceId = newId;
+        _workspaceData = null; // reset caches bound to workspace
+        await stopRealtime();
+        // Soft debounce to avoid rapid restarts while switching
+        await Future.delayed(const Duration(milliseconds: 50));
+        await startRealtime();
+      });
+    }
   }
 
   void setCurrentUser(String userId) {
@@ -496,6 +520,8 @@ class ChatController extends GetxController {
 
         // Asynchronously enrich with assignee display names
         _augmentAssignees(items);
+        // Asynchronously enrich with customer hashtags (merge with chatroom hashtags)
+        _augmentCustomerHashtags(items);
       }, onError: (e) {
         isLoading.value = false;
         error.value = 'Failed to get realtime chatrooms: $e';
@@ -534,6 +560,15 @@ class ChatController extends GetxController {
 
   List<Map<String, dynamic>> get filteredConversations {
     var filtered = conversations.where((conv) {
+      // Ensure hashtagMeta exists so UI can render tags even after search/first paint
+      try {
+        final rawMeta = conv['hashtagMeta'];
+        final isEmptyMeta = rawMeta is! List || (rawMeta as List).isEmpty;
+        if (isEmptyMeta) {
+          conv['hashtagMeta'] = _buildHashtagMeta(conv);
+        }
+      } catch (_) {}
+
       // Search filter
       if (searchQuery.value.isNotEmpty) {
         final rawQ = searchQuery.value.trim();
@@ -682,11 +717,33 @@ class ChatController extends GetxController {
       }
     }).toList();
     filtered.sort((a, b) {
-      final aTime = a['lastMessageAt'] as DateTime?;
-      final bTime = b['lastMessageAt'] as DateTime?;
-      final aVal = aTime ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bVal = bTime ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bVal.compareTo(aVal);
+      // Pinned first
+      final aPinned = (a['isPinned'] == true) || ((a['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
+      final bPinned = (b['isPinned'] == true) || ((b['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
+      if (aPinned != bPinned) {
+        return bPinned ? 1 : -1; // true first
+      }
+
+      // Then by last message time (newest first)
+      DateTime _asDt(dynamic v) {
+        if (v is DateTime) return v;
+        if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
+        if (v is String) {
+          final d = DateTime.tryParse(v);
+          if (d != null) return d;
+        }
+        return DateTime.fromMillisecondsSinceEpoch(0);
+      }
+
+      final aTime = _asDt(a['lastMessageAt'] ?? a['last_message_info']?['last_upd'] ?? a['updatedAt']);
+      final bTime = _asDt(b['lastMessageAt'] ?? b['last_message_info']?['last_upd'] ?? b['updatedAt']);
+      final timeCmp = bTime.compareTo(aTime);
+      if (timeCmp != 0) return timeCmp;
+
+      // Fallback: pinned equal + time equal -> by name to keep stable
+      final aName = (a['name'] ?? '').toString();
+      final bName = (b['name'] ?? '').toString();
+      return aName.compareTo(bName);
     });
 
     return filtered;
@@ -719,6 +776,7 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     _logger.info('ChatController disposed');
+    _wsListener?.dispose();
     stopRealtime();
     super.onClose();
   }
@@ -808,6 +866,95 @@ class ChatController extends GetxController {
     }
   }
 
+  // Fetch and merge customer-level hashtags into conversations (two-way view)
+  Future<void> _augmentCustomerHashtags(List<Map<String, dynamic>> items) async {
+    final wsId = _currentWorkspaceId;
+    if (wsId == null || wsId.isEmpty) return;
+
+    for (final item in items) {
+      final chatId = (item['id'] ?? '').toString();
+      if (chatId.isEmpty) continue;
+      final cid = (item['customerId'] ?? item['customer_id'] ?? item['customer']?['id'])?.toString();
+      if (cid == null || cid.isEmpty) continue;
+
+      List<String>? ids = _customerHashtagIdsCache[cid];
+      List<Map<String, String>>? meta = _customerHashtagMetaCache[cid];
+
+      if (ids == null || meta == null) {
+        try {
+          final cSnap = await FirestoreService.to
+              .getWorkspaceCustomersCollection(wsId)
+              .doc(cid)
+              .get();
+          final cData = cSnap.data() ?? {};
+          final raw = (cData['hashtags'] as List?) ?? const [];
+          final tmpIds = <String>[];
+          final tmpMeta = <Map<String, String>>[];
+          for (final it in raw) {
+            if (it is String) {
+              final id = it.trim();
+              if (id.isEmpty) continue;
+              tmpIds.add(id);
+              final master = _hashtagById[id];
+              final name = ((master?['name'] ?? id).toString());
+              final color = (master?['color'] ?? '').toString();
+              tmpMeta.add({'name': name.startsWith('#') ? name : '#$name', if (color.isNotEmpty) 'color': color});
+            } else if (it is Map) {
+              final id = (it['id'] ?? it['text'] ?? '').toString().trim();
+              if (id.isEmpty) continue;
+              tmpIds.add(id);
+              final rawName = (it['text'] ?? it['name'] ?? id).toString();
+              final color = (it['color'] ?? '').toString();
+              tmpMeta.add({'name': rawName.startsWith('#') ? rawName : '#$rawName', if (color.isNotEmpty) 'color': color});
+            }
+          }
+          ids = tmpIds;
+          meta = tmpMeta;
+          _customerHashtagIdsCache[cid] = ids;
+          _customerHashtagMetaCache[cid] = meta;
+        } catch (_) {
+          ids = const [];
+          meta = const [];
+        }
+      }
+
+      // Merge into conversation: union ids and union meta by normalized name
+      try {
+        final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+        if (idx < 0) continue;
+        final currentIds = (conversations[idx]['hashtagIds'] is List)
+            ? (conversations[idx]['hashtagIds'] as List).map((e) => e.toString()).toSet()
+            : <String>{};
+        final mergedIds = <String>{}..addAll(currentIds)..addAll(ids ?? const []);
+        conversations[idx]['hashtagIds'] = mergedIds.toList();
+
+        List<Map<String, String>> currentMeta = const [];
+        try {
+          currentMeta = (conversations[idx]['hashtagMeta'] as List?)
+                  ?.whereType<Map>()
+                  .map((m) => {
+                        'name': (m['name'] ?? m['title'] ?? '').toString(),
+                        if ((m['color']?.toString().isNotEmpty ?? false)) 'color': m['color'].toString(),
+                      })
+                  .toList() ??
+              const [];
+        } catch (_) {}
+
+        String norm(String s) => s.replaceFirst('#', '').toLowerCase();
+        final namesSet = currentMeta.map((m) => norm(m['name'] ?? '')).toSet();
+        final toAdd = <Map<String, String>>[];
+        for (final m in (meta ?? const [])) {
+          final n = norm(m['name'] ?? '');
+          if (n.isEmpty || namesSet.contains(n)) continue;
+          toAdd.add(m);
+        }
+        conversations[idx]['hashtagMeta'] = [...currentMeta, ...toAdd];
+        conversations.refresh();
+      } catch (_) {}
+    }
+  }
+
+
   // Optimistically add an assignee to a conversation and refresh UI
   void addAssigneeLocal(String chatId, String uid, String displayName) {
     final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
@@ -822,6 +969,47 @@ class ChatController extends GetxController {
     if (displayName.trim().isNotEmpty) existingNames.add(displayName.trim());
     conversations[idx]['assigneeIds'] = existingIds.toList();
     conversations[idx]['assigneeNames'] = existingNames.toList();
+    conversations.refresh();
+  }
+
+  // Optimistically update hashtags of a conversation and refresh UI
+  void updateHashtagsLocal(String chatId, List<String> ids, List<String> names) {
+    final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+    if (idx < 0) return;
+    // Normalize names to include '#'
+    final normNames = names
+        .map((n) => n.toString().trim())
+        .where((n) => n.isNotEmpty)
+        .map((n) => n.startsWith('#') ? n : '#$n')
+        .toList();
+
+    conversations[idx]['hashtagIds'] = ids.toList();
+    conversations[idx]['hashtags'] = normNames.toList();
+
+    // Rebuild meta using master list when possible
+    final temp = {
+      'hashtagIds': ids,
+      'hashtags': normNames,
+    };
+    final meta = _buildHashtagMeta(temp);
+
+    // If customer-level meta cached exists, merge it too
+    final cid = (conversations[idx]['customerId'] ?? conversations[idx]['customer_id'] ?? conversations[idx]['customer']?['id'])?.toString();
+    List<Map<String, String>> mergedMeta = meta;
+    if (cid != null && cid.isNotEmpty) {
+      final cMeta = _customerHashtagMetaCache[cid];
+      if (cMeta != null && cMeta.isNotEmpty) {
+        String norm(String s) => s.replaceFirst('#', '').toLowerCase();
+        final namesSet = mergedMeta.map((m) => norm(m['name'] ?? '')).toSet();
+        for (final m in cMeta) {
+          final n = norm(m['name'] ?? '');
+          if (n.isEmpty || namesSet.contains(n)) continue;
+          mergedMeta.add(m);
+        }
+      }
+    }
+
+    conversations[idx]['hashtagMeta'] = mergedMeta;
     conversations.refresh();
   }
 }

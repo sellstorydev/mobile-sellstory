@@ -188,12 +188,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _nearBottom = near;
     });
 
-    // เพิ่ม delay เล็กน้อยเพื่อให้ ListView build เสร็จก่อน
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _scrollToBottom();
-      });
-    });
+
   }
 
   @override
