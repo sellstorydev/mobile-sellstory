@@ -353,7 +353,7 @@ class _BoardPageState extends State<BoardPage> {
           Obx(() {
             if (_controller.hasWorkspaces) {
               return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
                   children: [
                     // Search Bar
@@ -475,10 +475,9 @@ class _BoardPageState extends State<BoardPage> {
                   .expand((lane) => lane.cards)
                   .toList();
               return SizedBox(
-                height: 120,
+                height: 65,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: StatusSummaryCards(cards: allCards),
                 ),
               );
@@ -760,10 +759,15 @@ class _BoardPageState extends State<BoardPage> {
         listWidth: 300,
         listPadding: const EdgeInsets.all(8),
         listDragHandle: null, // Disable lane drag handle
+
         children: displayLanes.map((lane) {
           final laneData = lane;
           return DragAndDropList(
             header: _buildLaneHeader(laneData),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9F9F9),
+              borderRadius: BorderRadius.circular(8),
+            ),
             children: [
               ...laneData.cards.map((card) {
                 return DragAndDropItem(
@@ -775,6 +779,7 @@ class _BoardPageState extends State<BoardPage> {
                 child: _buildAddCardButton(laneData),
               ),
             ],
+
           );
         }).toList(),
       ),
