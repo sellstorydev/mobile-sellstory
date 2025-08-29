@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
 import '../../../domain/entities/lane.dart';
 import '../../../domain/entities/job_card.dart';
 import '../../../domain/entities/customer.dart';
@@ -34,6 +36,7 @@ class BoardController extends GetxController implements BoardView {
   final RxBool isSearching = false.obs;
   final RxList<Lane> filteredLanes = <Lane>[].obs;
   final RxList<Lane> _originalLanes = <Lane>[].obs;
+  late TextEditingController searchTextController;
   
   // Filter functionality
   final RxList<String> selectedAssignees = <String>[].obs;
@@ -49,16 +52,22 @@ class BoardController extends GetxController implements BoardView {
   final Rx<DateTime?> selectedStartDate = Rx<DateTime?>(null);
   final Rx<DateTime?> selectedEndDate = Rx<DateTime?>(null);
   
+  // Search debounce timer
+  Timer? _searchDebounceTimer;
+  
   @override
   void onInit() {
     super.onInit();
     _presenter = BoardPresenter(this, _repository);
+    searchTextController = TextEditingController();
     print('🔄 BoardController initialized');
   }
   
   @override
   void onClose() {
     print('🔄 BoardController disposed');
+    _searchDebounceTimer?.cancel();
+    searchTextController.dispose();
     super.onClose();
   }
   
@@ -664,15 +673,30 @@ class BoardController extends GetxController implements BoardView {
     final trimmedQuery = query.trim();
     searchQuery.value = trimmedQuery;
     
+    // Sync with TextEditingController
+    if (searchTextController.text != query) {
+      searchTextController.text = query;
+      searchTextController.selection = TextSelection.fromPosition(
+        TextPosition(offset: query.length),
+      );
+    }
+    
+    // Cancel previous timer if exists
+    _searchDebounceTimer?.cancel();
+    
     if (trimmedQuery.isEmpty) {
       clearSearch();
     } else {
-      _performSearch(trimmedQuery);
+      // Set a new timer for debounce (1000ms delay)
+      _searchDebounceTimer = Timer(const Duration(milliseconds: 1000), () {
+        _performSearch(trimmedQuery);
+      });
     }
   }
   
   void clearSearch() {
     searchQuery.value = '';
+    searchTextController.clear();
     isSearching.value = false;
     filteredLanes.value = _originalLanes;
     print('🔍 Search cleared');
