@@ -1,13 +1,13 @@
 # Product System
 
 ## Overview
-document system is about ใบเสนอราคา, ใบวางบิล, ใบแจ้งหนี้
+document system is about ใบเสนอราคา, ใบแจ้งหนี้, ใบเสร็จรับเงิน
 
 ## FEATURE:
 - have center page that can go from main application footer menu "เอกสาร" that have 3 menu inside Quotations, Invoices, Receipts
 - list of Quotations (ใบเสนอราคา)
-- list of Invoices (ใบวางบิล)
-- list of Receipts (ใบแจ้งหนี้)
+- list of Invoices (ใบแจ้งหนี้)
+- list of Receipts (ใบเสร็จรับเงิน)
 - in ecah list have feature search and filter
 - filter have 3 field
     - เซล (use this picker `lib\core\widgets\assignees_input_field.dart`)

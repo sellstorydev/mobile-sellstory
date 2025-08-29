@@ -101,7 +101,7 @@ class DocumentCenterPage extends StatelessWidget {
                     ),
                     const SizedBox(height: AppTheme.spacing4),
                     Text(
-                      'จัดการใบเสนอราคา, ใบวางบิล, ใบแจ้งหนี้',
+                      'จัดการใบเสนอราคา, ใบแจ้งหนี้, ใบแจ้งหนี้',
                       style: TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: AppTheme.fontSize14,
@@ -149,14 +149,14 @@ class DocumentCenterPage extends StatelessWidget {
               onTap: () => controller.navigateToQuotations(),
             ),
             _buildDocumentTypeCard(
-              title: 'ใบวางบิล',
+              title: 'ใบแจ้งหนี้',
               subtitle: 'Invoices',
               icon: Icons.description_outlined,
               color: const Color(0xFF2196F3),
               onTap: () => controller.navigateToInvoices(),
             ),
             _buildDocumentTypeCard(
-              title: 'ใบแจ้งหนี้',
+              title: 'ใบเสร็จรับเงิน',
               subtitle: 'Receipts',
               icon: Icons.payment_outlined,
               color: const Color(0xFFFF9800),
@@ -284,7 +284,7 @@ class DocumentCenterPage extends StatelessWidget {
               const SizedBox(height: AppTheme.spacing12),
               _buildDocumentTypeOption(
                 context,
-                title: 'ใบวางบิล',
+                title: 'ใบแจ้งหนี้',
                 subtitle: 'Invoice',
                 icon: Icons.description_outlined,
                 color: const Color(0xFF2196F3),

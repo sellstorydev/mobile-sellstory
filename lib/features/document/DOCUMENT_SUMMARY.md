@@ -3,8 +3,8 @@
 ## Overview
 Successfully implemented the document center page with 3 main menu items as requested:
 - ใบเสนอราคา (Quotations)
-- ใบวางบิล (Invoices) 
-- ใบแจ้งหนี้ (Receipts)
+- แจ้งหนี้ (Invoices) 
+- ใบเสร็จรับเงิน (Receipts)
 
 ## Files Created/Modified
 
@@ -69,8 +69,8 @@ Successfully implemented the document center page with 3 main menu items as requ
 
 ### Document Type Cards
 - **ใบเสนอราคา** (Green color, receipt icon)
-- **ใบวางบิล** (Blue color, description icon)
-- **ใบแจ้งหนี้** (Orange color, payment icon)
+- **ใบแจ้งหนี้** (Blue color, description icon)
+- **ใบเสร็จรับเงิน** (Orange color, payment icon)
 - **สร้างใหม่** (Primary orange, add circle icon)
 
 ### Create Document Dialog

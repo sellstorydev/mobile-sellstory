@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../view/quotations_list_page.dart';
+import '../view/invoice_list_page.dart';
+import '../view/receipt_list_page.dart';
 
 class DocumentCenterController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -59,21 +61,11 @@ class DocumentCenterController extends GetxController {
   }
 
   void navigateToInvoices() {
-    // TODO: Navigate to invoices list page
-    Get.snackbar(
-      'Info',
-      'Invoices page coming soon',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.to(() => const InvoiceListPage());
   }
 
   void navigateToReceipts() {
-    // TODO: Navigate to receipts list page
-    Get.snackbar(
-      'Info',
-      'Receipts page coming soon',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.to(() => const ReceiptListPage());
   }
 
   // Removed navigateToCreateDocument and viewAllDocuments methods since they're no longer needed

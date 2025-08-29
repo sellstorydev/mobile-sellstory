@@ -4,18 +4,18 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
 import '../../../core/widgets/assignees_input_field.dart';
 import '../../../core/services/workspace_members_service.dart';
-import '../controller/quotations_list_controller.dart';
+import '../controller/receipt_list_controller.dart';
 
-class QuotationsFilterPage extends StatefulWidget {
-  final QuotationsListController controller;
+class ReceiptFilterPage extends StatefulWidget {
+  final ReceiptListController controller;
 
-  const QuotationsFilterPage({super.key, required this.controller});
+  const ReceiptFilterPage({super.key, required this.controller});
 
   @override
-  State<QuotationsFilterPage> createState() => _QuotationsFilterPageState();
+  State<ReceiptFilterPage> createState() => _ReceiptFilterPageState();
 }
 
-class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
+class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
   final Set<String> tempSelectedStatuses = {};
   final WorkspaceMembersService _workspaceMembersService = Get.find<WorkspaceMembersService>();
   List<WorkspaceMember> _availableMembers = [];
@@ -77,22 +77,8 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
   @override
   Widget build(BuildContext context) {
     final statusOptions = [
-      {'value': 'DRAFT', 'label': 'ร่าง', 'icon': Icons.edit_outlined},
-      {'value': 'SENT', 'label': 'ส่งแล้ว', 'icon': Icons.send},
-      {
-        'value': 'PENDING_APPROVAL',
-        'label': 'รออนุมัติ',
-        'icon': Icons.pending,
-      },
-      {'value': 'APPROVED', 'label': 'อนุมัติแล้ว', 'icon': Icons.check_circle},
-      {'value': 'REJECTED', 'label': 'ปฏิเสธ', 'icon': Icons.cancel},
+      {'value': 'COMPLETED', 'label': 'เสร็จสิ้น', 'icon': Icons.check_circle},
       {'value': 'VOID', 'label': 'ยกเลิก', 'icon': Icons.block},
-      {
-        'value': 'INVOICED',
-        'label': 'ออกใบแจ้งหนี้แล้ว',
-        'icon': Icons.receipt,
-      },
-      {'value': 'FULLY_PAID', 'label': 'ชำระแล้ว', 'icon': Icons.payment},
     ];
 
     return Scaffold(

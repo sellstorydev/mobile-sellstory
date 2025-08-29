@@ -3,21 +3,21 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
 import '../../../core/widgets/assignees_input_field.dart';
-import '../controller/quotations_list_controller.dart';
-import 'quotations_filter_page.dart';
+import '../controller/receipt_list_controller.dart';
+import 'receipt_filter_page.dart';
 
-class QuotationsListPage extends StatelessWidget {
-  const QuotationsListPage({super.key});
+class ReceiptListPage extends StatelessWidget {
+  const ReceiptListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(QuotationsListController());
+    final controller = Get.put(ReceiptListController());
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
         title: const Text(
-          'ใบเสนอราคา',
+          'ใบเสร็จรับเงิน',
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
@@ -31,7 +31,7 @@ class QuotationsListPage extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => controller.createNewQuotation(),
+            onPressed: () => controller.createNewReceipt(),
             icon: const Icon(Icons.add),
             color: AppTheme.primaryOrange,
           ),
@@ -49,15 +49,15 @@ class QuotationsListPage extends StatelessWidget {
             // Search and Filter Section
             _buildSearchAndFilterSection(controller),
 
-            // Quotations List
-            Expanded(child: _buildQuotationsList(controller)),
+            // Receipts List
+            Expanded(child: _buildReceiptsList(controller)),
           ],
         );
       }),
     );
   }
 
-  Widget _buildSearchAndFilterSection(QuotationsListController controller) {
+  Widget _buildSearchAndFilterSection(ReceiptListController controller) {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacing16),
       decoration: BoxDecoration(
@@ -77,7 +77,7 @@ class QuotationsListPage extends StatelessWidget {
             controller: controller.searchController,
             onChanged: controller.onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'ค้นหาใบเสนอราคา...',
+              hintText: 'ค้นหาใบเสร็จรับเงิน...',
               hintStyle: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: AppTheme.fontSize14,
@@ -110,13 +110,13 @@ class QuotationsListPage extends StatelessWidget {
     );
   }
 
-  bool _hasActiveFilters(QuotationsListController controller) {
+  bool _hasActiveFilters(ReceiptListController controller) {
     return controller.selectedSeller.value != null ||
         controller.selectedDateRange.value != null ||
         controller.selectedStatuses.isNotEmpty;
   }
 
-  Widget _buildActiveFiltersSummary(QuotationsListController controller) {
+  Widget _buildActiveFiltersSummary(ReceiptListController controller) {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacing12),
       decoration: BoxDecoration(
@@ -168,7 +168,7 @@ class QuotationsListPage extends StatelessWidget {
     );
   }
 
-  String _getActiveFiltersText(QuotationsListController controller) {
+  String _getActiveFiltersText(ReceiptListController controller) {
     final filters = <String>[];
 
     if (controller.selectedSeller.value != null) {
@@ -186,7 +186,7 @@ class QuotationsListPage extends StatelessWidget {
     return filters.join(' • ');
   }
 
-  String _getDateRangeDisplayText(QuotationsListController controller) {
+  String _getDateRangeDisplayText(ReceiptListController controller) {
     if (controller.selectedDateRange.value == null) {
       return 'ทั้งหมด';
     }
@@ -210,7 +210,7 @@ class QuotationsListPage extends StatelessWidget {
     }
   }
 
-  Widget _buildFilterSuffixIcon(QuotationsListController controller) {
+  Widget _buildFilterSuffixIcon(ReceiptListController controller) {
     final hasActiveFilters = _hasActiveFilters(controller);
 
     return Container(
@@ -227,12 +227,12 @@ class QuotationsListPage extends StatelessWidget {
     );
   }
 
-  void _showFilterCenterDialog(QuotationsListController controller) {
-    Get.to(() => QuotationsFilterPage(controller: controller));
+  void _showFilterCenterDialog(ReceiptListController controller) {
+    Get.to(() => ReceiptFilterPage(controller: controller));
   }
 
-  Widget _buildQuotationsList(QuotationsListController controller) {
-    if (controller.quotations.isEmpty) {
+  Widget _buildReceiptsList(ReceiptListController controller) {
+    if (controller.receipts.isEmpty) {
       return _buildEmptyState(controller);
     }
 
@@ -241,24 +241,23 @@ class QuotationsListPage extends StatelessWidget {
         horizontal: AppTheme.spacing16,
         vertical: AppTheme.spacing8,
       ),
-      itemCount: controller.quotations.length,
+      itemCount: controller.receipts.length,
       itemBuilder: (context, index) {
-        final quotation = controller.quotations[index];
-        return _buildQuotationCard(quotation, controller);
+        final receipt = controller.receipts[index];
+        return _buildReceiptCard(receipt, controller);
       },
     );
   }
 
-  Widget _buildQuotationCard(
-    Map<String, dynamic> quotation,
-    QuotationsListController controller,
+  Widget _buildReceiptCard(
+    Map<String, dynamic> receipt,
+    ReceiptListController controller,
   ) {
-    final docNo = quotation['docNo'] ?? '';
-    final customerName = quotation['customer']?['name'] ?? '';
-    final grandTotal = quotation['grandTotal']?.toDouble() ?? 0.0;
-    final status = quotation['status'] ?? 'DRAFT';
-    // final createdBy = quotation['createdBy']?['displayName'] ?? quotation['createdBy']?['name'] ?? 'ไม่ระบุ';
-    final createdAt = quotation['createdAt'] ?? 0;
+    final docNo = receipt['docNo'] ?? '';
+    final customerName = receipt['customer']?['name'] ?? '';
+    final grandTotal = receipt['grandTotal']?.toDouble() ?? 0.0;
+    final status = receipt['status'] ?? 'COMPLETED';
+    final createdAt = receipt['createdAt'] ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
@@ -274,7 +273,7 @@ class QuotationsListPage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTheme.spacing8),
-          onTap: () => controller.viewQuotation(quotation),
+          onTap: () => controller.viewReceipt(receipt),
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacing12),
             child: Row(
@@ -320,30 +319,6 @@ class QuotationsListPage extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppTheme.spacing4),
-
-                      // // Created by
-                      // Row(
-                      //   children: [
-                      //     Icon(
-                      //       Icons.person_outline,
-                      //       size: AppTheme.iconSize12,
-                      //       color: AppTheme.textSecondary,
-                      //     ),
-                      //     const SizedBox(width: AppTheme.spacing4),
-                      //     Expanded(
-                      //       child: Text(
-                      //         createdBy,
-                      //         style: TextStyle(
-                      //           color: AppTheme.textSecondary,
-                      //           fontSize: AppTheme.fontSize10,
-                      //           fontFamily: AppFont.family,
-                      //         ),
-                      //         maxLines: 1,
-                      //         overflow: TextOverflow.ellipsis,
-                      //       ),
-                      //     ),
-                      //   ],
-                      // ),
                     ],
                   ),
                 ),
@@ -392,37 +367,13 @@ class QuotationsListPage extends StatelessWidget {
     String text;
 
     switch (status) {
-      case 'DRAFT':
-        color = AppTheme.textSecondary;
-        text = 'ร่าง';
-        break;
-      case 'SENT':
-        color = const Color(0xFF2196F3);
-        text = 'ส่งแล้ว';
-        break;
-      case 'PENDING_APPROVAL':
-        color = const Color(0xFFFF9800);
-        text = 'รออนุมัติ';
-        break;
-      case 'APPROVED':
+      case 'COMPLETED':
         color = const Color(0xFF4CAF50);
-        text = 'อนุมัติแล้ว';
-        break;
-      case 'REJECTED':
-        color = const Color(0xFFF44336);
-        text = 'ปฏิเสธ';
+        text = 'เสร็จสิ้น';
         break;
       case 'VOID':
         color = AppTheme.textSecondary;
         text = 'ยกเลิก';
-        break;
-      case 'INVOICED':
-        color = const Color(0xFF9C27B0);
-        text = 'ออกใบแจ้งหนี้แล้ว';
-        break;
-      case 'FULLY_PAID':
-        color = const Color(0xFF4CAF50);
-        text = 'ชำระแล้ว';
         break;
       default:
         color = AppTheme.textSecondary;
@@ -456,45 +407,15 @@ class QuotationsListPage extends StatelessWidget {
     IconData icon;
 
     switch (status) {
-      case 'DRAFT':
-        color = AppTheme.textSecondary;
-        text = 'ร่าง';
-        icon = Icons.edit_outlined;
-        break;
-      case 'SENT':
-        color = const Color(0xFF2196F3);
-        text = 'ส่งแล้ว';
-        icon = Icons.send;
-        break;
-      case 'PENDING_APPROVAL':
-        color = const Color(0xFFFF9800);
-        text = 'รออนุมัติ';
-        icon = Icons.pending;
-        break;
-      case 'APPROVED':
+      case 'COMPLETED':
         color = const Color(0xFF4CAF50);
-        text = 'อนุมัติแล้ว';
+        text = 'เสร็จสิ้น';
         icon = Icons.check_circle;
-        break;
-      case 'REJECTED':
-        color = const Color(0xFFF44336);
-        text = 'ปฏิเสธ';
-        icon = Icons.cancel;
         break;
       case 'VOID':
         color = AppTheme.textSecondary;
         text = 'ยกเลิก';
         icon = Icons.block;
-        break;
-      case 'INVOICED':
-        color = const Color(0xFF9C27B0);
-        text = 'ออกใบแจ้งหนี้แล้ว';
-        icon = Icons.receipt;
-        break;
-      case 'FULLY_PAID':
-        color = const Color(0xFF4CAF50);
-        text = 'ชำระแล้ว';
-        icon = Icons.payment;
         break;
       default:
         color = AppTheme.textSecondary;
@@ -530,7 +451,7 @@ class QuotationsListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(QuotationsListController controller) {
+  Widget _buildEmptyState(ReceiptListController controller) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -550,7 +471,7 @@ class QuotationsListPage extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacing24),
           Text(
-            'ไม่พบใบเสนอราคา',
+            'ไม่พบใบเสร็จรับเงิน',
             style: TextStyle(
               color: AppTheme.textPrimary,
               fontSize: AppTheme.fontSize18,
@@ -560,7 +481,7 @@ class QuotationsListPage extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacing8),
           Text(
-            'เริ่มต้นสร้างใบเสนอราคาแรกของคุณ',
+            'เริ่มต้นสร้างใบเสร็จรับเงินแรกของคุณ',
             style: TextStyle(
               color: AppTheme.textSecondary,
               fontSize: AppTheme.fontSize14,
@@ -570,9 +491,9 @@ class QuotationsListPage extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacing24),
           ElevatedButton.icon(
-            onPressed: () => controller.createNewQuotation(),
+            onPressed: () => controller.createNewReceipt(),
             icon: const Icon(Icons.add),
-            label: const Text('สร้างใบเสนอราคา'),
+            label: const Text('สร้างใบเสร็จรับเงิน'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,
