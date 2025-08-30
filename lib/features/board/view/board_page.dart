@@ -1509,7 +1509,7 @@ class _BoardPageState extends State<BoardPage> {
                 
                 const SizedBox(height: 16),
                 
-                // Current Boards Section
+                // Current Board Section
                 const Text(
                   'บอร์ดปัจจุบัน',
                   style: TextStyle(
@@ -1522,14 +1522,45 @@ class _BoardPageState extends State<BoardPage> {
                 const SizedBox(height: 8),
                 
                 Obx(() {
+                  final currentBoard = _controller.boards.firstWhereOrNull(
+                    (board) => board.id == _controller.currentBoardId.value,
+                  );
+                  if (currentBoard != null) {
+                    return _buildBoardItemWithAction(
+                      currentBoard.name,
+                      'Job Card ของคุณ ${currentBoard.lanes.length} ใบ',
+                      const Color(0xFFFF6C0C),
+                      currentBoard.id,
+                    );
+                  } else {
+                    return const SizedBox.shrink();
+                  }
+                }),
+                
+                const SizedBox(height: 24),
+                
+                // Your Boards Section
+                const Text(
+                  'บอร์ดของคุณ',
+                  style: TextStyle(
+                    color: Color(0xFFB3B3B3),
+                    fontSize: 12,
+                    fontFamily: 'Prompt',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                
+                Obx(() {
                   if (_controller.boards.isNotEmpty) {
                     return Column(
-                      children: _controller.boards.map((board) {
-                        final isCurrentBoard = board.id == _controller.currentBoardId.value;
+                      children: _controller.boards.where((board) => 
+                        board.id != _controller.currentBoardId.value
+                      ).map((board) {
                         return _buildBoardItemWithAction(
                           board.name,
                           'Job Card ของคุณ ${board.lanes.length} ใบ',
-                          isCurrentBoard ? const Color(0xFFFF6C0C) : const Color(0xFFFAB73F),
+                          const Color(0xFFFAB73F),
                           board.id,
                         );
                       }).toList(),
