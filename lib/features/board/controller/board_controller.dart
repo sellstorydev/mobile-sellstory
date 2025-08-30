@@ -687,8 +687,8 @@ class BoardController extends GetxController implements BoardView {
     if (trimmedQuery.isEmpty) {
       clearSearch();
     } else {
-      // Set a new timer for debounce (1000ms delay)
-      _searchDebounceTimer = Timer(const Duration(milliseconds: 1000), () {
+                   // Set a new timer for debounce (1000ms delay)
+             _searchDebounceTimer = Timer(const Duration(seconds: 1), () {
         _performSearch(trimmedQuery);
       });
     }

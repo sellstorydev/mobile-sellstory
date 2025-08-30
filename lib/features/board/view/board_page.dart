@@ -382,10 +382,18 @@ class _BoardPageState extends State<BoardPage> {
                           border: Border.all(color: Colors.grey[300]!),
                         ),
                         child: TextField(
-                          controller: TextEditingController(text: _controller.searchQuery.value),
-                          onChanged: _controller.updateSearchQuery,
+                          controller: _controller.searchTextController,
+                          onChanged: (value) {
+                            _controller.updateSearchQuery(value);
+                          },
                           textAlign: TextAlign.left,
                           textDirection: TextDirection.ltr,
+                          keyboardType: TextInputType.text,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontFamily: 'Prompt',
+                            letterSpacing: 0.0,
+                          ),
                           decoration: InputDecoration(
                             hintText: 'รหัส Job Card ชื่อ-นามสกุล ลูกค้าและเซล',
                             hintStyle: TextStyle(
