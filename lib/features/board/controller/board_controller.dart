@@ -85,26 +85,27 @@ class BoardController extends GetxController implements BoardView {
       
       print('📋 User workspaces loaded: ${workspaces.length} workspaces');
       
-      if (workspaces.isNotEmpty) {
-        // Use the first workspace as default
-        final firstWorkspace = workspaces.first;
-        currentWorkspaceId.value = firstWorkspace['id'] as String;
-        
-        // Prefetch permissions for selected workspace
-        try {
-          await MobilePermissionsService.to.getMyPermissions(workspaceId: currentWorkspaceId.value);
-        } catch (_) {}
+             if (workspaces.isNotEmpty) {
+         // Use the first workspace as default
+         final firstWorkspace = workspaces.first;
+         currentWorkspaceId.value = firstWorkspace['id'] as String;
+         currentWorkspaceName.value = firstWorkspace['name'] as String;
+         
+         // Prefetch permissions for selected workspace
+         try {
+           await MobilePermissionsService.to.getMyPermissions(workspaceId: currentWorkspaceId.value);
+         } catch (_) {}
 
-         print('✅ User initialized with workspace: ${firstWorkspace['name']}');
+          print('✅ User initialized with workspace: ${firstWorkspace['name']}');
 
-         // Load boards for the selected workspace
-         await getBoards();
+          // Load boards for the selected workspace
+          await getBoards();
 
-         // Auto-select first board if available
-         if (boards.isNotEmpty) {
-           await switchBoard(boards.first.id);
-         }
-       } else {
+          // Auto-select first board if available
+          if (boards.isNotEmpty) {
+            await switchBoard(boards.first.id);
+          }
+        } else {
          print('⚠️ No workspaces found for user: $userId');
          error.value = 'No workspaces found for this user';
        }
@@ -119,6 +120,10 @@ class BoardController extends GetxController implements BoardView {
      try {
        print('🔄 Switching to workspace: $workspaceId');
        currentWorkspaceId.value = workspaceId;
+
+       // Update current workspace name
+       final workspace = userWorkspaces.firstWhere((ws) => ws['id'] == workspaceId);
+       currentWorkspaceName.value = workspace['name'] as String;
 
        // Refresh permissions for the new workspace (company change)
        try {

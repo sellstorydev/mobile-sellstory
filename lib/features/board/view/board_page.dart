@@ -1448,54 +1448,62 @@ class _BoardPageState extends State<BoardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Current Workspace Section
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: const BoxDecoration(color: Color(0xFFD9D9D9)),
-                        child: Image.asset(
-                          'assets/app_icon_original.png',
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _navigateToEditWorkspace();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
                           width: 32,
                           height: 32,
-                          fit: BoxFit.cover,
+                          decoration: const BoxDecoration(color: Color(0xFFD9D9D9)),
+                          child: Image.asset(
+                            'assets/app_icon_original.png',
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Workspace ปัจจุบัน',
-                              style: TextStyle(
-                                color: Color(0xFFFF6C0C),
-                                fontSize: 12,
-                                fontFamily: 'Prompt',
-                                fontWeight: FontWeight.w500,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Workspace ปัจจุบัน',
+                                style: TextStyle(
+                                  color: Color(0xFFFF6C0C),
+                                  fontSize: 12,
+                                  fontFamily: 'Prompt',
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
-                            const Text(
-                              'My Workspace1',
-                              style: TextStyle(
-                                color: Color(0xFF4D4D4D),
-                                fontSize: 16,
-                                fontFamily: 'Prompt',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                              Obx(() => Text(
+                                _controller.currentWorkspaceName.value.isNotEmpty 
+                                  ? _controller.currentWorkspaceName.value 
+                                  : 'My Workspace1',
+                                style: const TextStyle(
+                                  color: Color(0xFF4D4D4D),
+                                  fontSize: 16,
+                                  fontFamily: 'Prompt',
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              )),
+                            ],
+                          ),
                         ),
-                      ),
-                      Icon(Icons.settings, color: Colors.grey[400], size: 20),
-                    ],
+                        Icon(Icons.settings, color: Colors.grey[400], size: 20),
+                      ],
+                    ),
                   ),
                 ),
                 
@@ -1513,9 +1521,23 @@ class _BoardPageState extends State<BoardPage> {
                 ),
                 const SizedBox(height: 8),
                 
-                _buildBoardItemSimple('ชื่อบอร์ด 1', 'Job Card ของคุณ 23 ใบ', const Color(0xFFFAB73F)),
-                _buildBoardItemSimple('ชื่อบอร์ดดดดดด 2', 'Job Card ของคุณ 2,288 ใบ', const Color(0xFF049BE5)),
-                _buildBoardItemSimple('Board Nameee', 'Job Card ของคุณ 589 ใบ', const Color(0xFF68B82B)),
+                Obx(() {
+                  if (_controller.boards.isNotEmpty) {
+                    return Column(
+                      children: _controller.boards.map((board) {
+                        final isCurrentBoard = board.id == _controller.currentBoardId.value;
+                        return _buildBoardItemWithAction(
+                          board.name,
+                          'Job Card ของคุณ ${board.lanes.length} ใบ',
+                          isCurrentBoard ? const Color(0xFFFF6C0C) : const Color(0xFFFAB73F),
+                          board.id,
+                        );
+                      }).toList(),
+                    );
+                  } else {
+                    return const SizedBox.shrink();
+                  }
+                }),
                 
                 const SizedBox(height: 24),
                 
@@ -1531,59 +1553,67 @@ class _BoardPageState extends State<BoardPage> {
                 ),
                 const SizedBox(height: 8),
                 
-                _buildWorkspaceItemSimple('My Workspace 2', 'Job Board ของคุณ 599 บอร์ด', false),
-                _buildWorkspaceItemSimple('My Workspace 3', 'Job Board ของคุณ 1 บอร์ด', true),
+                Obx(() {
+                  if (_controller.availableWorkspaces.isNotEmpty) {
+                    return Column(
+                      children: _controller.availableWorkspaces.where((workspace) => 
+                        workspace['id'] != _controller.currentWorkspaceId.value
+                      ).map((workspace) {
+                        final isCurrentWorkspace = workspace['id'] == _controller.currentWorkspaceId.value;
+                        return _buildWorkspaceItemWithAction(
+                          workspace['name'] as String,
+                          'Job Board ของคุณ ${workspace['boardCount'] ?? 0} บอร์ด',
+                          false,
+                          workspace['id'] as String,
+                        );
+                      }).toList(),
+                    );
+                  } else {
+                    return const SizedBox.shrink();
+                  }
+                }),
                 
-                // Boards under My Workspace 3
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.only(left: 24),
-                  child: const Text(
-                    'บอร์ดของคุณ',
-                    style: TextStyle(
-                      color: Color(0xFFB3B3B3),
-                      fontSize: 12,
-                      fontFamily: 'Prompt',
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _buildBoardItemSimple('Test', '', const Color(0xFF44B87B)),
+
                 
                 const SizedBox(height: 24),
                 
                 // Create Workspace Button
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFF6C0C)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF6C0C),
-                          borderRadius: BorderRadius.circular(10),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _navigateToCreateWorkspace();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFF6C0C)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6C0C),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.add, color: Colors.white, size: 12),
                         ),
-                        child: const Icon(Icons.add, color: Colors.white, size: 12),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'สร้าง Workspace',
-                        style: TextStyle(
-                          color: Color(0xFFFF6C0C),
-                          fontSize: 14,
-                          fontFamily: 'Prompt',
-                          fontWeight: FontWeight.w400,
+                        const SizedBox(width: 8),
+                        const Text(
+                          'สร้าง Workspace',
+                          style: TextStyle(
+                            color: Color(0xFFFF6C0C),
+                            fontSize: 14,
+                            fontFamily: 'Prompt',
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 
@@ -1591,6 +1621,66 @@ class _BoardPageState extends State<BoardPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBoardItemWithAction(String title, String subtitle, Color color, String boardId) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pop();
+        _controller.switchBoard(boardId);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF4D4D4D),
+                      fontSize: 16,
+                      fontFamily: 'Prompt',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Color(0xFF999999),
+                        fontSize: 14,
+                        fontFamily: 'Prompt',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(Icons.settings, color: Colors.grey[400], size: 20),
+          ],
         ),
       ),
     );
@@ -1646,6 +1736,61 @@ class _BoardPageState extends State<BoardPage> {
           ),
           Icon(Icons.settings, color: Colors.grey[400], size: 20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWorkspaceItemWithAction(String title, String subtitle, bool isExpanded, String workspaceId) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pop();
+        _controller.switchWorkspace(workspaceId);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+              color: Colors.grey[500],
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF4D4D4D),
+                      fontSize: 16,
+                      fontFamily: 'Prompt',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFF999999),
+                      fontSize: 14,
+                      fontFamily: 'Prompt',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.settings, color: Colors.grey[400], size: 20),
+          ],
+        ),
       ),
     );
   }
