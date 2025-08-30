@@ -181,32 +181,32 @@ class MorePage extends StatelessWidget {
                         },
                       ),
                     ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.web,
-                      title: 'Web View Demo',
-                      onTap: () {
-                        // Example of opening WebView with parameters
-                        final parameters = {
-                          'userId': 'user123',
-                          'workspaceId': 'workspace456',
-                          'token': 'demo_token_789',
-                          'timestamp': DateTime.now().millisecondsSinceEpoch
-                              .toString(),
-                          'platform': 'mobile',
-                          'version': '1.10.9',
-                        };
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.web,
+                    //   title: 'Web View Demo',
+                    //   onTap: () {
+                    //     // Example of opening WebView with parameters
+                    //     final parameters = {
+                    //       'userId': 'user123',
+                    //       'workspaceId': 'workspace456',
+                    //       'token': 'demo_token_789',
+                    //       'timestamp': DateTime.now().millisecondsSinceEpoch
+                    //           .toString(),
+                    //       'platform': 'mobile',
+                    //       'version': '1.10.9',
+                    //     };
 
-                        Get.toNamed(
-                          '/webview',
-                          arguments: parameters,
-                          parameters: {
-                            'url': 'https://example.com/demo',
-                            'title': 'Web View Demo',
-                          },
-                        );
-                      },
-                    ),
+                    //     Get.toNamed(
+                    //       '/webview',
+                    //       arguments: parameters,
+                    //       parameters: {
+                    //         'url': 'https://example.com/demo',
+                    //         'title': 'Web View Demo',
+                    //       },
+                    //     );
+                    //   },
+                    // ),
 
                     _buildDivider(),
                     _buildMenuItem(
@@ -418,21 +418,21 @@ class MorePage extends StatelessWidget {
                         }
                       },
                     ),
-                    _buildDivider(),
-                    PermissionGuard(
-                      anyOf: const ['settings:company:manage'],
-                      child: _buildMenuItem(
-                        icon: Icons.business_outlined,
-                        title: 'ตั้งค่าบริษัท',
-                        onTap: () {
-                          Get.snackbar(
-                            'Info',
-                            'Company Settings coming soon',
-                            snackPosition: SnackPosition.BOTTOM,
-                          );
-                        },
-                      ),
-                    ),
+                    // _buildDivider(),
+                    // PermissionGuard(
+                    //   anyOf: const ['settings:company:manage'],
+                    //   child: _buildMenuItem(
+                    //     icon: Icons.business_outlined,
+                    //     title: 'ตั้งค่าบริษัท',
+                    //     onTap: () {
+                    //       Get.snackbar(
+                    //         'Info',
+                    //         'Company Settings coming soon',
+                    //         snackPosition: SnackPosition.BOTTOM,
+                    //       );
+                    //     },
+                    //   ),
+                    // ),
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.privacy_tip_outlined,

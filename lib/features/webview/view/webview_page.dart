@@ -155,11 +155,11 @@ class _WebViewPageState extends State<WebViewPage> {
         elevation: 0,
         actions: [
           // Reload button
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _reloadPage,
-            tooltip: 'Reload',
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.refresh),
+          //   onPressed: _reloadPage,
+          //   tooltip: 'Reload',
+          // ),
           // More options
           PopupMenuButton<String>(
             onSelected: (value) => _handleMenuAction(value),
@@ -245,55 +245,55 @@ class _WebViewPageState extends State<WebViewPage> {
           ),
           
           // Bottom navigation bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppTheme.backgroundWhite,
-              border: Border(
-                top: BorderSide(color: Colors.grey.shade200),
-              ),
-            ),
-            child: Row(
-              children: [
-                // Back button
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: _goBack,
-                  tooltip: 'Go Back',
-                ),
+          // Container(
+          //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          //   decoration: BoxDecoration(
+          //     color: AppTheme.backgroundWhite,
+          //     border: Border(
+          //       top: BorderSide(color: Colors.grey.shade200),
+          //     ),
+          //   ),
+          //   child: Row(
+          //     children: [
+          //       // Back button
+          //       IconButton(
+          //         icon: const Icon(Icons.arrow_back),
+          //         onPressed: _goBack,
+          //         tooltip: 'Go Back',
+          //       ),
                 
-                // Forward button
-                IconButton(
-                  icon: const Icon(Icons.arrow_forward),
-                  onPressed: _goForward,
-                  tooltip: 'Go Forward',
-                ),
+          //       // Forward button
+          //       IconButton(
+          //         icon: const Icon(Icons.arrow_forward),
+          //         onPressed: _goForward,
+          //         tooltip: 'Go Forward',
+          //       ),
                 
-                const SizedBox(width: 16),
+          //       const SizedBox(width: 16),
                 
-                // URL display
-                Expanded(
-                  child: Text(
-                    _currentUrl,
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 12,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+          //       // URL display
+          //       Expanded(
+          //         child: Text(
+          //           _currentUrl,
+          //           style: TextStyle(
+          //             color: AppTheme.textSecondary,
+          //             fontSize: 12,
+          //           ),
+          //           overflow: TextOverflow.ellipsis,
+          //         ),
+          //       ),
                 
-                // Home button
-                IconButton(
-                  icon: const Icon(Icons.home),
-                  onPressed: () {
-                    _webViewController.loadRequest(Uri.parse(widget.url ?? 'https://example.com'));
-                  },
-                  tooltip: 'Home',
-                ),
-              ],
-            ),
-          ),
+          //       // Home button
+          //       IconButton(
+          //         icon: const Icon(Icons.home),
+          //         onPressed: () {
+          //           _webViewController.loadRequest(Uri.parse(widget.url ?? 'https://example.com'));
+          //         },
+          //         tooltip: 'Home',
+          //       ),
+          //     ],
+          //   ),
+          // ),
         ],
       ),
     );
