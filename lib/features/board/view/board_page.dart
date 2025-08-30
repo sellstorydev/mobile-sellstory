@@ -83,6 +83,9 @@ class _BoardPageState extends State<BoardPage> {
       case 'refresh':
         _initializeWithCurrentUser();
         break;
+      case 'calendar':
+        Get.toNamed('/calendar');
+        break;
       case 'edit_workspace':
         _navigateToEditWorkspace();
         break;
@@ -329,9 +332,22 @@ class _BoardPageState extends State<BoardPage> {
                          const Icon(Icons.refresh, size: 20),
                          const SizedBox(width: 12),
                          const Text('Refresh'),
-                       ],
-                     ),
-                   ),
+                      ],
+                    ),
+                  ),
+
+                   // Refresh
+                   const PopupMenuDivider(),
+                   PopupMenuItem<String>(
+                     value: 'calendar',
+                     child: Row(
+                       children: [
+                         const Icon(Icons.calendar_month, size: 20),
+                         const SizedBox(width: 12),
+                         const Text('Calendar'),
+                        ],
+                      ),
+                    ),
                  ],
                );
             } else {

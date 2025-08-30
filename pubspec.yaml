@@ -112,6 +112,9 @@ dependencies:
   # Slidable list item actions
   flutter_slidable: ^3.1.0
 
+  # Brand icons (Facebook, Instagram, LINE)
+  font_awesome_flutter:
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

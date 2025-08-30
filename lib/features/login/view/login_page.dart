@@ -5,6 +5,8 @@ import '../controller/login_controller.dart';
 import '../widgets/branded_logo.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/top_snack.dart';
+
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -246,7 +248,7 @@ class LoginPage extends StatelessWidget {
                                   ),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      Get.snackbar('Info', 'Opening LINE link...');
+                                      TopSnack.info('Opening LINE link...', title: 'Info');
                                     },
                                 ),
                               ],

@@ -12,6 +12,8 @@ import '../../../data/services/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/user_picker_sheet.dart';
 import '../widgets/hashtag_picker_sheet.dart';
+import '../widgets/chat_search_bar.dart';
+import '../widgets/chat_filter_sheet.dart';
 
 
 class ChatCenterPage extends StatefulWidget {
@@ -28,6 +30,21 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
   late final ChatController _controller;
   String? _currentUserId;
   final ScrollController _listScrollController = ScrollController();
+
+  // Top snack helper (use GetX snackbar at top)
+  void _showTopSnack(String message, {bool isError = false}) {
+    // Dismiss existing to avoid stacking many
+    try { Get.closeAllSnackbars(); } catch (_) {}
+    Get.snackbar(
+      isError ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน',
+      margin: const EdgeInsets.all(12),
+      'Sales Management coming soon',
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(seconds: 2),
+      icon: Icon(isError ? Icons.error_outline : Icons.check_circle, color: Colors.white),
+
+    );
+  }
 
   @override
   void initState() {
@@ -47,6 +64,9 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
 
   @override
   void dispose() {
+    // Clear search when leaving the page
+    try { _controller.updateSearchQuery(''); } catch (_) {}
+    _searchController.clear();
     _searchController.dispose();
     _listScrollController.dispose();
     super.dispose();
@@ -65,7 +85,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final chatId = (conversation['id'] ?? '').toString();
     if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
       _logger.warning('No workspace/chatroom id for add hashtag');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ workspace หรือ chatroom')));
+      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
       return;
     }
 
@@ -127,14 +147,10 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
           }, SetOptions(merge: true));
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('อัปเดต Hashtag แล้ว (${names.length})')),
-      );
+      _showTopSnack('อัปเดต Hashtag แล้ว (${names.length})');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('อัปเดต Hashtag ไม่สำเร็จ: $e')),
-      );
+      _showTopSnack('อัปเดต Hashtag ไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -142,7 +158,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final wsId = _controller.getCurrentWorkspaceId();
     final chatId = (conversation['id'] ?? '').toString();
     if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ workspace หรือ chatroom')));
+      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
       return;
     }
 
@@ -218,13 +234,9 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       if (displayName.isEmpty) displayName = pickedUid;
       _controller.addAssigneeLocal(chatId, pickedUid, displayName);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
-      );
+      _showTopSnack('ผูกเซลเรียบร้อย');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ผูกเซลไม่สำเร็จ: $e')),
-      );
+      _showTopSnack('ผูกเซลไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -233,7 +245,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final ref = _chatroomRef(conversation);
     if (ref == null) {
       _logger.warning('No workspace/chatroom id for status');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ workspace หรือ chatroom')));
+      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
       return;
     }
 
@@ -269,15 +281,14 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     try {
       await ref.set({'chatroom_status': choice}, SetOptions(merge: true));
       final label = choice == 'DONE' ? 'เสร็จสิ้น' : 'กำลังดำเนินการ';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปเดตสถานะ: $label')));
+      _showTopSnack('อัปเดตสถานะ: $label');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปเดตสถานะไม่สำเร็จ: $e')));
+      _showTopSnack('อัปเดตสถานะไม่สำเร็จ: $e', isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
@@ -304,25 +315,16 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
             onPressed: () => _controller.refresh(),
             color: Colors.black87,
           ),
-          // IconButton(
-          //   tooltip: 'กรอง',
-          //   icon: const Icon(Icons.filter_list_rounded),
-          //   onPressed: () => _openFilterSheet(context),
-          //   color: Colors.black87,
-          // ),
-          // const SizedBox(width: 4),
-          // PopupMenuButton<int>(
-          //   icon: const Icon(Icons.more_vert, color: Colors.black87),
-          //   itemBuilder: (_) => const [
-          //     PopupMenuItem(value: 1, child: Text('ตั้งค่า')),
-          //   ],
-          // ),
-          // const SizedBox(width: 8),
+
         ],
       ),
       body: Column(
         children: [
-          _buildSearchBar(theme),
+          ChatSearchBar(
+            controller: _searchController,
+            onChanged: (value) => _controller.updateSearchQuery(value),
+            onOpenFilter: () => _openFilterSheet(context),
+          ),
           _buildFilterChips(),
           const SizedBox(height: 8),
           Expanded(child: _buildConversationsList()),
@@ -331,59 +333,6 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     );
   }
 
-  Widget _buildSearchBar(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'ค้นหาด้วย ชื่อ นามสกุล ชื่อบริษัท หรือ ข้อความแชท hashtag เซล',
-                prefixIcon: const Icon(Icons.search),
-                isDense: true,
-                fillColor: Colors.white,
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Colors.blue, width: 1.8),
-                ),
-              ),
-              onChanged: (value) => _controller.updateSearchQuery(value),
-            ),
-
-          ),
-          const SizedBox(width: 8),
-          Material(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              side: BorderSide(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => _openFilterSheet(context),
-              child: const Padding(
-                padding: EdgeInsets.all(12),
-                child: Icon(Icons.tune_rounded),
-              ),
-            ),
-          )
-        ],
-      ),
-    );
-  }
 
   Widget _buildFilterChips() {
     // ใช้ Obx เพื่อเชื่อมกับตัวควบคุมเดิม
@@ -514,50 +463,10 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     );
   }
 
-  void _openFilterSheet(BuildContext context) {
+  void _openFilterSheet(BuildContext context) async {
     final wsId = _controller.getCurrentWorkspaceId() ?? '';
 
-    // Snapshot current filters
-    final initialPlatforms = Set<String>.from(_controller.platformFilters);
-    String status = _controller.statusFilter.value; // '', NEW, IN_PROGRESS, DONE
-    final List<String> initialHashtagIds = List<String>.from(_controller.hashtagIdFilters);
-    String salesUid = _controller.salesIdFilter.value;
-    String customerId = _controller.customerIdFilter.value;
-
-    // Local display states
-    List<String> selectedHashtagIds = List<String>.from(initialHashtagIds);
-    List<String> selectedHashtagNames = const [];
-    String? salesName;
-    String? customerName;
-
-    Future<void> _loadUserName(String uid) async {
-      if (uid.isEmpty) { salesName = null; return; }
-      try {
-        final u = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        final m = u.data() ?? {};
-        salesName = (m['displayName'] ?? m['name'] ?? uid).toString();
-      } catch (_) {}
-    }
-
-    Future<void> _loadCustomerName(String cid) async {
-      if (cid.isEmpty || wsId.isEmpty) { customerName = null; return; }
-      try {
-        final c = await FirebaseFirestore.instance.collection('workspaces').doc(wsId).collection('customers').doc(cid).get();
-        final m = c.data() ?? {};
-        customerName = (m['name'] ?? m['displayName'] ?? m['customerName'] ?? cid).toString();
-      } catch (_) {}
-    }
-
-    // Preload names for current selections
-    if (salesUid.isNotEmpty) {
-      // fire and forget; UI will update on setState below when future completes
-      _loadUserName(salesUid);
-    }
-    if (customerId.isNotEmpty) {
-      _loadCustomerName(customerId);
-    }
-
-    showModalBottomSheet(
+    final result = await showModalBottomSheet<ChatFilterResult>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
@@ -565,241 +474,34 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) {
-        final theme = Theme.of(context);
-        Set<String> platforms = Set<String>.from(initialPlatforms);
-        return
-
-          FractionallySizedBox(
-              heightFactor: 0.92, // leave a small gap at the top for easier dismiss
-              child:
-          StatefulBuilder(
-          builder: (ctx, setState) {
-            Widget _platformCheckbox(String key, String label) {
-              final checked = platforms.contains(key);
-              return CheckboxListTile(
-                value: checked,
-                onChanged: (v) {
-                  setState(() {
-                    if (v == true) { platforms.add(key); } else { platforms.remove(key); }
-                  });
-                },
-                title: Text(label),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-              );
-            }
-
-            Widget _statusRadio(String value, String label) {
-              return RadioListTile<String>(
-                value: value,
-                groupValue: status,
-                onChanged: (v) => setState(() => status = v ?? ''),
-                title: Text(label),
-                contentPadding: EdgeInsets.zero,
-              );
-            }
-
-            Widget _pickerTile({required IconData icon, required String label, required String placeholder, String? value, VoidCallback? onTap}) {
-              return InkWell(
-                onTap: onTap,
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: label,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    isDense: true,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(icon, size: 20, color: Colors.black54),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          (value != null && value.isNotEmpty) ? value : placeholder,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: (value != null && value.isNotEmpty) ? Colors.black87 : Colors.grey),
-                        ),
-                      ),
-                      const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black45),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(child: Text('ค้นหา', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
-                          TextButton(
-                            onPressed: () {
-                              // Clear all local selections
-                              setState(() {
-                                platforms.clear();
-                                status = '';
-                                selectedHashtagIds = [];
-                                selectedHashtagNames = [];
-                                salesUid = '';
-                                salesName = null;
-                                customerId = '';
-                                customerName = null;
-                              });
-                              // Apply to controller and close
-                              _controller.clearAllFilters();
-                              Navigator.pop(ctx);
-                            },
-                            child: const Text('ล้างค่า'),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-
-                      const Text('ช่องทาง', style: TextStyle(fontWeight: FontWeight.w700)),
-                      _platformCheckbox('facebook', 'ช่องทาง Facebook'),
-                      _platformCheckbox('instagram', 'ช่องทาง Instagram'),
-                      _platformCheckbox('line', 'ช่องทาง LINE'),
-
-                      const SizedBox(height: 8),
-                      const Text('สถานะ', style: TextStyle(fontWeight: FontWeight.w700)),
-                      _statusRadio('NEW', 'ใหม่'),
-                      _statusRadio('IN_PROGRESS', 'กำลังดำเนินการ'),
-                      _statusRadio('DONE', 'เสร็จสิ้น'),
-
-                      const SizedBox(height: 8),
-                      const Text('Hashtag', style: TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 6),
-                      _pickerTile(
-                        icon: Icons.tag,
-                        label: '',
-                        placeholder: 'เลือก Hashtag',
-                        value: selectedHashtagNames.isNotEmpty ? selectedHashtagNames.map((n) => '#$n').join(', ') : null,
-                        onTap: () async {
-                          if (wsId.isEmpty) return;
-                          final result = await showModalBottomSheet<HashtagPickerResult>(
-                            context: ctx,
-                            useSafeArea: true,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.white,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                            ),
-                            builder: (c) {
-                              final h = MediaQuery.of(c).size.height;
-                              return SizedBox(
-                                height: h * 0.9,
-                                child: HashtagPickerSheet(
-                                  workspaceId: wsId,
-                                  initialIds: selectedHashtagIds,
-                                  initialNames: selectedHashtagNames,
-                                ),
-                              );
-                            },
-                          );
-                          if (result != null) {
-                            setState(() {
-                              selectedHashtagIds = result.ids;
-                              selectedHashtagNames = result.names;
-                            });
-                          }
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-                      const Text('เซล', style: TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 6),
-                      _pickerTile(
-                        icon: Icons.person_outline,
-                        label: '',
-                        placeholder: 'เลือกเซลผู้รับผิดชอบ',
-                        value: salesName,
-                        onTap: () async {
-                          if (wsId.isEmpty) return;
-                          final pickedUid = await showModalBottomSheet<String>(
-                            context: ctx,
-                            useSafeArea: true,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.white,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                            ),
-                            builder: (c) {
-                              final h = MediaQuery.of(c).size.height;
-                              return SizedBox(height: h * 0.9, child: UserPickerSheet(workspaceId: wsId));
-                            },
-                          );
-                          if (pickedUid != null && pickedUid.isNotEmpty) {
-                            await _loadUserName(pickedUid);
-                            setState(() {
-                              salesUid = pickedUid;
-                            });
-                          }
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-                      const Text('ลูกค้า', style: TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 6),
-                      _pickerTile(
-                        icon: Icons.people_outline,
-                        label: '',
-                        placeholder: 'เลือกลูกค้า',
-                        value: customerName,
-                        onTap: () async {
-                          if (wsId.isEmpty) return;
-                          final pickedCustomerId = await showModalBottomSheet<String>(
-                            context: ctx,
-                            useSafeArea: true,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.white,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                            ),
-                            builder: (c) {
-                              final h = MediaQuery.of(c).size.height;
-                              return SizedBox(height: h * 0.9, child: CustomerPickerSheet(workspaceId: wsId));
-                            },
-                          );
-                          if (pickedCustomerId != null && pickedCustomerId.isNotEmpty) {
-                            await _loadCustomerName(pickedCustomerId);
-                            setState(() {
-                              customerId = pickedCustomerId;
-                            });
-                          }
-                        },
-                      ),
-
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _controller.setPlatformFilters(platforms);
-                            _controller.setStatusFilter(status);
-                            _controller.setHashtagFilters(selectedHashtagIds);
-                            _controller.setSalesFilter(salesUid);
-                            _controller.setCustomerFilter(customerId);
-                            Navigator.pop(ctx);
-                          },
-                          child: const Text('ยืนยัน'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-              );
-            },
-          ))
-        ;
-      },
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.92,
+        child: ChatFilterSheet(
+          wsId: wsId,
+          initialPlatforms: Set<String>.from(_controller.platformFilters),
+          initialStatus: _controller.statusFilter.value,
+          initialHashtagIds: List<String>.from(_controller.hashtagIdFilters),
+          initialSalesUid: _controller.salesIdFilter.value,
+          initialCustomerId: _controller.customerIdFilter.value,
+        ),
+      ),
     );
+
+    if (result == null) return;
+
+    if (result.cleared) {
+      // Clear all filters and search
+      _searchController.clear();
+      _controller.updateSearchQuery('');
+      _controller.clearAllFilters();
+      return;
+    }
+
+    // Apply selected filters; keep search text as-is
+    _controller.setPlatformFilters(result.platforms);
+    _controller.setStatusFilter(result.status);
+    _controller.setHashtagFilters(result.hashtagIds);
+    _controller.setSalesFilter(result.salesUid);
+    _controller.setCustomerFilter(result.customerId);
   }
 }

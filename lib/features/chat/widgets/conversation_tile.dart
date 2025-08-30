@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class ConversationTile extends StatelessWidget {
   final Map<String, dynamic> conversation;
@@ -71,15 +72,16 @@ class ConversationTile extends StatelessWidget {
   (_PlatformIconColor, IconData) _platformStyle(String platform) {
     switch (platform) {
       case 'facebook':
-        return ((_PlatformIconColor(const Color(0xFF1877F2))), Icons.public);
+        return ((_PlatformIconColor(const Color(0xFF1877F2))), FontAwesomeIcons.facebook);
       case 'instagram':
-        return ((_PlatformIconColor(const Color(0xFFE1306C))), Icons.camera_alt_outlined);
+        return ((_PlatformIconColor(const Color(0xFFE1306C))), FontAwesomeIcons.instagram);
       case 'line':
-        return ((_PlatformIconColor(const Color(0xFF00C300))), Icons.chat);
+        return ((_PlatformIconColor(const Color(0xFF00C300))), FontAwesomeIcons.line);
       default:
         return ((_PlatformIconColor(Colors.grey.shade600)), Icons.chat_bubble_outline);
     }
   }
+
 
   String _platformLabel(String platform) {
     switch (platform) {
@@ -124,6 +126,9 @@ class ConversationTile extends StatelessWidget {
     final style = _platformStyle(platform);
     final Color platformColor = style.$1.color;
     final IconData platformIcon = style.$2;
+
+    final bool isPinned = (conversation['isPinned'] == true) ||
+        ((conversation['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
 
     // Title to show on the top line: prefer pageName/providerName, else platform label
     // final topTitle = pageTitle.isNotEmpty ? pageTitle : _platformLabel(platform);
@@ -182,7 +187,7 @@ class ConversationTile extends StatelessWidget {
                     const SizedBox(height: 2),
                   ],
 
-                  // Name row with time
+                  // Name row with time and pin
                   Row(
                     children: [
                       Expanded(
@@ -192,6 +197,10 @@ class ConversationTile extends StatelessWidget {
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                       ),
+                      if (isPinned) ...[
+                        const SizedBox(width: 6),
+                        Icon(Icons.push_pin, size: 16, color: Colors.amber.shade700),
+                      ],
                       const SizedBox(width: 8),
                       Text(
                         timeText,

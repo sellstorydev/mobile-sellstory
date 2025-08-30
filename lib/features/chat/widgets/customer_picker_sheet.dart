@@ -54,7 +54,14 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('เลือกลูกค้า')),
+      appBar: AppBar(
+        title: const Text('เลือกลูกค้า'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+          tooltip: 'ยกเลิก',
+        ),
+      ),
       body: Column(
         children: [
           Padding(

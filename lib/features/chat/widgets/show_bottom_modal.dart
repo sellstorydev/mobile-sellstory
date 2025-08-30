@@ -13,6 +13,8 @@ import 'jobcard_picker_sheet.dart';
 import '../../board/view/card_detail_page.dart';
 import '../../../domain/entities/job_card.dart';
 import 'package:get/get.dart';
+import '../../../core/services/hashtag_service.dart';
+import '../../../core/widgets/hashtag_input_field.dart';
 
 const _accent = Color(0xFFFF7A00); // โทมส้มตามภาพ
 
@@ -135,6 +137,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   String? _jobCardId;
   String? _jobCardTitle;
 
+  // Hashtags state (for linked customer)
+  final HashtagService _hashtagService = HashtagService();
+  List<HashtagOption> _availableHashtags = [];
+  List<String> _selectedHashtagIds = [];
+  bool _loadingHashtags = false;
+  bool _creatingHashtag = false;
 
   // Helper to get chatroom doc ref
   DocumentReference<Map<String, dynamic>> get _chatroomDoc => FirebaseFirestore.instance
@@ -148,6 +156,24 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   Future<Map<String, dynamic>> _getChatroomData() async {
     final snap = await _chatroomDoc.get();
     return snap.data() ?? <String, dynamic>{};
+  }
+
+  void _showTopSnack(String message, {bool isError = false}) {
+
+    // Dismiss existing to avoid stacking many
+    try { Get.closeAllSnackbars(); } catch (_) {}
+
+    Get.snackbar(
+      isError ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน',
+      margin: const EdgeInsets.all(12),
+      message,
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(seconds: 2),
+      icon: Icon(isError ? Icons.error_outline : Icons.check_circle, color: Colors.white),
+
+    );
+
+
   }
 
   Future<void> _loadCustomerNameById(String cid) async {
@@ -214,7 +240,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       );
       if (newName == null) return;
       if (newName.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ชื่อห้ามว่าง')));
+        _showTopSnack('ชื่อห้ามว่าง', isError: true);
         return;
       }
       if (newName == currentName) return;
@@ -229,10 +255,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }
       await _chatroomDoc.set(updates, SetOptions(merge: true));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('บันทึกชื่อแชทเรียบร้อย')));
+      _showTopSnack('บันทึกชื่อแชทเรียบร้อย');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เปลี่ยนชื่อไม่สำเร็จ: $e')));
+      _showTopSnack('เปลี่ยนชื่อไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -242,15 +268,149 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       final original = (data['original_name'] ?? data['who_name'] ?? data['displayName'] ?? data['customerName'] ?? data['name'])
           ?.toString() ?? '';
       if (original.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบชื่อเดิมสำหรับรีเซ็ต')));
+        _showTopSnack('ไม่พบชื่อเดิมสำหรับรีเซ็ต', isError: true);
         return;
       }
       await _chatroomDoc.set({'name': original}, SetOptions(merge: true));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('รีเซ็ตชื่อแชทเรียบร้อย')));
+      _showTopSnack('รีเซ็ตชื่อแชทเรียบร้อย');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('รีเซ็ตไม่สำเร็จ: $e')));
+      _showTopSnack('รีเซ็ตไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
+  Future<void> _loadCustomerHashtags(String cid) async {
+    setState(() { _loadingHashtags = true; });
+    try {
+      // Load available hashtags for customer scope
+      _availableHashtags = await _hashtagService.getHashtagsByScope(widget.workspaceId, 'customer');
+      // Load current customer's hashtag ids
+      final snap = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.workspaceId)
+          .collection('customers')
+          .doc(cid)
+          .get();
+      final m = snap.data() ?? {};
+      final raw = (m['hashtags'] as List?) ?? const [];
+      final ids = <String>[];
+      for (final it in raw) {
+        if (it is String) ids.add(it);
+        else if (it is Map) {
+          final id = (it['id'] ?? it['text'] ?? '').toString();
+          if (id.isNotEmpty) ids.add(id);
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _selectedHashtagIds = ids;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() { _availableHashtags = []; _selectedHashtagIds = []; });
+    } finally {
+      if (mounted) setState(() { _loadingHashtags = false; });
+    }
+  }
+
+  Future<void> _persistCustomerHashtags(List<String> ids) async {
+    try {
+      // Map to object format {id,text,color}
+      final objects = ids.map((id) {
+        final h = _availableHashtags.firstWhere(
+              (x) => x.id == id,
+          orElse: () => HashtagOption(id: id, name: id, color: '#ef4444', totalUsage: 0, enabled: true, scopes: const {}),
+        );
+        return {
+          'id': h.id,
+          'text': h.name,
+          'color': h.color,
+        };
+      }).toList();
+      await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.workspaceId)
+          .collection('customers')
+          .doc(_currentCustomerId)
+          .set({'hashtags': objects}, SetOptions(merge: true));
+    } catch (e) {
+      if (!mounted) return;
+      _showTopSnack('อัปเดตแฮชแท็กไม่สำเร็จ', isError: true);
+    }
+  }
+
+  Future<void> _createNewCustomerHashtag() async {
+    if ((_currentCustomerId ?? '').isEmpty) return;
+    final controller = TextEditingController();
+    final colorController = TextEditingController(text: '#f97316');
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('เพิ่มแฮชแท็กใหม่'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(hintText: 'เช่น VIP, Hot, ติดตาม'),
+              autofocus: true,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: colorController,
+              decoration: const InputDecoration(hintText: '#สี (เช่น #f97316)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('เพิ่ม')),
+        ],
+      ),
+    );
+    if (name == null) return;
+    final safeName = name.replaceAll('#', '').trim();
+    if (safeName.isEmpty) {
+      _showTopSnack('กรอกชื่อแฮชแท็กก่อน');
+      return;
+    }
+
+    setState(() => _creatingHashtag = true);
+    try {
+      final color = () {
+        final raw = colorController.text.trim();
+        if (RegExp(r'^#?[0-9a-fA-F]{6}�?$').hasMatch(raw)) {
+          return raw.startsWith('#') ? raw : '#$raw';
+        }
+        return '#f97316';
+      }();
+      final ok = await _hashtagService.createHashtag(
+        widget.workspaceId,
+        safeName,
+        color,
+        const {'customer': true},
+      );
+      if (!ok) {
+        if (!mounted) return;
+        _showTopSnack('สร้างแฮชแท็กไม่สำเร็จ', isError: true);
+        return;
+      }
+      // Reload available hashtags and select the new one
+      await _loadCustomerHashtags(_currentCustomerId!);
+      final newId = safeName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+      if (!_selectedHashtagIds.contains(newId)) {
+        final updated = [..._selectedHashtagIds, newId];
+        setState(() => _selectedHashtagIds = updated);
+        await _persistCustomerHashtags(updated);
+      }
+      if (!mounted) return;
+      _showTopSnack('เพิ่มและเชื่อมแฮชแท็กเรียบร้อย');
+    } catch (e) {
+      if (!mounted) return;
+      _showTopSnack('สร้างแฮชแท็กไม่สำเร็จ: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _creatingHashtag = false);
     }
   }
 
@@ -265,8 +425,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     _loadAssignees();
     if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
       _loadCustomerNameById(_currentCustomerId!);
+      _loadCustomerHashtags(_currentCustomerId!);
     }
-
 
     // Realtime sync with chatroom document
     _chatroomSub = _chatroomDoc.snapshots().listen((snap) {
@@ -296,8 +456,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             } else {
               _loadCustomerNameById(_currentCustomerId!);
             }
+            _loadCustomerHashtags(_currentCustomerId!);
           } else {
             _currentCustomerName = null;
+            _selectedHashtagIds = [];
           }
         } else {
           // same id; update name if present in doc
@@ -373,13 +535,15 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Future<void> _openNotes() async {
-
     if (_currentCustomerId == null || _currentCustomerId!.isEmpty) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่พบลูกค้าสำหรับบันทึกโน้ต')),
-      );
-      return;
+      // Prompt to pick a customer first
+      final prev = _currentCustomerId;
+      await _openCustomerPicker();
+      if (!mounted) return;
+      if ((_currentCustomerId ?? '') == (prev ?? '') || (_currentCustomerId ?? '').isEmpty) {
+        _showTopSnack('ไม่พบลูกค้าสำหรับบันทึกโน้ต', isError: true);
+        return;
+      }
     }
     await showModalBottomSheet(
       context: context,
@@ -446,15 +610,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           await _loadAssignees();
           widget.onAssignChanged?.call(pickedUid);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('ผูกเซลเรียบร้อย')),
-            );
+            _showTopSnack('ผูกเซลเรียบร้อย');
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('ผูกเซลไม่สำเร็จ: $e')),
-            );
+            _showTopSnack('ผูกเซลไม่สำเร็จ: $e', isError: true);
           }
         }
       }
@@ -488,10 +648,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }
       if (!mounted) return;
       setState(() => _assignees.removeWhere((u) => u.uid == user.uid));
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ลบเซลเรียบร้อย')));
+      _showTopSnack('ลบเซลเรียบร้อย');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('��บไม่สำเร็จ: $e')));
+      _showTopSnack('ลบไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -536,13 +696,37 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         _currentCustomerId = pickedCustomerId;
         _currentCustomerName = name.isNotEmpty ? name : null;
       });
-      // Refresh assignees immediately for the newly linked customer
-      await _loadAssignees();
+      // Refresh assignees and hashtags immediately for the newly linked customer
+      await Future.wait([
+        _loadAssignees(),
+        _loadCustomerHashtags(pickedCustomerId),
+      ]);
 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('เชื่อมลูกค้ากับห้องแชทแล้ว')));
+      // Auto-link a Job Card if one exists for this customer (pick most recent available)
+      try {
+        final qs = await FirebaseFirestore.instance
+            .collection('workspaces')
+            .doc(widget.workspaceId)
+            .collection('cards')
+            .where('customerId', isEqualTo: pickedCustomerId)
+            .limit(1)
+            .get();
+        if (qs.docs.isNotEmpty) {
+          final d = qs.docs.first;
+          final dm = d.data();
+          final title = (dm['title'] ?? dm['name'] ?? 'Card').toString();
+          await _chatroomDoc.set({'jobCardId': d.id, 'jobCardTitle': title}, SetOptions(merge: true));
+          if (mounted) {
+            setState(() { _jobCardId = d.id; _jobCardTitle = title; });
+            _showTopSnack('เชื่อม Job Card ล่าสุดแล้ว');
+          }
+        }
+      } catch (_) {}
+
+      _showTopSnack('เชื่อมลูกค้ากับห้องแชทแล้ว');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เชื่อมลูกค้าไม่สำเร็จ: $e')));
+      _showTopSnack('เชื่อมลูกค้าไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -572,15 +756,38 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         'jobCardTitle': result.title,
       }, SetOptions(merge: true));
 
+      // If chatroom has no customer linked, try to link from the selected card
+      try {
+        if ((_currentCustomerId ?? '').isEmpty) {
+          final snap = await FirebaseFirestore.instance
+              .collection('workspaces')
+              .doc(widget.workspaceId)
+              .collection('cards')
+              .doc(result.cardId)
+              .get();
+          final m = snap.data() ?? {};
+          final cid = (m['customerId'] ?? m['customer']?['id'])?.toString();
+          final cname = (m['customer'] is Map) ? (m['customer']['name']?.toString() ?? '') : (m['customerName']?.toString() ?? '');
+          if (cid != null && cid.isNotEmpty) {
+            await _chatroomDoc.set({'customerId': cid, if (cname.isNotEmpty) 'customerName': cname}, SetOptions(merge: true));
+            if (mounted) {
+              setState(() { _currentCustomerId = cid; _currentCustomerName = cname.isNotEmpty ? cname : _currentCustomerName; });
+              _loadAssignees();
+              _loadCustomerHashtags(cid);
+            }
+          }
+        }
+      } catch (_) {}
+
       if (!mounted) return;
       setState(() {
         _jobCardId = result.cardId;
         _jobCardTitle = result.title;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ผูก Job Card แล้ว')));
+      _showTopSnack('ผูก Job Card แล้ว');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ผูก Job Card ไม่สำเร็จ: $e')));
+      _showTopSnack('ผูก Job Card ไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -595,7 +802,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           .get();
       if (!snap.exists) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ Job Card ที่เชื่อม')));
+        _showTopSnack('ไม่พบ Job Card ที่เชื่อม', isError: true);
         return;
       }
       final data = snap.data() ?? {};
@@ -608,8 +815,6 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       if (boardController.currentWorkspaceId.value != widget.workspaceId) {
         await boardController.switchWorkspace(widget.workspaceId);
       }
-
-
 
       // Close the bottom sheet first, then navigate to detail page using Get.to
       // Use Get.back() to dismiss the sheet without depending on this context after pop
@@ -625,10 +830,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       Get.to(() => CardDetailPage(card: job));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เปิด Job Card ไม่สำเร็จ')));
+      _showTopSnack('เปิด Job Card ไม่สำเร็จ', isError: true);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -645,7 +849,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // จุดส้มต��แต่งซ้ายบนเหมือนภาพ
+                // จุดส้มตกแต่งซ้ายบนเหมือนภาพ
                 Container(
                   width: 6, height: 22,
                   margin: const EdgeInsets.only(top: 6, right: 10),
@@ -691,15 +895,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                       try {
                         await _chatroomDoc.update({'bot_status': _botEnabled ? 'Y' : 'N'});
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(_botEnabled ? 'เปิดบอทตอบกลับอัตโนมัติ' : 'ปิดบอทตอบกลับอัตโนมัติ')),
-                          );
+                          _showTopSnack(_botEnabled ? 'เปิดบอทตอบกลับอัตโนมัติ' : 'ปิดบอทตอบกลับอัตโนมัติ');
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('อัปเดตการตอบกลับอัตโนมัติไม่สำเร็จ: $e')),
-                          );
+                          _showTopSnack('อัปเดตการตอบกลับอัตโนมัติไม่สำเร็จ: $e', isError: true);
                         }
                       }
                     }
@@ -718,7 +918,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 ),
                 ChatStatusButton(
                   icon: Icons.check,
-                  label: 'สำเร็จ',
+                  label: 'สำเร็จ\n',
                   selected: _status == ChatStatus.done,
                   tooltip: 'คุยจบแล้ว',
                   onTap: () async {
@@ -729,7 +929,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 ),
                 ChatStatusButton(
                   icon: Icons.push_pin_outlined,
-                  label: 'ปักหมุด',
+                  label: 'ปักหมุด\n',
                   selected: _pinned,
                   tooltip: 'ปักหมุดห้องแชท',
                   onTap: () async {
@@ -745,15 +945,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                           'bot_status': _botEnabled ? 'Y' : 'N',
                         });
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(_pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว')),
-                          );
+                          _showTopSnack(_pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว');
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('อัปเดตปักหมุดไม่สำเร็จ: $e')),
-                          );
+                          _showTopSnack('อัปเดตปักหมุดไม่สำเร็จ: $e', isError: true);
                         }
                       }
                     }
@@ -832,6 +1028,52 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   ),
                 ),
               ),
+
+              // Hashtags picker for linked customer
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Card(
+                  color: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text('แฮชแท็กของลูกค้า', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                        if (_loadingHashtags)
+                          const LinearProgressIndicator(minHeight: 2)
+                        else ...[
+                          HashtagInputField(
+                            selectedHashtags: _selectedHashtagIds,
+                            availableHashtags: _availableHashtags,
+                            onHashtagsChanged: (ids) {
+                              setState(() => _selectedHashtagIds = ids);
+                              _persistCustomerHashtags(ids);
+                            },
+                            label: 'แฮชแท็ก',
+                            hintText: 'เลือกแฮชแท็กของลูกค้า',
+                            workspaceId: widget.workspaceId,
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                              onPressed: _creatingHashtag ? null : _createNewCustomerHashtag,
+                              icon: const Icon(Icons.add, size: 16),
+                              label: Text(_creatingHashtag ? 'กำลังเพิ่ม...' : 'เพิ่มแฮชแท็กใหม่'),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
             ChatMenuTile(
               icon: Icons.card_travel_outlined,
@@ -840,16 +1082,6 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               closeOnTap: false,
             ),
             if ((_jobCardId ?? '').isNotEmpty) ...[
-              // Padding(
-              //   padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
-              //   child: Row(
-              //     children: const [
-              //       Icon(Icons.style_outlined, size: 16, color: Colors.black54),
-              //       SizedBox(width: 6),
-              //       Text('Job Card ที่เชื่อม', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.black87)),
-              //     ],
-              //   ),
-              // ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: InkWell(

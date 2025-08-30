@@ -39,7 +39,7 @@ class ChatMenuTile extends StatelessWidget {
       children: [
         ListTile(
           dense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
           leading: Icon(icon, color: danger ? Colors.red.shade400 : Colors.black54),
           title: Text(text, style: TextStyle(color: color, fontSize: 15)),
           onTap: () async {
