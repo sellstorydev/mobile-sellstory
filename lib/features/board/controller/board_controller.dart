@@ -517,6 +517,19 @@ class BoardController extends GetxController implements BoardView {
     }
   }
 
+  // Get boards for specific workspace
+  Future<List<Board>> getBoardsForWorkspace(String workspaceId) async {
+    try {
+      print('🔄 Getting boards for workspace: $workspaceId');
+      final boardsList = await _repository.getBoards(workspaceId);
+      print('✅ Boards loaded successfully for workspace $workspaceId - ${boardsList.length} boards');
+      return boardsList;
+    } catch (e) {
+      print('❌ Failed to get boards for workspace $workspaceId: $e');
+      return [];
+    }
+  }
+
   // Get lanes for a specific board
   Future<List<Lane>> getLanesByBoardId(String boardId) async {
     if (currentWorkspaceId.value.isEmpty) {

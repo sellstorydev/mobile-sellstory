@@ -34,6 +34,27 @@ string, number (epoch ms หรือ counter), boolean, timestamp (Firestore), 
 
 ### ENTITIES & FIELDS
 
+User (document)
+/users/{userId}
+fields:
+  displayName: string
+  email: string
+  fcmToken: string
+  fcmTokenUpdatedAt: timestamp
+  language: string
+  lastDeviceId: string
+  lastPlatform: string
+  photoURL: string|null
+  uid: string
+  viewSettings: map
+    viewSettings.<field>.isVisible: boolean
+    viewSettings.<field>.order: number
+    viewSettings.<field>.style: map
+  workspaces: array<map>
+    workspaces[].id: string
+    workspaces[].name: string
+    workspaces[].role: string
+
 Workspace (document)
 /workspaces/{workspaceId}
 fields:
@@ -72,7 +93,7 @@ Board (document)
 /workspaces/{workspaceId}/boards/{boardId}
 fields:
   createdBy: string
-  lanes: array                     # อาจเก็บ id อ้างถึง lanes
+  lanes: array<string>             # array of lane IDs
   memberUids: array<string>
   members: array<map>
     members[].displayName: string
@@ -91,6 +112,8 @@ fields:
     workspaces[].role: string
   name: string
   workspaceId: string
+  createdAt: timestamp
+  updatedAt: timestamp
 
 Card (document)
 /workspaces/{workspaceId}/cards/{cardId}
@@ -152,6 +175,25 @@ fields:
     Hashtag.color: string          # hex เช่น "#f97316"
   # (ถ้าต้อง query หา card ด้วย hashtag แนะนำเพิ่ม)
   hashtagsIndex?: array<string>    # เก็บ id หรือ text (normalize) สำหรับทำ array-contains/any
+  
+  # NEW: additional fields
+  priority: string                 # เช่น "high", "medium", "low"
+  dueDate: timestamp|null
+  estimatedHours: number|null
+  actualHours: number|null
+  tags: array<string>
+  attachments: array<map>
+    attachments[].id: string
+    attachments[].name: string
+    attachments[].url: string
+    attachments[].type: string
+    attachments[].size: number
+  comments: array<map>
+    comments[].id: string
+    comments[].text: string
+    comments[].createdBy: string
+    comments[].createdAt: timestamp
+    comments[].updatedAt: timestamp
 
 Lane (document)
 /workspaces/{workspaceId}/lanes/{laneId}

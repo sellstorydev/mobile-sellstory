@@ -1772,13 +1772,15 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-    List<Board> _getBoardsForWorkspace(String workspaceId) {
-    // For now, return current boards if workspace matches current workspace
-    // In the future, this should load boards for the specific workspace
-    if (workspaceId == _controller.currentWorkspaceId.value) {
-      return _controller.boards;
+    Future<List<Board>> _getBoardsForWorkspace(String workspaceId) async {
+    try {
+      // Get boards for the specific workspace from Firestore
+      final boards = await _controller.getBoardsForWorkspace(workspaceId);
+      return boards;
+    } catch (e) {
+      print('❌ Failed to get boards for workspace $workspaceId: $e');
+      return [];
     }
-    return [];
   }
 
   Widget _buildWorkspaceItemWithAction(String title, String subtitle, bool isExpanded, String workspaceId) {
@@ -1843,15 +1845,57 @@ class _BoardPageState extends State<BoardPage> {
             if (isExpanded) ...[
               Container(
                 margin: const EdgeInsets.only(left: 24, bottom: 8),
-                child: Column(
-                  children: _getBoardsForWorkspace(workspaceId).map((board) {
-                    return _buildBoardItemWithAction(
-                      board.name,
-                      'Job Card ของคุณ ${board.lanes.length} ใบ',
-                      const Color(0xFFFAB73F),
-                      board.id,
+                child: FutureBuilder<List<Board>>(
+                  future: _getBoardsForWorkspace(workspaceId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6C0C)),
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text(
+                            'เกิดข้อผิดพลาดในการโหลดข้อมูล',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    final boards = snapshot.data ?? [];
+                    if (boards.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text(
+                            'ไม่มีบอร์ดใน workspace นี้',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    return Column(
+                      children: boards.map((board) {
+                        return _buildBoardItemWithAction(
+                          board.name,
+                          'Job Card ของคุณ ${board.lanes.length} ใบ',
+                          const Color(0xFFFAB73F),
+                          board.id,
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
+                  },
                 ),
               ),
             ],
