@@ -140,15 +140,11 @@ class BoardController extends GetxController implements BoardView {
        // Load boards for the new workspace
        await getBoards();
 
-       // Auto-select first board if available
-       if (boards.isNotEmpty) {
-         await switchBoard(boards.first.id);
-       }
-
        print('✅ Workspace switched successfully');
      } catch (e) {
        print('❌ Failed to switch workspace: $e');
        error.value = 'Failed to switch workspace';
+       rethrow;
      }
    }
 
@@ -156,10 +152,15 @@ class BoardController extends GetxController implements BoardView {
   Future<void> switchBoard(String boardId) async {
     try {
       print('🔄 Switching to board: $boardId');
-      currentBoardId.value = boardId;
       
-      // Find and set current board with members info
-      final board = boards.firstWhere((b) => b.id == boardId);
+      // Check if board exists in current boards list
+      final board = boards.firstWhereOrNull((b) => b.id == boardId);
+      if (board == null) {
+        print('⚠️ Board $boardId not found in current boards list');
+        throw Exception('Board not found');
+      }
+      
+      currentBoardId.value = boardId;
       currentBoardName.value = board.name;
       currentBoard.value = board; // Set current board for member lookup
       
@@ -179,6 +180,7 @@ class BoardController extends GetxController implements BoardView {
     } catch (e) {
       print('❌ Failed to switch board: $e');
       error.value = 'Failed to switch board';
+      rethrow;
     }
   }
   

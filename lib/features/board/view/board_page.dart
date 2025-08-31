@@ -1532,6 +1532,7 @@ class _BoardPageState extends State<BoardPage> {
                       'Job Card ของคุณ ${currentBoard.lanes.length} ใบ',
                       const Color(0xFFFF6C0C),
                       currentBoard.id,
+                      workspaceId: _controller.currentWorkspaceId.value,
                     );
                   } else {
                     return const SizedBox.shrink();
@@ -1563,6 +1564,7 @@ class _BoardPageState extends State<BoardPage> {
                           'Job Card ของคุณ ${board.lanes.length} ใบ',
                           const Color(0xFFFAB73F),
                           board.id,
+                          workspaceId: _controller.currentWorkspaceId.value,
                         );
                       }).toList(),
                     );
@@ -1658,19 +1660,56 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-  Widget _buildBoardItemWithAction(String title, String subtitle, Color color, String boardId) {
+  Widget _buildBoardItemWithAction(String title, String subtitle, Color color, String boardId, {String? workspaceId}) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         Navigator.of(context).pop();
-        _controller.switchBoard(boardId);
+        
+        // If workspaceId is provided and different from current workspace, switch workspace first
+        if (workspaceId != null && workspaceId != _controller.currentWorkspaceId.value) {
+          try {
+            print('🔄 Switching to workspace: $workspaceId');
+            await _controller.switchWorkspace(workspaceId);
+            
+            // Wait a bit for workspace switch to complete
+            await Future.delayed(const Duration(milliseconds: 500));
+            
+            // Then switch to the board
+            print('🔄 Switching to board: $boardId');
+            await _controller.switchBoard(boardId);
+          } catch (e) {
+            print('❌ Error switching workspace and board: $e');
+            Get.snackbar(
+              'Error',
+              'เกิดข้อผิดพลาดในการเปลี่ยน workspace และ board',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+            );
+          }
+        } else {
+          // Just switch board if in same workspace
+          try {
+            await _controller.switchBoard(boardId);
+          } catch (e) {
+            print('❌ Error switching board: $e');
+            Get.snackbar(
+              'Error',
+              'เกิดข้อผิดพลาดในการเปลี่ยน board',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+            );
+          }
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[200]!),
+          // borderRadius: BorderRadius.circular(8),
+          // border: Border.all(color: Colors.grey[200]!),
         ),
         child: Row(
           children: [
@@ -1799,8 +1838,8 @@ class _BoardPageState extends State<BoardPage> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[200]!),
+                  // borderRadius: BorderRadius.circular(8),
+                  // border: Border.all(color: Colors.grey[200]!),
                 ),
                 child: Row(
                   children: [
@@ -1844,58 +1883,105 @@ class _BoardPageState extends State<BoardPage> {
             // Expanded boards section
             if (isExpanded) ...[
               Container(
-                margin: const EdgeInsets.only(left: 24, bottom: 8),
-                child: FutureBuilder<List<Board>>(
-                  future: _getBoardsForWorkspace(workspaceId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6C0C)),
-                          ),
+                margin: const EdgeInsets.only(left: 24, top: 8, bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Sub-header for boards
+                    const Padding(
+                      padding: EdgeInsets.only(left: 12, bottom: 8),
+                      child: Text(
+                        'บอร์ดของคุณ',
+                        style: TextStyle(
+                          color: Color(0xFFB3B3B3),
+                          fontSize: 12,
+                          fontFamily: 'Prompt',
+                          fontWeight: FontWeight.w500,
                         ),
-                      );
-                    }
-                    
-                    if (snapshot.hasError) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text(
-                            'เกิดข้อผิดพลาดในการโหลดข้อมูล',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      );
-                    }
-                    
-                    final boards = snapshot.data ?? [];
-                    if (boards.isEmpty) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text(
-                            'ไม่มีบอร์ดใน workspace นี้',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      );
-                    }
-                    
-                    return Column(
-                      children: boards.map((board) {
-                        return _buildBoardItemWithAction(
-                          board.name,
-                          'Job Card ของคุณ ${board.lanes.length} ใบ',
-                          const Color(0xFFFAB73F),
-                          board.id,
-                        );
-                      }).toList(),
-                    );
-                  },
+                      ),
+                    ),
+                    // Boards list
+                    FutureBuilder<List<Board>>(
+                      future: _getBoardsForWorkspace(workspaceId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6C0C)),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        if (snapshot.hasError) {
+                          return Container(
+                            padding: const EdgeInsets.all(16.0),
+                            margin: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.red[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red[200]!),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.error_outline, color: Colors.red, size: 16),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'เกิดข้อผิดพลาดในการโหลดข้อมูล',
+                                    style: TextStyle(color: Colors.red, fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        final boards = snapshot.data ?? [];
+                        if (boards.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(16.0),
+                            margin: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[200]!),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Colors.grey, size: 16),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'ไม่มีบอร์ดใน workspace นี้',
+                                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                                                 return Column(
+                           children: boards.map((board) {
+                             return Container(
+                               margin: const EdgeInsets.only(bottom: 4),
+                               child: _buildBoardItemWithAction(
+                                 board.name,
+                                 'Job Card ของคุณ ${board.lanes.length} ใบ',
+                                 const Color(0xFF44B87B),
+                                 board.id,
+                                 workspaceId: workspaceId,
+                               ),
+                             );
+                           }).toList(),
+                         );
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
