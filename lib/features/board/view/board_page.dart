@@ -10,6 +10,7 @@ import '../widgets/lane_header.dart';
 import '../widgets/status_summary_cards.dart';
 import 'unified_filter_page.dart';
 import '../../../domain/entities/lane.dart';
+import '../../../domain/entities/board.dart';
 import '../../notifications/widgets/notifications_bell_button.dart';
 import '../../chat/widgets/chat_unread_button.dart';
 import '../../../data/services/mobile_permissions_service.dart';
@@ -1771,58 +1772,92 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
+    List<Board> _getBoardsForWorkspace(String workspaceId) {
+    // For now, return current boards if workspace matches current workspace
+    // In the future, this should load boards for the specific workspace
+    if (workspaceId == _controller.currentWorkspaceId.value) {
+      return _controller.boards;
+    }
+    return [];
+  }
+
   Widget _buildWorkspaceItemWithAction(String title, String subtitle, bool isExpanded, String workspaceId) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).pop();
-        _controller.switchWorkspace(workspaceId);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[200]!),
-        ),
-        child: Row(
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Column(
           children: [
-            Icon(
-              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              color: Colors.grey[500],
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Color(0xFF4D4D4D),
-                      fontSize: 16,
-                      fontFamily: 'Prompt',
-                      fontWeight: FontWeight.w400,
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  isExpanded = !isExpanded;
+                });
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      color: Colors.grey[500],
+                      size: 20,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Color(0xFF999999),
-                      fontSize: 14,
-                      fontFamily: 'Prompt',
-                      fontWeight: FontWeight.w400,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Color(0xFF4D4D4D),
+                              fontSize: 16,
+                              fontFamily: 'Prompt',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: const TextStyle(
+                              color: Color(0xFF999999),
+                              fontSize: 14,
+                              fontFamily: 'Prompt',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    Icon(Icons.settings, color: Colors.grey[400], size: 20),
+                  ],
+                ),
               ),
             ),
-            Icon(Icons.settings, color: Colors.grey[400], size: 20),
+            // Expanded boards section
+            if (isExpanded) ...[
+              Container(
+                margin: const EdgeInsets.only(left: 24, bottom: 8),
+                child: Column(
+                  children: _getBoardsForWorkspace(workspaceId).map((board) {
+                    return _buildBoardItemWithAction(
+                      board.name,
+                      'Job Card ของคุณ ${board.lanes.length} ใบ',
+                      const Color(0xFFFAB73F),
+                      board.id,
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 
