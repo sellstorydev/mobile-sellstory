@@ -467,6 +467,47 @@ class FirestoreRepository {
       rethrow;
     }
   }
+
+  // Get user's last active workspace ID
+  Future<String?> getUserLastActiveWorkspaceId(String userId) async {
+    try {
+      print('🔄 Getting user last active workspace for user: $userId');
+      
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      
+      if (!userDoc.exists) {
+        print('⚠️ User document not found for user: $userId');
+        return null;
+      }
+      
+      final userData = userDoc.data()!;
+      final lastActiveWorkspaceId = userData['lastActiveWorkspaceId'] as String?;
+      
+      print('📋 Last active workspace ID: $lastActiveWorkspaceId');
+      return lastActiveWorkspaceId;
+    } catch (e) {
+      print('❌ Failed to get user last active workspace: $e');
+      rethrow;
+    }
+  }
+
+  // Update user's last active workspace ID
+  Future<void> updateUserLastActiveWorkspaceId(String userId, String workspaceId) async {
+    try {
+      print('🔄 Updating user last active workspace:');
+      print('  - User ID: $userId');
+      print('  - Workspace ID: $workspaceId');
+      
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'lastActiveWorkspaceId': workspaceId,
+      });
+      
+      print('✅ User last active workspace updated successfully');
+    } catch (e) {
+      print('❌ Failed to update user last active workspace: $e');
+      rethrow;
+    }
+  }
   
   // Get workspace data
   Future<Map<String, dynamic>?> getWorkspace(String workspaceId) async {

@@ -51,13 +51,45 @@ class ProductsController extends GetxController {
       final workspaces = await _firestoreRepository.getUserWorkspaces(_currentUserId);
       
       if (workspaces.isNotEmpty) {
-        // Use the first workspace as default
-        final firstWorkspace = workspaces.first;
-        _currentWorkspaceId = firstWorkspace['id'] as String;
+        // Try to get last active workspace ID
+        String? selectedWorkspaceId;
+        String? selectedWorkspaceName;
+        
+        try {
+          final lastActiveWorkspaceId = await _firestoreRepository.getUserLastActiveWorkspaceId(_currentUserId);
+          _logger.info('Last active workspace ID: $lastActiveWorkspaceId');
+          
+          if (lastActiveWorkspaceId != null && lastActiveWorkspaceId.isNotEmpty) {
+            // Check if the last active workspace still exists in user's workspaces
+            final lastActiveWorkspace = workspaces.firstWhereOrNull(
+              (ws) => ws['id'] == lastActiveWorkspaceId
+            );
+            
+            if (lastActiveWorkspace != null) {
+              selectedWorkspaceId = lastActiveWorkspaceId;
+              selectedWorkspaceName = lastActiveWorkspace['name'] as String;
+              _logger.info('Using last active workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+            } else {
+              _logger.warning('Last active workspace not found in user workspaces, using first workspace');
+            }
+          }
+        } catch (e) {
+          _logger.warning('Failed to get last active workspace: $e');
+        }
+        
+        // Fallback to first workspace if no last active workspace
+        if (selectedWorkspaceId == null) {
+          final firstWorkspace = workspaces.first;
+          selectedWorkspaceId = firstWorkspace['id'] as String;
+          selectedWorkspaceName = firstWorkspace['name'] as String;
+          _logger.info('Using first workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+        }
+        
+        _currentWorkspaceId = selectedWorkspaceId;
         
         _logger.methodEntry('ProductsController._initializeUserAndWorkspace', {
           'workspaceId': _currentWorkspaceId,
-          'workspaceName': firstWorkspace['name'],
+          'workspaceName': selectedWorkspaceName,
         });
         
         // Load products

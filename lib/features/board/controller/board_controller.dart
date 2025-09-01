@@ -85,35 +85,67 @@ class BoardController extends GetxController implements BoardView {
       
       print('📋 User workspaces loaded: ${workspaces.length} workspaces');
       
-             if (workspaces.isNotEmpty) {
-         // Use the first workspace as default
-         final firstWorkspace = workspaces.first;
-         currentWorkspaceId.value = firstWorkspace['id'] as String;
-         currentWorkspaceName.value = firstWorkspace['name'] as String;
-         
-         // Prefetch permissions for selected workspace
-         try {
-           await MobilePermissionsService.to.getMyPermissions(workspaceId: currentWorkspaceId.value);
-         } catch (_) {}
-
-          print('✅ User initialized with workspace: ${firstWorkspace['name']}');
-
-          // Load boards for the selected workspace
-          await getBoards();
-
-          // Auto-select first board if available
-          if (boards.isNotEmpty) {
-            await switchBoard(boards.first.id);
+      if (workspaces.isNotEmpty) {
+        // Try to get last active workspace ID
+        String? selectedWorkspaceId;
+        String? selectedWorkspaceName;
+        
+        try {
+          final lastActiveWorkspaceId = await _repository.getUserLastActiveWorkspaceId(userId);
+          print('📋 Last active workspace ID: $lastActiveWorkspaceId');
+          
+          if (lastActiveWorkspaceId != null && lastActiveWorkspaceId.isNotEmpty) {
+            // Check if the last active workspace still exists in user's workspaces
+            final lastActiveWorkspace = workspaces.firstWhereOrNull(
+              (ws) => ws['id'] == lastActiveWorkspaceId
+            );
+            
+            if (lastActiveWorkspace != null) {
+              selectedWorkspaceId = lastActiveWorkspaceId;
+              selectedWorkspaceName = lastActiveWorkspace['name'] as String;
+              print('✅ Using last active workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+            } else {
+              print('⚠️ Last active workspace not found in user workspaces, using first workspace');
+            }
           }
-        } else {
-         print('⚠️ No workspaces found for user: $userId');
-         error.value = 'No workspaces found for this user';
-       }
-     } catch (e) {
-       print('❌ Failed to initialize user: $e');
-       error.value = 'Failed to initialize user data';
-     }
-   }
+        } catch (e) {
+          print('⚠️ Failed to get last active workspace: $e');
+        }
+        
+        // Fallback to first workspace if no last active workspace
+        if (selectedWorkspaceId == null) {
+          final firstWorkspace = workspaces.first;
+          selectedWorkspaceId = firstWorkspace['id'] as String;
+          selectedWorkspaceName = firstWorkspace['name'] as String;
+          print('✅ Using first workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+        }
+        
+        currentWorkspaceId.value = selectedWorkspaceId!;
+        currentWorkspaceName.value = selectedWorkspaceName!;
+        
+        // Prefetch permissions for selected workspace
+        try {
+          await MobilePermissionsService.to.getMyPermissions(workspaceId: currentWorkspaceId.value);
+        } catch (_) {}
+
+        print('✅ User initialized with workspace: $selectedWorkspaceName');
+
+        // Load boards for the selected workspace
+        await getBoards();
+
+        // Auto-select first board if available
+        if (boards.isNotEmpty) {
+          await switchBoard(boards.first.id);
+        }
+      } else {
+        print('⚠️ No workspaces found for user: $userId');
+        error.value = 'No workspaces found for this user';
+      }
+    } catch (e) {
+      print('❌ Failed to initialize user: $e');
+      error.value = 'Failed to initialize user data';
+    }
+  }
 
    // Switch workspace
    Future<void> switchWorkspace(String workspaceId) async {
@@ -124,6 +156,15 @@ class BoardController extends GetxController implements BoardView {
        // Update current workspace name
        final workspace = userWorkspaces.firstWhere((ws) => ws['id'] == workspaceId);
        currentWorkspaceName.value = workspace['name'] as String;
+
+       // Update last active workspace ID in user document
+       try {
+         await _repository.updateUserLastActiveWorkspaceId(currentUserId.value, workspaceId);
+         print('✅ Last active workspace ID updated');
+       } catch (e) {
+         print('⚠️ Failed to update last active workspace ID: $e');
+         // Don't throw error, continue with workspace switch
+       }
 
        // Refresh permissions for the new workspace (company change)
        try {

@@ -33,7 +33,19 @@ class ChatService extends GetxService {
       final userDoc = await usersCollection.doc(userId).get();
       if (userDoc.exists) {
         final userData = userDoc.data()!;
-        return userData['lastActiveWorkspaceId'] as String?;
+        final lastActiveWorkspaceId = userData['lastActiveWorkspaceId'] as String?;
+        
+        // Check if the last active workspace still exists in user's workspaces
+        if (lastActiveWorkspaceId != null && lastActiveWorkspaceId.isNotEmpty) {
+          final workspaces = userData['workspaces'] as List<dynamic>? ?? [];
+          final workspaceExists = workspaces.any((ws) => 
+            (ws as Map<String, dynamic>)['id'] == lastActiveWorkspaceId
+          );
+          
+          if (workspaceExists) {
+            return lastActiveWorkspaceId;
+          }
+        }
       }
       return null;
     } catch (e) {
@@ -54,6 +66,17 @@ class ChatService extends GetxService {
       return null;
     } catch (e) {
       throw Exception('Failed to get first workspace: $e');
+    }
+  }
+
+  // Update user's last active workspace ID
+  Future<void> updateUserLastActiveWorkspaceId(String userId, String workspaceId) async {
+    try {
+      await usersCollection.doc(userId).update({
+        'lastActiveWorkspaceId': workspaceId,
+      });
+    } catch (e) {
+      throw Exception('Failed to update user last active workspace: $e');
     }
   }
 

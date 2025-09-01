@@ -44,6 +44,7 @@ fields:
   language: string
   lastDeviceId: string
   lastPlatform: string
+  lastActiveWorkspaceId: string|null    # workspace ID ที่ใช้งานล่าสุด
   photoURL: string|null
   uid: string
   viewSettings: map

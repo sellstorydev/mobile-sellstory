@@ -57,11 +57,43 @@ class CalendarController extends GetxController {
       print('📋 User workspaces loaded: ${workspaces.length} workspaces');
       
       if (workspaces.isNotEmpty) {
-        // Use the first workspace as default
-        final firstWorkspace = workspaces.first;
-        currentWorkspaceId.value = firstWorkspace['id'] as String;
+        // Try to get last active workspace ID
+        String? selectedWorkspaceId;
+        String? selectedWorkspaceName;
         
-        print('✅ Calendar initialized with workspace: ${firstWorkspace['name']}');
+        try {
+          final lastActiveWorkspaceId = await _repository.getUserLastActiveWorkspaceId(currentUserId.value);
+          print('📋 Last active workspace ID: $lastActiveWorkspaceId');
+          
+          if (lastActiveWorkspaceId != null && lastActiveWorkspaceId.isNotEmpty) {
+            // Check if the last active workspace still exists in user's workspaces
+            final lastActiveWorkspace = workspaces.firstWhereOrNull(
+              (ws) => ws['id'] == lastActiveWorkspaceId
+            );
+            
+            if (lastActiveWorkspace != null) {
+              selectedWorkspaceId = lastActiveWorkspaceId;
+              selectedWorkspaceName = lastActiveWorkspace['name'] as String;
+              print('✅ Using last active workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+            } else {
+              print('⚠️ Last active workspace not found in user workspaces, using first workspace');
+            }
+          }
+        } catch (e) {
+          print('⚠️ Failed to get last active workspace: $e');
+        }
+        
+        // Fallback to first workspace if no last active workspace
+        if (selectedWorkspaceId == null) {
+          final firstWorkspace = workspaces.first;
+          selectedWorkspaceId = firstWorkspace['id'] as String;
+          selectedWorkspaceName = firstWorkspace['name'] as String;
+          print('✅ Using first workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+        }
+        
+        currentWorkspaceId.value = selectedWorkspaceId;
+        
+        print('✅ Calendar initialized with workspace: $selectedWorkspaceName');
         
         // Load data
         await _loadData();

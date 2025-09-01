@@ -128,9 +128,23 @@ class ChatController extends GetxController {
       );
 
       if (userData != null && userData['lastActiveWorkspaceId'] != null && userData['lastActiveWorkspaceId'].toString().isNotEmpty) {
-        _currentWorkspaceId = userData['lastActiveWorkspaceId'] as String;
-        _logger.info('Got workspace ID from user document: $_currentWorkspaceId');
-        return;
+        final lastActiveWorkspaceId = userData['lastActiveWorkspaceId'] as String;
+        
+        // Check if the last active workspace still exists in user's workspaces
+        if (userData['workspaces'] != null) {
+          final workspaces = userData['workspaces'] as List<dynamic>?;
+          if (workspaces != null) {
+            final workspaceExists = workspaces.any((ws) => 
+              (ws as Map<String, dynamic>)['id'] == lastActiveWorkspaceId
+            );
+            
+            if (workspaceExists) {
+              _currentWorkspaceId = lastActiveWorkspaceId;
+              _logger.info('Got workspace ID from user document: $_currentWorkspaceId');
+              return;
+            }
+          }
+        }
       }
 
       // Fallback: Get first workspace from user's workspaces array (index 0)

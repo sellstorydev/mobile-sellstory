@@ -213,11 +213,43 @@ class _CompanyPickerState extends State<CompanyPicker> {
       print('📋 User workspaces loaded: ${workspaces.length} workspaces');
       
       if (workspaces.isNotEmpty) {
-        // Use the first workspace as default
-        final firstWorkspace = workspaces.first;
-        _currentWorkspaceId = firstWorkspace['id'] as String;
+        // Try to get last active workspace ID
+        String? selectedWorkspaceId;
+        String? selectedWorkspaceName;
         
-        print('✅ Company picker initialized with workspace: ${firstWorkspace['name']}');
+        try {
+          final lastActiveWorkspaceId = await _repository.getUserLastActiveWorkspaceId(_currentUserId);
+          print('📋 Last active workspace ID: $lastActiveWorkspaceId');
+          
+          if (lastActiveWorkspaceId != null && lastActiveWorkspaceId.isNotEmpty) {
+            // Check if the last active workspace still exists in user's workspaces
+            final lastActiveWorkspace = workspaces.firstWhereOrNull(
+              (ws) => ws['id'] == lastActiveWorkspaceId
+            );
+            
+            if (lastActiveWorkspace != null) {
+              selectedWorkspaceId = lastActiveWorkspaceId;
+              selectedWorkspaceName = lastActiveWorkspace['name'] as String;
+              print('✅ Using last active workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+            } else {
+              print('⚠️ Last active workspace not found in user workspaces, using first workspace');
+            }
+          }
+        } catch (e) {
+          print('⚠️ Failed to get last active workspace: $e');
+        }
+        
+        // Fallback to first workspace if no last active workspace
+        if (selectedWorkspaceId == null) {
+          final firstWorkspace = workspaces.first;
+          selectedWorkspaceId = firstWorkspace['id'] as String;
+          selectedWorkspaceName = firstWorkspace['name'] as String;
+          print('✅ Using first workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+        }
+        
+        _currentWorkspaceId = selectedWorkspaceId;
+        
+        print('✅ Company picker initialized with workspace: $selectedWorkspaceName');
         
         // Load companies for the selected workspace
         await _loadCompanies();

@@ -49,6 +49,38 @@ class FirestoreService extends GetxService {
       throw Exception('Failed to get user workspaces: $e');
     }
   }
+
+  // Get user's last active workspace ID
+  Future<String?> getUserLastActiveWorkspaceId(String userId) async {
+    try {
+      final userDoc = await usersCollection.doc(userId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        return userData['lastActiveWorkspaceId'] as String?;
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get user last active workspace: $e');
+    }
+  }
+
+  // Update user's last active workspace ID
+  Future<void> updateUserLastActiveWorkspaceId(String userId, String workspaceId) async {
+    try {
+      print('🔄 FirestoreService.updateUserLastActiveWorkspaceId:');
+      print('  - User ID: $userId');
+      print('  - Workspace ID: $workspaceId');
+      
+      await usersCollection.doc(userId).update({
+        'lastActiveWorkspaceId': workspaceId,
+      });
+      
+      print('✅ User last active workspace updated successfully');
+    } catch (e) {
+      print('❌ Failed to update user last active workspace: $e');
+      throw Exception('Failed to update user last active workspace: $e');
+    }
+  }
   
   // Get workspace by ID
   Future<Map<String, dynamic>?> getWorkspace(String workspaceId) async {

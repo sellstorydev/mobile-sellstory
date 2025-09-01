@@ -73,11 +73,43 @@ class CustomersController extends GetxController {
       print('📋 User workspaces loaded: ${workspaces.length} workspaces');
       
       if (workspaces.isNotEmpty) {
-        // Use the first workspace as default
-        final firstWorkspace = workspaces.first;
-        currentWorkspaceId.value = firstWorkspace['id'] as String;
+        // Try to get last active workspace ID
+        String? selectedWorkspaceId;
+        String? selectedWorkspaceName;
         
-        print('✅ User initialized with workspace: ${firstWorkspace['name']}');
+        try {
+          final lastActiveWorkspaceId = await _repository.getUserLastActiveWorkspaceId(userId);
+          print('📋 Last active workspace ID: $lastActiveWorkspaceId');
+          
+          if (lastActiveWorkspaceId != null && lastActiveWorkspaceId.isNotEmpty) {
+            // Check if the last active workspace still exists in user's workspaces
+            final lastActiveWorkspace = workspaces.firstWhereOrNull(
+              (ws) => ws['id'] == lastActiveWorkspaceId
+            );
+            
+            if (lastActiveWorkspace != null) {
+              selectedWorkspaceId = lastActiveWorkspaceId;
+              selectedWorkspaceName = lastActiveWorkspace['name'] as String;
+              print('✅ Using last active workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+            } else {
+              print('⚠️ Last active workspace not found in user workspaces, using first workspace');
+            }
+          }
+        } catch (e) {
+          print('⚠️ Failed to get last active workspace: $e');
+        }
+        
+        // Fallback to first workspace if no last active workspace
+        if (selectedWorkspaceId == null) {
+          final firstWorkspace = workspaces.first;
+          selectedWorkspaceId = firstWorkspace['id'] as String;
+          selectedWorkspaceName = firstWorkspace['name'] as String;
+          print('✅ Using first workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
+        }
+        
+        currentWorkspaceId.value = selectedWorkspaceId;
+        
+        print('✅ User initialized with workspace: $selectedWorkspaceName');
         
         // Load data for the selected workspace
         await loadCustomers(currentWorkspaceId.value);
@@ -234,6 +266,15 @@ class CustomersController extends GetxController {
     try {
       currentWorkspaceId.value = workspaceId;
       print('🔄 Switched to workspace: $workspaceId');
+      
+      // Update last active workspace ID in user document
+      try {
+        await _repository.updateUserLastActiveWorkspaceId(currentUserId.value, workspaceId);
+        print('✅ Last active workspace ID updated');
+      } catch (e) {
+        print('⚠️ Failed to update last active workspace ID: $e');
+        // Don't throw error, continue with workspace switch
+      }
       
       // Load data for the new workspace
       await loadCustomers(workspaceId);
