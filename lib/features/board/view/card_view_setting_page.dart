@@ -30,32 +30,44 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
 
   void _saveSettings() async {
     try {
-      // Save settings to local storage via service
-      await _settingsService.updateMultipleFields(_availableFields);
+      // Get current settings from service
+      final currentFields = _settingsService.cardFields;
       
+      // Save settings to local storage via service
+      await _settingsService.saveToStorage();
+      
+      // Go back first
+      Get.back();
+      
+      // Then show success message
       Get.snackbar(
-        'Success',
-        'Card view settings saved successfully',
+        'บันทึกสำเร็จ',
+        'การตั้งค่าการแสดงผลการ์ดถูกบันทึกแล้ว',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green[100],
         colorText: Colors.green[800],
+        duration: const Duration(seconds: 3),
       );
       
-      Get.back(); // Return to previous page
     } catch (e) {
+      print('Error saving settings: $e');
       Get.snackbar(
-        'Error',
-        'Failed to save settings: $e',
+        'เกิดข้อผิดพลาด',
+        'ไม่สามารถบันทึกการตั้งค่าได้: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red[100],
         colorText: Colors.red[800],
+        duration: const Duration(seconds: 3),
       );
     }
   }
 
   void _toggleFieldVisibility(int index) {
-    final field = _availableFields[index];
-    _settingsService.updateFieldVisibility(field.id, !field.isVisible);
+    final fields = _settingsService.cardFields;
+    if (index < fields.length) {
+      final field = fields[index];
+      _settingsService.updateFieldVisibility(field.id, !field.isVisible);
+    }
   }
 
   void _reorderFields(int oldIndex, int newIndex) {
@@ -63,16 +75,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
       newIndex -= 1;
     }
     
-    final List<CardFieldSetting> reorderedFields = List.from(_availableFields);
-    final item = reorderedFields.removeAt(oldIndex);
-    reorderedFields.insert(newIndex, item);
-    
-    // Update order values
-    for (int i = 0; i < reorderedFields.length; i++) {
-      reorderedFields[i] = reorderedFields[i].copyWith(order: i + 1);
-    }
-    
-    _settingsService.updateMultipleFields(reorderedFields);
+    _settingsService.reorderFields(oldIndex, newIndex);
   }
 
   @override

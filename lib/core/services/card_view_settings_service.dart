@@ -143,6 +143,31 @@ class CardViewSettingsService extends GetxService {
     print('🔄 Updated ${updatedFields.length} card field settings');
   }
 
+  // Reorder fields
+  Future<void> reorderFields(int oldIndex, int newIndex) async {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    
+    final List<CardFieldSetting> reorderedFields = List.from(_cardFields);
+    final item = reorderedFields.removeAt(oldIndex);
+    reorderedFields.insert(newIndex, item);
+    
+    // Update order values
+    for (int i = 0; i < reorderedFields.length; i++) {
+      reorderedFields[i] = reorderedFields[i].copyWith(order: i + 1);
+    }
+    
+    _cardFields.value = reorderedFields;
+    await _saveSettingsToLocal();
+    print('🔄 Reordered fields: moved item from $oldIndex to $newIndex');
+  }
+
+  // Save to storage (alias for _saveSettingsToLocal)
+  Future<void> saveToStorage() async {
+    await _saveSettingsToLocal();
+  }
+
   // Reset to default settings
   Future<void> resetToDefaults() async {
     _cardFields.value = List.from(_defaultFields);

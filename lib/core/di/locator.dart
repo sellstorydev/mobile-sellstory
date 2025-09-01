@@ -66,7 +66,8 @@ class Locator {
     Get.lazyPut<IdGenerationService>(() => IdGenerationService(), fenix: true);
     Get.lazyPut<WorkspaceMembersService>(() => WorkspaceMembersService(), fenix: true);
     Get.lazyPut<CompanyService>(() => CompanyService(), fenix: true);
-    Get.lazyPut<CardViewSettingsService>(() => CardViewSettingsService(), fenix: true);
+    // Initialize CardViewSettingsService immediately
+    Get.put<CardViewSettingsService>(CardViewSettingsService(), permanent: true);
     logger?.devTools('Services registered', {
       'services': ['FirestoreService', 'IdGenerationService', 'WorkspaceMembersService', 'CompanyService', 'CardViewSettingsService'],
     });

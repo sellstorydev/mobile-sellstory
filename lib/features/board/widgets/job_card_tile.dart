@@ -132,28 +132,44 @@ class JobCardTile extends StatelessWidget {
   }
 
   Widget _buildCardFields() {
-    // Get card view settings service
-    final settingsService = Get.find<CardViewSettingsService>();
-    
-    // Get visible fields ordered by their order value
-    final visibleFields = settingsService.getVisibleFields();
-    
-    if (visibleFields.isEmpty) {
+    try {
+      // Check if service is registered and ready
+      if (!Get.isRegistered<CardViewSettingsService>()) {
+        return const SizedBox.shrink();
+      }
+      
+      final settingsService = Get.find<CardViewSettingsService>();
+      
+      // Check if service is initialized
+      if (!settingsService.isInitialized) {
+        return const SizedBox.shrink();
+      }
+      
+      return Obx(() {
+        // Get visible fields ordered by their order value
+        final visibleFields = settingsService.getVisibleFields();
+        
+        if (visibleFields.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: visibleFields.map((field) {
+            return CardFieldDisplay(
+              fieldId: field.id,
+              fieldName: field.name,
+              value: _getFieldValue(field.id),
+              isVisible: field.isVisible,
+              order: field.order,
+            );
+          }).toList(),
+        );
+      });
+    } catch (e) {
+      print('Error in _buildCardFields: $e');
       return const SizedBox.shrink();
     }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: visibleFields.map((field) {
-        return CardFieldDisplay(
-          fieldId: field.id,
-          fieldName: field.name,
-          value: _getFieldValue(field.id),
-          isVisible: field.isVisible,
-          order: field.order,
-        );
-      }).toList(),
-    );
   }
 
   dynamic _getFieldValue(String fieldId) {
