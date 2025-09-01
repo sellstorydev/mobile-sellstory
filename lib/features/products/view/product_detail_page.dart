@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../domain/entities/product.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/dialog_utils.dart';
 import '../controller/products_controller.dart';
 import 'add_edit_product_page.dart';
 import '../../../core/widgets/permission_guard.dart';
@@ -61,32 +62,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
-  void _showDeleteConfirmation() {
-    showDialog(
+  void _showDeleteConfirmation() async {
+    final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('ยืนยันการลบสินค้า'),
-          content: Text('คุณต้องการลบสินค้า "${_currentProduct.name}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('ยกเลิก'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deleteProduct();
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
-              child: const Text('ลบ'),
-            ),
-          ],
-        );
-      },
+      title: 'ยืนยันการลบสินค้า',
+      content: 'คุณต้องการลบสินค้า "${_currentProduct.name}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้',
     );
+
+    if (confirmed == true) {
+      _deleteProduct();
+    }
   }
 
   Future<void> _deleteProduct() async {

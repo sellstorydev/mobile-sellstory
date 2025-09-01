@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/dialog_utils.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
@@ -1358,30 +1359,16 @@ class _CardDetailPageState extends State<CardDetailPage> {
     }
   }
 
-  void _showDeleteConfirmation() {
-    showDialog(
+  void _showDeleteConfirmation() async {
+    final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Card'),
-          content: Text('Are you sure you want to delete "${_currentCard.title}"? This action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deleteCard();
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+      title: 'Delete Card',
+      content: 'Are you sure you want to delete "${_currentCard.title}"? This action cannot be undone.',
     );
+
+    if (confirmed == true) {
+      _deleteCard();
+    }
   }
 
   Future<void> _deleteCard() async {

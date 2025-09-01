@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../domain/entities/product.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/dialog_utils.dart';
 import '../view/product_detail_page.dart';
 import '../view/add_edit_product_page.dart';
 import '../controller/products_controller.dart';
@@ -13,32 +14,16 @@ class ProductCard extends StatelessWidget {
 
   const ProductCard({super.key, required this.product, this.onTap});
 
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
+  void _showDeleteConfirmation(BuildContext context) async {
+    final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('ยืนยันการลบสินค้า'),
-          content: Text('คุณต้องการลบสินค้า "${product.name}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('ยกเลิก'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deleteProduct(context);
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
-              child: const Text('ลบ'),
-            ),
-          ],
-        );
-      },
+      title: 'ยืนยันการลบสินค้า',
+      content: 'คุณต้องการลบสินค้า "${product.name}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้',
     );
+
+    if (confirmed == true) {
+      _deleteProduct(context);
+    }
   }
 
   Future<void> _deleteProduct(BuildContext context) async {

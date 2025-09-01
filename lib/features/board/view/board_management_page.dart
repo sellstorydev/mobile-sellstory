@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
 import '../../../domain/entities/board.dart';
 import 'create_board_page.dart';
@@ -93,32 +94,18 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
     );
   }
 
-  void _showDeleteConfirmation(Board board) {
-    showDialog(
+  void _showDeleteConfirmation(Board board) async {
+    final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Board'),
-        content: Text(
-          'Are you sure you want to delete "${board.name}"?\n\n'
+      title: 'Delete Board',
+      content: 'Are you sure you want to delete "${board.name}"?\n\n'
           'This will also delete all lanes and cards in this board. '
           'This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await _deleteBoard(board);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
+
+    if (confirmed == true) {
+      await _deleteBoard(board);
+    }
   }
 
   Future<void> _deleteBoard(Board board) async {

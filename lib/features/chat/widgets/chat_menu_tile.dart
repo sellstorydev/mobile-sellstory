@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/dialog_utils.dart';
 
 class ChatMenuTile extends StatelessWidget {
   final IconData icon;
@@ -18,16 +19,12 @@ class ChatMenuTile extends StatelessWidget {
   }) : super(key: key);
 
   Future<bool> _confirmDanger(BuildContext context) async {
-    final result = await showDialog<bool>(
+    final result = await DialogUtils.showConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการทำรายการ'),
-        content: Text('ต้องการ${text}หรือไม่?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
-        ],
-      ),
+      title: 'ยืนยันการทำรายการ',
+      content: 'ต้องการ${text}หรือไม่?',
+      cancelText: 'ยกเลิก',
+      confirmText: 'ยืนยัน',
     );
     return result == true;
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/dialog_utils.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../controller/board_controller.dart';
 
@@ -38,28 +39,10 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
 
   Future<void> _deleteWorkspace() async {
     // Show confirmation dialog
-    final shouldDelete = await showDialog<bool>(
+    final shouldDelete = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Workspace'),
-        content: Text(
-          'Are you sure you want to delete "${widget.currentName}"? This action cannot be undone and will delete all boards, cards, and data in this workspace.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      title: 'Delete Workspace',
+      content: 'Are you sure you want to delete "${widget.currentName}"? This action cannot be undone and will delete all boards, cards, and data in this workspace.',
     );
 
     if (shouldDelete != true) return;

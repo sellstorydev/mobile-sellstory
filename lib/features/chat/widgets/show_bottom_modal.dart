@@ -15,6 +15,7 @@ import '../../../domain/entities/job_card.dart';
 import 'package:get/get.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
+import '../../../core/widgets/dialog_utils.dart';
 
 const _accent = Color(0xFFFF7A00); // โทมส้มตามภาพ
 
@@ -584,16 +585,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       },
     );
     if (pickedUid != null && pickedUid.isNotEmpty) {
-      final ok = await showDialog<bool>(
+      final ok = await DialogUtils.showConfirmDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('ยืนยันการผูกเซล'),
-          content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
-          ],
-        ),
+        title: 'ยืนยันการผูกเซล',
+        content: 'ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?',
+        cancelText: 'ยกเลิก',
+        confirmText: 'ยืนยัน',
       );
       if (ok == true) {
         try {

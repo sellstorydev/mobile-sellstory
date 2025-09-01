@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
@@ -337,7 +338,6 @@ class _BoardPageState extends State<BoardPage> {
                     ),
                   ),
 
-                   // Refresh
                    const PopupMenuDivider(),
                    PopupMenuItem<String>(
                      value: 'calendar',
@@ -1197,16 +1197,16 @@ class _BoardPageState extends State<BoardPage> {
                   _navigateToCreateCard();
                 },
               ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.workspace_premium),
-              title: const Text('Add New Workspace'),
-              subtitle: const Text('Create a new workspace with boards'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _navigateToCreateWorkspace();
-              },
-            ),
+            // const Divider(),
+            // ListTile(
+            //   leading: const Icon(Icons.workspace_premium),
+            //   title: const Text('Add New Workspace'),
+            //   subtitle: const Text('Create a new workspace with boards'),
+            //   onTap: () {
+            //     Navigator.of(context).pop();
+            //     _navigateToCreateWorkspace();
+            //   },
+            // ),
           ],
         ),
         actions: [
@@ -1341,41 +1341,24 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-  void _showDeleteLaneConfirmation(Lane lane) {
-    showDialog(
+  void _showDeleteLaneConfirmation(Lane lane) async {
+    final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Lane'),
-        content: Text(
-          'Are you sure you want to delete "${lane.title}"? This action cannot be undone and will also delete all cards in this lane.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _controller.deleteLane(laneId: lane.id);
-              
-              Get.snackbar(
-                'Success',
-                'Lane deleted successfully',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: Colors.green,
-                colorText: Colors.white,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      title: 'Delete Lane',
+      content: 'Are you sure you want to delete "${lane.title}"? This action cannot be undone and will also delete all cards in this lane.',
     );
+
+    if (confirmed == true) {
+      _controller.deleteLane(laneId: lane.id);
+      
+      Get.snackbar(
+        'Success',
+        'Lane deleted successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _showSearchDialog() {
