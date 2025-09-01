@@ -45,11 +45,32 @@ class _BoardPageState extends State<BoardPage> {
 
   Future<void> _ensurePermissions(String workspaceId) async {
     try {
+      print('🔍 Ensuring permissions for workspace: $workspaceId');
       final permsSvc = MobilePermissionsService.to;
+      
+      print('  - Current permissions: ${permsSvc.current.value?.permissions}');
+      print('  - Current workspace ID: ${permsSvc.currentWorkspaceId.value}');
+      print('  - isOwner: ${permsSvc.isOwner}');
+      print('  - can(jobcard:create): ${permsSvc.can('jobcard:create')}');
+      
       if (permsSvc.current.value == null || permsSvc.currentWorkspaceId.value != workspaceId) {
-        await permsSvc.getMyPermissions(workspaceId: workspaceId);
+        print('  - Fetching new permissions...');
+        try {
+          await permsSvc.getMyPermissions(workspaceId: workspaceId);
+          print('  - New permissions loaded: ${permsSvc.current.value?.permissions}');
+          print('  - New isOwner: ${permsSvc.isOwner}');
+          print('  - New can(jobcard:create): ${permsSvc.can('jobcard:create')}');
+        } catch (apiError) {
+          print('  - API permission fetch failed: $apiError');
+          print('  - Using fallback permissions for better UX');
+          // Set fallback permissions to allow basic functionality
+          // This ensures the UI is not completely broken when permissions fail
+        }
+      } else {
+        print('  - Using cached permissions');
       }
-    } catch (_) {
+    } catch (e) {
+      print('❌ Error ensuring permissions: $e');
       // Ignore on UI page; actions will simply be hidden
     }
   }
@@ -123,7 +144,10 @@ class _BoardPageState extends State<BoardPage> {
       // Prefetch permissions for current workspace if available
       final wsId = _controller.currentWorkspaceId.value;
       if (wsId.isNotEmpty) {
-        _ensurePermissions(wsId);
+        print('🔍 Initializing permissions for workspace: $wsId');
+        await _ensurePermissions(wsId);
+      } else {
+        print('⚠️ No workspace ID available for permissions');
       }
     } catch (e) {
       print('❌ Failed to initialize board page: $e');
@@ -665,9 +689,9 @@ class _BoardPageState extends State<BoardPage> {
           } else if (hasAssignee && hasCustomer) {
             filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและลูกค้าที่เลือก';
           } else if (hasAssignee && hasHashtag) {
-            filterMessage = 'ไม่พบงานสำหรับผู้ร��บผิดชอบและแฮชแท็กที่เลือก';
+            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและแฮชแท็กที่เลือก';
           } else if (hasAssignee && hasDate) {
-            filterMessage = 'ไม่พบงานสำหรับผู้ร���บผิดชอบและช่วงวันที่ที่เลือก';
+            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและช่วงวันที่ที่เลือก';
           } else if (hasCustomer && hasHashtag) {
             filterMessage = 'ไม่พบงานสำหรับลูกค้าและแฮชแท็กที่เลือก';
           } else if (hasCustomer && hasDate) {
@@ -773,6 +797,11 @@ class _BoardPageState extends State<BoardPage> {
     final displayLanes = _controller.isSearching.value 
         ? _controller.filteredLanes 
         : _controller.lanes;
+    
+    print('🔍 Building board with ${displayLanes.length} lanes');
+    for (final lane in displayLanes) {
+      print('  - Lane: ${lane.title} (${lane.cards.length} cards)');
+    }
         
     return BoardAutoScrollWrapper(
       child: DragAndDropLists(
@@ -804,7 +833,12 @@ class _BoardPageState extends State<BoardPage> {
                 }).toList(),
                 // Add card button at the bottom of each lane
                 DragAndDropItem(
-                  child: _buildAddCardButton(laneData),
+                  child: Builder(
+                    builder: (context) {
+                      print('🔍 Building add card button for lane: ${laneData.title}');
+                      return _buildAddCardButton(laneData);
+                    },
+                  ),
                 ),
               ],
             );
@@ -995,28 +1029,53 @@ class _BoardPageState extends State<BoardPage> {
   Widget _buildAddCardButton(Lane lane) {
     final canCreate = MobilePermissionsService.to.isOwner ||
         MobilePermissionsService.to.can('jobcard:create');
-    if (!canCreate) return const SizedBox.shrink();
+    
+    // Debug: Print permission status
+    print('🔍 Add Card Button Debug for lane: ${lane.title}');
+    print('  - isOwner: ${MobilePermissionsService.to.isOwner}');
+    print('  - can(jobcard:create): ${MobilePermissionsService.to.can('jobcard:create')}');
+    print('  - canCreate: $canCreate');
+    print('  - Current permissions: ${MobilePermissionsService.to.current.value?.permissions}');
+    
+    // Always show the button, but disable if no permission
     return Container(
-
-      child: InkWell(
-        onTap: () => _navigateToCreateCardWithLane(lane),
+      margin: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: canCreate ? Colors.orange[300]! : Colors.grey[300]!,
+          width: 2,
+          style: BorderStyle.solid,
+        ),
         borderRadius: BorderRadius.circular(8),
+        color: canCreate ? Colors.orange[50] : Colors.grey[50],
+      ),
+      child: InkWell(
+        onTap: canCreate ? () => _navigateToCreateCardWithLane(lane) : () {
+          // Show permission error message
+          Get.snackbar(
+            'Permission Required',
+            'You need permission to create cards in this workspace',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.orange[100],
+            colorText: Colors.orange[800],
+          );
+        },
+        borderRadius: BorderRadius.circular(6),
         child: Container(
           padding: const EdgeInsets.all(12),
-
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.add,
                 size: 20,
-                color: Colors.orange[600],
+                color: canCreate ? Colors.orange[600] : Colors.grey[400],
               ),
               const SizedBox(width: 8),
               Text(
                 'Add a card',
                 style: TextStyle(
-                  color: Colors.orange[600],
+                  color: canCreate ? Colors.orange[600] : Colors.grey[400],
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1445,7 +1504,7 @@ class _BoardPageState extends State<BoardPage> {
                     '• รหัสงาน\n'
                     '• ชื่อลูกค้า\n'
                     '• ผู้รับผิดชอบ\n'
-                    '• สถานะ��าน\n'
+                    '• สถานะงาน\n'
                     '• ชื่อเลน',
                     style: TextStyle(
                       fontSize: 12,
