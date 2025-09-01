@@ -521,6 +521,8 @@ class _BoardPageState extends State<BoardPage> {
           if (!canCreate) return const SizedBox.shrink();
            return FloatingActionButton(
              onPressed: () => _showAddOptionsDialog(),
+             backgroundColor: AppTheme.primaryOrange,
+             foregroundColor: Colors.white,
              child: const Icon(Icons.add),
              tooltip: 'Add New Item',
            );
@@ -785,28 +787,42 @@ class _BoardPageState extends State<BoardPage> {
         listPadding: const EdgeInsets.all(8),
         listDragHandle: null, // Disable lane drag handle
 
-        children: displayLanes.map((lane) {
-          final laneData = lane;
-          return DragAndDropList(
-            header: _buildLaneHeader(laneData),
+        children: [
+          ...displayLanes.map((lane) {
+            final laneData = lane;
+            return DragAndDropList(
+              header: _buildLaneHeader(laneData),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9F9F9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              children: [
+                ...laneData.cards.map((card) {
+                  return DragAndDropItem(
+                    child: JobCardTile(card: card),
+                  );
+                }).toList(),
+                // Add card button at the bottom of each lane
+                DragAndDropItem(
+                  child: _buildAddCardButton(laneData),
+                ),
+              ],
+            );
+          }).toList(),
+          // Add Lane Column
+          DragAndDropList(
+            header: _buildAddLaneHeader(),
             decoration: BoxDecoration(
               color: const Color(0xFFF9F9F9),
               borderRadius: BorderRadius.circular(8),
             ),
             children: [
-              ...laneData.cards.map((card) {
-                return DragAndDropItem(
-                  child: JobCardTile(card: card),
-                );
-              }).toList(),
-              // Add card button at the bottom of each lane
               DragAndDropItem(
-                child: _buildAddCardButton(laneData),
+                child: _buildAddLaneButton(),
               ),
             ],
-
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -816,6 +832,77 @@ class _BoardPageState extends State<BoardPage> {
       lane: lane,
       onCreateCard: () => _navigateToCreateCardWithLane(lane),
       onMenuTap: () => _showLaneMenu(lane),
+    );
+  }
+
+  Widget _buildAddLaneHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF9F9F9),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(8),
+          topRight: Radius.circular(8),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.add_circle_outline,
+            color: AppTheme.primaryOrange,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'เพิ่ม Lane',
+            style: TextStyle(
+              color: AppTheme.primaryOrange,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddLaneButton() {
+    return Container(
+      margin: const EdgeInsets.all(8),
+      child: GestureDetector(
+        onTap: () => _showAddLaneDialog(),
+        child: Container(
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: AppTheme.primaryOrange.withOpacity(0.3),
+              style: BorderStyle.solid,
+              width: 2,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add,
+                color: AppTheme.primaryOrange,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'เพิ่ม Lane ใหม่',
+                style: TextStyle(
+                  color: AppTheme.primaryOrange,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
