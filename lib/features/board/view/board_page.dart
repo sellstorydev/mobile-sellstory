@@ -811,14 +811,17 @@ class _BoardPageState extends State<BoardPage> {
           }).toList(),
           // Add Lane Column
           DragAndDropList(
-            header: _buildAddLaneHeader(),
+            header: null, // Remove header
             decoration: BoxDecoration(
               color: const Color(0xFFF9F9F9),
               borderRadius: BorderRadius.circular(8),
             ),
             children: [
               DragAndDropItem(
-                child: _buildAddLaneButton(),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: _buildAddLaneButton(),
+                ),
               ),
             ],
           ),
@@ -867,35 +870,30 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildAddLaneButton() {
+    final canCreate = MobilePermissionsService.to.isOwner ||
+        MobilePermissionsService.to.can('settings:board:manage');
+    if (!canCreate) return const SizedBox.shrink();
+    
     return Container(
-      margin: const EdgeInsets.all(8),
-      child: GestureDetector(
+      padding: const EdgeInsets.all(12),
+      child: InkWell(
         onTap: () => _showAddLaneDialog(),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
-          height: 60,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: AppTheme.primaryOrange.withOpacity(0.3),
-              style: BorderStyle.solid,
-              width: 2,
-            ),
-          ),
+          padding: const EdgeInsets.all(12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.add,
-                color: AppTheme.primaryOrange,
-                size: 24,
+                size: 20,
+                color: Colors.orange[600],
               ),
               const SizedBox(width: 8),
               Text(
-                'เพิ่ม Lane ใหม่',
+                'เพิ่ม Lane',
                 style: TextStyle(
-                  color: AppTheme.primaryOrange,
-                  fontSize: 14,
+                  color: Colors.orange[600],
                   fontWeight: FontWeight.w500,
                 ),
               ),
