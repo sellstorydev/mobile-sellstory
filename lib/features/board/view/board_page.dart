@@ -217,16 +217,16 @@ class _BoardPageState extends State<BoardPage> {
           return const Text('Board');
         }),
         actions: [
-
-          
-
-
-          // Notifications Button
+          // Calendar Button
           Obx(() {
             if (_controller.hasWorkspaces) {
               final wsId = _controller.currentWorkspaceId.value;
               if (wsId.isEmpty) return const SizedBox.shrink();
-              return NotificationsBellButton(workspaceId: wsId);
+              return IconButton(
+                onPressed: () => _handleMenuAction('calendar'),
+                icon: const Icon(Icons.calendar_month),
+                tooltip: 'Calendar',
+              );
             }
             return const SizedBox.shrink();
           }),
@@ -237,6 +237,16 @@ class _BoardPageState extends State<BoardPage> {
               final wsId = _controller.currentWorkspaceId.value;
               if (wsId.isEmpty) return const SizedBox.shrink();
               return ChatUnreadButton(workspaceId: wsId);
+            }
+            return const SizedBox.shrink();
+          }),
+
+          // Notifications Button
+          Obx(() {
+            if (_controller.hasWorkspaces) {
+              final wsId = _controller.currentWorkspaceId.value;
+              if (wsId.isEmpty) return const SizedBox.shrink();
+              return NotificationsBellButton(workspaceId: wsId);
             }
             return const SizedBox.shrink();
           }),
@@ -338,17 +348,7 @@ class _BoardPageState extends State<BoardPage> {
                     ),
                   ),
 
-                   const PopupMenuDivider(),
-                   PopupMenuItem<String>(
-                     value: 'calendar',
-                     child: Row(
-                       children: [
-                         const Icon(Icons.calendar_month, size: 20),
-                         const SizedBox(width: 12),
-                         const Text('Calendar'),
-                        ],
-                      ),
-                    ),
+
                  ],
                );
             } else {
