@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../../../../app/routes.dart';
+import '../../../core/services/card_view_settings_service.dart';
+import 'card_field_display.dart';
 
 class JobCardTile extends StatelessWidget {
   final JobCard card;
@@ -109,128 +111,8 @@ class JobCardTile extends StatelessWidget {
               
               const SizedBox(height: 12),
               
-              // Card ID
-              if (card.customId.isNotEmpty) ...[
-                Row(
-                  children: [
-                    const Text(
-                      '#',
-                      style: TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      card.customId,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ] else ...[
-                // Debug: Show when custom ID is empty
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'DEBUG: No Custom ID',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              
-              // Status with clock icon
-              Row(
-                children: [
-                  const Icon(
-                    Icons.access_time,
-                    size: 16,
-                    color: AppTheme.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    card.status,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // Assignee with profile picture
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.1),
-                    child: Text(
-                      _getInitials(card.updatedByDisplayName.isNotEmpty 
-                        ? card.updatedByDisplayName 
-                        : card.assignee),
-                      style: const TextStyle(
-                        color: AppTheme.primaryOrange,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      card.updatedByDisplayName.isNotEmpty 
-                        ? card.updatedByDisplayName 
-                        : card.assignee,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // Customer with group icon
-              if (card.customer.isNotEmpty) ...[
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.group,
-                      size: 16,
-                      color: AppTheme.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        card.customer,
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              // Card Fields (using settings)
+              _buildCardFields(),
             ],
           ),
         ),
@@ -247,5 +129,89 @@ class JobCardTile extends StatelessWidget {
     return name.length >= 2 
       ? name.substring(0, 2).toUpperCase()
       : name.toUpperCase();
+  }
+
+  Widget _buildCardFields() {
+    // Get card view settings service
+    final settingsService = Get.find<CardViewSettingsService>();
+    
+    // Get visible fields ordered by their order value
+    final visibleFields = settingsService.getVisibleFields();
+    
+    if (visibleFields.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: visibleFields.map((field) {
+        return CardFieldDisplay(
+          fieldId: field.id,
+          fieldName: field.name,
+          value: _getFieldValue(field.id),
+          isVisible: field.isVisible,
+          order: field.order,
+        );
+      }).toList(),
+    );
+  }
+
+  dynamic _getFieldValue(String fieldId) {
+    switch (fieldId) {
+      case 'jobId':
+        return card.customId.isNotEmpty ? card.customId : null;
+      case 'status':
+        return card.status;
+      case 'dateRange':
+        return card.dueDate != null ? {'startDate': card.dueDate, 'endDate': card.dueDate} : null;
+      case 'createdDate':
+        return card.createdAt;
+      case 'assignee':
+        return card.assignee;
+      case 'customerInterest':
+        return card.description.isNotEmpty ? card.description : null;
+      case 'collaborators':
+        return card.watchers.isNotEmpty ? card.watchers : null;
+      case 'customer':
+        return card.customer.isNotEmpty ? card.customer : null;
+      case 'company':
+        return card.company != null && card.company!.isNotEmpty ? card.company : null;
+      case 'hashtags':
+        return card.hashtags.isNotEmpty ? card.hashtags : null;
+      case 'priority':
+        return _getPriorityFromStatus(card.status);
+      case 'grandTotal':
+        return card.amount > 0 ? card.amount : null;
+      case 'netTotal':
+        return card.amount > 0 ? card.amount : null;
+      case 'totalBeforeDiscount':
+        return card.amount > 0 ? card.amount : null;
+      case 'totalAfterDiscount':
+        return card.amount > 0 ? card.amount : null;
+      case 'totalBeforeVAT':
+        return card.amount > 0 ? card.amount : null;
+      case 'description':
+        return card.description.isNotEmpty ? card.description : null;
+      case 'todoList':
+        return card.todos.isNotEmpty ? card.todos : null;
+      default:
+        return null;
+    }
+  }
+
+  String? _getPriorityFromStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'high':
+      case 'urgent':
+        return 'high';
+      case 'medium':
+      case 'normal':
+        return 'medium';
+      case 'low':
+      case 'pending':
+        return 'low';
+      default:
+        return null;
+    }
   }
 }

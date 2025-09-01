@@ -112,6 +112,9 @@ class _BoardPageState extends State<BoardPage> {
       case 'edit_workspace':
         _navigateToEditWorkspace();
         break;
+      case 'card_view_settings':
+        Get.toNamed('/card-view-settings');
+        break;
       default:
         if (value.startsWith('board_')) {
           final boardId = value.substring(6); // Remove 'board_' prefix
@@ -363,6 +366,18 @@ class _BoardPageState extends State<BoardPage> {
                          ),
                        ),
                    ],
+                   // Card View Settings
+                   const PopupMenuDivider(),
+                   PopupMenuItem<String>(
+                     value: 'card_view_settings',
+                     child: Row(
+                       children: [
+                         const Icon(Icons.view_agenda, size: 20),
+                         const SizedBox(width: 12),
+                         const Text('Card View Settings'),
+                       ],
+                     ),
+                   ),
                    // Refresh
                    const PopupMenuDivider(),
                    PopupMenuItem<String>(

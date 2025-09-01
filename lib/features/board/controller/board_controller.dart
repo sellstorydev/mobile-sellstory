@@ -70,6 +70,39 @@ class BoardController extends GetxController implements BoardView {
     searchTextController.dispose();
     super.onClose();
   }
+
+  // Save card view settings to user preferences
+  Future<void> saveCardViewSettings(List<dynamic> cardFields) async {
+    try {
+      print('💾 Saving card view settings...');
+      
+      // Convert card fields to the format expected by Firestore
+      final Map<String, dynamic> viewSettings = {};
+      
+      for (final field in cardFields) {
+        viewSettings[field.id] = {
+          'isVisible': field.isVisible,
+          'order': field.order,
+          'style': {
+            'fontSize': 14,
+            'fontWeight': 'normal',
+            'color': field.isVisible ? '#000000' : '#666666',
+          },
+        };
+      }
+      
+      // Save to user's viewSettings in Firestore
+      await _repository.updateUserViewSettings(
+        currentUserId.value,
+        viewSettings,
+      );
+      
+      print('✅ Card view settings saved successfully');
+    } catch (e) {
+      print('❌ Failed to save card view settings: $e');
+      rethrow;
+    }
+  }
   
   // Initialize with user data
   Future<void> initializeWithUser(String userId) async {
