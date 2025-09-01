@@ -205,6 +205,7 @@ class _BoardPageState extends State<BoardPage> {
                           ),
                           if (_controller.currentBoardName.value.isNotEmpty)
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
                                   width: 8,
@@ -215,11 +216,14 @@ class _BoardPageState extends State<BoardPage> {
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  _controller.currentBoardName.value,
-                                  style: TextStyle(
-                                    fontSize: 12, 
-                                    color: Colors.grey[600],
+                                Flexible(
+                                  child: Text(
+                                    _controller.currentBoardName.value,
+                                    style: TextStyle(
+                                      fontSize: 12, 
+                                      color: Colors.grey[600],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
