@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/lane.dart';
@@ -8,6 +9,7 @@ import '../../../domain/usecases/move_card_usecase.dart';
 import '../../../domain/usecases/reorder_card_in_lane_usecase.dart';
 import '../contract/board_view.dart';
 import '../state/board_state.dart';
+import '../controller/board_controller.dart';
 
 class BoardPresenter {
   final FirestoreRepository _repository;
@@ -163,10 +165,21 @@ class BoardPresenter {
 
   Future<void> onAddLane(String workspaceId, String title) async {
     try {
+      LoggerService.to.methodEntry('BoardPresenter.onAddLane', {
+        'workspaceId': workspaceId,
+        'title': title,
+      });
+      
+      // Get current board ID from the controller
+      final boardId = Get.find<BoardController>().currentBoardId.value;
+      if (boardId.isEmpty) {
+        throw Exception('No board selected');
+      }
+      
       final newLane = Lane(
         id: '',
         title: title,
-        boardId: workspaceId,
+        boardId: boardId,
         order: _currentState.lanes.length,
         cards: [],
       );
@@ -174,8 +187,14 @@ class BoardPresenter {
       // Create lane in repository
       final laneId = await _repository.createLane(workspaceId, newLane);
       
-      LoggerService.to.business('Lane created successfully');
+      LoggerService.to.business('Lane created successfully with ID: $laneId');
+      
+      // Reload data to show the new lane
+      await load(workspaceId, boardId);
+      
+      LoggerService.to.methodExit('BoardPresenter.onAddLane');
     } catch (e) {
+      LoggerService.to.error('Failed to add lane', e);
       _view?.showError('Failed to add lane: ${e.toString()}');
     }
   }

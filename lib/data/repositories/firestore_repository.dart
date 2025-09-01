@@ -816,8 +816,11 @@ class FirestoreRepository {
       // Add missing fields to match backup structure
       laneData['workspaceId'] = workspaceId;
       laneData['name'] = lane.title; // Use 'name' instead of 'title' to match backup
+      laneData['boardId'] = lane.boardId; // Ensure boardId is set correctly
       laneData['cards'] = [];
       laneData['hasMoreCards'] = false;
+      laneData['createdAt'] = Timestamp.fromDate(DateTime.now());
+      laneData['updatedAt'] = Timestamp.fromDate(DateTime.now());
       
       print('🔄 Creating lane with data:');
       print('  - Name: ${lane.title}');
