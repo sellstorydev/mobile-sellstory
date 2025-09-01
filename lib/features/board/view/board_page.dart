@@ -1044,15 +1044,15 @@ class _BoardPageState extends State<BoardPage> {
     // Always show the button, but disable if no permission
     return Container(
       margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: canCreate ? Colors.orange[300]! : Colors.grey[300]!,
-          width: 2,
-          style: BorderStyle.solid,
-        ),
-        borderRadius: BorderRadius.circular(8),
-        color: canCreate ? Colors.orange[50] : Colors.grey[50],
-      ),
+      // decoration: BoxDecoration(
+      //   border: Border.all(
+      //     color: canCreate ? Colors.orange[300]! : Colors.grey[300]!,
+      //     width: 2,
+      //     style: BorderStyle.solid,
+      //   ),
+      //   borderRadius: BorderRadius.circular(8),
+      //   color: canCreate ? Colors.orange[50] : Colors.grey[50],
+      // ),
       child: InkWell(
         onTap: canCreate ? () => _navigateToCreateCardWithLane(lane) : () {
           // Show permission error message
