@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/customer.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../../../core/services/id_generation_service.dart';
 
 class AddEditQuotationController extends GetxController {
   final String? quotationId;
@@ -135,6 +136,10 @@ class AddEditQuotationController extends GetxController {
 
   bool _includeSignature = false;
   bool get includeSignature => _includeSignature;
+
+  // Document status
+  String _documentStatus = 'DRAFT';
+  String get documentStatus => _documentStatus;
 
   // Summary section
   bool _isVatEnabled = false;
@@ -993,6 +998,24 @@ class AddEditQuotationController extends GetxController {
     }
   }
 
+  // Document status methods
+  void onDocumentStatusChanged(String? status) {
+    try {
+      if (status != null) {
+        _documentStatus = status;
+        update();
+      }
+    } catch (e) {
+      print('❌ Failed to change document status: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถเปลี่ยนสถานะเอกสารได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   // Calculation methods
   double get subtotal {
     try {
@@ -1124,10 +1147,29 @@ class AddEditQuotationController extends GetxController {
         return;
       }
 
-      // Prepare quotation data
+      // Generate document number for new quotations
+      String? docNo;
+      if (quotationId == null) {
+        try {
+          final idService = Get.find<IdGenerationService>();
+          docNo = await idService.generateQuotationDocNo(_currentWorkspaceId!);
+          print('📝 Generated document number: $docNo');
+        } catch (e) {
+          print('❌ Failed to generate document number: $e');
+          // Fallback to timestamp-based number
+          docNo = 'QT-${DateTime.now().millisecondsSinceEpoch}';
+        }
+      }
+
+            // Prepare quotation data
       final quotationData = {
         'type': 'QT',
-        'status': 'DRAFT',
+        'docNo': docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}', // Use generated number or fallback
+        'status': _documentStatus,
+                'invoiceType': 'full', // Add invoice type field for future use
+        'installmentNumber': 1, // Add installment number field
+        'totalInstallments': 1, // Add total installments field
+        'totalAmountFromQuotation': netTotal, // Add total amount from quotation field
         'customerId': _selectedCustomerId,
         'companyId': _selectedCompanyId,
         'customerAddress': customerAddressController.text,
@@ -1135,16 +1177,281 @@ class AddEditQuotationController extends GetxController {
         'customerNationalId': customerNationalIdController.text,
         'customerPhone': customerPhoneController.text,
         'customerEmail': customerEmailController.text,
+        'customer': selectedCustomer != null ? {
+          'id': selectedCustomer!.id,
+          'address': customerAddressController.text,
+          'updatedBy': _currentUserId!,
+          'gender': 'Unknown',
+                  'hashtags': [
+          {
+            'id': 'quotation',
+            'text': 'ใบเสนอราคา',
+            'color': '#3b82f6',
+          },
+        ],
+        'prefix': '',
+        'phones': customerPhoneController.text.isNotEmpty ? [
+          {
+            'value': customerPhoneController.text,
+            'id': 'phone-${DateTime.now().millisecondsSinceEpoch}',
+            'label': 'Main',
+          },
+        ] : [],
+          'assignees': _selectedSellerIds,
+          'customId': selectedCustomer!.customId,
+          'emails': customerEmailController.text.isNotEmpty ? [
+            {
+              'value': customerEmailController.text,
+              'id': 'email-${DateTime.now().millisecondsSinceEpoch}',
+              'label': 'Main',
+            },
+          ] : [],
+          'createdAt': selectedCustomer!.createdAt,
+          'customerType': 'Customer',
+          'nationalId': customerNationalIdController.text,
+          'createdBy': _currentUserId!,
+          'name': selectedCustomer!.name,
+          'age': 'Unknown',
+          'workspaceId': _currentWorkspaceId!,
+          'source': '',
+          'companyNames': selectedCustomer!.companyNames,
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+          'customFields': [],
+          'customerInterest': 'medium', // Add customer interest field
+        } : null,
+        'boardName': 'Quotations Board', // Add board name field
+        'lane': 'Draft', // Add lane field
+        'priority': 'medium', // Add priority field
+        'dueDate': _validUntilDate?.millisecondsSinceEpoch, // Add due date field
+        'todos': [], // Add todos field
+        'description': notesController.text, // Add description field
+        'title': 'ใบเสนอราคา - ${selectedCustomer?.name ?? 'ลูกค้าใหม่'}', // Add title field
+        'customId': docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}', // Add custom ID field
         'sellerName': sellerNameController.text,
         'sellerPhone': sellerPhoneController.text,
+        'seller': _selectedSellerIds.isNotEmpty ? {
+          'uid': _selectedSellerIds.first,
+          'email': 'user@example.com', // TODO: Get actual user email
+          'photoURL': null,
+          'language': 'en',
+          'workspaces': [
+            {
+              'id': _currentWorkspaceId!,
+              'name': 'Workspace', // TODO: Get actual workspace name
+              'role': 'member',
+            },
+          ],
+                  'viewSettings': {
+          'customerProfileCardsConfig_${_currentWorkspaceId}': {
+            'customId': {
+              'order': 0,
+              'isVisible': true,
+            },
+            'title': {
+              'order': 1,
+              'isVisible': true,
+            },
+            'boardName': {
+              'order': 2,
+              'isVisible': true,
+            },
+            'status': {
+              'order': 3,
+              'isVisible': true,
+            },
+            'lane': {
+              'order': 4,
+              'isVisible': true,
+            },
+            'dueDate': {
+              'order': 5,
+              'isVisible': true,
+            },
+            'assignee': {
+              'order': 6,
+              'isVisible': true,
+            },
+            'customerInterest': {
+              'order': 7,
+              'isVisible': true,
+            },
+            'customer': {
+              'order': 8,
+              'isVisible': true,
+            },
+            'company': {
+              'order': 9,
+              'isVisible': true,
+            },
+            'hashtags': {
+              'order': 10,
+              'isVisible': true,
+            },
+            'priority': {
+              'order': 11,
+              'isVisible': true,
+            },
+            'grandTotal': {
+              'order': 12,
+              'isVisible': true,
+            },
+            'netTotal': {
+              'order': 13,
+              'isVisible': true,
+            },
+            'totalAmountBeforeDiscount': {
+              'order': 14,
+              'isVisible': true,
+            },
+            'totalAmountAfterDiscount': {
+              'order': 15,
+              'isVisible': true,
+            },
+            'totalAmountBeforeVat': {
+              'order': 16,
+              'isVisible': true,
+            },
+            'description': {
+              'order': 17,
+              'isVisible': true,
+            },
+            'todos': {
+              'order': 18,
+              'isVisible': true,
+            },
+          },
+        },
+        'displayName': sellerNameController.text,
+          'lastDeviceId': 'Unknown',
+          'lastPlatform': 'android',
+          'fcmToken': '',
+          'fcmTokenUpdatedAt': DateTime.now().toIso8601String(),
+          'customId': '',
+          'lastActiveWorkspaceId': _currentWorkspaceId!,
+          'phoneNumber': sellerPhoneController.text,
+          'docPhoneNumber': sellerPhoneController.text,
+          'docDisplayName': sellerNameController.text,
+                  'notificationSettings': {
+          'quietHours': {
+            'enabled': false,
+            'startTime': '22:00',
+            'endTime': '08:00',
+            'days': [1, 2, 3, 4, 5, 6, 7],
+          },
+          'onComment': {
+            'enabled': true,
+            'web': true,
+            'mobilePush': true,
+            'email': 'off',
+          },
+          'onStatusChange': {
+            'enabled': true,
+            'email': 'off',
+            'mobilePush': true,
+            'web': true,
+          },
+          'onDueDateReminder': {
+            'enabled': true,
+            'notifyAtTime': '09:00',
+            'email': 'off',
+            'web': true,
+            'mobilePush': true,
+          },
+          'onTodoReminder': {
+            'enabled': true,
+            'remindBeforeMinutes': 15,
+            'mobilePush': true,
+            'web': true,
+            'email': 'off',
+          },
+          'onCardAssignment': {
+            'enabled': true,
+            'mobilePush': false,
+            'web': true,
+            'email': 'off',
+          },
+          'onTagged': {
+            'enabled': true,
+            'web': true,
+            'mobilePush': true,
+            'email': 'off',
+          },
+          'onApprovalRequest': {
+            'enabled': true,
+            'mobilePush': true,
+            'web': true,
+            'email': 'off',
+          },
+          'onApprovalDecision': {
+            'enabled': true,
+            'web': true,
+            'mobilePush': true,
+            'email': 'off',
+          },
+          'onNewChatReceived': {
+            'enabled': true,
+            'email': 'off',
+            'web': true,
+            'mobilePush': true,
+          },
+          'onChatAssigned': {
+            'enabled': true,
+            'email': 'off',
+            'web': true,
+            'mobilePush': true,
+          },
+          'onAddedToWorkspace': {
+            'enabled': true,
+            'web': true,
+            'mobilePush': true,
+            'email': 'off',
+          },
+          'digestSettings': {
+            'frequency': 'daily',
+          },
+        },
+        'role': 'member',
+        'updatedAt': DateTime.now().toIso8601String(),
+        } : null,
         'jobName': jobNameController.text,
         'refId': refIdController.text,
         'documentDate': _documentDate?.millisecondsSinceEpoch,
         'validUntil': _validUntilDate?.millisecondsSinceEpoch,
+        'dueDate': _validUntilDate?.millisecondsSinceEpoch, // Use validUntil as dueDate
+        'project': {
+          'name': jobNameController.text,
+          'refId': refIdController.text,
+          'company': selectedCompanyData != null ? {
+            'id': selectedCompanyData!['id'],
+            'name': selectedCompanyData!['name'] ?? selectedCompanyData!['value'] ?? '',
+          } : null,
+        },
         'products': _products.asMap().entries.map((entry) {
           final index = entry.key;
           final product = entry.value;
           return {
+            'id': product['id'],
+            'name': getProductController(index, 'name').text,
+            'description': getProductController(index, 'description').text,
+            'quantity':
+                double.tryParse(getProductController(index, 'quantity').text) ??
+                0,
+            'unit': getProductController(index, 'unit').text,
+            'pricePerUnit':
+                double.tryParse(
+                  getProductController(index, 'pricePerUnit').text,
+                ) ??
+                0,
+            'discount':
+                double.tryParse(getProductController(index, 'discount').text) ??
+                0,
+          };
+        }).toList(),
+        'items': _products.asMap().entries.map((entry) {
+          final index = entry.key;
+          final product = entry.value;
+          return {
+            'id': product['id'],
             'name': getProductController(index, 'name').text,
             'description': getProductController(index, 'description').text,
             'quantity':
@@ -1162,34 +1469,122 @@ class AddEditQuotationController extends GetxController {
           };
         }).toList(),
         'paymentMethods': _selectedPaymentMethods,
+        'paymentStatus': 'unpaid', // Add payment status field
+        'receiptFor': 'invoice', // Add receipt for field
+        'paymentDate': DateTime.now().millisecondsSinceEpoch, // Add payment date field
         'notes': notesController.text,
         'includeSignature': _includeSignature,
+        'signatureAssignments': {}, // TODO: Add signature assignments if needed
+        'relatedDocuments': [], // Add related documents field
         'isVatEnabled': _isVatEnabled,
         'isWhtEnabled': _isWhtEnabled,
         'whtPercentage': double.tryParse(whtPercentageController.text) ?? 3.0,
+        'withholdingTaxPercentage': double.tryParse(whtPercentageController.text) ?? 3.0, // Add withholdingTaxPercentage field
         'subtotal': subtotal,
+        'totalAmountBeforeDiscount': subtotal, // Add totalAmountBeforeDiscount field
         'totalDiscount': totalDiscount,
+        'discount': totalDiscount, // Add discount field (alias for totalDiscount)
         'afterDiscount': afterDiscount,
+        'totalAmountAfterDiscount': afterDiscount, // Add totalAmountAfterDiscount field
+        'shippingCost': 0.0, // TODO: Add shipping cost field if needed
+        'depositAmount': 0.0, // TODO: Add deposit amount field if needed
+        'deductedDeposit': 0.0, // TODO: Add deducted deposit field if needed
         'vatAmount': vatAmount,
+        'totalAmountBeforeVat': afterDiscount, // Add totalAmountBeforeVat field
         'afterVat': afterVat,
         'whtAmount': whtAmount,
         'netTotal': netTotal,
+        'grandTotal': netTotal, // Add grandTotal field
+        'whtPercentage': double.tryParse(whtPercentageController.text) ?? 3.0, // Add whtPercentage field
         'workspaceId': _currentWorkspaceId!,
         'createdBy': _currentUserId!,
         'updatedBy': _currentUserId!,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'activityLog': [
+          {
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+            'userId': _currentUserId!,
+            'userDisplayName': 'User', // TODO: Get actual user display name
+            'action': quotationId != null ? 'Updated' : 'Created',
+            'details': quotationId != null 
+                ? 'Updated quotation ${quotationId}' 
+                : 'Created quotation ${docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}'}',
+          },
+        ],
+        'company': selectedCompanyData != null ? {
+          'associatedCustomerIds': [selectedCustomer!.id],
+          'branch': '',
+          'emails': customerEmailController.text.isNotEmpty ? [
+            {
+              'value': customerEmailController.text,
+              'id': 'email-${DateTime.now().millisecondsSinceEpoch}',
+              'label': 'Main',
+            },
+          ] : [],
+          'website': '',
+          'district': '',
+          'postalCode': customerPostalCodeController.text,
+                  'hashtags': [
+          {
+            'id': 'company',
+            'text': 'บริษัท',
+            'color': '#10b981',
+          },
+        ],
+        'workspaceId': _currentWorkspaceId!,
+        'phones': customerPhoneController.text.isNotEmpty ? [
+          {
+            'value': customerPhoneController.text,
+            'id': 'phone-${DateTime.now().millisecondsSinceEpoch}',
+            'label': 'Main',
+          },
+        ] : [],
+          'taxId': '',
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+          'subdistrict': '',
+          'province': '',
+          'customId': selectedCompanyData!['customId'] ?? '',
+          'updatedBy': _currentUserId!,
+          'country': '',
+          'createdBy': _currentUserId!,
+          'id': selectedCompanyData!['id'],
+          'addressLine1': customerAddressController.text,
+          'name': selectedCompanyData!['name'] ?? selectedCompanyData!['value'] ?? '',
+        } : null,
+        'jobCardId': refIdController.text.isNotEmpty ? refIdController.text : null, // Use refId as jobCardId if available
+        'approval': {
+          'status': 'pending',
+          'requestedAt': DateTime.now().millisecondsSinceEpoch,
+          'requestedBy': _currentUserId!,
+        },
+        'depositInfo': {
+          'amount': 0.0,
+          'percentage': 0.0,
+          'isRequired': false,
+        },
+        'invoicingPlan': [],
+        'depositDeducted': false,
+        'approvers': [], // Add approvers field
       };
 
       // Save to Firestore
       if (quotationId != null) {
         // Update existing quotation
-        // await _repository.updateQuotation(quotationId!, quotationData);
-        print('📝 Updating quotation: $quotationId');
+        await _repository.updateDocument(
+          workspaceId: _currentWorkspaceId!,
+          documentId: quotationId!,
+          documentData: quotationData,
+        );
+        print('📝 Updated quotation: $quotationId');
       } else {
         // Create new quotation
-        // await _repository.createQuotation(quotationData);
-        print('📝 Creating new quotation');
+        final newDocumentId = await _repository.createDocument(
+          workspaceId: _currentWorkspaceId!,
+          documentData: quotationData,
+        );
+        print('📝 Created new quotation with ID: $newDocumentId');
       }
 
       Get.snackbar(

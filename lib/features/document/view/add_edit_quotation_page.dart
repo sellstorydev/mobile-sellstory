@@ -20,6 +20,7 @@ class AddEditQuotationPage extends StatefulWidget {
 class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
   // Section expansion states
   final Map<String, bool> _sectionExpanded = {
+    'status': true, // Document status section collapsed by default
     'customer': false, // Customer section expanded by default
     'seller': false, // Other sections collapsed by default
     'product': false,
@@ -126,11 +127,31 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
                 )
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Customer Section
-                      GetBuilder<AddEditQuotationController>(
+                                     child: Column(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                                              // Document Status Section
+                       GetBuilder<AddEditQuotationController>(
+                         builder: (controller) {
+                           return Column(
+                             children: [
+                               _buildSectionHeader(
+                                 'สถานะเอกสาร: ${_getStatusDisplayName(controller.documentStatus)}',
+                                 Icons.description,
+                                 'status',
+                               ),
+                               const SizedBox(height: 12),
+                               if (_sectionExpanded['status'] ?? false) ...[
+                                 _buildDocumentStatusSection(controller),
+                                 const SizedBox(height: 24),
+                               ],
+                             ],
+                           );
+                         },
+                       ),
+
+                       // Customer Section
+                       GetBuilder<AddEditQuotationController>(
                         builder: (controller) {
                           return Column(
                             children: [
@@ -311,29 +332,31 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     );
   }
 
-  // Check if section is complete based on required fields
-  bool _isSectionComplete(String sectionKey) {
-    final controller = Get.find<AddEditQuotationController>();
+     // Check if section is complete based on required fields
+   bool _isSectionComplete(String sectionKey) {
+     final controller = Get.find<AddEditQuotationController>();
 
-    switch (sectionKey) {
-      case 'customer':
-        return controller.selectedCustomerId != null &&
-            controller.selectedCustomerId!.isNotEmpty;
-      case 'seller':
-        return controller.selectedSellerIds.isNotEmpty;
-      case 'product':
-        final controller = Get.find<AddEditQuotationController>();
-        return _areAllProductsComplete(
-          controller,
-        ); // Check if all products are complete
-      case 'more':
-        return true; // Optional section
-      case 'summary':
-        return true; // Calculated section
-      default:
-        return true;
-    }
-  }
+     switch (sectionKey) {
+       case 'status':
+         return controller.documentStatus.isNotEmpty; // Status is always complete if set
+       case 'customer':
+         return controller.selectedCustomerId != null &&
+             controller.selectedCustomerId!.isNotEmpty;
+       case 'seller':
+         return controller.selectedSellerIds.isNotEmpty;
+       case 'product':
+         final controller = Get.find<AddEditQuotationController>();
+         return _areAllProductsComplete(
+           controller,
+         ); // Check if all products are complete
+       case 'more':
+         return true; // Optional section
+       case 'summary':
+         return true; // Calculated section
+       default:
+         return true;
+     }
+   }
 
   // Check if all required fields are complete
   bool _areRequiredFieldsComplete() {
@@ -1453,25 +1476,31 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     Get.dialog(
       AlertDialog(
         title: const Text('เลือกช่องทางการชำระเงิน'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: availableItems.map((item) {
-              return CheckboxListTile(
-                title: Text(item),
-                value: tempSelected.contains(item),
-                onChanged: (bool? value) {
-                  if (value == true) {
-                    tempSelected.add(item);
-                  } else {
-                    tempSelected.remove(item);
-                  }
-                },
-                activeColor: AppTheme.primaryOrange,
-              );
-            }).toList(),
-          ),
+        content: StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: availableItems.map((item) {
+                  return CheckboxListTile(
+                    title: Text(item),
+                    value: tempSelected.contains(item),
+                    onChanged: (bool? value) {
+                      setState(() {
+                        if (value == true) {
+                          tempSelected.add(item);
+                        } else {
+                          tempSelected.remove(item);
+                        }
+                      });
+                    },
+                    activeColor: AppTheme.primaryOrange,
+                  );
+                }).toList(),
+              ),
+            );
+          },
         ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('ยกเลิก')),
@@ -1487,9 +1516,116 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     );
   }
 
-  void _showProductSelectionDialog(AddEditQuotationController controller) {
-    // Use real product data from controller
-    final availableProducts = controller.availableProducts;
+     // Helper method to get status display name
+   String _getStatusDisplayName(String status) {
+     switch (status) {
+       case 'DRAFT':
+         return 'ร่าง (Draft)';
+       case 'SENT':
+         return 'ส่งแล้ว (Sent)';
+       case 'PENDING_APPROVAL':
+         return 'รอการอนุมัติ (Pending Approval)';
+       case 'APPROVED':
+         return 'อนุมัติแล้ว (Approved)';
+       case 'REJECTED':
+         return 'ปฏิเสธ (Rejected)';
+       case 'VOID':
+         return 'ยกเลิก (Void)';
+       case 'INVOICED':
+         return 'ออกใบแจ้งหนี้แล้ว (Invoiced)';
+       case 'FULLY_PAID':
+         return 'ชำระเงินครบแล้ว (Fully Paid)';
+       default:
+         return 'ร่าง (Draft)';
+     }
+   }
+
+   // Build document status section
+   Widget _buildDocumentStatusSection(AddEditQuotationController controller) {
+     return Container(
+       padding: const EdgeInsets.all(16),
+       decoration: BoxDecoration(
+         color: AppTheme.backgroundWhite,
+         borderRadius: BorderRadius.circular(12),
+         border: Border.all(color: AppTheme.primaryOrange),
+       ),
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         children: [
+           Text(
+             'สถานะเอกสาร',
+             style: const TextStyle(
+               fontSize: 16,
+               fontWeight: FontWeight.w600,
+               color: AppTheme.textPrimary,
+             ),
+           ),
+           const SizedBox(height: 12),
+           DropdownButtonFormField<String>(
+             value: controller.documentStatus,
+             items: [
+               DropdownMenuItem(
+                 value: 'DRAFT',
+                 child: Text('ร่าง (Draft)'),
+               ),
+               DropdownMenuItem(
+                 value: 'SENT',
+                 child: Text('ส่งแล้ว (Sent)'),
+               ),
+               DropdownMenuItem(
+                 value: 'PENDING_APPROVAL',
+                 child: Text('รอการอนุมัติ (Pending Approval)'),
+               ),
+               DropdownMenuItem(
+                 value: 'APPROVED',
+                 child: Text('อนุมัติแล้ว (Approved)'),
+               ),
+               DropdownMenuItem(
+                 value: 'REJECTED',
+                 child: Text('ปฏิเสธ (Rejected)'),
+               ),
+               DropdownMenuItem(
+                 value: 'VOID',
+                 child: Text('ยกเลิก (Void)'),
+               ),
+               DropdownMenuItem(
+                 value: 'INVOICED',
+                 child: Text('ออกใบแจ้งหนี้แล้ว (Invoiced)'),
+               ),
+               DropdownMenuItem(
+                 value: 'FULLY_PAID',
+                 child: Text('ชำระเงินครบแล้ว (Fully Paid)'),
+               ),
+             ],
+             onChanged: controller.onDocumentStatusChanged,
+             decoration: InputDecoration(
+               hintText: 'เลือกสถานะเอกสาร',
+               border: OutlineInputBorder(
+                 borderRadius: BorderRadius.circular(8),
+                 borderSide: const BorderSide(color: AppTheme.borderGrey),
+               ),
+               enabledBorder: OutlineInputBorder(
+                 borderRadius: BorderRadius.circular(8),
+                 borderSide: const BorderSide(color: AppTheme.borderGrey),
+               ),
+               focusedBorder: OutlineInputBorder(
+                 borderRadius: BorderRadius.circular(8),
+                 borderSide: const BorderSide(color: AppTheme.primaryOrange),
+               ),
+               contentPadding: const EdgeInsets.symmetric(
+                 horizontal: 12,
+                 vertical: 12,
+               ),
+             ),
+           ),
+         ],
+       ),
+     );
+   }
+
+   void _showProductSelectionDialog(AddEditQuotationController controller) {
+     // Use real product data from controller
+     final availableProducts = controller.availableProducts;
 
     if (availableProducts.isEmpty) {
       Get.snackbar(

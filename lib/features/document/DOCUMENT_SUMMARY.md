@@ -42,6 +42,7 @@ Successfully implemented the document center page with 3 main menu items as requ
 - **File**: `lib/features/document/view/add_edit_quotation_page.dart`
 - **Features**:
   - Comprehensive form with all required input fields organized in sections
+  - **Document Status Section**: Collapsible status section with status dropdown showing selected status in header, all quotation status options (DRAFT, SENT, PENDING_APPROVAL, APPROVED, REJECTED, VOID, INVOICED, FULLY_PAID)
   - **Expandable/Collapsible Sections**: Each section can be expanded/collapsed to improve user experience
   - **Section Management**: Expand all, collapse all, and individual section control
   - **Required Field Validation**: Visual indicators for required fields (customer selection, seller assignee)
@@ -60,14 +61,17 @@ Successfully implemented the document center page with 3 main menu items as requ
 - **File**: `lib/features/document/controller/add_edit_quotation_controller.dart`
 - **Features**:
   - State management for all form fields
+  - **Document Status Management**: Status field with all quotation status options and change handling
   - Customer and company data management with Firebase integration
   - **Seller/Assignee Management**: Automatic seller assignment from customer assignees, dynamic assignee selection
   - **Product Database Integration**: Real-time product fetching from Firebase, active product filtering, product selection dialog with real data
   - **Product Validation System**: Required field validation for product name, quantity, unit, and price before adding new products or saving quotation, **real-time validation with UI updates**
+  - **Document Creation & Update**: Full Firestore save/update functionality with proper document structure
+  - **Document Number Generation**: Automatic document number generation using IdGenerationService with workspace-specific rules
   - Product management with dynamic controllers
   - Automatic calculation methods for totals and taxes
   - Form validation and data preparation
-  - Firestore integration preparation
+  - **Complete Firestore Integration**: Save new quotations and update existing quotations to `workspaces/{workspaceId}/documents/{documentId}`
   - Proper controller lifecycle management
 
 ### 6. Document Center Controller
@@ -89,8 +93,13 @@ Successfully implemented the document center page with 3 main menu items as requ
 ### 8. Firestore Integration
 - **Modified**: `lib/data/services/firestore_service.dart`
   - Added `getWorkspaceDocumentsCollection()` method
+  - Added `getDocumentReference()` method for getting document references by ID
 - **Modified**: `lib/data/repositories/firestore_repository.dart`
   - Added `getDocuments()` method with limit and ordering
+  - **Added `createDocument()` method**: Creates new documents in Firestore with proper workspace structure
+  - **Added `updateDocument()` method**: Updates existing documents in Firestore
+- **Modified**: `lib/core/services/id_generation_service.dart`
+  - **Added `generateQuotationDocNo()` method**: Generates quotation document numbers using workspace-specific ID generation rules
 
 ### 9. Shell Integration
 - **Modified**: `lib/features/shell/shell_page.dart`
@@ -173,7 +182,10 @@ Documents are stored in: `workspaces/{workspaceId}/documents/{documentId}`
 - Dynamic product management
 - Automatic calculation system
 - Proper controller lifecycle management
-- Firestore integration ready
+- **Complete Firestore Integration**: Full CRUD operations implemented
+- **Document Number Generation**: Automatic generation using IdGenerationService with workspace rules
+- **Real-time Validation**: UI updates automatically when form fields change
+- **Data Structure Compliance**: Matches DOCUMENT_README.md specification exactly
 
 ## Form Features
 - **Customer Selection**: Dropdown with customer search and auto-fill

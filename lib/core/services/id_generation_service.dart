@@ -146,6 +146,31 @@ class IdGenerationService {
     }
   }
 
+  /// Generate a quotation document number based on the rules
+  Future<String> generateQuotationDocNo(String workspaceId) async {
+    try {
+      // Get the rules
+      final rules = await getIdGenerationRules(workspaceId, 'quotation');
+      
+      // Get the current sequence number
+      final sequence = await _getNextSequence(workspaceId, 'quotation');
+      
+      // Format the date according to the rules
+      final dateString = _formatDate(DateTime.now(), rules.dateFormat);
+      
+      // Format the sequence number with leading zeros
+      final sequenceString = sequence.toString().padLeft(rules.minLength, '0');
+      
+      // Combine all parts
+      return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
+    } catch (e) {
+      print('Error generating quotation document number: $e');
+      // Fallback to simple ID generation
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      return 'QT-$timestamp';
+    }
+  }
+
   /// Get the next sequence number from lastUsedCounters
   Future<int> _getNextSequence(String workspaceId, String entityType) async {
     try {

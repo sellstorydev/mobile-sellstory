@@ -1220,6 +1220,62 @@ class FirestoreRepository {
     }
   }
 
+  // Create new document
+  Future<String> createDocument({
+    required String workspaceId,
+    required Map<String, dynamic> documentData,
+  }) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.createDocument', {
+        'workspaceId': workspaceId,
+        'type': documentData['type'],
+      });
+
+      print('🔄 FirestoreRepository.createDocument:');
+      print('  - Workspace ID: $workspaceId');
+      print('  - Document type: ${documentData['type']}');
+
+      final documentsCollection = _firestoreService.getWorkspaceDocumentsCollection(workspaceId);
+      final documentRef = await _firestoreService.addDocument(documentsCollection, documentData);
+      
+      print('✅ Document created successfully with ID: ${documentRef.id}');
+      return documentRef.id;
+    } catch (e) {
+      print('❌ Failed to create document: $e');
+      _logger.error('Failed to create document', e);
+      rethrow;
+    }
+  }
+
+  // Update existing document
+  Future<void> updateDocument({
+    required String workspaceId,
+    required String documentId,
+    required Map<String, dynamic> documentData,
+  }) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.updateDocument', {
+        'workspaceId': workspaceId,
+        'documentId': documentId,
+        'type': documentData['type'],
+      });
+
+      print('🔄 FirestoreRepository.updateDocument:');
+      print('  - Workspace ID: $workspaceId');
+      print('  - Document ID: $documentId');
+      print('  - Document type: ${documentData['type']}');
+
+      final documentRef = _firestoreService.getDocumentReference(workspaceId, documentId);
+      await _firestoreService.updateDocument(documentRef, documentData);
+      
+      print('✅ Document updated successfully');
+    } catch (e) {
+      print('❌ Failed to update document: $e');
+      _logger.error('Failed to update document', e);
+      rethrow;
+    }
+  }
+
   // Get users for a specific workspace
   Future<List<Map<String, dynamic>>> getWorkspaceUsers(String workspaceId) async {
     try {
