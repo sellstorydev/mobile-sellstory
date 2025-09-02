@@ -16,6 +16,7 @@ class ConversationTile extends StatelessWidget {
   // New: start (left-to-right) actions
   final VoidCallback? onToggleBot;
   final VoidCallback? onTogglePin;
+  
 
 
   const ConversationTile({

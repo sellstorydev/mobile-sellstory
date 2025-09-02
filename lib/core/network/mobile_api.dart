@@ -5,8 +5,8 @@ import '../../data/services/firebase_auth_service.dart';
 
 /// Central config/constants for Mobile Data API
 class MobileApiConfig {
-  static const String baseUrl = 'http://10.1.3.17:3000';
-  // static const String baseUrl = 'https://workspace.sellstory.me';
+  // static const String baseUrl = 'http://10.1.3.17:3000';
+  static const String baseUrl = 'https://workspace.sellstory.me';
 }
 
 
