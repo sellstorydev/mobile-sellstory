@@ -40,7 +40,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   List<Map<String, dynamic>> _todoItems = [];
   
   // Form state
-  String _selectedBoard = '';
+
   String _selectedLane = '';
   String _selectedCustomer = '';
   String _selectedCompany = 'none';
@@ -49,7 +49,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   bool _isLoading = false;
   
   // Available options
-  List<Map<String, dynamic>> _availableBoards = [];
+
   List<Map<String, dynamic>> _availableLanes = [];
   List<Map<String, dynamic>> _availableCustomers = [];
   List<Map<String, dynamic>> _availableCompanies = [];
@@ -96,32 +96,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
   }
 
   Future<void> _loadAvailableOptions() async {
-    // Load boards from Firestore
-    try {
-      print('🔄 Loading boards from Firestore...');
-      final boards = await _controller.getBoards();
-      
-      _availableBoards = boards.map((board) => {
-        'id': board.id,
-        'name': board.name,
-      }).toList();
-      
-      // Set default board (current board or first available)
-      if (_controller.currentBoardId.value.isNotEmpty) {
-        _selectedBoard = _controller.currentBoardId.value;
-      } else if (_availableBoards.isNotEmpty) {
-        _selectedBoard = _availableBoards.first['id'];
-      }
-      
-      print('✅ Boards loaded: ${_availableBoards.length} boards');
-      print('📍 Selected board: $_selectedBoard');
-    } catch (e) {
-      print('❌ Failed to load boards: $e');
-      _availableBoards = [];
+    // Load lanes for current board
+    final currentBoardId = _controller.currentBoardId.value;
+    if (currentBoardId.isNotEmpty) {
+      await _loadLanesForBoard(currentBoardId);
     }
-    
-    // Load lanes for selected board
-    await _loadLanesForBoard(_selectedBoard);
     
 
 
@@ -483,7 +462,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   const SizedBox(height: 16),
                   _buildTitleSection(),
                   const SizedBox(height: 16),
-                  _buildBoardLaneSection(),
+                                      _buildLaneSection(),
                   const SizedBox(height: 16),
                   _buildHashtagSection(),
                   const SizedBox(height: 16),
@@ -568,98 +547,43 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
-  Widget _buildBoardLaneSection() {
-    return Row(
+  Widget _buildLaneSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Board',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _selectedBoard.isNotEmpty && _availableBoards.any((board) => board['id'] == _selectedBoard) 
-                       ? _selectedBoard 
-                       : null,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-                isExpanded: true,
-                items: _availableBoards.map((board) {
-                  return DropdownMenuItem<String>(
-                    value: board['id'],
-                    child: Text(
-                      board['name'],
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) async {
-                  setState(() {
-                    _selectedBoard = value!;
-                  });
-                  
-                  // Load lanes for the newly selected board
-                  await _loadLanesForBoard(_selectedBoard);
-                  
-                  setState(() {
-                    // Trigger UI rebuild with new lanes
-                  });
-                },
-              ),
-            ],
+        const Text(
+          'Lane',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Lane',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _selectedLane.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _selectedLane) 
-                       ? _selectedLane 
-                       : null,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-                isExpanded: true,
-                items: _availableLanes.map((lane) {
-                  return DropdownMenuItem<String>(
-                    value: lane['id'],
-                    child: Text(
-                      lane['name'],
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLane = value!;
-                  });
-                },
-              ),
-            ],
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _selectedLane.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _selectedLane) 
+                 ? _selectedLane 
+                 : null,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
+          isExpanded: true,
+          items: _availableLanes.map((lane) {
+            return DropdownMenuItem<String>(
+              value: lane['id'],
+              child: Text(
+                lane['name'],
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedLane = value!;
+            });
+          },
         ),
       ],
     );
