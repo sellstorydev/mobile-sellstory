@@ -2,12 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../../../core/network/mobile_api.dart';
 
 class ChatService extends GetxService {
   static ChatService get to => Get.find();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _baseApiUrl = 'https://workspace.sellstory.me';
+  final String _baseApiUrl = MobileApiConfig.baseUrl;
 
   // ===== Firestore refs =====
   CollectionReference<Map<String, dynamic>> getChatroomsCollection(String workspaceId) =>

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:async';
 import '../../../data/services/chat_service.dart';
@@ -14,7 +13,6 @@ import '../widgets/show_bottom_modal.dart';
 import '../../../data/services/firestore_service.dart';
 import '../widgets/user_picker_sheet.dart';
 import '../../../core/widgets/top_snack.dart';
-
 class ChatScreen extends StatefulWidget {
   final String conversationId;
   final Map<String, dynamic> conversationData;
@@ -89,7 +87,7 @@ class _ChatScreenState extends State<ChatScreen> {
           .getChatroomsCollection(widget.workspaceId)
           .doc(widget.conversationId)
           .get();
-      final chatData = (chatSnap.data() ?? {}) as Map<String, dynamic>;
+      final chatData = (chatSnap.data() ?? <String, dynamic>{});
       final customerId = (chatData['customerId'] ?? chatData['customer_id'] ?? chatData['customer']?['id'])?.toString();
 
       final pickedUid = await showModalBottomSheet<String>(
@@ -233,7 +231,8 @@ class _ChatScreenState extends State<ChatScreen> {
     // Do not toggle _isLoading for quick text sends to avoid UI flicker
     // setState(() => _error = null); // Clear previous errors
 
-    try {
+
+    // try {
       final result = await _chatService.sendTextMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
@@ -253,10 +252,10 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) setState(() => _replyPreviewText = null);
         // Don't call _scrollToBottom here; stream listener will autoscroll when appropriate
       }
-    } catch (e) {
-      _error = 'ส่งข้อความไม่สำเร็จ';
-      _showErrorSnackBar(_error!);
-    }
+    // } catch (e) {
+    //   _error = 'ส่งข้อความไม่สำเร็จ';
+    //   _showErrorSnackBar(_error!);
+    // }
   }
 
   Future<void> _sendImageMessage(String imageUrl) async {
@@ -843,6 +842,52 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Column(
             children: [
+
+              // Realtime auto-reply banner (moved to top under header)
+              StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                stream: _chatService
+                    .getChatroomsCollection(widget.workspaceId)
+                    .doc(widget.conversationId)
+                    .snapshots(),
+                builder: (context, snap) {
+                  final m = (snap.data?.data() ?? widget.conversationData);
+                  final bool bot = (m['bot_status'] ?? 'N') == 'Y';
+                  if (!bot) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF9CA3AF), // closer to screenshot gray bar
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.smart_toy_outlined, color: Colors.white),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'กำลังใช้ข้อความตอบกลับอัตโนมัติ',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              foregroundColor: Colors.white,
+                              backgroundColor: const Color(0xFF111827),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                            ),
+                            onPressed: () => _updateBotStatus(false),
+                            child: const Text('แชทแบบแมนนวล', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+
               // Error display
               if (_error != null)
                 Container(

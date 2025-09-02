@@ -3,15 +3,13 @@ import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/mobile_api.dart';
 import 'firebase_auth_service.dart';
 import '../../models/user_permissions.dart';
 
 /// Service to fetch current user's permissions for a workspace via Mobile Data API
 class MobilePermissionsService extends GetxService {
   static MobilePermissionsService get to => Get.find<MobilePermissionsService>();
-
-  // Align with existing mobile API usage in ChatService
-  static const String _baseApiUrl = 'https://workspace.sellstory.me';
 
   final ApiClient _apiClient = Get.find<ApiClient>();
   final FirebaseAuthService _authService = Get.find<FirebaseAuthService>();
@@ -33,32 +31,21 @@ class MobilePermissionsService extends GetxService {
       throw ArgumentError('workspaceId is required');
     }
 
-    final user = _authService.currentUser;
-    if (user == null) {
-      throw Exception('Unauthorized: Not signed in');
-    }
-
-    final idToken = await user.getIdToken();
+    // Get Firebase ID token via centralized helper
+    final idToken = await MobileApiAuth.getIdTokenOrThrow(_authService);
 
     try {
       final response = await _apiClient.get<Map<String, dynamic>>(
-        '$_baseApiUrl/api/mobile/me/permissions',
+        '${MobileApiConfig.baseUrl}/api/mobile/me/permissions',
         queryParameters: {
           'workspaceId': workspaceId,
         },
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $idToken',
-          },
-        ),
+        options: MobileApiAuth.authHeaderOptions(idToken),
       );
 
       final status = response.statusCode ?? 0;
       if (status >= 200 && status < 300) {
         final data = response.data;
-        print(".--------------------------------.");
-        print(data);
-        print(".--------------------------------.");
         if (data == null) {
           throw Exception('Failed to fetch permissions: empty response');
         }

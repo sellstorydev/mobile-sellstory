@@ -115,7 +115,8 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
                   style: const TextStyle(
                       color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                // New: Sales names under the main title
+                // New: Sales names under the m
+                // ain title
                 Builder(builder: (_) {
                   final names = assigneeNames
                           ?.map((e) => e.toString())

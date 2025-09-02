@@ -110,7 +110,7 @@ void main() async {
   
   runApp(
     DevicePreview(
-      enabled: true, // Enable device preview
+      enabled: false, // Enable device preview
       builder: (context) => const SellStoryApp(),
     ),
   );

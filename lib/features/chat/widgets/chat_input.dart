@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../../../data/services/upload_service.dart';
+import 'canned_responses_sheet.dart';
 
 
 class ChatInput extends StatefulWidget {
@@ -72,6 +73,60 @@ class _ChatInputState extends State<ChatInput> {
     setState(() {
       _showAttachmentOptions = !_showAttachmentOptions;
     });
+  }
+
+  Future<void> _openAttachmentModal() async {
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('เลือกไฟล์เอกสาร'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _pickFile();
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.quickreply_outlined),
+                title: const Text('คำตอบที่ใช้บ่อย'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  // Open canned responses manager in another bottom sheet
+                  if (!mounted) return;
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    backgroundColor: Colors.white,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    builder: (_) => CannedResponsesSheet(
+                      workspaceId: widget.workspaceId,
+                      onSendText: widget.onSendText,
+                      onSendImage: widget.onSendImage,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _pickImage() async {
@@ -334,8 +389,7 @@ class _ChatInputState extends State<ChatInput> {
                       _RoundIcon(
                         icon: Icons.grid_view_rounded,
                         onTap: () async {
-                          // เลือกไฟล์เอกสาร (เหมือนปุ่ม “+” เดิม)
-                          await _pickFile();
+                          await _openAttachmentModal();
                         },
                       ),
                       _RoundIcon(
