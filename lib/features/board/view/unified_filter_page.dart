@@ -105,7 +105,7 @@ class UnifiedFilterPage extends StatelessWidget {
                   _buildDateTypeChip(controller, 'createdDate', 'Created Date'),
                   _buildDateTypeChip(controller, 'dueDate', 'To-Do Date'),
                   _buildDateTypeChip(controller, 'updatedAt', 'Updated At'),
-                  _buildDateTypeChip(controller, 'expectedClosingDate', 'Expected Closing Date'),
+
                 ],
               ),
             ],
