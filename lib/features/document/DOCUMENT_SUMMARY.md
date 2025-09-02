@@ -38,14 +38,50 @@ Successfully implemented the document center page with 3 main menu items as requ
   - Clear filters functionality
   - Proper navigation back to list page
 
-### 4. Document Center Controller
+### 4. Add/Edit Quotation Page
+- **File**: `lib/features/document/view/add_edit_quotation_page.dart`
+- **Features**:
+  - Comprehensive form with all required input fields organized in sections
+  - **Document Status Section**: Collapsible status section with status dropdown showing selected status in header, all quotation status options (DRAFT, SENT, PENDING_APPROVAL, APPROVED, REJECTED, VOID, INVOICED, FULLY_PAID)
+  - **Expandable/Collapsible Sections**: Each section can be expanded/collapsed to improve user experience
+  - **Section Management**: Expand all, collapse all, and individual section control
+  - **Required Field Validation**: Visual indicators for required fields (customer selection, seller assignee)
+  - **Section Completion Status**: Color-coded section headers showing completion status (green=complete, red=incomplete)
+  - **Overall Progress Indicator**: Top status bar showing completion progress (X/2 required fields)
+  - **Save Button State**: Disabled until all required fields are complete
+  - Customer section: customer selection, company selection, address, postal code, national ID, phone, email
+  - Seller section: assignee selection using AssigneesInputField, job name, ref ID, document date, valid until date
+  - Product section: two-button interface (เลือกจากฐานข้อมูล/เพิ่มใหม่), real-time product fetching from Firebase database, add/remove products with name, description, quantity, unit, price, discount (not required, default 0 products), **required field validation for product addition**
+  - More options: payment methods, notes, signature options
+  - Summary section: automatic calculations for subtotal, VAT, withholding tax, net total
+  - User-friendly UI with proper theming and responsive design
+  - Form validation and error handling
+
+### 5. Add/Edit Quotation Controller
+- **File**: `lib/features/document/controller/add_edit_quotation_controller.dart`
+- **Features**:
+  - State management for all form fields
+  - **Document Status Management**: Status field with all quotation status options and change handling
+  - Customer and company data management with Firebase integration
+  - **Seller/Assignee Management**: Automatic seller assignment from customer assignees, dynamic assignee selection
+  - **Product Database Integration**: Real-time product fetching from Firebase, active product filtering, product selection dialog with real data
+  - **Product Validation System**: Required field validation for product name, quantity, unit, and price before adding new products or saving quotation, **real-time validation with UI updates**
+  - **Document Creation & Update**: Full Firestore save/update functionality with proper document structure
+  - **Document Number Generation**: Automatic document number generation using IdGenerationService with workspace-specific rules
+  - Product management with dynamic controllers
+  - Automatic calculation methods for totals and taxes
+  - Form validation and data preparation
+  - **Complete Firestore Integration**: Save new quotations and update existing quotations to `workspaces/{workspaceId}/documents/{documentId}`
+  - Proper controller lifecycle management
+
+### 6. Document Center Controller
 - **File**: `lib/features/document/controller/document_center_controller.dart`
 - **Features**:
   - User and workspace initialization
   - Navigation methods for each document type
   - Error handling and loading states
 
-### 5. Quotations List Controller
+### 7. Quotations List Controller
 - **File**: `lib/features/document/controller/quotations_list_controller.dart`
 - **Features**:
   - Load quotations from Firestore with type filtering
@@ -54,13 +90,18 @@ Successfully implemented the document center page with 3 main menu items as requ
   - Real-time filtering and search
   - Date formatting utilities
 
-### 6. Firestore Integration
+### 8. Firestore Integration
 - **Modified**: `lib/data/services/firestore_service.dart`
   - Added `getWorkspaceDocumentsCollection()` method
+  - Added `getDocumentReference()` method for getting document references by ID
 - **Modified**: `lib/data/repositories/firestore_repository.dart`
   - Added `getDocuments()` method with limit and ordering
+  - **Added `createDocument()` method**: Creates new documents in Firestore with proper workspace structure
+  - **Added `updateDocument()` method**: Updates existing documents in Firestore
+- **Modified**: `lib/core/services/id_generation_service.dart`
+  - **Added `generateQuotationDocNo()` method**: Generates quotation document numbers using workspace-specific ID generation rules
 
-### 7. Shell Integration
+### 9. Shell Integration
 - **Modified**: `lib/features/shell/shell_page.dart`
   - Replaced OrdersPage with DocumentCenterPage
   - Updated imports
@@ -80,6 +121,15 @@ Successfully implemented the document center page with 3 main menu items as requ
 - Cancel button to close dialog
 - Ready for future implementation of individual create pages
 
+### Add/Edit Quotation Form
+- **Section Headers**: Orange-themed headers with icons for each section
+- **Input Fields**: Consistent styling with proper labels and hints
+- **Dropdown Fields**: Customer and company selection with proper validation
+- **Date Fields**: Date picker with calendar icon and formatted display
+- **Product Items**: Dynamic product management with add/remove functionality
+- **Summary Section**: Highlighted summary with automatic calculations
+- **Responsive Design**: Proper spacing and layout for mobile devices
+
 ## Database Structure
 Documents are stored in: `workspaces/{workspaceId}/documents/{documentId}`
 
@@ -92,18 +142,35 @@ Documents are stored in: `workspaces/{workspaceId}/documents/{documentId}`
 - `customer`: Customer information
 - `items`: Array of document items
 
+### Quotation Specific Fields:
+- `customerId`: Selected customer ID
+- `companyId`: Selected company ID (if customer has multiple companies)
+- `customerAddress`, `customerPostalCode`, `customerNationalId`, `customerPhone`, `customerEmail`
+- `sellerName`, `sellerPhone`, `jobName`, `refId`
+- `documentDate`, `validUntil`: Document and validity dates
+- `products`: Array of product items with name, description, quantity, unit, price, discount
+- `paymentMethods`: Array of selected payment methods
+- `notes`: Additional notes
+- `includeSignature`: Boolean for signature requirement
+- `isVatEnabled`, `isWhtEnabled`: Tax calculation flags
+- `whtPercentage`: Withholding tax percentage
+- `subtotal`, `totalDiscount`, `afterDiscount`, `vatAmount`, `afterVat`, `whtAmount`, `netTotal`: Calculated amounts
+
 ## Navigation Integration
 - Document center is accessible from the main footer menu "เอกสาร"
 - "Create New" shows popup dialog for document type selection
 - Individual document type cards show placeholder snackbars for navigation
+- Add/Edit quotation page accessible from quotations list
 - Ready for future implementation of individual document type pages and create pages
 
 ## Next Steps
 1. ✅ Implement individual document type list pages (Quotations, Invoices, Receipts) - Quotations completed
-2. Add document creation functionality
+2. ✅ Add document creation functionality - Quotation creation completed
 3. ✅ Implement search and filter features - Basic implementation completed
-4. Add document detail/edit pages
+4. ✅ Add document detail/edit pages - Quotation add/edit completed
 5. Implement document status management
+6. Add invoice and receipt creation pages
+7. Implement document templates and PDF generation
 
 ## Technical Notes
 - Uses GetX for state management
@@ -111,3 +178,21 @@ Documents are stored in: `workspaces/{workspaceId}/documents/{documentId}`
 - Proper error handling and loading states
 - Responsive design with AppTheme constants
 - Thai language support throughout
+- Comprehensive form validation
+- Dynamic product management
+- Automatic calculation system
+- Proper controller lifecycle management
+- **Complete Firestore Integration**: Full CRUD operations implemented
+- **Document Number Generation**: Automatic generation using IdGenerationService with workspace rules
+- **Real-time Validation**: UI updates automatically when form fields change
+- **Data Structure Compliance**: Matches DOCUMENT_README.md specification exactly
+
+## Form Features
+- **Customer Selection**: Dropdown with customer search and auto-fill
+- **Company Selection**: Dynamic company selection based on customer
+- **Product Management**: Add/remove products with full CRUD operations
+- **Tax Calculations**: Automatic VAT (7%) and withholding tax calculations
+- **Payment Methods**: Multi-select payment method selection
+- **Form Validation**: Required field validation and error messages
+- **Auto-save**: Form state persistence during editing
+- **Responsive Layout**: Mobile-friendly design with proper spacing

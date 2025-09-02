@@ -149,6 +149,14 @@ class FirestoreService extends GetxService {
     }
   }
 
+  // Get document reference by ID
+  DocumentReference<Map<String, dynamic>> getDocumentReference(
+    String workspaceId,
+    String documentId,
+  ) {
+    return getWorkspaceDocumentsCollection(workspaceId).doc(documentId);
+  }
+
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getDocumentsStream(
     CollectionReference<Map<String, dynamic>> collection, {
