@@ -5,6 +5,7 @@ import '../../../core/constants/app_font.dart';
 import '../../../core/widgets/assignees_input_field.dart';
 import '../controller/invoice_list_controller.dart';
 import 'invoice_filter_page.dart';
+import 'add_edit_document_page.dart';
 
 class InvoiceListPage extends StatelessWidget {
   const InvoiceListPage({super.key});
@@ -31,7 +32,7 @@ class InvoiceListPage extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => controller.createNewInvoice(),
+            onPressed: () => Get.to(() => const AddEditDocumentPage(documentType: 'INV')),
             icon: const Icon(Icons.add),
             color: AppTheme.primaryOrange,
           ),
@@ -527,7 +528,7 @@ class InvoiceListPage extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacing24),
           ElevatedButton.icon(
-            onPressed: () => controller.createNewInvoice(),
+            onPressed: () => Get.to(() => const AddEditDocumentPage(documentType: 'INV')),
             icon: const Icon(Icons.add),
             label: const Text('สร้างใบแจ้งหนี้'),
             style: ElevatedButton.styleFrom(

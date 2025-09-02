@@ -1,4 +1,4 @@
-# Product System
+# Document System
 
 ## Overview
 document system is about ใบเสนอราคา, ใบแจ้งหนี้, ใบเสร็จรับเงิน
@@ -19,7 +19,7 @@ document system is about ใบเสนอราคา, ใบแจ้งห�
 - all about DEP(Deposit) is coming soon is hide or don't do anything about Deposit but data have it
 
 ## PROJECT STRUCTURE:
-- main folder of product system is `lib\features\document`
+- main folder of document system is `lib\features\document`
 
 ## DOCUMENTATION:
 - `get: ^4.6.6` - State management and dependency injection
@@ -108,6 +108,7 @@ interface Receipt extends BusinessDocument {
 ```
 
 ## RELATED DATABASE
+
 #### workspaces/{workspace UIDs}/documents/{Document UIDs}
 example data:
 ```{
@@ -634,7 +635,7 @@ example data:
   "subtotal": 0,
   "grandTotal": 0,
   "netTotal": 0,
-  "type": "INV", //'QT' | 'INV' | 'RT' | 'DEP'
+  "type": "INV",
   "docNo": "INV-250828-0001",
   "workspaceId": "5hMae0Og3XYVtM0T9XQR",
   "createdAt": 1756362668125,
@@ -650,10 +651,569 @@ example data:
       "details": "Created invoice INV-250828-0001"
     }
   ],
-  "validUntil": 1756573200000,
-  "vatAmount": 0.8400000000000001,
-  "whtAmount": 0.96
+  "validUntil": 1756918800000,
+  "vatAmount": 0.35000000000000003,
+  "whtAmount": 0.15,
+  "sellerName": "Mini Mark",
+  "sellerPhone": "",
+  "signatureAssignments": {},
+  "company": null,
+  "id": "qb4RydsSdwcKmd77ND2w",
+  "jobName": "workworkwork"
 }```
+
+
+#### customer data is from: workspaces/{workspace UIDs}/customers/{CustomerUIDs}
+example data:
+```
+{
+  "address": "",
+  "updatedBy": "0CaMzG4MyZdO0boiP2kaQYHTbSl1",
+  "gender": "Male",
+  "hashtags": [],
+  "prefix": "",
+  "phones": [],
+  "assignees": [
+    "0CaMzG4MyZdO0boiP2kaQYHTbSl1"
+  ],
+  "customId": "CUST-250826-0027",
+  "emails": [],
+  "createdAt": 1756195038595,
+  "customerType": "Customer",
+  "nationalId": "",
+  "createdBy": "0CaMzG4MyZdO0boiP2kaQYHTbSl1",
+  "name": "test add company cust",
+  "age": "25",
+  "workspaceId": "5hMae0Og3XYVtM0T9XQR",
+  "source": "",
+  "companyNames": [
+    {
+      "id": "LIcZzcyOUIKVQ0aSkSH5",
+      "label": "Main",
+      "value": "testCompID"
+    },
+    {
+      "id": "L10xar6dnI0uWYy3w3tt",
+      "label": "Main",
+      "value": "testCompAddd"
+    },
+    {
+      "id": "Vwtn4OmU5BzD531eBG1H",
+      "label": "Main",
+      "value": "testFromWeb"
+    },
+    {
+      "id": "RAPE70w1bpGOcp5YWP9k",
+      "label": "Main",
+      "value": "test company"
+    },
+    {
+      "id": "SdXOLHJWKkeldSc7bs18",
+      "label": "Main",
+      "value": "testMoreComp"
+    },
+    {
+      "id": "lY7iOcQ97lo6dr6T8dLT",
+      "label": "Main",
+      "value": "g"
+    }
+  ],
+  "updatedAt": 1756200107190,
+  "customFields": [],
+  "id": "coHYxgD7M3U41nqGcfV2"
+}
+```
+
+#### seller data is from: users/{sellerUIDs}
+example data:
+```
+{
+  "uid": "0CaMzG4MyZdO0boiP2kaQYHTbSl1",
+  "email": "minimark@sellstory.me",
+  "photoURL": null,
+  "language": "en",
+  "workspaces": [
+    {
+      "id": "5hMae0Og3XYVtM0T9XQR",
+      "name": "Mini Mark's Workspace",
+      "role": "owner"
+    }
+  ],
+  "viewSettings": {
+    "customerProfileCardsConfig_MijlE4UzniaR3qtk4oAx": {
+      "dueDate": {
+        "order": 5,
+        "style": {},
+        "isVisible": true
+      },
+      "totalAmountAfterDiscount": {
+        "style": {},
+        "isVisible": true,
+        "order": 14
+      },
+      "boardName": {
+        "isVisible": true,
+        "order": 2,
+        "style": {}
+      },
+      "netTotal": {
+        "style": {},
+        "order": 12,
+        "isVisible": true
+      },
+      "title": {
+        "isVisible": true,
+        "style": {},
+        "order": 1
+      },
+      "todos": {
+        "order": 17,
+        "style": {},
+        "isVisible": true
+      },
+      "customId": {
+        "style": {},
+        "isVisible": true,
+        "order": 0
+      },
+      "assignee": {
+        "style": {},
+        "order": 6,
+        "isVisible": true
+      },
+      "lane": {
+        "style": {},
+        "isVisible": true,
+        "order": 4
+      },
+      "status": {
+        "isVisible": true,
+        "style": {},
+        "order": 3
+      },
+      "customer": {
+        "style": {},
+        "order": 7,
+        "isVisible": true
+      },
+      "totalAmountBeforeDiscount": {
+        "isVisible": true,
+        "style": {},
+        "order": 13
+      },
+      "totalAmountBeforeVat": {
+        "isVisible": true,
+        "style": {},
+        "order": 15
+      },
+      "grandTotal": {
+        "style": {},
+        "order": 11,
+        "isVisible": true
+      },
+      "description": {
+        "isVisible": true,
+        "style": {},
+        "order": 16
+      },
+      "hashtags": {
+        "isVisible": true,
+        "style": {},
+        "order": 9
+      },
+      "company": {
+        "style": {},
+        "isVisible": true,
+        "order": 8
+      },
+      "priority": {
+        "order": 10,
+        "style": {},
+        "isVisible": true
+      }
+    },
+    "customerProfileCardsConfig_xsv2WkW3P0gny7INLuj4": {
+      "hashtags": {
+        "style": {},
+        "isVisible": true,
+        "order": 9
+      },
+      "customer": {
+        "order": 7,
+        "style": {},
+        "isVisible": true
+      },
+      "totalAmountBeforeVat": {
+        "isVisible": true,
+        "style": {},
+        "order": 15
+      },
+      "title": {
+        "style": {},
+        "order": 1,
+        "isVisible": true
+      },
+      "totalAmountAfterDiscount": {
+        "isVisible": true,
+        "style": {},
+        "order": 14
+      },
+      "netTotal": {
+        "style": {},
+        "isVisible": true,
+        "order": 12
+      },
+      "description": {
+        "style": {},
+        "order": 16,
+        "isVisible": true
+      },
+      "lane": {
+        "order": 4,
+        "style": {},
+        "isVisible": true
+      },
+      "company": {
+        "isVisible": true,
+        "style": {},
+        "order": 8
+      },
+      "grandTotal": {
+        "order": 11,
+        "style": {},
+        "isVisible": true
+      },
+      "status": {
+        "isVisible": true,
+        "order": 3,
+        "style": {}
+      },
+      "todos": {
+        "isVisible": true,
+        "order": 17,
+        "style": {}
+      },
+      "totalAmountBeforeDiscount": {
+        "style": {},
+        "order": 13,
+        "isVisible": true
+      },
+      "boardName": {
+        "isVisible": true,
+        "style": {},
+        "order": 2
+      },
+      "assignee": {
+        "style": {},
+        "isVisible": true,
+        "order": 6
+      },
+      "priority": {
+        "isVisible": true,
+        "style": {},
+        "order": 10
+      },
+      "dueDate": {
+        "isVisible": true,
+        "order": 5,
+        "style": {}
+      },
+      "customId": {
+        "isVisible": true,
+        "order": 0,
+        "style": {}
+      }
+    },
+    "customerProfileCardsConfig_P8b7ATcEzYlePEJwT1Zl": {
+      "customId": {
+        "isVisible": true,
+        "order": 0,
+        "style": {}
+      },
+      "title": {
+        "isVisible": true,
+        "order": 1,
+        "style": {}
+      },
+      "boardName": {
+        "isVisible": true,
+        "order": 2,
+        "style": {}
+      },
+      "status": {
+        "isVisible": true,
+        "order": 3,
+        "style": {}
+      },
+      "lane": {
+        "isVisible": true,
+        "order": 4,
+        "style": {}
+      },
+      "dueDate": {
+        "isVisible": true,
+        "order": 5,
+        "style": {}
+      },
+      "assignee": {
+        "isVisible": true,
+        "order": 6,
+        "style": {}
+      },
+      "customerInterest": {
+        "isVisible": true,
+        "order": 7,
+        "style": {}
+      },
+      "customer": {
+        "isVisible": true,
+        "order": 8,
+        "style": {}
+      },
+      "company": {
+        "isVisible": true,
+        "order": 9,
+        "style": {}
+      },
+      "hashtags": {
+        "isVisible": true,
+        "order": 10,
+        "style": {}
+      },
+      "priority": {
+        "isVisible": true,
+        "order": 11,
+        "style": {}
+      },
+      "grandTotal": {
+        "isVisible": true,
+        "order": 12,
+        "style": {}
+      },
+      "netTotal": {
+        "isVisible": true,
+        "order": 13,
+        "style": {}
+      },
+      "totalAmountBeforeDiscount": {
+        "isVisible": true,
+        "order": 14,
+        "style": {}
+      },
+      "totalAmountAfterDiscount": {
+        "isVisible": true,
+        "order": 15,
+        "style": {}
+      },
+      "totalAmountBeforeVat": {
+        "isVisible": true,
+        "order": 16,
+        "style": {}
+      },
+      "description": {
+        "isVisible": true,
+        "order": 17,
+        "style": {}
+      },
+      "todos": {
+        "isVisible": true,
+        "order": 18,
+        "style": {}
+      }
+    },
+    "customerProfileCardsConfig_YRYXfnlhznwxIY4GcPHg": {
+      "customId": {
+        "isVisible": true,
+        "order": 0,
+        "style": {}
+      },
+      "title": {
+        "isVisible": true,
+        "order": 1,
+        "style": {}
+      },
+      "boardName": {
+        "isVisible": true,
+        "order": 2,
+        "style": {}
+      },
+      "status": {
+        "isVisible": true,
+        "order": 3,
+        "style": {}
+      },
+      "lane": {
+        "isVisible": true,
+        "order": 4,
+        "style": {}
+      },
+      "dueDate": {
+        "isVisible": true,
+        "order": 5,
+        "style": {}
+      },
+      "assignee": {
+        "isVisible": true,
+        "order": 6,
+        "style": {}
+      },
+      "customerInterest": {
+        "isVisible": true,
+        "order": 7,
+        "style": {}
+      },
+      "customer": {
+        "isVisible": true,
+        "order": 8,
+        "style": {}
+      },
+      "company": {
+        "isVisible": true,
+        "order": 9,
+        "style": {}
+      },
+      "hashtags": {
+        "isVisible": true,
+        "order": 10,
+        "style": {}
+      },
+      "priority": {
+        "isVisible": true,
+        "order": 11,
+        "style": {}
+      },
+      "grandTotal": {
+        "isVisible": true,
+        "order": 12,
+        "style": {}
+      },
+      "netTotal": {
+        "isVisible": true,
+        "order": 13,
+        "style": {}
+      },
+      "totalAmountBeforeDiscount": {
+        "isVisible": true,
+        "order": 14,
+        "style": {}
+      },
+      "totalAmountAfterDiscount": {
+        "isVisible": true,
+        "order": 15,
+        "style": {}
+      },
+      "totalAmountBeforeVat": {
+        "isVisible": true,
+        "order": 16,
+        "style": {}
+      },
+      "description": {
+        "isVisible": true,
+        "order": 17,
+        "style": {}
+      },
+      "todos": {
+        "isVisible": true,
+        "order": 18,
+        "style": {}
+      }
+    }
+  },
+  "displayName": "Mini Mark",
+  "lastDeviceId": "BE2A.250530.026.F3",
+  "lastPlatform": "android",
+  "fcmToken": "fKDy4rmaS5W1oWnNCSxJWs:APA91bGfUkGdNvaFghAD29QvE16mKuQVV0ZxeoSS--DwXzQPynwhisI9C7y1KV5ckc_l43S18uLg5Q0EzWJIKZKjIl7SXpsALIoLFSb4Stk5-brDZmKkMt0",
+  "fcmTokenUpdatedAt": "2025-09-02T02:46:08.815Z",
+  "customId": "",
+  "lastActiveWorkspaceId": "JhHrtfsq5OvHZAowukfh",
+  "phoneNumber": "",
+  "docPhoneNumber": "0891108590",
+  "docDisplayName": "ธานินทร์",
+  "notificationSettings": {
+    "quietHours": {
+      "enabled": true,
+      "startTime": "10:00",
+      "endTime": "17:00",
+      "days": [
+        3
+      ]
+    },
+    "onComment": {
+      "enabled": true,
+      "web": true,
+      "mobilePush": true,
+      "email": "off"
+    },
+    "onStatusChange": {
+      "enabled": true,
+      "email": "off",
+      "mobilePush": true,
+      "web": true
+    },
+    "onDueDateReminder": {
+      "enabled": true,
+      "notifyAtTime": "09:00",
+      "email": "off",
+      "web": true,
+      "mobilePush": true
+    },
+    "onTodoReminder": {
+      "enabled": true,
+      "remindBeforeMinutes": 15,
+      "mobilePush": true,
+      "web": true,
+      "email": "off"
+    },
+    "onCardAssignment": {
+      "enabled": true,
+      "mobilePush": false,
+      "web": true,
+      "email": "off"
+    },
+    "onTagged": {
+      "enabled": true,
+      "web": true,
+      "mobilePush": true,
+      "email": "off"
+    },
+    "onApprovalRequest": {
+      "enabled": true,
+      "mobilePush": true,
+      "web": true,
+      "email": "off"
+    },
+    "onApprovalDecision": {
+      "enabled": true,
+      "web": true,
+      "mobilePush": true,
+      "email": "off"
+    },
+    "onNewChatReceived": {
+      "enabled": true,
+      "email": "off",
+      "web": true,
+      "mobilePush": true
+    },
+    "onChatAssigned": {
+      "enabled": true,
+      "email": "off",
+      "web": true,
+      "mobilePush": true
+    },
+    "onAddedToWorkspace": {
+      "enabled": true,
+      "web": true,
+      "mobilePush": true,
+      "email": "off"
+    },
+    "digestSettings": {
+      "frequency": "daily"
+    }
+  },
+  "role": "editor",
+  "updatedAt": "2025-09-01T10:36:03.929Z"
+}
+```
 
 **remark**
 - rule of generate "docNo" you can watch file `lib\core\services\id_generation_service.dart` example rule of this docNo
@@ -730,7 +1290,7 @@ Future<void> _initializeUserAndWorkspace() async {
 
 ## CONSIDERATIONS:
 - *important* You don't need to explain what you did. I don't want to know, it's a waste of time. Focus on editing the file to meet the task I gave you.
-- First read `lib\features\products\PRODUCT_SUMMARY.md` file for review your memory and brainstrom your self. 
-- For better answer me please read your mememory inside file `lib\features\products\PRODUCT_SUMMARY.md`
-- To give me better answers, please write a summary or review or document of each response to a file named `lib\features\products\PRODUCT_SUMMARY.md`, so AI can remember and improve my prompts next time.
-- *important* I'm giving you the Product functionality, so try not to mess with the other features.
+- First read `lib\features\document\DOCUMENT_SUMMARY.md` file for review your memory and brainstrom your self. 
+- For better answer me please read your mememory inside file `lib\features\document\DOCUMENT_SUMMARY.md`
+- To give me better answers, please write a summary or review or document of each response to a file named `lib\features\document\DOCUMENT_SUMMARY.md`, so AI can remember and improve my prompts next time.
+- *important* I'm giving you the Document functionality, so try not to mess with the other features.

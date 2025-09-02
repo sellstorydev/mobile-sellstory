@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../view/add_edit_document_page.dart';
 
 class InvoiceListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -238,21 +239,12 @@ class InvoiceListController extends GetxController {
   }
 
   void createNewInvoice() {
-    // TODO: Navigate to create invoice page
-    Get.snackbar(
-      'Info',
-      'Create invoice page coming soon',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.to(() => const AddEditDocumentPage(documentType: 'INV'));
   }
 
   void viewInvoice(Map<String, dynamic> invoice) {
-    // TODO: Navigate to invoice detail page
-    Get.snackbar(
-      'Info',
-      'Invoice detail page coming soon',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    final invoiceId = invoice['id'] as String?;
+    Get.to(() => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId));
   }
 
   String formatDate(int timestamp) {
