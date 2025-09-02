@@ -148,6 +148,30 @@ class UnifiedFilterPage extends StatelessWidget {
                   _buildQuickDateChip(controller, 'lastWeek', 'สัปดาห์ที่แล้ว'),
                 ],
               ),
+              
+              const SizedBox(height: 16),
+              
+              // Show cards without date checkbox
+              Obx(() => CheckboxListTile(
+                value: controller.showCardsWithoutDate.value,
+                onChanged: (bool? value) {
+                  controller.toggleShowCardsWithoutDate();
+                },
+                title: const Text(
+                  'แสดงที่ไม่ได้เลือกวันที่',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                subtitle: const Text(
+                  'แสดงงานที่ไม่มีวันที่ในประเภทที่เลือก',
+                  style: TextStyle(fontSize: 12),
+                ),
+                activeColor: Colors.orange[600],
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              )),
             ],
           ),
         ),
@@ -539,7 +563,8 @@ class UnifiedFilterPage extends StatelessWidget {
                            controller.selectedCustomers.isNotEmpty ||
                            controller.selectedHashtags.isNotEmpty ||
                            controller.selectedInterests.isNotEmpty ||
-                           controller.selectedDateFilterTypes.isNotEmpty;
+                           controller.selectedDateFilterTypes.isNotEmpty ||
+                           controller.showCardsWithoutDate.value;
         
         return ElevatedButton.icon(
           onPressed: () => Navigator.of(context).pop(),

@@ -53,6 +53,7 @@ class BoardController extends GetxController implements BoardView {
   final RxList<String> selectedDateFilterTypes = <String>[].obs; // startDate, endDate, createdDate, etc.
   final Rx<DateTime?> selectedStartDate = Rx<DateTime?>(null);
   final Rx<DateTime?> selectedEndDate = Rx<DateTime?>(null);
+  final RxBool showCardsWithoutDate = false.obs;
   
   // Search debounce timer
   Timer? _searchDebounceTimer;
@@ -934,6 +935,11 @@ class BoardController extends GetxController implements BoardView {
     }
   }
   
+  void toggleShowCardsWithoutDate() {
+    showCardsWithoutDate.value = !showCardsWithoutDate.value;
+    _performFilter();
+  }
+  
   // Date Filter Methods
   void updateDateFilter(String dateType, DateTime? startDate, DateTime? endDate) {
     // Add dateType if not already selected
@@ -1006,6 +1012,7 @@ class BoardController extends GetxController implements BoardView {
     selectedDateFilterTypes.clear();
     selectedStartDate.value = null;
     selectedEndDate.value = null;
+    showCardsWithoutDate.value = false;
     isFiltering.value = false;
     // Re-apply search if active, otherwise show original lanes
     if (searchQuery.value.isNotEmpty) {
@@ -1023,8 +1030,9 @@ class BoardController extends GetxController implements BoardView {
     final hasInterestFilter = selectedInterests.isNotEmpty;
     final hasDateFilter = selectedDateFilterTypes.isNotEmpty && 
                          (selectedStartDate.value != null || selectedEndDate.value != null);
+    final hasShowWithoutDate = showCardsWithoutDate.value;
     
-    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasInterestFilter && !hasDateFilter) {
+    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasInterestFilter && !hasDateFilter && !hasShowWithoutDate) {
       isFiltering.value = false;
       if (searchQuery.value.isNotEmpty) {
         _performSearch(searchQuery.value);
@@ -1041,6 +1049,7 @@ class BoardController extends GetxController implements BoardView {
     print('🔍 Filtering - Hashtags: ${selectedHashtags.length} selected: $selectedHashtags');
     print('🔍 Filtering - Interests: ${selectedInterests.length} selected: $selectedInterests');
     print('🔍 Filtering - Date Types: ${selectedDateFilterTypes.length} selected: $selectedDateFilterTypes from ${selectedStartDate.value} to ${selectedEndDate.value}');
+    print('🔍 Filtering - Show Without Date: $hasShowWithoutDate');
     
     // Start with original lanes or search results
     final sourceLanes = searchQuery.value.isNotEmpty ? 
@@ -1090,7 +1099,34 @@ class BoardController extends GetxController implements BoardView {
           dateMatches = _checkDateFilter(card);
         }
         
-        final matches = assigneeMatches && customerMatches && hashtagMatches && interestMatches && dateMatches;
+        // Check show cards without date filter
+        bool withoutDateMatches = true;
+        if (hasShowWithoutDate) {
+          // Show cards that don't have any of the selected date types
+          withoutDateMatches = selectedDateFilterTypes.every((filterType) {
+            DateTime? cardDate;
+            switch (filterType) {
+              case 'startDate':
+              case 'createdDate':
+                cardDate = card.createdAt;
+                break;
+              case 'endDate':
+              case 'dueDate':
+              case 'toDoDate':
+              case 'expectedClosingDate':
+                cardDate = card.dueDate;
+                break;
+              case 'updatedAt':
+                cardDate = card.updatedAt;
+                break;
+              default:
+                cardDate = card.createdAt;
+            }
+            return cardDate == null; // Return true if date is null (no date)
+          });
+        }
+        
+        final matches = assigneeMatches && customerMatches && hashtagMatches && interestMatches && dateMatches && withoutDateMatches;
         print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), Hashtag: "${card.hashtag ?? ''}" (${hashtagMatches}), Interest: "${card.description ?? ''}" (${interestMatches}), Date: (${dateMatches}) - Match: $matches');
         
         if (matches) matchingCards++;
