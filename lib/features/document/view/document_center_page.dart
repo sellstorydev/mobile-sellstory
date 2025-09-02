@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
 import '../controller/document_center_controller.dart';
-import 'add_edit_quotation_page.dart';
+import 'add_edit_document_page.dart';
 
 class DocumentCenterPage extends StatelessWidget {
   const DocumentCenterPage({super.key});
@@ -274,7 +274,7 @@ class DocumentCenterPage extends StatelessWidget {
                 color: const Color(0xFF4CAF50),
                 onTap: () {
                   Navigator.of(context).pop();
-                  Get.to(() => const AddEditQuotationPage());
+                  Get.to(() => const AddEditDocumentPage(documentType: 'QT'));
                 },
               ),
               const SizedBox(height: AppTheme.spacing12),

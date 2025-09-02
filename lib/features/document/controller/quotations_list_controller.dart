@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
-import '../view/add_edit_quotation_page.dart';
+import '../view/add_edit_document_page.dart';
 
 class QuotationsListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -247,12 +247,12 @@ class QuotationsListController extends GetxController {
   }
 
   void createNewQuotation() {
-    Get.to(() => const AddEditQuotationPage());
+    Get.to(() => const AddEditDocumentPage(documentType: 'QT'));
   }
 
   void viewQuotation(Map<String, dynamic> quotation) {
     final quotationId = quotation['id'] as String?;
-    Get.to(() => AddEditQuotationPage(quotationId: quotationId));
+    Get.to(() => AddEditDocumentPage(documentType: 'QT', documentId: quotationId));
   }
 
   String formatDate(int timestamp) {

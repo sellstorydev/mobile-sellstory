@@ -6,18 +6,19 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/assignees_input_field.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/customer.dart';
-import '../controller/add_edit_quotation_controller.dart';
+import '../controller/add_edit_document_controller.dart';
 
-class AddEditQuotationPage extends StatefulWidget {
-  final String? quotationId; // null for new, non-null for edit
+class AddEditDocumentPage extends StatefulWidget {
+  final String? documentId; // null for new, non-null for edit
+  final String documentType; // 'QT' for quotation, 'INV' for invoice
 
-  const AddEditQuotationPage({super.key, this.quotationId});
+  const AddEditDocumentPage({super.key, this.documentId, required this.documentType});
 
   @override
-  State<AddEditQuotationPage> createState() => _AddEditQuotationPageState();
+  State<AddEditDocumentPage> createState() => _AddEditDocumentPageState();
 }
 
-class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
+class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   // Section expansion states
   final Map<String, bool> _sectionExpanded = {
     'status': true, // Document status section collapsed by default
@@ -35,16 +36,16 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<AddEditQuotationController>(
-      init: AddEditQuotationController(quotationId: widget.quotationId),
+    return GetBuilder<AddEditDocumentController>(
+      init: AddEditDocumentController(documentId: widget.documentId, documentType: widget.documentType),
       builder: (controller) {
         return Scaffold(
           backgroundColor: AppTheme.backgroundGrey,
           appBar: AppBar(
             title: Text(
-              widget.quotationId == null
-                  ? 'สร้างใบเสนอราคา'
-                  : 'แก้ไขใบเสนอราคา',
+              widget.documentId == null
+                  ? (widget.documentType == 'QT' ? 'สร้างใบเสนอราคา' : 'สร้างใบแจ้งหนี้')
+                  : (widget.documentType == 'QT' ? 'แก้ไขใบเสนอราคา' : 'แก้ไขใบแจ้งหนี้'),
               style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
@@ -84,13 +85,13 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
                 ),
                 tooltip: 'ย่อทุกส่วน',
               ),
-              GetBuilder<AddEditQuotationController>(
-                builder: (controller) {
-                  return TextButton(
-                    onPressed:
-                        (controller.isLoading || !_areRequiredFieldsComplete())
-                        ? null
-                        : controller.saveQuotation,
+                             GetBuilder<AddEditDocumentController>(
+                 builder: (controller) {
+                   return TextButton(
+                     onPressed:
+                         (controller.isLoading || !_areRequiredFieldsComplete())
+                         ? null
+                         : controller.saveDocument,
                     child: controller.isLoading
                         ? const SizedBox(
                             width: 16,
@@ -130,19 +131,39 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
                                      child: Column(
                      crossAxisAlignment: CrossAxisAlignment.start,
                      children: [
-                                              // Document Status Section
-                       GetBuilder<AddEditQuotationController>(
+                                                                      // Document Status Section
+                        GetBuilder<AddEditDocumentController>(
+                          builder: (controller) {
+                            return Column(
+                              children: [
+                                _buildSectionHeader(
+                                  'สถานะเอกสาร: ${_getStatusDisplayName(controller.documentStatus)}',
+                                  Icons.description,
+                                  'status',
+                                ),
+                                const SizedBox(height: 12),
+                                if (_sectionExpanded['status'] ?? false) ...[
+                                  _buildDocumentStatusSection(controller),
+                                  const SizedBox(height: 24),
+                                ],
+                              ],
+                            );
+                          },
+                        ),
+
+                                               // Customer Section
+                        GetBuilder<AddEditDocumentController>(
                          builder: (controller) {
                            return Column(
                              children: [
                                _buildSectionHeader(
-                                 'สถานะเอกสาร: ${_getStatusDisplayName(controller.documentStatus)}',
-                                 Icons.description,
-                                 'status',
+                                 'ข้อมูลลูกค้า',
+                                 Icons.person,
+                                 'customer',
                                ),
                                const SizedBox(height: 12),
-                               if (_sectionExpanded['status'] ?? false) ...[
-                                 _buildDocumentStatusSection(controller),
+                               if (_sectionExpanded['customer'] ?? false) ...[
+                                 _buildCustomerSection(controller),
                                  const SizedBox(height: 24),
                                ],
                              ],
@@ -150,65 +171,45 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
                          },
                        ),
 
-                       // Customer Section
-                       GetBuilder<AddEditQuotationController>(
-                        builder: (controller) {
-                          return Column(
-                            children: [
-                              _buildSectionHeader(
-                                'ข้อมูลลูกค้า',
-                                Icons.person,
-                                'customer',
-                              ),
-                              const SizedBox(height: 12),
-                              if (_sectionExpanded['customer'] ?? false) ...[
-                                _buildCustomerSection(controller),
-                                const SizedBox(height: 24),
-                              ],
-                            ],
-                          );
-                        },
-                      ),
+                                             // Seller Section
+                       GetBuilder<AddEditDocumentController>(
+                         builder: (controller) {
+                           return Column(
+                             children: [
+                               _buildSectionHeader(
+                                 'ข้อมูลผู้ขาย',
+                                 Icons.business,
+                                 'seller',
+                               ),
+                               const SizedBox(height: 12),
+                               if (_sectionExpanded['seller'] ?? false) ...[
+                                 _buildSellerSection(controller),
+                                 const SizedBox(height: 24),
+                               ],
+                             ],
+                           );
+                         },
+                       ),
 
-                      // Seller Section
-                      GetBuilder<AddEditQuotationController>(
-                        builder: (controller) {
-                          return Column(
-                            children: [
-                              _buildSectionHeader(
-                                'ข้อมูลผู้ขาย',
-                                Icons.business,
-                                'seller',
-                              ),
-                              const SizedBox(height: 12),
-                              if (_sectionExpanded['seller'] ?? false) ...[
-                                _buildSellerSection(controller),
-                                const SizedBox(height: 24),
-                              ],
-                            ],
-                          );
-                        },
-                      ),
-
-                      // Product Section
-                      GetBuilder<AddEditQuotationController>(
-                        builder: (controller) {
-                          return Column(
-                            children: [
-                              _buildSectionHeader(
-                                'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
-                                Icons.inventory,
-                                'product',
-                              ),
-                              const SizedBox(height: 12),
-                              if (_sectionExpanded['product'] ?? false) ...[
-                                _buildProductSection(controller),
-                                const SizedBox(height: 24),
-                              ],
-                            ],
-                          );
-                        },
-                      ),
+                                             // Product Section
+                       GetBuilder<AddEditDocumentController>(
+                         builder: (controller) {
+                           return Column(
+                             children: [
+                               _buildSectionHeader(
+                                 'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
+                                 Icons.inventory,
+                                 'product',
+                               ),
+                               const SizedBox(height: 12),
+                               if (_sectionExpanded['product'] ?? false) ...[
+                                 _buildProductSection(controller),
+                                 const SizedBox(height: 24),
+                               ],
+                             ],
+                           );
+                         },
+                       ),
 
                       // More Options Section
                       _buildSectionHeader(
@@ -334,7 +335,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
 
      // Check if section is complete based on required fields
    bool _isSectionComplete(String sectionKey) {
-     final controller = Get.find<AddEditQuotationController>();
+     final controller = Get.find<AddEditDocumentController>();
 
      switch (sectionKey) {
        case 'status':
@@ -345,7 +346,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
        case 'seller':
          return controller.selectedSellerIds.isNotEmpty;
        case 'product':
-         final controller = Get.find<AddEditQuotationController>();
+         final controller = Get.find<AddEditDocumentController>();
          return _areAllProductsComplete(
            controller,
          ); // Check if all products are complete
@@ -360,14 +361,14 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
 
   // Check if all required fields are complete
   bool _areRequiredFieldsComplete() {
-    final controller = Get.find<AddEditQuotationController>();
-    return _isSectionComplete('customer') &&
-        _isSectionComplete('seller') &&
-        _areAllProductsComplete(controller);
+          final controller = Get.find<AddEditDocumentController>();
+      return _isSectionComplete('customer') &&
+          _isSectionComplete('seller') &&
+          _areAllProductsComplete(controller);
   }
 
   // Check if the last product has all required fields filled
-  bool _isLastProductComplete(AddEditQuotationController controller) {
+  bool _isLastProductComplete(AddEditDocumentController controller) {
     if (controller.products.isEmpty) return true;
 
     final lastIndex = controller.products.length - 1;
@@ -411,7 +412,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
   }
 
   // Check if all products have required fields filled
-  bool _areAllProductsComplete(AddEditQuotationController controller) {
+  bool _areAllProductsComplete(AddEditDocumentController controller) {
     if (controller.products.isEmpty) return true;
 
     for (int i = 0; i < controller.products.length; i++) {
@@ -452,7 +453,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     return true;
   }
 
-  Widget _buildCustomerSection(AddEditQuotationController controller) {
+  Widget _buildCustomerSection(AddEditDocumentController controller) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -635,7 +636,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     );
   }
 
-  Widget _buildSellerSection(AddEditQuotationController controller) {
+  Widget _buildSellerSection(AddEditDocumentController controller) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -696,7 +697,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     );
   }
 
-  Widget _buildProductSection(AddEditQuotationController controller) {
+  Widget _buildProductSection(AddEditDocumentController controller) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -827,7 +828,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
   }
 
   Widget _buildProductItem(
-    AddEditQuotationController controller,
+    AddEditDocumentController controller,
     int index,
     Map<String, dynamic> product,
   ) {
@@ -953,7 +954,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     );
   }
 
-  Widget _buildMoreOptionsSection(AddEditQuotationController controller) {
+  Widget _buildMoreOptionsSection(AddEditDocumentController controller) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1025,7 +1026,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     );
   }
 
-  Widget _buildSummarySection(AddEditQuotationController controller) {
+  Widget _buildSummarySection(AddEditDocumentController controller) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1519,6 +1520,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
      // Helper method to get status display name
    String _getStatusDisplayName(String status) {
      switch (status) {
+       // Quotation statuses
        case 'DRAFT':
          return 'ร่าง (Draft)';
        case 'SENT':
@@ -1535,13 +1537,20 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
          return 'ออกใบแจ้งหนี้แล้ว (Invoiced)';
        case 'FULLY_PAID':
          return 'ชำระเงินครบแล้ว (Fully Paid)';
+       // Invoice statuses
+       case 'PARTIAL_PAID':
+         return 'ชำระบางส่วน (Partial Paid)';
+       case 'PAID':
+         return 'ชำระแล้ว (Paid)';
+       case 'OVERDUE':
+         return 'เกินกำหนด (Overdue)';
        default:
          return 'ร่าง (Draft)';
      }
    }
 
    // Build document status section
-   Widget _buildDocumentStatusSection(AddEditQuotationController controller) {
+   Widget _buildDocumentStatusSection(AddEditDocumentController controller) {
      return Container(
        padding: const EdgeInsets.all(16),
        decoration: BoxDecoration(
@@ -1563,40 +1572,12 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
            const SizedBox(height: 12),
            DropdownButtonFormField<String>(
              value: controller.documentStatus,
-             items: [
-               DropdownMenuItem(
-                 value: 'DRAFT',
-                 child: Text('ร่าง (Draft)'),
-               ),
-               DropdownMenuItem(
-                 value: 'SENT',
-                 child: Text('ส่งแล้ว (Sent)'),
-               ),
-               DropdownMenuItem(
-                 value: 'PENDING_APPROVAL',
-                 child: Text('รอการอนุมัติ (Pending Approval)'),
-               ),
-               DropdownMenuItem(
-                 value: 'APPROVED',
-                 child: Text('อนุมัติแล้ว (Approved)'),
-               ),
-               DropdownMenuItem(
-                 value: 'REJECTED',
-                 child: Text('ปฏิเสธ (Rejected)'),
-               ),
-               DropdownMenuItem(
-                 value: 'VOID',
-                 child: Text('ยกเลิก (Void)'),
-               ),
-               DropdownMenuItem(
-                 value: 'INVOICED',
-                 child: Text('ออกใบแจ้งหนี้แล้ว (Invoiced)'),
-               ),
-               DropdownMenuItem(
-                 value: 'FULLY_PAID',
-                 child: Text('ชำระเงินครบแล้ว (Fully Paid)'),
-               ),
-             ],
+             items: controller.availableStatuses.map((status) {
+               return DropdownMenuItem(
+                 value: status,
+                 child: Text(_getStatusDisplayName(status)),
+               );
+             }).toList(),
              onChanged: controller.onDocumentStatusChanged,
              decoration: InputDecoration(
                hintText: 'เลือกสถานะเอกสาร',
@@ -1623,7 +1604,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
      );
    }
 
-   void _showProductSelectionDialog(AddEditQuotationController controller) {
+       void _showProductSelectionDialog(AddEditDocumentController controller) {
      // Use real product data from controller
      final availableProducts = controller.availableProducts;
 
