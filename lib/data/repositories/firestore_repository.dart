@@ -976,7 +976,7 @@ class FirestoreRepository {
       final card = JobCard(
         id: '',
         title: title,
-        assignee: assignee,
+        assignedTo: assignee,
         badges: [],
         amount: 0.0,
         laneId: laneId,

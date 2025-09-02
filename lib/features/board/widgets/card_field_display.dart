@@ -204,37 +204,62 @@ class CardFieldDisplay extends StatelessWidget {
   }
 
   Widget _buildCollaboratorsList(dynamic collaborators) {
-    if (collaborators is! List || collaborators.isEmpty) {
+    if (collaborators == null || collaborators.toString() == '0' || collaborators.toString() == '-') {
       return const Text('-', style: TextStyle(fontSize: 12, color: Colors.grey));
     }
 
-    return Wrap(
-      spacing: 4,
-      runSpacing: 2,
-      children: collaborators.take(3).map<Widget>((collaborator) {
-        final name = collaborator is Map ? collaborator['displayName'] ?? collaborator['name'] : collaborator.toString();
-        
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          decoration: BoxDecoration(
-            color: Colors.blue[100],
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: Colors.blue[300]!,
-              width: 1,
-            ),
+    // If it's a number (count), show it as a badge
+    if (collaborators is num || (collaborators is String && int.tryParse(collaborators) != null)) {
+      final count = collaborators is num ? collaborators : int.parse(collaborators);
+      if (count == 0) return const Text('-', style: TextStyle(fontSize: 12, color: Colors.grey));
+      
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.blue[100],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.blue[300]!,
+            width: 1,
           ),
-          child: Text(
-            name,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w500,
-              color: Colors.blue[700]!,
-            ),
+        ),
+        child: Text(
+          count.toString(),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: Colors.blue[700]!,
           ),
-        );
-      }).toList(),
-    );
+        ),
+      );
+    }
+
+    // If it's a list, show count
+    if (collaborators is List) {
+      if (collaborators.isEmpty) return const Text('-', style: TextStyle(fontSize: 12, color: Colors.grey));
+      
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.blue[100],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.blue[300]!,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          collaborators.length.toString(),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: Colors.blue[700]!,
+          ),
+        ),
+      );
+    }
+
+    return Text(collaborators.toString(), style: const TextStyle(fontSize: 12));
   }
 
   Widget _buildDateDisplay(dynamic date) {
@@ -256,7 +281,9 @@ class CardFieldDisplay extends StatelessWidget {
   }
 
   Widget _buildDateRangeDisplay(dynamic dateRange) {
-    if (dateRange == null) return const Text('-', style: TextStyle(fontSize: 12, color: Colors.grey));
+    if (dateRange == null || dateRange.toString() == '-') {
+      return const Text('-', style: TextStyle(fontSize: 12, color: Colors.grey));
+    }
     
     // Handle different date range formats
     if (dateRange is Map) {
@@ -268,6 +295,14 @@ class CardFieldDisplay extends StatelessWidget {
           style: const TextStyle(fontSize: 12, color: Colors.black87),
         );
       }
+    }
+    
+    // If it's already a formatted string, use it directly
+    if (dateRange is String && dateRange.contains(' - ')) {
+      return Text(
+        dateRange,
+        style: const TextStyle(fontSize: 12, color: Colors.black87),
+      );
     }
     
     return Text(dateRange.toString(), style: const TextStyle(fontSize: 12));

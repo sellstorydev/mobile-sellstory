@@ -129,7 +129,7 @@ fields:
   updatedAt: number                # epoch ms
   updatedBy: string
   updatedByDisplayName?: string
-  assignedTo?: string
+  assignedTo?: string              # user_id for assignee (map to /users/{user_id}/displayName)
 
   # content
   title: string
@@ -146,6 +146,7 @@ fields:
   # customer link (ถ้ามี)
   customer?: string
   customerId?: string
+  customerInterest?: string        # customer interest field
 
   # lanes reference (ถ้าเก็บซ้ำ)
   lanes?: array
@@ -159,7 +160,7 @@ fields:
     members[].photoURL: string|null
     members[].role: string
     members[].uid: string
-    members[].workspaces?: array<map>
+    workspaces?: array<map>
       workspaces[].id: string
       workspaces[].name: string
       workspaces[].role: string
@@ -168,11 +169,14 @@ fields:
     workspaces[].name: string
     workspaces[].role: string
 
-  # NEW: hashtags
+  # collaborators for card assignment
+  collaborators?: array<string>    # array of user_ids for collaborators
+
+  # NEW: hashtags (updated to match CARD_VIEW.md)
   hashtags: array<Hashtag>
   Hashtag: map
     Hashtag.id: string
-    Hashtag.text: string
+    Hashtag.text: string          # primary field for display and filtering
     Hashtag.color: string          # hex เช่น "#f97316"
   # (ถ้าต้อง query หา card ด้วย hashtag แนะนำเพิ่ม)
   hashtagsIndex?: array<string>    # เก็บ id หรือ text (normalize) สำหรับทำ array-contains/any

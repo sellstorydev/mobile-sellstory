@@ -63,7 +63,7 @@ class _EditCardPageState extends State<EditCardPage> {
     _titleController.text = widget.card.title;
     _detailsController.text = widget.card.description;
     _selectedLane = widget.card.laneId;
-    _selectedAssignee = widget.card.assignee;
+    _selectedAssignee = widget.card.assignedTo;
     _selectedCustomer = widget.card.customer;
     _selectedStatus = widget.card.status;
     _expectedClosingDate = widget.card.dueDate;
@@ -1226,7 +1226,7 @@ class _EditCardPageState extends State<EditCardPage> {
         description: _detailsController.text.trim(),
         customId: _jobIdController.text.trim(),
         status: _selectedStatus,
-        assignee: _selectedAssignee,
+        assignedTo: _selectedAssignee,
         customer: _selectedCustomer,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,

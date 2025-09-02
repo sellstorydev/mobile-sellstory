@@ -80,7 +80,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
     // Initialize form with current card data
     _jobIdController.text = _currentCard.customId.isNotEmpty ? _currentCard.customId : 'JB-${_currentCard.id.substring(0, 8)}';
     _titleController.text = _currentCard.title;
-    _assigneeController.text = _currentCard.assignee;
+    _assigneeController.text = _currentCard.assignedTo;
     
     // Initialize hashtags from current card
     _initializeHashtags();
@@ -1436,7 +1436,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
         id: '',
         title: '${_currentCard.title} (Copy)',
         description: _currentCard.description,
-        assignee: _currentCard.assignee,
+        assignedTo: _currentCard.assignedTo,
         status: _currentCard.status,
         customId: '',
         dueDate: _currentCard.dueDate,
@@ -1550,7 +1550,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
       final updatedCard = _currentCard.copyWith(
         title: _titleController.text.trim(),
         description: _detailsController.text.trim(),
-        assignee: _assigneeController.text.trim(),
+        assignedTo: _assigneeController.text.trim(),
         customer: _selectedCustomer.isNotEmpty ? _availableCustomers.firstWhere((c) => c['id'] == _selectedCustomer)['name'] : '',
         company: _selectedCompany != 'none' ? _availableCompanies.firstWhere((c) => c['id'] == _selectedCompany)['name'] : null,
         hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,

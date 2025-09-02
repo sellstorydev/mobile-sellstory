@@ -639,7 +639,7 @@ class UnifiedFilterPage extends StatelessWidget {
   String _getAssigneeCardCount(BoardController controller, String assigneeId) {
     int count = 0;
     for (final lane in controller.lanes) {
-      count += lane.cards.where((card) => card.assignee == assigneeId).length;
+      count += lane.cards.where((card) => card.assignedTo == assigneeId).length;
     }
     return '$count งาน';
   }

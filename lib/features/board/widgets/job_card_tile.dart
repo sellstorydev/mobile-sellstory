@@ -24,7 +24,7 @@ class JobCardTile extends StatelessWidget {
     print('  - Title: ${card.title}');
     print('  - Custom ID: ${card.customId} (length: ${card.customId.length})');
     print('  - Status: ${card.status}');
-    print('  - Assignee: ${card.assignee}');
+    print('  - Assignee: ${card.assignedTo}');
     print('  - Customer: ${card.customer}');
     
     return GestureDetector(
@@ -179,37 +179,37 @@ class JobCardTile extends StatelessWidget {
       case 'status':
         return card.status;
       case 'dateRange':
-        return card.dueDate != null ? {'startDate': card.dueDate, 'endDate': card.dueDate} : null;
+        return _getDateRange();
       case 'createdDate':
-        return card.createdAt;
+        return _formatDate(card.createdAt);
       case 'assignee':
-        return card.assignee;
+        return card.assignedTo;
       case 'customerInterest':
-        return card.description.isNotEmpty ? card.description : null;
+        return card.customerInterest ?? null;
       case 'collaborators':
-        return card.watchers.isNotEmpty ? card.watchers : null;
+        return _getCollaboratorsCount();
       case 'customer':
         return card.customer.isNotEmpty ? card.customer : null;
       case 'company':
         return card.company != null && card.company!.isNotEmpty ? card.company : null;
       case 'hashtags':
-        return card.hashtags.isNotEmpty ? card.hashtags : null;
+        return _getHashtagsText();
       case 'priority':
-        return _getPriorityFromStatus(card.status);
+        return card.priority ?? _getPriorityFromStatus(card.status);
       case 'grandTotal':
-        return card.amount > 0 ? card.amount : null;
+        return _getGrandTotal();
       case 'netTotal':
-        return card.amount > 0 ? card.amount : null;
+        return _getNetTotal();
       case 'totalBeforeDiscount':
-        return card.amount > 0 ? card.amount : null;
+        return _getTotalBeforeDiscount();
       case 'totalAfterDiscount':
-        return card.amount > 0 ? card.amount : null;
+        return _getTotalAfterDiscount();
       case 'totalBeforeVAT':
-        return card.amount > 0 ? card.amount : null;
+        return _getTotalBeforeVAT();
       case 'description':
         return card.description.isNotEmpty ? card.description : null;
       case 'todoList':
-        return card.todos.isNotEmpty ? card.todos : null;
+        return _getTodoListText();
       default:
         return null;
     }
@@ -229,5 +229,76 @@ class JobCardTile extends StatelessWidget {
       default:
         return null;
     }
+  }
+
+  String _getDateRange() {
+    if (card.dueDate != null) {
+      final startDate = card.createdAt;
+      final endDate = card.dueDate!;
+      return '${_formatDate(startDate)} - ${_formatDate(endDate)}';
+    }
+    return '-';
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _getCollaboratorsCount() {
+    if (card.collaborators.isEmpty) return '0';
+    return card.collaborators.length.toString();
+  }
+
+  String _getHashtagsText() {
+    if (card.hashtags.isEmpty) return '-';
+    return card.hashtags
+        .map((hashtag) => '#${hashtag['text'] ?? hashtag['id'] ?? ''}')
+        .join(', ');
+  }
+
+  String _getGrandTotal() {
+    if (card.expenses.isEmpty) return '-';
+    final total = card.expenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + (expense['pricePerUnit'] ?? 0.0),
+    );
+    return '\$${total.toStringAsFixed(2)}';
+  }
+
+  String _getNetTotal() {
+    if (card.expenses.isEmpty) return '-';
+    final total = card.expenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + (expense['pricePerUnit'] ?? 0.0),
+    );
+    return '\$${total.toStringAsFixed(2)}';
+  }
+
+  String _getTotalBeforeDiscount() {
+    if (card.expenses.isEmpty) return '-';
+    final total = card.expenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + (expense['pricePerUnit'] ?? 0.0),
+    );
+    return '\$${total.toStringAsFixed(2)}';
+  }
+
+  String _getTotalAfterDiscount() {
+    if (card.expenses.isEmpty) return '-';
+    return '-'; // TODO: Implement discount calculation
+  }
+
+  String _getTotalBeforeVAT() {
+    if (card.expenses.isEmpty) return '-';
+    return '-'; // TODO: Implement VAT calculation
+  }
+
+  String _getTodoListText() {
+    if (card.todos.isEmpty) return 'No to-do items';
+    
+    final completedCount = card.todos.where((todo) => todo['completed'] == true).length;
+    final totalCount = card.todos.length;
+    
+    return '$completedCount/$totalCount completed';
   }
 }

@@ -422,7 +422,7 @@ class BoardController extends GetxController implements BoardView {
     print('  - Title: ${updatedCard.title}');
     print('  - Custom ID: ${updatedCard.customId}');
     print('  - Status: ${updatedCard.status}');
-    print('  - Assignee: ${updatedCard.assignee}');
+            print('  - Assignee: ${updatedCard.assignedTo}');
     print('  - Customer: ${updatedCard.customer}');
     
     await _presenter.onUpdateCard(
@@ -724,7 +724,7 @@ class BoardController extends GetxController implements BoardView {
         print('    - Card: ${card.title} (ID: ${card.id}, Custom ID: ${card.customId})');
         print('      * Description: "${card.description}"');
         print('      * Customer: "${card.customer}"');
-        print('      * Assignee: "${card.assignee}"');
+        print('      * Assignee: "${card.assignedTo}"');
         print('      * Status: "${card.status}"');
       }
     }
@@ -869,7 +869,7 @@ class BoardController extends GetxController implements BoardView {
       print('  - description: "${card.description}"');
       print('  - customId: "${card.customId}"');
       print('  - customer: "${card.customer}"');
-      print('  - assignee: "${card.assignee}"');
+              print('  - assignee: "${card.assignedTo}"');
       print('  - status: "${card.status}"');
     }
     
@@ -877,7 +877,7 @@ class BoardController extends GetxController implements BoardView {
            safeContains(card.description, searchLower) ||
            safeContains(card.customId, searchLower) ||
            safeContains(card.customer, searchLower) ||
-           safeContains(card.assignee, searchLower) ||
+           safeContains(card.assignedTo, searchLower) ||
            safeContains(card.status, searchLower) ||
            safeContains(card.updatedByDisplayName, searchLower) ||
            safeContains(card.company, searchLower) ||
@@ -1070,7 +1070,7 @@ class BoardController extends GetxController implements BoardView {
       final sampleCard = sourceLanes.first.cards.first;
       print('🔍 Sample Card Debug:');
       print('  - Title: ${sampleCard.title}');
-      print('  - Assignee: ${sampleCard.assignee}');
+      print('  - Assignee: ${sampleCard.assignedTo}');
       print('  - Customer: ${sampleCard.customer}');
       print('  - CustomerId: ${sampleCard.customerId}');
       print('  - CustomerInterest: ${sampleCard.customerInterest}');
@@ -1107,7 +1107,7 @@ class BoardController extends GetxController implements BoardView {
         
         // Check assignee filter (OR logic - match any selected assignee)
         if (hasAssigneeFilter) {
-          assigneeMatches = selectedAssignees.contains(card.assignee);
+          assigneeMatches = selectedAssignees.contains(card.assignedTo);
         }
         
         // Check customer filter (OR logic - match any selected customer)  
@@ -1120,7 +1120,7 @@ class BoardController extends GetxController implements BoardView {
         if (hasHashtagFilter) {
           hashtagMatches = selectedHashtags.any((selectedHashtag) => 
             card.hashtags.any((hashtag) => 
-              (hashtag['id'] ?? '').toString().toLowerCase().contains(selectedHashtag.toLowerCase())));
+              (hashtag['text'] ?? '').toString().toLowerCase().contains(selectedHashtag.toLowerCase())));
         }
         
         // Check interest filter (OR logic - match any selected interest)
@@ -1162,12 +1162,12 @@ class BoardController extends GetxController implements BoardView {
         }
         
         final matches = assigneeMatches && customerMatches && hashtagMatches && interestMatches && dateMatches && withoutDateMatches;
-        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), CustomerId: "${card.customerId ?? ''}" (${customerMatches}), Hashtag: "${card.hashtags}" (${hashtagMatches}), Interest: "${card.customerInterest ?? ''}" (${interestMatches}), Date: (${dateMatches}) - Match: $matches');
+        print('🔍 Card "${card.title}" - Assignee: "${card.assignedTo}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), CustomerId: "${card.customerId ?? ''}" (${customerMatches}), Hashtag: "${card.hashtags}" (${hashtagMatches}), Interest: "${card.customerInterest ?? ''}" (${interestMatches}), Date: (${dateMatches}) - Match: $matches');
         
         // Debug: Show why card didn't match
         if (!matches) {
           print('🔍 ❌ Card "${card.title}" did not match because:');
-          if (!assigneeMatches) print('    - Assignee filter failed: "${card.assignee}" not in $selectedAssignees');
+          if (!assigneeMatches) print('    - Assignee filter failed: "${card.assignedTo}" not in $selectedAssignees');
           if (!customerMatches) print('    - Customer filter failed: "${card.customerId ?? ''}" not matching $selectedCustomers');
           if (!hashtagMatches) print('    - Hashtag filter failed: "${card.hashtags}" not matching $selectedHashtags');
           if (!interestMatches) print('    - Interest filter failed: "${card.customerInterest ?? ''}" not matching $selectedInterests');
@@ -1284,8 +1284,8 @@ class BoardController extends GetxController implements BoardView {
     
     for (final lane in _originalLanes) {
       for (final card in lane.cards) {
-        if (card.assignee.isNotEmpty) {
-          assigneeUids.add(card.assignee);
+        if (card.assignedTo.isNotEmpty) {
+          assigneeUids.add(card.assignedTo);
         }
       }
     }
