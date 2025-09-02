@@ -627,15 +627,8 @@ class UnifiedFilterPage extends StatelessWidget {
         controller.selectedEndDate.value = pickedDate;
       }
       
-      // Auto-apply filter if any date types are selected
-      if (controller.selectedDateFilterTypes.isNotEmpty) {
-        // Apply filter with the first selected date type (can be improved)
-        controller.updateDateFilter(
-          controller.selectedDateFilterTypes.first,
-          controller.selectedStartDate.value,
-          controller.selectedEndDate.value,
-        );
-      }
+      // Don't auto-apply filter - let user choose date type manually
+      // Filter will be applied when user selects date type or clicks Apply button
     }
   }
 

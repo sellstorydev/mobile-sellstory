@@ -928,11 +928,8 @@ class BoardController extends GetxController implements BoardView {
       selectedDateFilterTypes.add(dateType);
     }
     
-    // Auto-apply filter if date range is also selected
-    if (selectedDateFilterTypes.isNotEmpty && 
-        (selectedStartDate.value != null || selectedEndDate.value != null)) {
-      _performFilter();
-    }
+    // Don't auto-apply filter - let user control when to apply
+    // Filter will be applied when user clicks Apply button
   }
   
   void toggleShowCardsWithoutDate() {
@@ -965,44 +962,54 @@ class BoardController extends GetxController implements BoardView {
     switch (type) {
       case 'today':
         // วันนี้ 00:00:00 ถึง วันนี้ 23:59:59
-        updateDateFilter('createdDate', today, today.add(const Duration(milliseconds: 86399999))); // 23:59:59.999
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(milliseconds: 86399999));
         break;
       case 'thisWeek':
         // วันนี้ 00:00:00 ถึง +7 วัน 23:59:59
-        updateDateFilter('createdDate', today, today.add(const Duration(days: 7)).add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 7)).add(const Duration(milliseconds: 86399999));
         break;
       case 'thisMonth':
         // วันนี้ 00:00:00 ถึง +30 วัน 23:59:59
-        updateDateFilter('createdDate', today, today.add(const Duration(days: 30)).add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 30)).add(const Duration(milliseconds: 86399999));
         break;
       case 'lastMonth':
         // เดือนก่อน 00:00:00 ถึง วันนี้ 23:59:59
         final lastMonth = DateTime(today.year, today.month - 1, today.day);
-        updateDateFilter('createdDate', lastMonth, today.add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = lastMonth;
+        selectedEndDate.value = today.add(const Duration(milliseconds: 86399999));
         break;
       case '+1day':
         // วันนี้ 00:00:00 ถึง วันนี้ +1 วัน 23:59:59
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 1)).add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 1)).add(const Duration(milliseconds: 86399999));
         break;
       case '+3days':
         // วันนี้ 00:00:00 ถึง วันนี้ +3 วัน 23:59:59
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 3)).add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 3)).add(const Duration(milliseconds: 86399999));
         break;
       case '+7days':
         // วันนี้ 00:00:00 ถึง วันนี้ +7 วัน 23:59:59
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 7)).add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 7)).add(const Duration(milliseconds: 86399999));
         break;
       case '+14days':
         // วันนี้ 00:00:00 ถึง วันนี้ +14 วัน 23:59:59
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 14)).add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 14)).add(const Duration(milliseconds: 86399999));
         break;
       case '+30days':
         // วันนี้ 00:00:00 ถึง วันนี้ +30 วัน 23:59:59
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 30)).add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 30)).add(const Duration(milliseconds: 86399999));
         break;
       case 'lastWeek':
         // วันนี้ 00:00:00 ถึง วันนี้ -7 วัน 23:59:59
-        updateDateFilter('createdDate', today.subtract(const Duration(days: 7)), today.add(const Duration(milliseconds: 86399999)));
+        selectedStartDate.value = today.subtract(const Duration(days: 7));
+        selectedEndDate.value = today.add(const Duration(milliseconds: 86399999));
         break;
     }
   }
