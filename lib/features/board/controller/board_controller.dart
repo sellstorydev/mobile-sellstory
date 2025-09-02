@@ -964,42 +964,45 @@ class BoardController extends GetxController implements BoardView {
     
     switch (type) {
       case 'today':
-        updateDateFilter('createdDate', today, today.add(const Duration(days: 1)));
+        // วันนี้ 00:00:00 ถึง วันนี้ 23:59:59
+        updateDateFilter('createdDate', today, today.add(const Duration(milliseconds: 86399999))); // 23:59:59.999
         break;
       case 'thisWeek':
-        final startOfWeek = today.subtract(Duration(days: now.weekday - 1));
-        final endOfWeek = startOfWeek.add(const Duration(days: 7));
-        updateDateFilter('createdDate', startOfWeek, endOfWeek);
+        // วันนี้ 00:00:00 ถึง +7 วัน 23:59:59
+        updateDateFilter('createdDate', today, today.add(const Duration(days: 7)).add(const Duration(milliseconds: 86399999)));
         break;
       case 'thisMonth':
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        final endOfMonth = DateTime(now.year, now.month + 1, 1);
-        updateDateFilter('createdDate', startOfMonth, endOfMonth);
+        // วันนี้ 00:00:00 ถึง +30 วัน 23:59:59
+        updateDateFilter('createdDate', today, today.add(const Duration(days: 30)).add(const Duration(milliseconds: 86399999)));
         break;
       case 'lastMonth':
-        final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
-        final endOfLastMonth = DateTime(now.year, now.month, 1);
-        updateDateFilter('createdDate', startOfLastMonth, endOfLastMonth);
+        // เดือนก่อน 00:00:00 ถึง วันนี้ 23:59:59
+        final lastMonth = DateTime(today.year, today.month - 1, today.day);
+        updateDateFilter('createdDate', lastMonth, today.add(const Duration(milliseconds: 86399999)));
         break;
       case '+1day':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 2)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +1 วัน 23:59:59
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 1)).add(const Duration(milliseconds: 86399999)));
         break;
       case '+3days':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 4)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +3 วัน 23:59:59
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 3)).add(const Duration(milliseconds: 86399999)));
         break;
       case '+7days':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 8)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +7 วัน 23:59:59
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 7)).add(const Duration(milliseconds: 86399999)));
         break;
       case '+14days':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 15)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +14 วัน 23:59:59
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 14)).add(const Duration(milliseconds: 86399999)));
         break;
       case '+30days':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 31)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +30 วัน 23:59:59
+        updateDateFilter('dueDate', today, today.add(const Duration(days: 30)).add(const Duration(milliseconds: 86399999)));
         break;
       case 'lastWeek':
-        final startOfLastWeek = today.subtract(Duration(days: now.weekday + 6));
-        final endOfLastWeek = startOfLastWeek.add(const Duration(days: 7));
-        updateDateFilter('createdDate', startOfLastWeek, endOfLastWeek);
+        // วันนี้ 00:00:00 ถึง วันนี้ -7 วัน 23:59:59
+        updateDateFilter('createdDate', today.subtract(const Duration(days: 7)), today.add(const Duration(milliseconds: 86399999)));
         break;
     }
   }
