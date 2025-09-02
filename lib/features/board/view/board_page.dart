@@ -535,7 +535,7 @@ class _BoardPageState extends State<BoardPage> {
               final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                                  _controller.selectedCustomers.isNotEmpty ||
                                  _controller.selectedHashtags.isNotEmpty ||
-                                 _controller.selectedDateFilterType.value.isNotEmpty;
+                                 _controller.selectedDateFilterTypes.isNotEmpty;
               final displayLanes = (_controller.isSearching.value || hasAnyFilter)
                   ? _controller.filteredLanes 
                   : _controller.lanes;
@@ -686,7 +686,7 @@ class _BoardPageState extends State<BoardPage> {
       final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                          _controller.selectedCustomers.isNotEmpty ||
                          _controller.selectedHashtags.isNotEmpty ||
-                         _controller.selectedDateFilterType.value.isNotEmpty;
+                         _controller.selectedDateFilterTypes.isNotEmpty;
       final displayLanes = (_controller.isSearching.value || hasAnyFilter)
           ? _controller.filteredLanes 
           : _controller.lanes;
@@ -698,7 +698,7 @@ class _BoardPageState extends State<BoardPage> {
           final hasAssignee = _controller.selectedAssignees.isNotEmpty;
           final hasCustomer = _controller.selectedCustomers.isNotEmpty;
           final hasHashtag = _controller.selectedHashtags.isNotEmpty;
-          final hasDate = _controller.selectedDateFilterType.value.isNotEmpty;
+          final hasDate = _controller.selectedDateFilterTypes.isNotEmpty;
           
           // Count the number of active filters
           final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasDate].where((x) => x).length;

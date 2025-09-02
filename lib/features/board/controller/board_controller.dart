@@ -42,13 +42,15 @@ class BoardController extends GetxController implements BoardView {
   final RxList<String> selectedAssignees = <String>[].obs;
   final RxList<String> selectedCustomers = <String>[].obs;
   final RxList<String> selectedHashtags = <String>[].obs;
+  final RxList<String> selectedInterests = <String>[].obs;
   final RxBool isFiltering = false.obs;
   final RxList<String> availableAssignees = <String>[].obs;
   final RxList<String> availableCustomers = <String>[].obs;
   final RxList<String> availableHashtags = <String>[].obs;
+  final RxList<String> availableInterests = <String>[].obs;
   
   // Date filter functionality
-  final RxString selectedDateFilterType = ''.obs; // startDate, endDate, createdDate, etc.
+  final RxList<String> selectedDateFilterTypes = <String>[].obs; // startDate, endDate, createdDate, etc.
   final Rx<DateTime?> selectedStartDate = Rx<DateTime?>(null);
   final Rx<DateTime?> selectedEndDate = Rx<DateTime?>(null);
   
@@ -738,7 +740,7 @@ class BoardController extends GetxController implements BoardView {
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
-    final hasDateFilter = selectedDateFilterType.value.isNotEmpty;
+    final hasDateFilter = selectedDateFilterTypes.isNotEmpty;
     final hasSearchQuery = searchQuery.value.isNotEmpty;
     
     if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasDateFilter)) {
@@ -909,16 +911,42 @@ class BoardController extends GetxController implements BoardView {
     _performFilter();
   }
   
+  void toggleInterestFilter(String interest) {
+    if (selectedInterests.contains(interest)) {
+      selectedInterests.remove(interest);
+    } else {
+      selectedInterests.add(interest);
+    }
+    _performFilter();
+  }
+  
+  void toggleDateFilterType(String dateType) {
+    if (selectedDateFilterTypes.contains(dateType)) {
+      selectedDateFilterTypes.remove(dateType);
+    } else {
+      selectedDateFilterTypes.add(dateType);
+    }
+    
+    // Auto-apply filter if date range is also selected
+    if (selectedDateFilterTypes.isNotEmpty && 
+        (selectedStartDate.value != null || selectedEndDate.value != null)) {
+      _performFilter();
+    }
+  }
+  
   // Date Filter Methods
   void updateDateFilter(String dateType, DateTime? startDate, DateTime? endDate) {
-    selectedDateFilterType.value = dateType;
+    // Add dateType if not already selected
+    if (!selectedDateFilterTypes.contains(dateType)) {
+      selectedDateFilterTypes.add(dateType);
+    }
     selectedStartDate.value = startDate;
     selectedEndDate.value = endDate;
     _performFilter();
   }
   
   void clearDateFilter() {
-    selectedDateFilterType.value = '';
+    selectedDateFilterTypes.clear();
     selectedStartDate.value = null;
     selectedEndDate.value = null;
     _performFilter();
@@ -974,7 +1002,8 @@ class BoardController extends GetxController implements BoardView {
     selectedAssignees.clear();
     selectedCustomers.clear();
     selectedHashtags.clear();
-    selectedDateFilterType.value = '';
+    selectedInterests.clear();
+    selectedDateFilterTypes.clear();
     selectedStartDate.value = null;
     selectedEndDate.value = null;
     isFiltering.value = false;
@@ -991,10 +1020,11 @@ class BoardController extends GetxController implements BoardView {
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
-    final hasDateFilter = selectedDateFilterType.value.isNotEmpty && 
+    final hasInterestFilter = selectedInterests.isNotEmpty;
+    final hasDateFilter = selectedDateFilterTypes.isNotEmpty && 
                          (selectedStartDate.value != null || selectedEndDate.value != null);
     
-    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasDateFilter) {
+    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasInterestFilter && !hasDateFilter) {
       isFiltering.value = false;
       if (searchQuery.value.isNotEmpty) {
         _performSearch(searchQuery.value);
@@ -1009,7 +1039,8 @@ class BoardController extends GetxController implements BoardView {
     print('🔍 Filtering - Assignees: ${selectedAssignees.length} selected: $selectedAssignees');
     print('🔍 Filtering - Customers: ${selectedCustomers.length} selected: $selectedCustomers');
     print('🔍 Filtering - Hashtags: ${selectedHashtags.length} selected: $selectedHashtags');
-    print('🔍 Filtering - Date: ${selectedDateFilterType.value} from ${selectedStartDate.value} to ${selectedEndDate.value}');
+    print('🔍 Filtering - Interests: ${selectedInterests.length} selected: $selectedInterests');
+    print('🔍 Filtering - Date Types: ${selectedDateFilterTypes.length} selected: $selectedDateFilterTypes from ${selectedStartDate.value} to ${selectedEndDate.value}');
     
     // Start with original lanes or search results
     final sourceLanes = searchQuery.value.isNotEmpty ? 
@@ -1023,11 +1054,12 @@ class BoardController extends GetxController implements BoardView {
     for (final lane in sourceLanes) {
       print('🔍 Checking lane "${lane.title}" with ${lane.cards.length} cards');
       
-      // Filter cards by assignee, customer, hashtag, and/or date
+      // Filter cards by assignee, customer, hashtag, interest, and/or date
       final filteredCards = lane.cards.where((card) {
         bool assigneeMatches = true;
         bool customerMatches = true;
         bool hashtagMatches = true;
+        bool interestMatches = true;
         bool dateMatches = true;
         
         // Check assignee filter (OR logic - match any selected assignee)
@@ -1047,13 +1079,19 @@ class BoardController extends GetxController implements BoardView {
             (card.hashtag ?? '').toLowerCase().contains(selectedHashtag.toLowerCase()));
         }
         
+        // Check interest filter (OR logic - match any selected interest)
+        if (hasInterestFilter) {
+          interestMatches = selectedInterests.any((selectedInterest) => 
+            (card.description ?? '').toLowerCase().contains(selectedInterest.toLowerCase()));
+        }
+        
         // Check date filter
         if (hasDateFilter) {
           dateMatches = _checkDateFilter(card);
         }
         
-        final matches = assigneeMatches && customerMatches && hashtagMatches && dateMatches;
-        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), Hashtag: "${card.hashtag ?? ''}" (${hashtagMatches}), Date: (${dateMatches}) - Match: $matches');
+        final matches = assigneeMatches && customerMatches && hashtagMatches && interestMatches && dateMatches;
+        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), Hashtag: "${card.hashtag ?? ''}" (${hashtagMatches}), Interest: "${card.description ?? ''}" (${interestMatches}), Date: (${dateMatches}) - Match: $matches');
         
         if (matches) matchingCards++;
         return matches;
@@ -1083,52 +1121,55 @@ class BoardController extends GetxController implements BoardView {
   bool _checkDateFilter(JobCard card) {
     final startDate = selectedStartDate.value;
     final endDate = selectedEndDate.value;
-    final filterType = selectedDateFilterType.value;
+    final filterTypes = selectedDateFilterTypes;
     
-    DateTime? cardDate;
-    
-    // Get the appropriate date from card based on filter type
-    switch (filterType) {
-      case 'startDate':
-        // For now, using createdAt as startDate - can be extended
-        cardDate = card.createdAt;
-        break;
-      case 'endDate':
-        // Using dueDate as endDate
-        cardDate = card.dueDate;
-        break;
-      case 'createdDate':
-        cardDate = card.createdAt;
-        break;
-      case 'dueDate':
-      case 'toDoDate':
-        cardDate = card.dueDate;
-        break;
-      case 'updatedAt':
-        cardDate = card.updatedAt;
-        break;
-      case 'expectedClosingDate':
-        // Using dueDate as expected closing date
-        cardDate = card.dueDate;
-        break;
-      default:
-        cardDate = card.createdAt;
-    }
-    
-    if (cardDate == null) return false;
-    
-    // Check if card date is within the selected range
-    bool matches = true;
-    
-    if (startDate != null) {
-      matches = matches && cardDate.isAfter(startDate.subtract(const Duration(days: 1)));
-    }
-    
-    if (endDate != null) {
-      matches = matches && cardDate.isBefore(endDate.add(const Duration(days: 1)));
-    }
-    
-    return matches;
+    // Return true if any of the selected date types match the date range
+    return filterTypes.any((filterType) {
+      DateTime? cardDate;
+      
+      // Get the appropriate date from card based on filter type
+      switch (filterType) {
+        case 'startDate':
+          // For now, using createdAt as startDate - can be extended
+          cardDate = card.createdAt;
+          break;
+        case 'endDate':
+          // Using dueDate as endDate
+          cardDate = card.dueDate;
+          break;
+        case 'createdDate':
+          cardDate = card.createdAt;
+          break;
+        case 'dueDate':
+        case 'toDoDate':
+          cardDate = card.dueDate;
+          break;
+        case 'updatedAt':
+          cardDate = card.updatedAt;
+          break;
+        case 'expectedClosingDate':
+          // Using dueDate as expected closing date
+          cardDate = card.dueDate;
+          break;
+        default:
+          cardDate = card.createdAt;
+      }
+      
+      if (cardDate == null) return false;
+      
+      // Check if card date is within the selected range
+      bool matches = true;
+      
+      if (startDate != null) {
+        matches = matches && cardDate.isAfter(startDate.subtract(const Duration(days: 1)));
+      }
+      
+      if (endDate != null) {
+        matches = matches && cardDate.isBefore(endDate.add(const Duration(days: 1)));
+      }
+      
+      return matches;
+    });
   }
   
   List<Lane> _getSearchResults(String query) {
@@ -1229,7 +1270,7 @@ class BoardController extends GetxController implements BoardView {
   
   // Getter for lanes to use in UI (returns filtered/searched lanes)
   List<Lane> get displayLanes {
-    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedDateFilterType.value.isNotEmpty) {
+    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedDateFilterTypes.isNotEmpty) {
       return filteredLanes;
     }
     return lanes;
