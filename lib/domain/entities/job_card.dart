@@ -22,6 +22,7 @@ class JobCard {
   final String? company; // Add company field
   final String? hashtag; // Add hashtag field (legacy)
   final List<Map<String, dynamic>> hashtags; // Add hashtags field (new DTB structure)
+  final String? customerInterest; // Add customer interest field
   final List<Map<String, dynamic>> expenses; // Add expenses field
   final List<Map<String, dynamic>> todos; // Add todos field
   final List<Map<String, dynamic>> notes; // Add notes field
@@ -52,6 +53,7 @@ class JobCard {
     this.company,
     this.hashtag,
     this.hashtags = const [],
+    this.customerInterest,
     this.expenses = const [],
     this.todos = const [],
     this.notes = const [],
@@ -83,6 +85,7 @@ class JobCard {
     String? company,
     String? hashtag,
     List<Map<String, dynamic>>? hashtags,
+    String? customerInterest,
     List<Map<String, dynamic>>? expenses,
     List<Map<String, dynamic>>? todos,
     List<Map<String, dynamic>>? notes,
@@ -113,6 +116,7 @@ class JobCard {
         company: company ?? this.company,
         hashtag: hashtag ?? this.hashtag,
         hashtags: hashtags ?? this.hashtags,
+        customerInterest: customerInterest ?? this.customerInterest,
         expenses: expenses ?? this.expenses,
         todos: todos ?? this.todos,
         notes: notes ?? this.notes,
@@ -172,6 +176,7 @@ class JobCard {
     if (company?.isNotEmpty == true) data['company'] = company;
     if (hashtag?.isNotEmpty == true) data['hashtag'] = hashtag;
     if (hashtags.isNotEmpty) data['hashtags'] = hashtags;
+    if (customerInterest?.isNotEmpty == true) data['customerInterest'] = customerInterest;
     if (expenses.isNotEmpty) data['expenses'] = expenses;
     if (todos.isNotEmpty) data['todos'] = todos;
     if (notes.isNotEmpty) data['notes'] = notes;
@@ -381,6 +386,7 @@ class JobCard {
       company: company,
       hashtag: _nullableStringFrom(map['hashtag']),
       hashtags: hashtags,
+      customerInterest: _nullableStringFrom(map['customerInterest']),
       expenses: List<Map<String, dynamic>>.from(map['expenses'] ?? const []),
       todos: List<Map<String, dynamic>>.from(map['todos'] ?? const []),
       notes: List<Map<String, dynamic>>.from(map['notes'] ?? const []),
@@ -416,6 +422,7 @@ class JobCard {
         other.company == company &&
         other.hashtag == hashtag &&
         other.hashtags == hashtags &&
+        other.customerInterest == customerInterest &&
         other.expenses == expenses &&
         other.todos == todos &&
         other.notes == notes &&
@@ -448,6 +455,7 @@ class JobCard {
         company.hashCode ^
         hashtag.hashCode ^
         hashtags.hashCode ^
+        customerInterest.hashCode ^
         expenses.hashCode ^
         todos.hashCode ^
         notes.hashCode ^
@@ -459,6 +467,6 @@ class JobCard {
 
   @override
   String toString() {
-    return 'JobCard(id: $id, title: $title, description: $description, assignee: $assignee, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName, customerId: $customerId, company: $company, hashtag: $hashtag, hashtags: $hashtags, expenses: $expenses, todos: $todos, notes: $notes, watchers: $watchers, customFields: $customFields, createdBy: $createdBy, updatedBy: $updatedBy)';
+    return 'JobCard(id: $id, title: $title, description: $description, assignee: $assignee, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName, customerId: $customerId, company: $company, hashtag: $hashtag, hashtags: $hashtags, customerInterest: $customerInterest, expenses: $expenses, todos: $todos, notes: $notes, watchers: $watchers, customFields: $customFields, createdBy: $createdBy, updatedBy: $updatedBy)';
   }
 }

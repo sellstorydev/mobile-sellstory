@@ -1065,6 +1065,30 @@ class BoardController extends GetxController implements BoardView {
     final sourceLanes = searchQuery.value.isNotEmpty ? 
         _getSearchResults(searchQuery.value) : _originalLanes;
     
+    // Debug: Print sample card data for troubleshooting
+    if (sourceLanes.isNotEmpty && sourceLanes.first.cards.isNotEmpty) {
+      final sampleCard = sourceLanes.first.cards.first;
+      print('🔍 Sample Card Debug:');
+      print('  - Title: ${sampleCard.title}');
+      print('  - Assignee: ${sampleCard.assignee}');
+      print('  - Customer: ${sampleCard.customer}');
+      print('  - CustomerId: ${sampleCard.customerId}');
+      print('  - CustomerInterest: ${sampleCard.customerInterest}');
+      print('  - Hashtags: ${sampleCard.hashtags}');
+      print('  - CreatedAt: ${sampleCard.createdAt}');
+      print('  - DueDate: ${sampleCard.dueDate}');
+      
+      // Debug: Print filter values for comparison
+      print('🔍 Filter Values Debug:');
+      print('  - Selected Assignees: $selectedAssignees');
+      print('  - Selected Customers: $selectedCustomers');
+      print('  - Selected Hashtags: $selectedHashtags');
+      print('  - Selected Interests: $selectedInterests');
+      print('  - Selected Date Types: $selectedDateFilterTypes');
+      print('  - Start Date: ${selectedStartDate.value}');
+      print('  - End Date: ${selectedEndDate.value}');
+    }
+    
     print('🔍 Source lanes for filtering: ${sourceLanes.length} lanes');
     
     final List<Lane> filterResults = [];
@@ -1089,19 +1113,20 @@ class BoardController extends GetxController implements BoardView {
         // Check customer filter (OR logic - match any selected customer)  
         if (hasCustomerFilter) {
           customerMatches = selectedCustomers.any((selectedCustomer) => 
-            card.customer.toLowerCase().contains(selectedCustomer.toLowerCase()));
+            (card.customerId ?? '').toLowerCase().contains(selectedCustomer.toLowerCase()));
         }
         
         // Check hashtag filter (OR logic - match any selected hashtag)
         if (hasHashtagFilter) {
           hashtagMatches = selectedHashtags.any((selectedHashtag) => 
-            (card.hashtag ?? '').toLowerCase().contains(selectedHashtag.toLowerCase()));
+            card.hashtags.any((hashtag) => 
+              (hashtag['id'] ?? '').toString().toLowerCase().contains(selectedHashtag.toLowerCase())));
         }
         
         // Check interest filter (OR logic - match any selected interest)
         if (hasInterestFilter) {
           interestMatches = selectedInterests.any((selectedInterest) => 
-            (card.description ?? '').toLowerCase().contains(selectedInterest.toLowerCase()));
+            (card.customerInterest ?? '').toLowerCase().contains(selectedInterest.toLowerCase()));
         }
         
         // Check date filter
@@ -1137,7 +1162,17 @@ class BoardController extends GetxController implements BoardView {
         }
         
         final matches = assigneeMatches && customerMatches && hashtagMatches && interestMatches && dateMatches && withoutDateMatches;
-        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), Hashtag: "${card.hashtag ?? ''}" (${hashtagMatches}), Interest: "${card.description ?? ''}" (${interestMatches}), Date: (${dateMatches}) - Match: $matches');
+        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), CustomerId: "${card.customerId ?? ''}" (${customerMatches}), Hashtag: "${card.hashtags}" (${hashtagMatches}), Interest: "${card.customerInterest ?? ''}" (${interestMatches}), Date: (${dateMatches}) - Match: $matches');
+        
+        // Debug: Show why card didn't match
+        if (!matches) {
+          print('🔍 ❌ Card "${card.title}" did not match because:');
+          if (!assigneeMatches) print('    - Assignee filter failed: "${card.assignee}" not in $selectedAssignees');
+          if (!customerMatches) print('    - Customer filter failed: "${card.customerId ?? ''}" not matching $selectedCustomers');
+          if (!hashtagMatches) print('    - Hashtag filter failed: "${card.hashtags}" not matching $selectedHashtags');
+          if (!interestMatches) print('    - Interest filter failed: "${card.customerInterest ?? ''}" not matching $selectedInterests');
+          if (!dateMatches) print('    - Date filter failed');
+        }
         
         if (matches) matchingCards++;
         return matches;
