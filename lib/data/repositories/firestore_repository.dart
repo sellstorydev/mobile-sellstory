@@ -976,7 +976,7 @@ class FirestoreRepository {
       final card = JobCard(
         id: '',
         title: title,
-        assignee: assignee,
+        assignedTo: assignee,
         badges: [],
         amount: 0.0,
         laneId: laneId,
@@ -1637,6 +1637,61 @@ class FirestoreRepository {
       _logger.methodExit('FirestoreRepository.updateLanes');
     } catch (e) {
       _logger.error('Failed to update lanes', e);
+      rethrow;
+    }
+  }
+
+  // Update user's view settings for card display
+  Future<void> updateUserViewSettings(String userId, Map<String, dynamic> viewSettings) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.updateUserViewSettings', {
+        'userId': userId,
+        'viewSettingsKeys': viewSettings.keys.toList(),
+      });
+
+      final userRef = _firestoreService.firestore.collection('users').doc(userId);
+      
+      await userRef.update({
+        'viewSettings': viewSettings,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      _logger.methodExit('FirestoreRepository.updateUserViewSettings');
+    } catch (e) {
+      _logger.error('Failed to update user view settings', e);
+      rethrow;
+    }
+  }
+
+  // Get user's view settings for card display
+  Future<Map<String, dynamic>?> getUserViewSettings(String userId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getUserViewSettings', {
+        'userId': userId,
+      });
+
+      final userRef = _firestoreService.firestore.collection('users').doc(userId);
+      final userDoc = await userRef.get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        final viewSettings = userData?['viewSettings'] as Map<String, dynamic>?;
+        
+        _logger.methodExit('FirestoreRepository.getUserViewSettings', {
+          'hasViewSettings': viewSettings != null,
+          'settingsCount': viewSettings?.length ?? 0,
+        });
+        
+        return viewSettings;
+      }
+
+      _logger.methodExit('FirestoreRepository.getUserViewSettings', {
+        'userNotFound': true,
+      });
+      
+      return null;
+    } catch (e) {
+      _logger.error('Failed to get user view settings', e);
       rethrow;
     }
   }

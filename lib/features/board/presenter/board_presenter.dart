@@ -258,7 +258,7 @@ class BoardPresenter {
     print('  - Title: ${card.title}');
     print('  - Custom ID: ${card.customId}');
     print('  - Status: ${card.status}');
-    print('  - Assignee: ${card.assignee}');
+    print('  - Assignee: ${card.assignedTo}');
     print('  - Customer: ${card.customer}');
     
     try {

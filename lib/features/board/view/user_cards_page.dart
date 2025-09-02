@@ -134,7 +134,7 @@ class _UserCardsPageState extends State<UserCardsPage> {
                       Icon(Icons.person, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
-                        card.assignee,
+                        card.assignedTo,
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -232,7 +232,7 @@ class _UserCardsPageState extends State<UserCardsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('Assignee', card.assignee),
+              _buildDetailRow('Assignee', card.assignedTo),
               if (card.amount > 0) _buildDetailRow('Amount', '\$${card.amount.toStringAsFixed(2)}'),
               if (card.dueDate != null) _buildDetailRow('Due Date', _formatDate(card.dueDate!)),
               if (card.badges.isNotEmpty) _buildDetailRow('Badges', card.badges.join(', ')),

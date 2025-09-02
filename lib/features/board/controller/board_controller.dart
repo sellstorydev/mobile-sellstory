@@ -42,15 +42,18 @@ class BoardController extends GetxController implements BoardView {
   final RxList<String> selectedAssignees = <String>[].obs;
   final RxList<String> selectedCustomers = <String>[].obs;
   final RxList<String> selectedHashtags = <String>[].obs;
+  final RxList<String> selectedInterests = <String>[].obs;
   final RxBool isFiltering = false.obs;
   final RxList<String> availableAssignees = <String>[].obs;
   final RxList<String> availableCustomers = <String>[].obs;
   final RxList<String> availableHashtags = <String>[].obs;
+  final RxList<String> availableInterests = <String>[].obs;
   
   // Date filter functionality
-  final RxString selectedDateFilterType = ''.obs; // startDate, endDate, createdDate, etc.
+  final RxList<String> selectedDateFilterTypes = <String>[].obs; // startDate, endDate, createdDate, etc.
   final Rx<DateTime?> selectedStartDate = Rx<DateTime?>(null);
   final Rx<DateTime?> selectedEndDate = Rx<DateTime?>(null);
+  final RxBool showCardsWithoutDate = false.obs;
   
   // Search debounce timer
   Timer? _searchDebounceTimer;
@@ -69,6 +72,39 @@ class BoardController extends GetxController implements BoardView {
     _searchDebounceTimer?.cancel();
     searchTextController.dispose();
     super.onClose();
+  }
+
+  // Save card view settings to user preferences
+  Future<void> saveCardViewSettings(List<dynamic> cardFields) async {
+    try {
+      print('💾 Saving card view settings...');
+      
+      // Convert card fields to the format expected by Firestore
+      final Map<String, dynamic> viewSettings = {};
+      
+      for (final field in cardFields) {
+        viewSettings[field.id] = {
+          'isVisible': field.isVisible,
+          'order': field.order,
+          'style': {
+            'fontSize': 14,
+            'fontWeight': 'normal',
+            'color': field.isVisible ? '#000000' : '#666666',
+          },
+        };
+      }
+      
+      // Save to user's viewSettings in Firestore
+      await _repository.updateUserViewSettings(
+        currentUserId.value,
+        viewSettings,
+      );
+      
+      print('✅ Card view settings saved successfully');
+    } catch (e) {
+      print('❌ Failed to save card view settings: $e');
+      rethrow;
+    }
   }
   
   // Initialize with user data
@@ -386,7 +422,7 @@ class BoardController extends GetxController implements BoardView {
     print('  - Title: ${updatedCard.title}');
     print('  - Custom ID: ${updatedCard.customId}');
     print('  - Status: ${updatedCard.status}');
-    print('  - Assignee: ${updatedCard.assignee}');
+            print('  - Assignee: ${updatedCard.assignedTo}');
     print('  - Customer: ${updatedCard.customer}');
     
     await _presenter.onUpdateCard(
@@ -688,7 +724,7 @@ class BoardController extends GetxController implements BoardView {
         print('    - Card: ${card.title} (ID: ${card.id}, Custom ID: ${card.customId})');
         print('      * Description: "${card.description}"');
         print('      * Customer: "${card.customer}"');
-        print('      * Assignee: "${card.assignee}"');
+        print('      * Assignee: "${card.assignedTo}"');
         print('      * Status: "${card.status}"');
       }
     }
@@ -705,7 +741,7 @@ class BoardController extends GetxController implements BoardView {
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
-    final hasDateFilter = selectedDateFilterType.value.isNotEmpty;
+    final hasDateFilter = selectedDateFilterTypes.isNotEmpty;
     final hasSearchQuery = searchQuery.value.isNotEmpty;
     
     if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasDateFilter)) {
@@ -833,7 +869,7 @@ class BoardController extends GetxController implements BoardView {
       print('  - description: "${card.description}"');
       print('  - customId: "${card.customId}"');
       print('  - customer: "${card.customer}"');
-      print('  - assignee: "${card.assignee}"');
+              print('  - assignee: "${card.assignedTo}"');
       print('  - status: "${card.status}"');
     }
     
@@ -841,7 +877,7 @@ class BoardController extends GetxController implements BoardView {
            safeContains(card.description, searchLower) ||
            safeContains(card.customId, searchLower) ||
            safeContains(card.customer, searchLower) ||
-           safeContains(card.assignee, searchLower) ||
+           safeContains(card.assignedTo, searchLower) ||
            safeContains(card.status, searchLower) ||
            safeContains(card.updatedByDisplayName, searchLower) ||
            safeContains(card.company, searchLower) ||
@@ -876,16 +912,44 @@ class BoardController extends GetxController implements BoardView {
     _performFilter();
   }
   
+  void toggleInterestFilter(String interest) {
+    if (selectedInterests.contains(interest)) {
+      selectedInterests.remove(interest);
+    } else {
+      selectedInterests.add(interest);
+    }
+    _performFilter();
+  }
+  
+  void toggleDateFilterType(String dateType) {
+    if (selectedDateFilterTypes.contains(dateType)) {
+      selectedDateFilterTypes.remove(dateType);
+    } else {
+      selectedDateFilterTypes.add(dateType);
+    }
+    
+    // Don't auto-apply filter - let user control when to apply
+    // Filter will be applied when user clicks Apply button
+  }
+  
+  void toggleShowCardsWithoutDate() {
+    showCardsWithoutDate.value = !showCardsWithoutDate.value;
+    _performFilter();
+  }
+  
   // Date Filter Methods
   void updateDateFilter(String dateType, DateTime? startDate, DateTime? endDate) {
-    selectedDateFilterType.value = dateType;
+    // Add dateType if not already selected
+    if (!selectedDateFilterTypes.contains(dateType)) {
+      selectedDateFilterTypes.add(dateType);
+    }
     selectedStartDate.value = startDate;
     selectedEndDate.value = endDate;
     _performFilter();
   }
   
   void clearDateFilter() {
-    selectedDateFilterType.value = '';
+    selectedDateFilterTypes.clear();
     selectedStartDate.value = null;
     selectedEndDate.value = null;
     _performFilter();
@@ -897,42 +961,55 @@ class BoardController extends GetxController implements BoardView {
     
     switch (type) {
       case 'today':
-        updateDateFilter('createdDate', today, today.add(const Duration(days: 1)));
+        // วันนี้ 00:00:00 ถึง วันนี้ 23:59:59
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(milliseconds: 86399999));
         break;
       case 'thisWeek':
-        final startOfWeek = today.subtract(Duration(days: now.weekday - 1));
-        final endOfWeek = startOfWeek.add(const Duration(days: 7));
-        updateDateFilter('createdDate', startOfWeek, endOfWeek);
+        // วันนี้ 00:00:00 ถึง +7 วัน 23:59:59
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 7)).add(const Duration(milliseconds: 86399999));
         break;
       case 'thisMonth':
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        final endOfMonth = DateTime(now.year, now.month + 1, 1);
-        updateDateFilter('createdDate', startOfMonth, endOfMonth);
+        // วันนี้ 00:00:00 ถึง +30 วัน 23:59:59
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 30)).add(const Duration(milliseconds: 86399999));
         break;
       case 'lastMonth':
-        final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
-        final endOfLastMonth = DateTime(now.year, now.month, 1);
-        updateDateFilter('createdDate', startOfLastMonth, endOfLastMonth);
+        // เดือนก่อน 00:00:00 ถึง วันนี้ 23:59:59
+        final lastMonth = DateTime(today.year, today.month - 1, today.day);
+        selectedStartDate.value = lastMonth;
+        selectedEndDate.value = today.add(const Duration(milliseconds: 86399999));
         break;
       case '+1day':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 2)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +1 วัน 23:59:59
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 1)).add(const Duration(milliseconds: 86399999));
         break;
       case '+3days':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 4)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +3 วัน 23:59:59
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 3)).add(const Duration(milliseconds: 86399999));
         break;
       case '+7days':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 8)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +7 วัน 23:59:59
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 7)).add(const Duration(milliseconds: 86399999));
         break;
       case '+14days':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 15)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +14 วัน 23:59:59
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 14)).add(const Duration(milliseconds: 86399999));
         break;
       case '+30days':
-        updateDateFilter('dueDate', today, today.add(const Duration(days: 31)));
+        // วันนี้ 00:00:00 ถึง วันนี้ +30 วัน 23:59:59
+        selectedStartDate.value = today;
+        selectedEndDate.value = today.add(const Duration(days: 30)).add(const Duration(milliseconds: 86399999));
         break;
       case 'lastWeek':
-        final startOfLastWeek = today.subtract(Duration(days: now.weekday + 6));
-        final endOfLastWeek = startOfLastWeek.add(const Duration(days: 7));
-        updateDateFilter('createdDate', startOfLastWeek, endOfLastWeek);
+        // วันนี้ 00:00:00 ถึง วันนี้ -7 วัน 23:59:59
+        selectedStartDate.value = today.subtract(const Duration(days: 7));
+        selectedEndDate.value = today.add(const Duration(milliseconds: 86399999));
         break;
     }
   }
@@ -941,9 +1018,11 @@ class BoardController extends GetxController implements BoardView {
     selectedAssignees.clear();
     selectedCustomers.clear();
     selectedHashtags.clear();
-    selectedDateFilterType.value = '';
+    selectedInterests.clear();
+    selectedDateFilterTypes.clear();
     selectedStartDate.value = null;
     selectedEndDate.value = null;
+    showCardsWithoutDate.value = false;
     isFiltering.value = false;
     // Re-apply search if active, otherwise show original lanes
     if (searchQuery.value.isNotEmpty) {
@@ -958,10 +1037,12 @@ class BoardController extends GetxController implements BoardView {
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
-    final hasDateFilter = selectedDateFilterType.value.isNotEmpty && 
+    final hasInterestFilter = selectedInterests.isNotEmpty;
+    final hasDateFilter = selectedDateFilterTypes.isNotEmpty && 
                          (selectedStartDate.value != null || selectedEndDate.value != null);
+    final hasShowWithoutDate = showCardsWithoutDate.value;
     
-    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasDateFilter) {
+    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasInterestFilter && !hasDateFilter && !hasShowWithoutDate) {
       isFiltering.value = false;
       if (searchQuery.value.isNotEmpty) {
         _performSearch(searchQuery.value);
@@ -976,11 +1057,37 @@ class BoardController extends GetxController implements BoardView {
     print('🔍 Filtering - Assignees: ${selectedAssignees.length} selected: $selectedAssignees');
     print('🔍 Filtering - Customers: ${selectedCustomers.length} selected: $selectedCustomers');
     print('🔍 Filtering - Hashtags: ${selectedHashtags.length} selected: $selectedHashtags');
-    print('🔍 Filtering - Date: ${selectedDateFilterType.value} from ${selectedStartDate.value} to ${selectedEndDate.value}');
+    print('🔍 Filtering - Interests: ${selectedInterests.length} selected: $selectedInterests');
+    print('🔍 Filtering - Date Types: ${selectedDateFilterTypes.length} selected: $selectedDateFilterTypes from ${selectedStartDate.value} to ${selectedEndDate.value}');
+    print('🔍 Filtering - Show Without Date: $hasShowWithoutDate');
     
     // Start with original lanes or search results
     final sourceLanes = searchQuery.value.isNotEmpty ? 
         _getSearchResults(searchQuery.value) : _originalLanes;
+    
+    // Debug: Print sample card data for troubleshooting
+    if (sourceLanes.isNotEmpty && sourceLanes.first.cards.isNotEmpty) {
+      final sampleCard = sourceLanes.first.cards.first;
+      print('🔍 Sample Card Debug:');
+      print('  - Title: ${sampleCard.title}');
+      print('  - Assignee: ${sampleCard.assignedTo}');
+      print('  - Customer: ${sampleCard.customer}');
+      print('  - CustomerId: ${sampleCard.customerId}');
+      print('  - CustomerInterest: ${sampleCard.customerInterest}');
+      print('  - Hashtags: ${sampleCard.hashtags}');
+      print('  - CreatedAt: ${sampleCard.createdAt}');
+      print('  - DueDate: ${sampleCard.dueDate}');
+      
+      // Debug: Print filter values for comparison
+      print('🔍 Filter Values Debug:');
+      print('  - Selected Assignees: $selectedAssignees');
+      print('  - Selected Customers: $selectedCustomers');
+      print('  - Selected Hashtags: $selectedHashtags');
+      print('  - Selected Interests: $selectedInterests');
+      print('  - Selected Date Types: $selectedDateFilterTypes');
+      print('  - Start Date: ${selectedStartDate.value}');
+      print('  - End Date: ${selectedEndDate.value}');
+    }
     
     print('🔍 Source lanes for filtering: ${sourceLanes.length} lanes');
     
@@ -990,28 +1097,36 @@ class BoardController extends GetxController implements BoardView {
     for (final lane in sourceLanes) {
       print('🔍 Checking lane "${lane.title}" with ${lane.cards.length} cards');
       
-      // Filter cards by assignee, customer, hashtag, and/or date
+      // Filter cards by assignee, customer, hashtag, interest, and/or date
       final filteredCards = lane.cards.where((card) {
         bool assigneeMatches = true;
         bool customerMatches = true;
         bool hashtagMatches = true;
+        bool interestMatches = true;
         bool dateMatches = true;
         
         // Check assignee filter (OR logic - match any selected assignee)
         if (hasAssigneeFilter) {
-          assigneeMatches = selectedAssignees.contains(card.assignee);
+          assigneeMatches = selectedAssignees.contains(card.assignedTo);
         }
         
         // Check customer filter (OR logic - match any selected customer)  
         if (hasCustomerFilter) {
           customerMatches = selectedCustomers.any((selectedCustomer) => 
-            card.customer.toLowerCase().contains(selectedCustomer.toLowerCase()));
+            (card.customerId ?? '').toLowerCase().contains(selectedCustomer.toLowerCase()));
         }
         
         // Check hashtag filter (OR logic - match any selected hashtag)
         if (hasHashtagFilter) {
           hashtagMatches = selectedHashtags.any((selectedHashtag) => 
-            (card.hashtag ?? '').toLowerCase().contains(selectedHashtag.toLowerCase()));
+            card.hashtags.any((hashtag) => 
+              (hashtag['text'] ?? '').toString().toLowerCase().contains(selectedHashtag.toLowerCase())));
+        }
+        
+        // Check interest filter (OR logic - match any selected interest)
+        if (hasInterestFilter) {
+          interestMatches = selectedInterests.any((selectedInterest) => 
+            (card.customerInterest ?? '').toLowerCase().contains(selectedInterest.toLowerCase()));
         }
         
         // Check date filter
@@ -1019,8 +1134,45 @@ class BoardController extends GetxController implements BoardView {
           dateMatches = _checkDateFilter(card);
         }
         
-        final matches = assigneeMatches && customerMatches && hashtagMatches && dateMatches;
-        print('🔍 Card "${card.title}" - Assignee: "${card.assignee}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), Hashtag: "${card.hashtag ?? ''}" (${hashtagMatches}), Date: (${dateMatches}) - Match: $matches');
+        // Check show cards without date filter
+        bool withoutDateMatches = true;
+        if (hasShowWithoutDate) {
+          // Show cards that don't have any of the selected date types
+          withoutDateMatches = selectedDateFilterTypes.every((filterType) {
+            DateTime? cardDate;
+            switch (filterType) {
+              case 'startDate':
+              case 'createdDate':
+                cardDate = card.createdAt;
+                break;
+              case 'endDate':
+              case 'dueDate':
+              case 'toDoDate':
+              case 'expectedClosingDate':
+                cardDate = card.dueDate;
+                break;
+              case 'updatedAt':
+                cardDate = card.updatedAt;
+                break;
+              default:
+                cardDate = card.createdAt;
+            }
+            return cardDate == null; // Return true if date is null (no date)
+          });
+        }
+        
+        final matches = assigneeMatches && customerMatches && hashtagMatches && interestMatches && dateMatches && withoutDateMatches;
+        print('🔍 Card "${card.title}" - Assignee: "${card.assignedTo}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), CustomerId: "${card.customerId ?? ''}" (${customerMatches}), Hashtag: "${card.hashtags}" (${hashtagMatches}), Interest: "${card.customerInterest ?? ''}" (${interestMatches}), Date: (${dateMatches}) - Match: $matches');
+        
+        // Debug: Show why card didn't match
+        if (!matches) {
+          print('🔍 ❌ Card "${card.title}" did not match because:');
+          if (!assigneeMatches) print('    - Assignee filter failed: "${card.assignedTo}" not in $selectedAssignees');
+          if (!customerMatches) print('    - Customer filter failed: "${card.customerId ?? ''}" not matching $selectedCustomers');
+          if (!hashtagMatches) print('    - Hashtag filter failed: "${card.hashtags}" not matching $selectedHashtags');
+          if (!interestMatches) print('    - Interest filter failed: "${card.customerInterest ?? ''}" not matching $selectedInterests');
+          if (!dateMatches) print('    - Date filter failed');
+        }
         
         if (matches) matchingCards++;
         return matches;
@@ -1050,52 +1202,55 @@ class BoardController extends GetxController implements BoardView {
   bool _checkDateFilter(JobCard card) {
     final startDate = selectedStartDate.value;
     final endDate = selectedEndDate.value;
-    final filterType = selectedDateFilterType.value;
+    final filterTypes = selectedDateFilterTypes;
     
-    DateTime? cardDate;
-    
-    // Get the appropriate date from card based on filter type
-    switch (filterType) {
-      case 'startDate':
-        // For now, using createdAt as startDate - can be extended
-        cardDate = card.createdAt;
-        break;
-      case 'endDate':
-        // Using dueDate as endDate
-        cardDate = card.dueDate;
-        break;
-      case 'createdDate':
-        cardDate = card.createdAt;
-        break;
-      case 'dueDate':
-      case 'toDoDate':
-        cardDate = card.dueDate;
-        break;
-      case 'updatedAt':
-        cardDate = card.updatedAt;
-        break;
-      case 'expectedClosingDate':
-        // Using dueDate as expected closing date
-        cardDate = card.dueDate;
-        break;
-      default:
-        cardDate = card.createdAt;
-    }
-    
-    if (cardDate == null) return false;
-    
-    // Check if card date is within the selected range
-    bool matches = true;
-    
-    if (startDate != null) {
-      matches = matches && cardDate.isAfter(startDate.subtract(const Duration(days: 1)));
-    }
-    
-    if (endDate != null) {
-      matches = matches && cardDate.isBefore(endDate.add(const Duration(days: 1)));
-    }
-    
-    return matches;
+    // Return true if any of the selected date types match the date range
+    return filterTypes.any((filterType) {
+      DateTime? cardDate;
+      
+      // Get the appropriate date from card based on filter type
+      switch (filterType) {
+        case 'startDate':
+          // For now, using createdAt as startDate - can be extended
+          cardDate = card.createdAt;
+          break;
+        case 'endDate':
+          // Using dueDate as endDate
+          cardDate = card.dueDate;
+          break;
+        case 'createdDate':
+          cardDate = card.createdAt;
+          break;
+        case 'dueDate':
+        case 'toDoDate':
+          cardDate = card.dueDate;
+          break;
+        case 'updatedAt':
+          cardDate = card.updatedAt;
+          break;
+        case 'expectedClosingDate':
+          // Using dueDate as expected closing date
+          cardDate = card.dueDate;
+          break;
+        default:
+          cardDate = card.createdAt;
+      }
+      
+      if (cardDate == null) return false;
+      
+      // Check if card date is within the selected range
+      bool matches = true;
+      
+      if (startDate != null) {
+        matches = matches && cardDate.isAfter(startDate.subtract(const Duration(days: 1)));
+      }
+      
+      if (endDate != null) {
+        matches = matches && cardDate.isBefore(endDate.add(const Duration(days: 1)));
+      }
+      
+      return matches;
+    });
   }
   
   List<Lane> _getSearchResults(String query) {
@@ -1129,8 +1284,8 @@ class BoardController extends GetxController implements BoardView {
     
     for (final lane in _originalLanes) {
       for (final card in lane.cards) {
-        if (card.assignee.isNotEmpty) {
-          assigneeUids.add(card.assignee);
+        if (card.assignedTo.isNotEmpty) {
+          assigneeUids.add(card.assignedTo);
         }
       }
     }
@@ -1196,7 +1351,7 @@ class BoardController extends GetxController implements BoardView {
   
   // Getter for lanes to use in UI (returns filtered/searched lanes)
   List<Lane> get displayLanes {
-    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedDateFilterType.value.isNotEmpty) {
+    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedDateFilterTypes.isNotEmpty) {
       return filteredLanes;
     }
     return lanes;

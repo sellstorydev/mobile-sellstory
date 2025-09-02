@@ -4,7 +4,7 @@ class JobCard {
   final String id;
   final String title;
   final String description;
-  final String assignee;
+  final String assignedTo;         // Changed from assignee to assignedTo (user_id)
   final String status;
   final String customId;
   final DateTime? dueDate;
@@ -22,6 +22,7 @@ class JobCard {
   final String? company; // Add company field
   final String? hashtag; // Add hashtag field (legacy)
   final List<Map<String, dynamic>> hashtags; // Add hashtags field (new DTB structure)
+  final String? customerInterest; // Add customer interest field
   final List<Map<String, dynamic>> expenses; // Add expenses field
   final List<Map<String, dynamic>> todos; // Add todos field
   final List<Map<String, dynamic>> notes; // Add notes field
@@ -29,12 +30,14 @@ class JobCard {
   final List<Map<String, dynamic>> customFields; // Add custom fields
   final String createdBy; // Add created by field
   final String updatedBy; // Add updated by field
+  final List<String> collaborators; // Add collaborators field (array of user_ids)
+  final String? priority; // Add priority field
 
   JobCard({
     required this.id,
     required this.title,
     this.description = '',
-    required this.assignee,
+    required this.assignedTo,      // Changed from assignee to assignedTo
     this.status = 'To Do',
     this.customId = '',
     this.dueDate,
@@ -52,6 +55,7 @@ class JobCard {
     this.company,
     this.hashtag,
     this.hashtags = const [],
+    this.customerInterest,
     this.expenses = const [],
     this.todos = const [],
     this.notes = const [],
@@ -59,13 +63,15 @@ class JobCard {
     this.customFields = const [],
     this.createdBy = '',
     this.updatedBy = '',
+    this.collaborators = const [],
+    this.priority,
   });
 
   JobCard copyWith({
     String? id,
     String? title,
     String? description,
-    String? assignee,
+    String? assignedTo,
     String? status,
     String? customId,
     DateTime? dueDate,
@@ -83,6 +89,7 @@ class JobCard {
     String? company,
     String? hashtag,
     List<Map<String, dynamic>>? hashtags,
+    String? customerInterest,
     List<Map<String, dynamic>>? expenses,
     List<Map<String, dynamic>>? todos,
     List<Map<String, dynamic>>? notes,
@@ -90,12 +97,14 @@ class JobCard {
     List<Map<String, dynamic>>? customFields,
     String? createdBy,
     String? updatedBy,
+    List<String>? collaborators,
+    String? priority,
   }) {
     return JobCard(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
-      assignee: assignee ?? this.assignee,
+      assignedTo: assignedTo ?? this.assignedTo,
       status: status ?? this.status,
       customId: customId ?? this.customId,
       dueDate: dueDate ?? this.dueDate,
@@ -113,6 +122,7 @@ class JobCard {
         company: company ?? this.company,
         hashtag: hashtag ?? this.hashtag,
         hashtags: hashtags ?? this.hashtags,
+        customerInterest: customerInterest ?? this.customerInterest,
         expenses: expenses ?? this.expenses,
         todos: todos ?? this.todos,
         notes: notes ?? this.notes,
@@ -120,6 +130,8 @@ class JobCard {
         customFields: customFields ?? this.customFields,
         createdBy: createdBy ?? this.createdBy,
         updatedBy: updatedBy ?? this.updatedBy,
+        collaborators: collaborators ?? this.collaborators,
+        priority: priority ?? this.priority,
       );
   }
 
@@ -157,7 +169,7 @@ class JobCard {
 
     // Job card specific fields (not in DTB.md Card but needed for job cards)
     if (description.isNotEmpty) data['description'] = description;
-    if (assignee.isNotEmpty) data['assignedTo'] = assignee;
+    if (assignedTo.isNotEmpty) data['assignedTo'] = assignedTo;
     if (status.isNotEmpty) data['status'] = status;
     if (customId.isNotEmpty) data['customId'] = customId;
     if (dueDate != null) data['dueDate'] = Timestamp.fromDate(dueDate!);
@@ -172,11 +184,14 @@ class JobCard {
     if (company?.isNotEmpty == true) data['company'] = company;
     if (hashtag?.isNotEmpty == true) data['hashtag'] = hashtag;
     if (hashtags.isNotEmpty) data['hashtags'] = hashtags;
+    if (customerInterest?.isNotEmpty == true) data['customerInterest'] = customerInterest;
     if (expenses.isNotEmpty) data['expenses'] = expenses;
     if (todos.isNotEmpty) data['todos'] = todos;
     if (notes.isNotEmpty) data['notes'] = notes;
     if (customFields.isNotEmpty) data['customFields'] = customFields;
     if (updatedBy.isNotEmpty) data['updatedBy'] = updatedBy;
+    if (collaborators.isNotEmpty) data['collaborators'] = collaborators;
+    if (priority?.isNotEmpty == true) data['priority'] = priority;
 
     // Always include timestamps (convert to epoch ms per DTB.md conventions)
     data['createdAt'] = createdAt.millisecondsSinceEpoch;
@@ -258,6 +273,19 @@ class JobCard {
         watchers = (map['watchers'] as List).map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
       }
     }
+
+    // Handle collaborators from DTB.md structure
+    List<String> collaborators = [];
+    if (map['collaborators'] is List) {
+      try {
+        collaborators = List<String>.from(map['collaborators']);
+      } catch (_) {
+        collaborators = (map['collaborators'] as List).map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
+      }
+    }
+
+    // Handle priority from DTB.md structure
+    final String? priority = _nullableStringFrom(map['priority']);
 
     // Handle timestamps - DTB.md uses epoch ms (number) but Firestore may use Timestamp
     DateTime createdAt = DateTime.now();
@@ -363,7 +391,7 @@ class JobCard {
       id: id,
       title: title,
       description: _stringFrom(map['description']),
-      assignee: assignee,
+      assignedTo: assignee,
       status: statusStr.isNotEmpty ? statusStr : 'To Do',
       customId: _stringFrom(map['customId']),
       dueDate: _dateTimeFrom(map['dueDate']),
@@ -381,6 +409,7 @@ class JobCard {
       company: company,
       hashtag: _nullableStringFrom(map['hashtag']),
       hashtags: hashtags,
+      customerInterest: _nullableStringFrom(map['customerInterest']),
       expenses: List<Map<String, dynamic>>.from(map['expenses'] ?? const []),
       todos: List<Map<String, dynamic>>.from(map['todos'] ?? const []),
       notes: List<Map<String, dynamic>>.from(map['notes'] ?? const []),
@@ -388,6 +417,8 @@ class JobCard {
       customFields: List<Map<String, dynamic>>.from(map['customFields'] ?? const []),
       createdBy: _stringFrom(map['createdBy']),
       updatedBy: _stringFrom(map['updatedBy']),
+      collaborators: collaborators,
+      priority: priority,
     );
   }
 
@@ -398,7 +429,7 @@ class JobCard {
         other.id == id &&
         other.title == title &&
         other.description == description &&
-        other.assignee == assignee &&
+        other.assignedTo == assignedTo &&
         other.status == status &&
         other.customId == customId &&
         other.dueDate == dueDate &&
@@ -416,13 +447,16 @@ class JobCard {
         other.company == company &&
         other.hashtag == hashtag &&
         other.hashtags == hashtags &&
+        other.customerInterest == customerInterest &&
         other.expenses == expenses &&
         other.todos == todos &&
         other.notes == notes &&
         other.watchers == watchers &&
         other.customFields == customFields &&
         other.createdBy == createdBy &&
-        other.updatedBy == updatedBy;
+        other.updatedBy == updatedBy &&
+        other.collaborators == collaborators &&
+        other.priority == priority;
   }
 
   @override
@@ -430,7 +464,7 @@ class JobCard {
     return id.hashCode ^
         title.hashCode ^
         description.hashCode ^
-        assignee.hashCode ^
+        assignedTo.hashCode ^
         status.hashCode ^
         customId.hashCode ^
         dueDate.hashCode ^
@@ -448,17 +482,20 @@ class JobCard {
         company.hashCode ^
         hashtag.hashCode ^
         hashtags.hashCode ^
+        customerInterest.hashCode ^
         expenses.hashCode ^
         todos.hashCode ^
         notes.hashCode ^
         watchers.hashCode ^
         customFields.hashCode ^
         createdBy.hashCode ^
-        updatedBy.hashCode;
+        updatedBy.hashCode ^
+        collaborators.hashCode ^
+        priority.hashCode;
   }
 
   @override
   String toString() {
-    return 'JobCard(id: $id, title: $title, description: $description, assignee: $assignee, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName, customerId: $customerId, company: $company, hashtag: $hashtag, hashtags: $hashtags, expenses: $expenses, todos: $todos, notes: $notes, watchers: $watchers, customFields: $customFields, createdBy: $createdBy, updatedBy: $updatedBy)';
+    return 'JobCard(id: $id, title: $title, description: $description, assignedTo: $assignedTo, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName, customerId: $customerId, company: $company, hashtag: $hashtag, hashtags: $hashtags, customerInterest: $customerInterest, expenses: $expenses, todos: $todos, notes: $notes, watchers: $watchers, customFields: $customFields, createdBy: $createdBy, updatedBy: $updatedBy, collaborators: $collaborators, priority: $priority)';
   }
 }

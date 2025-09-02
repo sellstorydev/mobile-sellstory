@@ -27,7 +27,7 @@ class AddCardUseCase {
     final newCard = JobCard(
       id: cardId,
       title: title,
-      assignee: assignee,
+      assignedTo: assignee,
       dueDate: dueDate,
       badges: badges,
       amount: amount,

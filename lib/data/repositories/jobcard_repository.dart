@@ -28,7 +28,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC001',
           title: 'Website Redesign Project',
-          assignee: 'John Doe',
+          assignedTo: 'John Doe',
           dueDate: now.add(const Duration(days: 7)),
           badges: ['High Priority', 'Design'],
           amount: 15000.0,
@@ -40,7 +40,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC002',
           title: 'Mobile App Development',
-          assignee: 'Jane Smith',
+          assignedTo: 'Jane Smith',
           dueDate: now.add(const Duration(days: 14)),
           badges: ['Development', 'iOS'],
           amount: 25000.0,
@@ -52,7 +52,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC003',
           title: 'Marketing Campaign',
-          assignee: 'Mike Johnson',
+          assignedTo: 'Mike Johnson',
           dueDate: now.add(const Duration(days: 5)),
           badges: ['Marketing', 'Social Media'],
           amount: 8000.0,
@@ -73,7 +73,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC004',
           title: 'Database Optimization',
-          assignee: 'Sarah Wilson',
+          assignedTo: 'Sarah Wilson',
           dueDate: now.add(const Duration(days: 3)),
           badges: ['Backend', 'Performance'],
           amount: 12000.0,
@@ -85,7 +85,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC005',
           title: 'UI/UX Design Review',
-          assignee: 'Alex Brown',
+          assignedTo: 'Alex Brown',
           dueDate: now.add(const Duration(days: 2)),
           badges: ['Design', 'Review'],
           amount: 5000.0,
@@ -106,7 +106,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC006',
           title: 'API Integration Testing',
-          assignee: 'Tom Davis',
+          assignedTo: 'Tom Davis',
           dueDate: now.add(const Duration(days: 1)),
           badges: ['Testing', 'API'],
           amount: 18000.0,
@@ -118,7 +118,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC007',
           title: 'Security Audit',
-          assignee: 'Lisa Chen',
+          assignedTo: 'Lisa Chen',
           dueDate: now.add(const Duration(days: 4)),
           badges: ['Security', 'Audit'],
           amount: 22000.0,
@@ -130,7 +130,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC008',
           title: 'Content Creation',
-          assignee: 'David Lee',
+          assignedTo: 'David Lee',
           dueDate: now,
           badges: ['Content', 'Copywriting'],
           amount: 6000.0,
@@ -151,7 +151,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC009',
           title: 'Project Planning',
-          assignee: 'Emma Taylor',
+          assignedTo: 'Emma Taylor',
           dueDate: now.subtract(const Duration(days: 2)),
           badges: ['Planning', 'Complete'],
           amount: 3000.0,
@@ -163,7 +163,7 @@ class InMemoryJobCardRepository implements JobCardRepository {
         JobCard(
           id: 'JC010',
           title: 'Initial Setup',
-          assignee: 'Chris Anderson',
+          assignedTo: 'Chris Anderson',
           dueDate: now.subtract(const Duration(days: 1)),
           badges: ['Setup', 'Complete'],
           amount: 4000.0,

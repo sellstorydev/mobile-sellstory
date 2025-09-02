@@ -280,23 +280,13 @@ class _CardViewPageState extends State<CardViewPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildJobIdSection(),
-                    const SizedBox(height: 16),
                     _buildTitleSection(),
                     const SizedBox(height: 16),
                     _buildBoardLaneSection(),
                     const SizedBox(height: 16),
-                    _buildHashtagSection(),
-                    const SizedBox(height: 16),
-                    _buildAssigneeSection(),
-                    const SizedBox(height: 16),
-                    _buildCustomerSection(),
-                    const SizedBox(height: 16),
-                    _buildCompanySection(),
-                    const SizedBox(height: 16),
-                    _buildExpectedClosingDateSection(),
-                    const SizedBox(height: 16),
                     _buildStatusSection(),
+                    const SizedBox(height: 16),
+                    _buildCardInfoSection(),
                     const SizedBox(height: 16),
                     _buildDetailsSection(),
                     const SizedBox(height: 16),
@@ -516,8 +506,8 @@ class _CardViewPageState extends State<CardViewPage> {
                 radius: 16,
                 backgroundColor: Colors.orange[100],
                 child: Text(
-                  _getAssigneeName(_currentCard.assignee).isNotEmpty 
-                      ? _getAssigneeName(_currentCard.assignee)[0].toUpperCase() 
+                  _getAssigneeName(_currentCard.assignedTo).isNotEmpty 
+                                              ? _getAssigneeName(_currentCard.assignedTo)[0].toUpperCase() 
                       : '?',
                   style: TextStyle(
                     color: Colors.orange[800],
@@ -528,7 +518,7 @@ class _CardViewPageState extends State<CardViewPage> {
               ),
               const SizedBox(width: 12),
               Text(
-                _getAssigneeName(_currentCard.assignee),
+                _getAssigneeName(_currentCard.assignedTo),
                 style: const TextStyle(fontSize: 14),
               ),
             ],
@@ -709,6 +699,144 @@ class _CardViewPageState extends State<CardViewPage> {
     );
   }
 
+  Widget _buildCardInfoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Card Information',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildInfoRow('Date Range', _getDateRange()),
+        _buildInfoRow('Job ID', _currentCard.customId.isNotEmpty ? _currentCard.customId : 'JB-${_currentCard.id.substring(0, 8)}'),
+        _buildInfoRow('Status', _currentCard.status),
+        _buildInfoRow('Created Date', _formatDate(_currentCard.createdAt)),
+        _buildInfoRow('Assignee', _getAssigneeName(_currentCard.assignedTo)),
+        _buildInfoRow('Company', _currentCard.company ?? '-'),
+        _buildInfoRow('Customer Interest', _currentCard.customerInterest ?? '-'),
+        _buildInfoRow('Collaborators', _getCollaboratorsNames()),
+        _buildInfoRow('Customer', _currentCard.customer.isNotEmpty ? _currentCard.customer : '-'),
+        _buildInfoRow('Hashtags', _getHashtagsText()),
+        _buildInfoRow('Priority', _currentCard.priority ?? '-'),
+        _buildInfoRow('Grand Total', _getGrandTotal()),
+        _buildInfoRow('Net Total', _getNetTotal()),
+        _buildInfoRow('Total (before discount)', _getTotalBeforeDiscount()),
+        _buildInfoRow('Total (after discount)', _getTotalAfterDiscount()),
+        _buildInfoRow('Total (before VAT)', _getTotalBeforeVAT()),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                color: value == '-' ? Colors.grey : Colors.black,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDateRange() {
+    if (_currentCard.dueDate != null) {
+      final startDate = _currentCard.createdAt;
+      final endDate = _currentCard.dueDate!;
+      return '${_formatDate(startDate)} - ${_formatDate(endDate)}';
+    }
+    return '-';
+  }
+
+  String _getCollaboratorsNames() {
+    if (_currentCard.collaborators.isEmpty) return '-';
+    return _currentCard.collaborators
+        .map((collaboratorId) => _getAssigneeName(collaboratorId))
+        .join(', ');
+  }
+
+  String _getHashtagsText() {
+    if (_currentCard.hashtags.isEmpty) return '-';
+    return _currentCard.hashtags
+        .map((hashtag) => '#${hashtag['text'] ?? hashtag['id'] ?? ''}')
+        .join(', ');
+  }
+
+  String _getGrandTotal() {
+    if (_currentCard.expenses.isEmpty) return '-';
+    final total = _currentCard.expenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + (expense['pricePerUnit'] ?? 0.0),
+    );
+    return '\$${total.toStringAsFixed(2)}';
+  }
+
+  String _getNetTotal() {
+    if (_currentCard.expenses.isEmpty) return '-';
+    final total = _currentCard.expenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + (expense['pricePerUnit'] ?? 0.0),
+    );
+    return '\$${total.toStringAsFixed(2)}';
+  }
+
+  String _getTotalBeforeDiscount() {
+    if (_currentCard.expenses.isEmpty) return '-';
+    final total = _currentCard.expenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + (expense['pricePerUnit'] ?? 0.0),
+    );
+    return '\$${total.toStringAsFixed(2)}';
+  }
+
+  String _getTotalAfterDiscount() {
+    if (_currentCard.expenses.isEmpty) return '-';
+    return '-'; // TODO: Implement discount calculation
+  }
+
+  String _getTotalBeforeVAT() {
+    if (_currentCard.expenses.isEmpty) return '-';
+    return '-'; // TODO: Implement VAT calculation
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _getTodoListText() {
+    if (_currentCard.todos.isEmpty) return 'No to-do items';
+    
+    final completedCount = _currentCard.todos.where((todo) => todo['completed'] == true).length;
+    final totalCount = _currentCard.todos.length;
+    
+    return '$completedCount/$totalCount completed';
+  }
+
   Widget _buildDetailsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -828,9 +956,7 @@ class _CardViewPageState extends State<CardViewPage> {
           ),
           child: Center(
             child: Text(
-              _currentCard.todos.isNotEmpty 
-                  ? '${_currentCard.todos.length} todo items'
-                  : 'No to-do items',
+              _getTodoListText(),
               style: const TextStyle(color: Colors.grey),
             ),
           ),
@@ -1084,7 +1210,7 @@ class _CardViewPageState extends State<CardViewPage> {
         id: '',
         title: '${_currentCard.title} (Copy)',
         description: _currentCard.description,
-        assignee: _currentCard.assignee,
+        assignedTo: _currentCard.assignedTo,
         status: _currentCard.status,
         customId: '',
         dueDate: _currentCard.dueDate,

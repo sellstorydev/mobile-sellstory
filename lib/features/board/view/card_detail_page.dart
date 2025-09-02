@@ -59,6 +59,9 @@ class _CardDetailPageState extends State<CardDetailPage> {
   // Current card data (will be updated from controller)
   late JobCard _currentCard;
 
+  // Add history/comment toggle state variable
+  bool _showHistory = true; // true = History, false = Comment
+
   @override
   void initState() {
     super.initState();
@@ -80,7 +83,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
     // Initialize form with current card data
     _jobIdController.text = _currentCard.customId.isNotEmpty ? _currentCard.customId : 'JB-${_currentCard.id.substring(0, 8)}';
     _titleController.text = _currentCard.title;
-    _assigneeController.text = _currentCard.assignee;
+    _assigneeController.text = _currentCard.assignedTo;
     
     // Initialize hashtags from current card
     _initializeHashtags();
@@ -490,7 +493,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
                     const SizedBox(height: 16),
                     _buildAttachedFilesSection(),
                     const SizedBox(height: 16),
-                    _buildHistorySection(),
+                    _buildHistoryCommentSection(),
                     const SizedBox(height: 16),
                     _buildCommentsSection(),
                     const SizedBox(height: 32),
@@ -1231,32 +1234,146 @@ class _CardDetailPageState extends State<CardDetailPage> {
     );
   }
 
-  Widget _buildHistorySection() {
+  Widget _buildHistoryCommentSection() {
+    return Container(
+      margin: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          // Toggle buttons
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showHistory = true;
+                      });
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: _showHistory ? Colors.blue : Colors.transparent,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'History',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _showHistory ? Colors.white : Colors.black54,
+                          fontWeight: _showHistory ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showHistory = false;
+                      });
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: !_showHistory ? Colors.blue : Colors.transparent,
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Comment',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: !_showHistory ? Colors.white : Colors.black54,
+                          fontWeight: !_showHistory ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content area
+          Container(
+            height: 200,
+            width: double.infinity,
+            padding: EdgeInsets.all(16),
+            child: _showHistory ? _buildHistoryContent() : _buildCommentContent(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryContent() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Icon(
+          Icons.history,
+          size: 48,
+          color: Colors.grey,
+        ),
+        SizedBox(height: 8),
+        Text(
           'History',
           style: TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Colors.grey.shade600,
           ),
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
+        SizedBox(height: 4),
+        Text(
+          'การเปลี่ยนแปลงจะแสดงที่นี่',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade500,
           ),
-          child: const Center(
-            child: Text(
-              'No activity for this card yet.',
-              style: TextStyle(color: Colors.grey),
-            ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommentContent() {
+    return Column(
+      children: [
+        Icon(
+          Icons.comment,
+          size: 48,
+          color: Colors.grey,
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Comment',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey.shade600,
           ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'ความคิดเห็นจะแสดงที่นี่',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade500,
+          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -1436,7 +1553,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
         id: '',
         title: '${_currentCard.title} (Copy)',
         description: _currentCard.description,
-        assignee: _currentCard.assignee,
+        assignedTo: _currentCard.assignedTo,
         status: _currentCard.status,
         customId: '',
         dueDate: _currentCard.dueDate,
@@ -1550,7 +1667,7 @@ class _CardDetailPageState extends State<CardDetailPage> {
       final updatedCard = _currentCard.copyWith(
         title: _titleController.text.trim(),
         description: _detailsController.text.trim(),
-        assignee: _assigneeController.text.trim(),
+        assignedTo: _assigneeController.text.trim(),
         customer: _selectedCustomer.isNotEmpty ? _availableCustomers.firstWhere((c) => c['id'] == _selectedCustomer)['name'] : '',
         company: _selectedCompany != 'none' ? _availableCompanies.firstWhere((c) => c['id'] == _selectedCompany)['name'] : null,
         hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
