@@ -112,6 +112,9 @@ class _BoardPageState extends State<BoardPage> {
       case 'edit_workspace':
         _navigateToEditWorkspace();
         break;
+      case 'card_view_settings':
+        Get.toNamed('/card-view-settings');
+        break;
       default:
         if (value.startsWith('board_')) {
           final boardId = value.substring(6); // Remove 'board_' prefix
@@ -363,6 +366,18 @@ class _BoardPageState extends State<BoardPage> {
                          ),
                        ),
                    ],
+                   // Card View Settings
+                   const PopupMenuDivider(),
+                   PopupMenuItem<String>(
+                     value: 'card_view_settings',
+                     child: Row(
+                       children: [
+                         const Icon(Icons.view_agenda, size: 20),
+                         const SizedBox(width: 12),
+                         const Text('Card View Settings'),
+                       ],
+                     ),
+                   ),
                    // Refresh
                    const PopupMenuDivider(),
                    PopupMenuItem<String>(
@@ -520,7 +535,7 @@ class _BoardPageState extends State<BoardPage> {
               final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                                  _controller.selectedCustomers.isNotEmpty ||
                                  _controller.selectedHashtags.isNotEmpty ||
-                                 _controller.selectedDateFilterType.value.isNotEmpty;
+                                 _controller.selectedDateFilterTypes.isNotEmpty;
               final displayLanes = (_controller.isSearching.value || hasAnyFilter)
                   ? _controller.filteredLanes 
                   : _controller.lanes;
@@ -671,7 +686,7 @@ class _BoardPageState extends State<BoardPage> {
       final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                          _controller.selectedCustomers.isNotEmpty ||
                          _controller.selectedHashtags.isNotEmpty ||
-                         _controller.selectedDateFilterType.value.isNotEmpty;
+                         _controller.selectedDateFilterTypes.isNotEmpty;
       final displayLanes = (_controller.isSearching.value || hasAnyFilter)
           ? _controller.filteredLanes 
           : _controller.lanes;
@@ -683,7 +698,7 @@ class _BoardPageState extends State<BoardPage> {
           final hasAssignee = _controller.selectedAssignees.isNotEmpty;
           final hasCustomer = _controller.selectedCustomers.isNotEmpty;
           final hasHashtag = _controller.selectedHashtags.isNotEmpty;
-          final hasDate = _controller.selectedDateFilterType.value.isNotEmpty;
+          final hasDate = _controller.selectedDateFilterTypes.isNotEmpty;
           
           // Count the number of active filters
           final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasDate].where((x) => x).length;

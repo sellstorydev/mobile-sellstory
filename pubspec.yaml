@@ -55,6 +55,7 @@ dependencies:
   
   # Local storage
   get_storage: ^2.1.1
+  shared_preferences: ^2.2.2
   
   # Logging
   logger: ^2.6.1

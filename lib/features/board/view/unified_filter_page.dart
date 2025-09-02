@@ -44,6 +44,10 @@ class UnifiedFilterPage extends StatelessWidget {
             
             // Hashtag Filter Section
             _buildHashtagFilterSection(controller),
+            const SizedBox(height: 24),
+            
+            // Interest Filter Section
+            _buildInterestFilterSection(controller),
             const SizedBox(height: 32),
             
             // Apply Button
@@ -101,7 +105,7 @@ class UnifiedFilterPage extends StatelessWidget {
                   _buildDateTypeChip(controller, 'createdDate', 'Created Date'),
                   _buildDateTypeChip(controller, 'dueDate', 'To-Do Date'),
                   _buildDateTypeChip(controller, 'updatedAt', 'Updated At'),
-                  _buildDateTypeChip(controller, 'expectedClosingDate', 'Expected Closing Date'),
+
                 ],
               ),
             ],
@@ -144,6 +148,30 @@ class UnifiedFilterPage extends StatelessWidget {
                   _buildQuickDateChip(controller, 'lastWeek', 'สัปดาห์ที่แล้ว'),
                 ],
               ),
+              
+              const SizedBox(height: 16),
+              
+              // Show cards without date checkbox
+              Obx(() => CheckboxListTile(
+                value: controller.showCardsWithoutDate.value,
+                onChanged: (bool? value) {
+                  controller.toggleShowCardsWithoutDate();
+                },
+                title: const Text(
+                  'แสดงที่ไม่ได้เลือกวันที่',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                subtitle: const Text(
+                  'แสดงงานที่ไม่มีวันที่ในประเภทที่เลือก',
+                  style: TextStyle(fontSize: 12),
+                ),
+                activeColor: Colors.orange[600],
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              )),
             ],
           ),
         ),
@@ -454,6 +482,79 @@ class UnifiedFilterPage extends StatelessWidget {
     );
   }
 
+  Widget _buildInterestFilterSection(BoardController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.favorite, color: Colors.red[600], size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'ความสนใจ',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.red[800],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'เลือกความสนใจ (เลือกได้หลายอัน):',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.red[800],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // Predefined interest options
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildInterestChip(controller, 'เริ่มต้น', 'เริ่มต้น'),
+                  _buildInterestChip(controller, 'น้อย', 'น้อย (Low)'),
+                  _buildInterestChip(controller, 'กลาง', 'กลาง (Medium)'),
+                  _buildInterestChip(controller, 'มาก', 'มาก (High)'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInterestChip(BoardController controller, String interest, String label) {
+    return Obx(() {
+      final isSelected = controller.selectedInterests.contains(interest);
+      return FilterChip(
+        selected: isSelected,
+        label: Text(label),
+        onSelected: (selected) {
+          controller.toggleInterestFilter(interest);
+        },
+        selectedColor: Colors.red[100],
+        checkmarkColor: Colors.red[800],
+        side: BorderSide(color: Colors.red[200]!),
+      );
+    });
+  }
+
   Widget _buildApplyButton(BoardController controller, BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -461,7 +562,9 @@ class UnifiedFilterPage extends StatelessWidget {
         final hasAnyFilter = controller.selectedAssignees.isNotEmpty ||
                            controller.selectedCustomers.isNotEmpty ||
                            controller.selectedHashtags.isNotEmpty ||
-                           controller.selectedDateFilterType.value.isNotEmpty;
+                           controller.selectedInterests.isNotEmpty ||
+                           controller.selectedDateFilterTypes.isNotEmpty ||
+                           controller.showCardsWithoutDate.value;
         
         return ElevatedButton.icon(
           onPressed: () => Navigator.of(context).pop(),
@@ -482,16 +585,12 @@ class UnifiedFilterPage extends StatelessWidget {
 
   Widget _buildDateTypeChip(BoardController controller, String type, String label) {
     return Obx(() {
-      final isSelected = controller.selectedDateFilterType.value == type;
+      final isSelected = controller.selectedDateFilterTypes.contains(type);
       return FilterChip(
         selected: isSelected,
         label: Text(label),
         onSelected: (selected) {
-          if (selected) {
-            controller.selectedDateFilterType.value = type;
-          } else {
-            controller.clearDateFilter();
-          }
+          controller.toggleDateFilterType(type);
         },
         selectedColor: Colors.blue[100],
         checkmarkColor: Colors.blue[800],
@@ -528,14 +627,8 @@ class UnifiedFilterPage extends StatelessWidget {
         controller.selectedEndDate.value = pickedDate;
       }
       
-      // Auto-apply filter if both date type and date are selected
-      if (controller.selectedDateFilterType.value.isNotEmpty) {
-        controller.updateDateFilter(
-          controller.selectedDateFilterType.value,
-          controller.selectedStartDate.value,
-          controller.selectedEndDate.value,
-        );
-      }
+      // Don't auto-apply filter - let user choose date type manually
+      // Filter will be applied when user selects date type or clicks Apply button
     }
   }
 
@@ -546,7 +639,7 @@ class UnifiedFilterPage extends StatelessWidget {
   String _getAssigneeCardCount(BoardController controller, String assigneeId) {
     int count = 0;
     for (final lane in controller.lanes) {
-      count += lane.cards.where((card) => card.assignee == assigneeId).length;
+      count += lane.cards.where((card) => card.assignedTo == assigneeId).length;
     }
     return '$count งาน';
   }

@@ -5,6 +5,7 @@ import '../services/logger_service.dart';
 import '../services/id_generation_service.dart';
 import '../services/workspace_members_service.dart';
 import '../services/company_service.dart';
+import '../services/card_view_settings_service.dart';
 import '../../data/repositories/jobcard_repository.dart';
 import '../../data/repositories/firestore_repository.dart';
 import '../../data/repositories/customer_repository.dart';
@@ -65,8 +66,10 @@ class Locator {
     Get.lazyPut<IdGenerationService>(() => IdGenerationService(), fenix: true);
     Get.lazyPut<WorkspaceMembersService>(() => WorkspaceMembersService(), fenix: true);
     Get.lazyPut<CompanyService>(() => CompanyService(), fenix: true);
+    // Initialize CardViewSettingsService immediately
+    Get.put<CardViewSettingsService>(CardViewSettingsService(), permanent: true);
     logger?.devTools('Services registered', {
-      'services': ['FirestoreService', 'IdGenerationService', 'WorkspaceMembersService', 'CompanyService'],
+      'services': ['FirestoreService', 'IdGenerationService', 'WorkspaceMembersService', 'CompanyService', 'CardViewSettingsService'],
     });
 
     // Repositories
