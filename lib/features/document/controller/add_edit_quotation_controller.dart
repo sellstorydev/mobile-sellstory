@@ -111,11 +111,14 @@ class AddEditQuotationController extends GetxController {
   DateTime? get validUntilDate => _validUntilDate;
 
   // Product section
-  String _productSelectionType = 'new';
-  String get productSelectionType => _productSelectionType;
-
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> get products => _products;
+  
+  // Product database data
+  List<Map<String, dynamic>> _availableProducts = [];
+  List<Map<String, dynamic>> get availableProducts => _availableProducts;
+  bool _isLoadingProducts = false;
+  bool get isLoadingProducts => _isLoadingProducts;
 
   // More options section
   List<String> _selectedPaymentMethods = [];
@@ -213,9 +216,10 @@ class AddEditQuotationController extends GetxController {
           '✅ Quotation page initialized with workspace: ${firstWorkspace['name']}',
         );
 
-        // Load customers and workspace members, then initialize form
+        // Load customers, workspace members, and products, then initialize form
         await _loadCustomers();
         await _loadWorkspaceMembers();
+        await loadProducts();
         _initializeForm();
       } else {
         print('⚠️ No workspaces found for user: $_currentUserId');
@@ -377,8 +381,8 @@ class AddEditQuotationController extends GetxController {
       // Set default WHT percentage
       whtPercentageController.text = '3';
 
-      // Add initial product
-      addProduct();
+      // No default products - start with empty list
+      _products = [];
 
       update();
     } catch (e) {
@@ -585,6 +589,61 @@ class AddEditQuotationController extends GetxController {
   void _setAssigneesLoading(bool loading) {
     _isLoadingAssignees = loading;
   }
+  
+  // Load products from database
+  Future<void> loadProducts() async {
+    try {
+      if (_currentWorkspaceId == null) return;
+      
+      _setProductsLoading(true);
+      
+      // Load products from Firebase path: workspaces/{WorkspaceId}/products/{Product UIDs}
+      final productsSnapshot = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(_currentWorkspaceId)
+          .collection('products')
+          .get();
+      
+      if (productsSnapshot.docs.isNotEmpty) {
+        _availableProducts = productsSnapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'name': data['name']?.toString() ?? '',
+            'description': data['description']?.toString() ?? '',
+            'price': data['price']?.toDouble() ?? 0.0,
+            'unit': data['unit']?.toString() ?? 'ชิ้น',
+            'sku': data['sku']?.toString() ?? '',
+            'imageUrl': data['imageUrl']?.toString() ?? '',
+            'status': data['status']?.toString() ?? '',
+          };
+        }).toList();
+        
+        print('✅ Loaded ${_availableProducts.length} products from Firebase');
+      } else {
+        print('⚠️ No active products found in workspace: $_currentWorkspaceId');
+        _availableProducts = [];
+      }
+      
+      update();
+    } catch (e) {
+      print('❌ Failed to load products: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถโหลดข้อมูลสินค้าได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      _availableProducts = [];
+    } finally {
+      _setProductsLoading(false);
+    }
+  }
+  
+  void _setProductsLoading(bool loading) {
+    _isLoadingProducts = loading;
+    update();
+  }
 
   // Seller section methods
   void onDocumentDateChanged(DateTime? date) {
@@ -617,23 +676,7 @@ class AddEditQuotationController extends GetxController {
     }
   }
 
-  // Product section methods
-  void onProductSelectionTypeChanged(String? type) {
-    try {
-      if (type != null) {
-        _productSelectionType = type;
-        update();
-      }
-    } catch (e) {
-      print('❌ Failed to change product selection type: $e');
-      Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนประเภทการเลือกสินค้าได้: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
-  }
+
 
   void addProduct() {
     try {
@@ -671,6 +714,55 @@ class AddEditQuotationController extends GetxController {
       );
     }
   }
+
+  // Add products from database selection
+  void addProductsFromDatabase(List<Map<String, dynamic>> selectedProducts) {
+    try {
+      for (final product in selectedProducts) {
+        final productId = DateTime.now().millisecondsSinceEpoch.toString();
+        final newProduct = {
+          'id': productId,
+          'name': product['name'] ?? '',
+          'description': product['description'] ?? '',
+          'quantity': 1,
+          'unit': product['unit'] ?? 'ชิ้น',
+          'pricePerUnit': (product['price'] ?? 0.0).toDouble(),
+          'discount': 0.0,
+        };
+
+        _products.add(newProduct);
+
+        // Create controllers for this product
+        _productControllers[productId] = {
+          'name': TextEditingController(text: newProduct['name']),
+          'description': TextEditingController(text: newProduct['description']),
+          'quantity': TextEditingController(text: '1'),
+          'unit': TextEditingController(text: newProduct['unit']),
+          'pricePerUnit': TextEditingController(text: newProduct['pricePerUnit'].toString()),
+          'discount': TextEditingController(text: '0'),
+        };
+      }
+
+      update();
+      
+      Get.snackbar(
+        'สำเร็จ',
+        'เพิ่มสินค้า ${selectedProducts.length} รายการแล้ว',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      print('❌ Failed to add products from database: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถเพิ่มสินค้าจากฐานข้อมูลได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+
 
   void removeProduct(int index) {
     try {
@@ -894,15 +986,7 @@ class AddEditQuotationController extends GetxController {
         return;
       }
 
-      if (_products.isEmpty) {
-        Get.snackbar(
-          'ข้อผิดพลาด',
-          'กรุณาเพิ่มรายการสินค้า/บริการอย่างน้อย 1 รายการ',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return;
-      }
+      // Products are not required - can save with empty product list
 
       if (_currentWorkspaceId == null || _currentUserId == null) {
         Get.snackbar(

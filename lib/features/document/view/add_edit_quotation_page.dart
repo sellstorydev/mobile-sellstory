@@ -151,7 +151,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
 
                       // Product Section
                       _buildSectionHeader(
-                        'รายการสินค้า/บริการ',
+                        'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
                         Icons.inventory,
                         'product',
                       ),
@@ -283,18 +283,18 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     );
   }
 
-    // Check if section is complete based on required fields
+  // Check if section is complete based on required fields
   bool _isSectionComplete(String sectionKey) {
     final controller = Get.find<AddEditQuotationController>();
-    
+
     switch (sectionKey) {
       case 'customer':
-        return controller.selectedCustomerId != null && 
-               controller.selectedCustomerId!.isNotEmpty;
+        return controller.selectedCustomerId != null &&
+            controller.selectedCustomerId!.isNotEmpty;
       case 'seller':
         return controller.selectedSellerIds.isNotEmpty;
       case 'product':
-        return controller.products.isNotEmpty;
+        return true; // Products are not required, section is always complete
       case 'more':
         return true; // Optional section
       case 'summary':
@@ -564,28 +564,62 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product Selection Type
+          // Product Selection Buttons
           Row(
             children: [
               Expanded(
-                child: _buildRadioButton(
-                  label: 'เลือกจากฐานข้อมูล',
-                  value: 'database',
-                  groupValue: controller.productSelectionType,
-                  onChanged: controller.onProductSelectionTypeChanged,
+                child: ElevatedButton.icon(
+                  onPressed: controller.isLoadingProducts
+                      ? null
+                      : () => _showProductSelectionDialog(controller),
+                  icon: controller.isLoadingProducts
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.storage, color: Colors.white),
+                  label: Text(
+                    controller.isLoadingProducts
+                        ? 'กำลังโหลด...'
+                        : 'เลือกจากฐานข้อมูล',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(width: 12),
               Expanded(
-                child: _buildRadioButton(
-                  label: 'เพิ่มใหม่',
-                  value: 'new',
-                  groupValue: controller.productSelectionType,
-                  onChanged: controller.onProductSelectionTypeChanged,
+                child: OutlinedButton.icon(
+                  onPressed: controller.addProduct,
+                  icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
+                  label: const Text(
+                    'เพิ่มใหม่',
+                    style: TextStyle(color: AppTheme.primaryOrange),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.primaryOrange),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
           // Product List
           if (controller.products.isNotEmpty) ...[
@@ -596,26 +630,6 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
             }).toList(),
             const SizedBox(height: 16),
           ],
-
-          // Add Product Button
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: controller.addProduct,
-              icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
-              label: const Text(
-                'เพิ่มรายการสินค้า/บริการ',
-                style: TextStyle(color: AppTheme.primaryOrange),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppTheme.primaryOrange),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1297,6 +1311,166 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
             child: const Text('ยืนยัน'),
           ),
         ],
+      ),
+    );
+  }
+
+    void _showProductSelectionDialog(AddEditQuotationController controller) {
+    // Use real product data from controller
+    final availableProducts = controller.availableProducts;
+    
+    if (availableProducts.isEmpty) {
+      Get.snackbar(
+        'ข้อมูล',
+        'ไม่พบสินค้าในระบบ กรุณาเพิ่มสินค้าก่อน',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Move tempSelected outside StatefulBuilder to persist selections
+    List<Map<String, dynamic>> tempSelected = [];
+
+    Get.dialog(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('เลือกสินค้าจากฐานข้อมูล'),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 400,
+              child: Column(
+                children: [
+                  // Search bar
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'ค้นหาสินค้า...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      // TODO: Implement search functionality
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Product list
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: availableProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = availableProducts[index];
+                        final isSelected = tempSelected.any(
+                          (p) => p['id'] == product['id'],
+                        );
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppTheme.primaryOrange.withOpacity(0.1)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppTheme.primaryOrange
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                          child: CheckboxListTile(
+                            title: Text(
+                              product['name']?.toString() ?? '',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? AppTheme.primaryOrange
+                                    : AppTheme.textPrimary,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(product['description']?.toString() ?? ''),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      '฿${product['price']?.toString() ?? '0'}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.primaryOrange,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${product['unit']?.toString() ?? ''}',
+                                      style: TextStyle(
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'SKU: ${product['sku']?.toString() ?? ''}',
+                                      style: TextStyle(
+                                        color: AppTheme.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            value: isSelected,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                if (value == true) {
+                                  tempSelected.add(product);
+                                } else {
+                                  tempSelected.removeWhere(
+                                    (p) => p['id'] == product['id'],
+                                  );
+                                }
+                              });
+                            },
+                            activeColor: AppTheme.primaryOrange,
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+                             TextButton(
+                 onPressed: () => Navigator.of(context).pop(), 
+                 child: const Text('ยกเลิก')
+               ),
+                             ElevatedButton(
+                 onPressed: () {
+                   if (tempSelected.isNotEmpty) {
+                     controller.addProductsFromDatabase(tempSelected);
+                     Navigator.of(context).pop(); // Use Navigator.pop instead of Get.back()
+                   } else {
+                     Get.snackbar(
+                       'คำเตือน',
+                       'กรุณาเลือกสินค้าอย่างน้อย 1 รายการ',
+                       backgroundColor: Colors.orange,
+                       colorText: Colors.white,
+                     );
+                   }
+                 },
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: AppTheme.primaryOrange,
+                 ),
+                 child: const Text('เพิ่มสินค้า'),
+               ),
+            ],
+          );
+        },
       ),
     );
   }
