@@ -286,12 +286,7 @@ class DocumentCenterPage extends StatelessWidget {
                 color: const Color(0xFF2196F3),
                 onTap: () {
                   Navigator.of(context).pop();
-                  // TODO: Navigate to create invoice page
-                  Get.snackbar(
-                    'Info',
-                    'Create invoice page coming soon',
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
+                  Get.to(() => const AddEditDocumentPage(documentType: 'INV'));
                 },
               ),
               const SizedBox(height: AppTheme.spacing12),

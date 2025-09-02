@@ -209,14 +209,16 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                              ],
                            );
                          },
-                       ),
+                                               ),
 
-                      // More Options Section
-                      _buildSectionHeader(
-                        'ข้อมูลเพิ่มเติม',
-                        Icons.settings,
-                        'more',
-                      ),
+
+
+                       // More Options Section
+                       _buildSectionHeader(
+                         'ข้อมูลเพิ่มเติม',
+                         Icons.settings,
+                         'more',
+                       ),
                       const SizedBox(height: 12),
                       if (_sectionExpanded['more'] ?? false) ...[
                         _buildMoreOptionsSection(controller),
@@ -1026,6 +1028,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     );
   }
 
+
+
   Widget _buildSummarySection(AddEditDocumentController controller) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1169,6 +1173,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     String? prefix,
     String? suffix,
     bool isRequired = false,
+    Function(String)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1186,6 +1191,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
+          onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
             prefixText: prefix,

@@ -7,15 +7,9 @@ import '../../../domain/entities/customer.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/id_generation_service.dart';
 
-class AddEditDocumentController extends GetxController {
-  final String? documentId;
-  final String documentType; // 'QT' for quotation, 'INV' for invoice
+class AddEditQuotationController extends GetxController {
+  final String? quotationId;
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
-
-  AddEditDocumentController({
-    this.documentId,
-    required this.documentType,
-  });
 
   // Loading state
   bool _isLoading = false;
@@ -147,40 +141,6 @@ class AddEditDocumentController extends GetxController {
   String _documentStatus = 'DRAFT';
   String get documentStatus => _documentStatus;
 
-  // Get available statuses based on document type
-  List<String> get availableStatuses {
-    switch (documentType) {
-      case 'QT':
-        return ['DRAFT', 'SENT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'VOID', 'INVOICED', 'FULLY_PAID'];
-      case 'INV':
-        return ['DRAFT', 'SENT', 'PARTIAL_PAID', 'PAID', 'OVERDUE', 'VOID'];
-      default:
-        return ['DRAFT'];
-    }
-  }
-
-  // Invoice-specific fields
-  String _invoiceType = 'full';
-  String get invoiceType => _invoiceType;
-  
-  String _paymentStatus = 'unpaid';
-  String get paymentStatus => _paymentStatus;
-  
-  String? _relatedQuotationId;
-  String? get relatedQuotationId => _relatedQuotationId;
-  
-  int _installmentNumber = 1;
-  int get installmentNumber => _installmentNumber;
-  
-  int _totalInstallments = 1;
-  int get totalInstallments => _totalInstallments;
-  
-  double _totalAmountFromQuotation = 0.0;
-  double get totalAmountFromQuotation => _totalAmountFromQuotation;
-  
-  double _deductedDeposit = 0.0;
-  double get deductedDeposit => _deductedDeposit;
-
   // Summary section
   bool _isVatEnabled = false;
   bool get isVatEnabled => _isVatEnabled;
@@ -194,7 +154,7 @@ class AddEditDocumentController extends GetxController {
   final Map<String, Map<String, TextEditingController>> _productControllers =
       {};
 
-
+  AddEditQuotationController({this.quotationId});
 
   @override
   void onInit() {
@@ -1056,54 +1016,6 @@ class AddEditDocumentController extends GetxController {
     }
   }
 
-  // Invoice-specific field handlers
-  void onInvoiceTypeChanged(String? type) {
-    if (type != null) {
-      _invoiceType = type;
-      update();
-    }
-  }
-
-  void onPaymentStatusChanged(String? status) {
-    if (status != null) {
-      _paymentStatus = status;
-      update();
-    }
-  }
-
-  void onRelatedQuotationIdChanged(String? id) {
-    _relatedQuotationId = id;
-    update();
-  }
-
-  void onInstallmentNumberChanged(String? number) {
-    if (number != null) {
-      _installmentNumber = int.tryParse(number) ?? 1;
-      update();
-    }
-  }
-
-  void onTotalInstallmentsChanged(String? total) {
-    if (total != null) {
-      _totalInstallments = int.tryParse(total) ?? 1;
-      update();
-    }
-  }
-
-  void onTotalAmountFromQuotationChanged(String? amount) {
-    if (amount != null) {
-      _totalAmountFromQuotation = double.tryParse(amount) ?? 0.0;
-      update();
-    }
-  }
-
-  void onDeductedDepositChanged(String? amount) {
-    if (amount != null) {
-      _deductedDeposit = double.tryParse(amount) ?? 0.0;
-      update();
-    }
-  }
-
   // Calculation methods
   double get subtotal {
     try {
@@ -1199,7 +1111,7 @@ class AddEditDocumentController extends GetxController {
   }
 
   // Save quotation
-  Future<void> saveDocument() async {
+  Future<void> saveQuotation() async {
     try {
       _setLoading(true);
 
@@ -1235,38 +1147,29 @@ class AddEditDocumentController extends GetxController {
         return;
       }
 
-      // Generate document number for new documents
+      // Generate document number for new quotations
       String? docNo;
-      if (documentId == null) {
+      if (quotationId == null) {
         try {
           final idService = Get.find<IdGenerationService>();
-          switch (documentType) {
-            case 'QT':
-              docNo = await idService.generateQuotationDocNo(_currentWorkspaceId!);
-              break;
-            case 'INV':
-              docNo = await idService.generateInvoiceDocNo(_currentWorkspaceId!);
-              break;
-            default:
-              docNo = '${documentType}-${DateTime.now().millisecondsSinceEpoch}';
-          }
+          docNo = await idService.generateQuotationDocNo(_currentWorkspaceId!);
           print('📝 Generated document number: $docNo');
         } catch (e) {
           print('❌ Failed to generate document number: $e');
           // Fallback to timestamp-based number
-          docNo = '${documentType}-${DateTime.now().millisecondsSinceEpoch}';
+          docNo = 'QT-${DateTime.now().millisecondsSinceEpoch}';
         }
       }
 
             // Prepare quotation data
       final quotationData = {
-        'type': documentType,
+        'type': 'QT',
         'docNo': docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}', // Use generated number or fallback
         'status': _documentStatus,
-                'invoiceType': documentType == 'INV' ? _invoiceType : null, // Add invoice type field for invoices
-        'installmentNumber': documentType == 'INV' ? _installmentNumber : null, // Add installment number field for invoices
-        'totalInstallments': documentType == 'INV' ? _totalInstallments : null, // Add total installments field for invoices
-        'totalAmountFromQuotation': documentType == 'INV' ? _totalAmountFromQuotation : null, // Add total amount from quotation field for invoices
+                'invoiceType': 'full', // Add invoice type field for future use
+        'installmentNumber': 1, // Add installment number field
+        'totalInstallments': 1, // Add total installments field
+        'totalAmountFromQuotation': netTotal, // Add total amount from quotation field
         'customerId': _selectedCustomerId,
         'companyId': _selectedCompanyId,
         'customerAddress': customerAddressController.text,
@@ -1274,8 +1177,6 @@ class AddEditDocumentController extends GetxController {
         'customerNationalId': customerNationalIdController.text,
         'customerPhone': customerPhoneController.text,
         'customerEmail': customerEmailController.text,
-        'paymentStatus': documentType == 'INV' ? _paymentStatus : null, // Add payment status for invoices
-        'relatedQuotationId': documentType == 'INV' ? _relatedQuotationId : null, // Add related quotation ID for invoices
         'customer': selectedCustomer != null ? {
           'id': selectedCustomer!.id,
           'address': customerAddressController.text,
@@ -1283,9 +1184,9 @@ class AddEditDocumentController extends GetxController {
           'gender': 'Unknown',
                   'hashtags': [
           {
-            'id': documentType == 'QT' ? 'quotation' : 'invoice',
-            'text': documentType == 'QT' ? 'ใบเสนอราคา' : 'ใบแจ้งหนี้',
-            'color': documentType == 'QT' ? '#3b82f6' : '#10b981',
+            'id': 'quotation',
+            'text': 'ใบเสนอราคา',
+            'color': '#3b82f6',
           },
         ],
         'prefix': '',
@@ -1318,14 +1219,14 @@ class AddEditDocumentController extends GetxController {
           'customFields': [],
           'customerInterest': 'medium', // Add customer interest field
         } : null,
-        'boardName': documentType == 'QT' ? 'Quotations Board' : 'Invoices Board', // Add board name field
+        'boardName': 'Quotations Board', // Add board name field
         'lane': 'Draft', // Add lane field
         'priority': 'medium', // Add priority field
         'dueDate': _validUntilDate?.millisecondsSinceEpoch, // Add due date field
         'todos': [], // Add todos field
         'description': notesController.text, // Add description field
-        'title': documentType == 'QT' ? 'ใบเสนอราคา - ${selectedCustomer?.name ?? 'ลูกค้าใหม่'}' : 'ใบแจ้งหนี้ - ${selectedCustomer?.name ?? 'ลูกค้าใหม่'}', // Add title field
-        'customId': docNo ?? '${documentType}-${DateTime.now().millisecondsSinceEpoch}', // Add custom ID field
+        'title': 'ใบเสนอราคา - ${selectedCustomer?.name ?? 'ลูกค้าใหม่'}', // Add title field
+        'customId': docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}', // Add custom ID field
         'sellerName': sellerNameController.text,
         'sellerPhone': sellerPhoneController.text,
         'seller': _selectedSellerIds.isNotEmpty ? {
@@ -1605,10 +1506,10 @@ class AddEditDocumentController extends GetxController {
             'timestamp': DateTime.now().millisecondsSinceEpoch,
             'userId': _currentUserId!,
             'userDisplayName': 'User', // TODO: Get actual user display name
-            'action': documentId != null ? 'Updated' : 'Created',
-            'details': documentId != null 
-                ? 'Updated ${documentType == 'QT' ? 'quotation' : 'invoice'} ${documentId}' 
-                : 'Created ${documentType == 'QT' ? 'quotation' : 'invoice'} ${docNo ?? '${documentType}-${DateTime.now().millisecondsSinceEpoch}'}',
+            'action': quotationId != null ? 'Updated' : 'Created',
+            'details': quotationId != null 
+                ? 'Updated quotation ${quotationId}' 
+                : 'Created quotation ${docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}'}',
           },
         ],
         'company': selectedCompanyData != null ? {
@@ -1669,28 +1570,28 @@ class AddEditDocumentController extends GetxController {
       };
 
       // Save to Firestore
-      if (documentId != null) {
-        // Update existing document
+      if (quotationId != null) {
+        // Update existing quotation
         await _repository.updateDocument(
           workspaceId: _currentWorkspaceId!,
-          documentId: documentId!,
+          documentId: quotationId!,
           documentData: quotationData,
         );
-        print('📝 Updated ${documentType == 'QT' ? 'quotation' : 'invoice'}: $documentId');
+        print('📝 Updated quotation: $quotationId');
       } else {
-        // Create new document
+        // Create new quotation
         final newDocumentId = await _repository.createDocument(
           workspaceId: _currentWorkspaceId!,
           documentData: quotationData,
         );
-        print('📝 Created new ${documentType == 'QT' ? 'quotation' : 'invoice'} with ID: $newDocumentId');
+        print('📝 Created new quotation with ID: $newDocumentId');
       }
 
       Get.snackbar(
         'สำเร็จ',
-        documentId != null
-            ? 'อัปเดต${documentType == 'QT' ? 'ใบเสนอราคา' : 'ใบแจ้งหนี้'}เรียบร้อย'
-            : 'สร้าง${documentType == 'QT' ? 'ใบเสนอราคา' : 'ใบแจ้งหนี้'}เรียบร้อย',
+        quotationId != null
+            ? 'อัปเดตใบเสนอราคาเรียบร้อย'
+            : 'สร้างใบเสนอราคาเรียบร้อย',
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
