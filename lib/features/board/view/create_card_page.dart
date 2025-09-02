@@ -48,6 +48,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
   DateTime? _expectedClosingDate;
   bool _isLoading = false;
   
+  // Multi-select for collaborators and watchers
+  List<String> _selectedCollaborators = [];
+  List<String> _selectedWatchers = [];
+  
   // Available options
 
   List<Map<String, dynamic>> _availableLanes = [];
@@ -62,6 +66,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
     {'value': 'Done', 'label': 'Done', 'icon': Icons.schedule},
     {'value': 'Cancelled', 'label': 'Cancelled', 'icon': Icons.schedule},
   ];
+
+  // Add history/comment toggle state variable
+  bool _showHistory = true; // true = History, false = Comment
 
   @override
   void initState() {
@@ -210,7 +217,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
       
       // Get users from the workspace - data is already properly formatted from repository
       final users = await _controller.getWorkspaceUsers(workspaceId);
-      _availableUsers = users;
+      
+      // Deduplicate users by ID to prevent dropdown issues
+      final userMap = <String, Map<String, dynamic>>{};
+      for (final user in users) {
+        if (!userMap.containsKey(user['id'])) {
+          userMap[user['id']] = user;
+        }
+      }
+      _availableUsers = userMap.values.toList();
       
       print('✅ Loaded ${_availableUsers.length} users for workspace');
     } catch (e) {
@@ -343,7 +358,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         expenses: [],
         todos: [],
         notes: [],
-        watchers: [currentUserId], // Add creator as watcher
+        collaborators: _selectedCollaborators,
+        watchers: _selectedWatchers.isNotEmpty ? _selectedWatchers : [currentUserId], // Add creator as watcher if none selected
         customFields: [],
         createdBy: currentUserId,
         updatedBy: currentUserId,
@@ -406,6 +422,152 @@ class _CreateCardPageState extends State<CreateCardPage> {
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
       colorText: Colors.white,
+    );
+  }
+
+  // Build History/Comment toggle section
+  Widget _buildHistoryCommentSection() {
+    return Container(
+      margin: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          // Toggle buttons
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showHistory = true;
+                      });
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: _showHistory ? Colors.blue : Colors.transparent,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'History',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _showHistory ? Colors.white : Colors.black54,
+                          fontWeight: _showHistory ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showHistory = false;
+                      });
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: !_showHistory ? Colors.blue : Colors.transparent,
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Comment',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: !_showHistory ? Colors.white : Colors.black54,
+                          fontWeight: !_showHistory ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content area
+          Container(
+            height: 200,
+            width: double.infinity,
+            padding: EdgeInsets.all(16),
+            child: _showHistory ? _buildHistoryContent() : _buildCommentContent(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryContent() {
+    return Column(
+      children: [
+        Icon(
+          Icons.history,
+          size: 48,
+          color: Colors.grey,
+        ),
+        SizedBox(height: 8),
+        Text(
+          'History',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'การเปลี่ยนแปลงจะแสดงที่นี่',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommentContent() {
+    return Column(
+      children: [
+        Icon(
+          Icons.comment,
+          size: 48,
+          color: Colors.grey,
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Comment',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'ความคิดเห็นจะแสดงที่นี่',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
@@ -476,6 +638,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   const SizedBox(height: 16),
                   _buildStatusSection(),
                   const SizedBox(height: 16),
+                  _buildCollaboratorsSection(),
+                  const SizedBox(height: 16),
+                  _buildWatchersSection(),
+                  const SizedBox(height: 16),
                   _buildDetailsSection(),
                   const SizedBox(height: 16),
                   _buildExpenseItemsSection(),
@@ -484,7 +650,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   const SizedBox(height: 16),
                   _buildAttachedFilesSection(),
                   const SizedBox(height: 16),
-                  _buildHistorySection(),
+                  _buildHistoryCommentSection(),
                   const SizedBox(height: 16),
                   _buildCommentsSection(),
                   const SizedBox(height: 32),
@@ -900,12 +1066,166 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
+  Widget _buildCollaboratorsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Collaborators',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            children: [
+              // Selected collaborators chips
+              if (_selectedCollaborators.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: _selectedCollaborators.map((userId) {
+                      final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
+                      final userName = user?['name'] ?? userId;
+                      return Chip(
+                        label: Text(userName),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedCollaborators.remove(userId);
+                          });
+                        },
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              // Add collaborator button
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                child: DropdownButtonFormField<String>(
+                  value: null,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Add Collaborator',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                  items: _availableUsers
+                      .where((user) => !_selectedCollaborators.contains(user['id']))
+                      .map((user) {
+                    return DropdownMenuItem<String>(
+                      value: user['id'],
+                      child: Text(user['name'] ?? user['id']),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null && !_selectedCollaborators.contains(value)) {
+                      setState(() {
+                        _selectedCollaborators.add(value);
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWatchersSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Watchers',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            children: [
+              // Selected watchers chips
+              if (_selectedWatchers.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: _selectedWatchers.map((userId) {
+                      final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
+                      final userName = user?['name'] ?? userId;
+                      return Chip(
+                        label: Text(userName),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedWatchers.remove(userId);
+                          });
+                        },
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              // Add watcher button
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                child: DropdownButtonFormField<String>(
+                  value: null,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Add Watcher',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                  items: _availableUsers
+                      .where((user) => !_selectedWatchers.contains(user['id']))
+                      .map((user) {
+                    return DropdownMenuItem<String>(
+                      value: user['id'],
+                      child: Text(user['name'] ?? user['id']),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null && !_selectedWatchers.contains(value)) {
+                      setState(() {
+                        _selectedWatchers.add(value);
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDetailsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Details',
+          'Description',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,

@@ -35,6 +35,10 @@ class _EditCardPageState extends State<EditCardPage> {
   DateTime? _expectedClosingDate;
   bool _isLoading = false;
   
+  // Multi-select for collaborators and watchers
+  List<String> _selectedCollaborators = [];
+  List<String> _selectedWatchers = [];
+  
   // Available options
   List<Map<String, dynamic>> _availableLanes = [];
   List<Map<String, dynamic>> _availableAssignees = [];
@@ -48,6 +52,9 @@ class _EditCardPageState extends State<EditCardPage> {
     {'value': 'Done', 'label': 'Done', 'icon': Icons.check},
     {'value': 'Cancelled', 'label': 'Cancelled', 'icon': Icons.close},
   ];
+
+  // Add history/comment toggle state variable
+  bool _showHistory = true; // true = History, false = Comment
 
   @override
   void initState() {
@@ -67,6 +74,10 @@ class _EditCardPageState extends State<EditCardPage> {
     _selectedCustomer = widget.card.customer;
     _selectedStatus = widget.card.status;
     _expectedClosingDate = widget.card.dueDate;
+    
+    // Initialize collaborators and watchers
+    _selectedCollaborators = List<String>.from(widget.card.collaborators);
+    _selectedWatchers = List<String>.from(widget.card.watchers);
     
     // Load available options
     await _loadAvailableOptions();
@@ -178,7 +189,15 @@ class _EditCardPageState extends State<EditCardPage> {
       
       // Get users from the workspace - data is already properly formatted from repository
       final users = await _controller.getWorkspaceUsers(workspaceId);
-      _availableAssignees = users;
+      
+      // Deduplicate users by ID to prevent dropdown issues
+      final userMap = <String, Map<String, dynamic>>{};
+      for (final user in users) {
+        if (!userMap.containsKey(user['id'])) {
+          userMap[user['id']] = user;
+        }
+      }
+      _availableAssignees = userMap.values.toList();
       
       print('✅ Loaded ${_availableAssignees.length} users for workspace');
       
@@ -253,7 +272,7 @@ class _EditCardPageState extends State<EditCardPage> {
             const SizedBox(height: 24),
             _buildAttachedFilesSection(),
             const SizedBox(height: 24),
-            _buildHistorySection(),
+            _buildHistoryCommentSection(),
             const SizedBox(height: 24),
             _buildCommentsSection(),
             const SizedBox(height: 100), // Space for bottom buttons
@@ -415,6 +434,150 @@ class _EditCardPageState extends State<EditCardPage> {
                   _selectedLane = value ?? '';
                 });
               },
+            ),
+            const SizedBox(height: 16),
+            
+            // Collaborators Section
+            const Text(
+              'Collaborators',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE1E5E9)),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                children: [
+                  // Selected collaborators chips
+                  if (_selectedCollaborators.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: _selectedCollaborators.map((userId) {
+                          final user = _availableAssignees.firstWhereOrNull((u) => u['id'] == userId);
+                          final userName = user?['name'] ?? userId;
+                          return Chip(
+                            label: Text(userName),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedCollaborators.remove(userId);
+                              });
+                            },
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  // Add collaborator button
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    child: DropdownButtonFormField<String>(
+                      value: null,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Add Collaborator',
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
+                      items: _availableAssignees
+                          .where((user) => !_selectedCollaborators.contains(user['id']))
+                          .map((user) {
+                        return DropdownMenuItem<String>(
+                          value: user['id'],
+                          child: Text(user['name'] ?? user['id']),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null && !_selectedCollaborators.contains(value)) {
+                          setState(() {
+                            _selectedCollaborators.add(value);
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Watchers Section
+            const Text(
+              'Watchers',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE1E5E9)),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                children: [
+                  // Selected watchers chips
+                  if (_selectedWatchers.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: _selectedWatchers.map((userId) {
+                          final user = _availableAssignees.firstWhereOrNull((u) => u['id'] == userId);
+                          final userName = user?['name'] ?? userId;
+                          return Chip(
+                            label: Text(userName),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedWatchers.remove(userId);
+                              });
+                            },
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  // Add watcher button
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    child: DropdownButtonFormField<String>(
+                      value: null,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Add Watcher',
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
+                      items: _availableAssignees
+                          .where((user) => !_selectedWatchers.contains(user['id']))
+                          .map((user) {
+                        return DropdownMenuItem<String>(
+                          value: user['id'],
+                          child: Text(user['name'] ?? user['id']),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null && !_selectedWatchers.contains(value)) {
+                          setState(() {
+                            _selectedWatchers.add(value);
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             
@@ -1113,6 +1276,152 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
+  // Build History/Comment toggle section
+  Widget _buildHistoryCommentSection() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          // Toggle buttons
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showHistory = true;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: _showHistory ? Colors.blue : Colors.transparent,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'History',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _showHistory ? Colors.white : Colors.black54,
+                          fontWeight: _showHistory ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showHistory = false;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: !_showHistory ? Colors.blue : Colors.transparent,
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Comment',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: !_showHistory ? Colors.white : Colors.black54,
+                          fontWeight: !_showHistory ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content area
+          Container(
+            height: 200,
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            child: _showHistory ? _buildHistoryContent() : _buildCommentContent(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryContent() {
+    return Column(
+      children: [
+        const Icon(
+          Icons.history,
+          size: 48,
+          color: Colors.grey,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'History',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'การเปลี่ยนแปลงจะแสดงที่นี่',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommentContent() {
+    return Column(
+      children: [
+        const Icon(
+          Icons.comment,
+          size: 48,
+          color: Colors.grey,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Comment',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'ความคิดเห็นจะแสดงที่นี่',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
   Widget _buildBottomButtons() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1193,6 +1502,8 @@ class _EditCardPageState extends State<EditCardPage> {
         customer: _selectedCustomer,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,
+        collaborators: _selectedCollaborators,
+        watchers: _selectedWatchers,
         updatedAt: DateTime.now(),
       );
 
