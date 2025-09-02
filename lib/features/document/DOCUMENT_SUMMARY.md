@@ -50,7 +50,7 @@ Successfully implemented the document center page with 3 main menu items as requ
   - **Save Button State**: Disabled until all required fields are complete
   - Customer section: customer selection, company selection, address, postal code, national ID, phone, email
   - Seller section: assignee selection using AssigneesInputField, job name, ref ID, document date, valid until date
-  - Product section: two-button interface (เลือกจากฐานข้อมูล/เพิ่มใหม่), real-time product fetching from Firebase database, add/remove products with name, description, quantity, unit, price, discount (not required, default 0 products)
+  - Product section: two-button interface (เลือกจากฐานข้อมูล/เพิ่มใหม่), real-time product fetching from Firebase database, add/remove products with name, description, quantity, unit, price, discount (not required, default 0 products), **required field validation for product addition**
   - More options: payment methods, notes, signature options
   - Summary section: automatic calculations for subtotal, VAT, withholding tax, net total
   - User-friendly UI with proper theming and responsive design
@@ -63,6 +63,7 @@ Successfully implemented the document center page with 3 main menu items as requ
   - Customer and company data management with Firebase integration
   - **Seller/Assignee Management**: Automatic seller assignment from customer assignees, dynamic assignee selection
   - **Product Database Integration**: Real-time product fetching from Firebase, active product filtering, product selection dialog with real data
+  - **Product Validation System**: Required field validation for product name, quantity, unit, and price before adding new products or saving quotation, **real-time validation with UI updates**
   - Product management with dynamic controllers
   - Automatic calculation methods for totals and taxes
   - Form validation and data preparation

@@ -83,32 +83,36 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
                 ),
                 tooltip: 'ย่อทุกส่วน',
               ),
-              TextButton(
-                onPressed:
-                    (controller.isLoading || !_areRequiredFieldsComplete())
-                    ? null
-                    : controller.saveQuotation,
-                child: controller.isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppTheme.primaryOrange,
+              GetBuilder<AddEditQuotationController>(
+                builder: (controller) {
+                  return TextButton(
+                    onPressed:
+                        (controller.isLoading || !_areRequiredFieldsComplete())
+                        ? null
+                        : controller.saveQuotation,
+                    child: controller.isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppTheme.primaryOrange,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            'บันทึก',
+                            style: TextStyle(
+                              color: _areRequiredFieldsComplete()
+                                  ? AppTheme.primaryOrange
+                                  : AppTheme.textGrey,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      )
-                    : Text(
-                        'บันทึก',
-                        style: TextStyle(
-                          color: _areRequiredFieldsComplete()
-                              ? AppTheme.primaryOrange
-                              : AppTheme.textGrey,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                  );
+                },
               ),
             ],
           ),
@@ -126,40 +130,64 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Customer Section
-                      _buildSectionHeader(
-                        'ข้อมูลลูกค้า',
-                        Icons.person,
-                        'customer',
+                      GetBuilder<AddEditQuotationController>(
+                        builder: (controller) {
+                          return Column(
+                            children: [
+                              _buildSectionHeader(
+                                'ข้อมูลลูกค้า',
+                                Icons.person,
+                                'customer',
+                              ),
+                              const SizedBox(height: 12),
+                              if (_sectionExpanded['customer'] ?? false) ...[
+                                _buildCustomerSection(controller),
+                                const SizedBox(height: 24),
+                              ],
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(height: 12),
-                      if (_sectionExpanded['customer'] ?? false) ...[
-                        _buildCustomerSection(controller),
-                        const SizedBox(height: 24),
-                      ],
 
                       // Seller Section
-                      _buildSectionHeader(
-                        'ข้อมูลผู้ขาย',
-                        Icons.business,
-                        'seller',
+                      GetBuilder<AddEditQuotationController>(
+                        builder: (controller) {
+                          return Column(
+                            children: [
+                              _buildSectionHeader(
+                                'ข้อมูลผู้ขาย',
+                                Icons.business,
+                                'seller',
+                              ),
+                              const SizedBox(height: 12),
+                              if (_sectionExpanded['seller'] ?? false) ...[
+                                _buildSellerSection(controller),
+                                const SizedBox(height: 24),
+                              ],
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(height: 12),
-                      if (_sectionExpanded['seller'] ?? false) ...[
-                        _buildSellerSection(controller),
-                        const SizedBox(height: 24),
-                      ],
 
                       // Product Section
-                      _buildSectionHeader(
-                        'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
-                        Icons.inventory,
-                        'product',
+                      GetBuilder<AddEditQuotationController>(
+                        builder: (controller) {
+                          return Column(
+                            children: [
+                              _buildSectionHeader(
+                                'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
+                                Icons.inventory,
+                                'product',
+                              ),
+                              const SizedBox(height: 12),
+                              if (_sectionExpanded['product'] ?? false) ...[
+                                _buildProductSection(controller),
+                                const SizedBox(height: 24),
+                              ],
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(height: 12),
-                      if (_sectionExpanded['product'] ?? false) ...[
-                        _buildProductSection(controller),
-                        const SizedBox(height: 24),
-                      ],
 
                       // More Options Section
                       _buildSectionHeader(
@@ -194,7 +222,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
 
   Widget _buildSectionHeader(String title, IconData icon, String sectionKey) {
     final isExpanded = _sectionExpanded[sectionKey] ?? false;
-    final isRequired = sectionKey == 'customer' || sectionKey == 'seller';
+    final isRequired = sectionKey == 'customer' || sectionKey == 'seller' || sectionKey == 'product';
     final isComplete = _isSectionComplete(sectionKey);
 
     return Container(
@@ -294,7 +322,10 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
       case 'seller':
         return controller.selectedSellerIds.isNotEmpty;
       case 'product':
-        return true; // Products are not required, section is always complete
+        final controller = Get.find<AddEditQuotationController>();
+        return _areAllProductsComplete(
+          controller,
+        ); // Check if all products are complete
       case 'more':
         return true; // Optional section
       case 'summary':
@@ -306,7 +337,96 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
 
   // Check if all required fields are complete
   bool _areRequiredFieldsComplete() {
-    return _isSectionComplete('customer') && _isSectionComplete('seller');
+    final controller = Get.find<AddEditQuotationController>();
+    return _isSectionComplete('customer') &&
+        _isSectionComplete('seller') &&
+        _areAllProductsComplete(controller);
+  }
+
+  // Check if the last product has all required fields filled
+  bool _isLastProductComplete(AddEditQuotationController controller) {
+    if (controller.products.isEmpty) return true;
+
+    final lastIndex = controller.products.length - 1;
+    final product = controller.products[lastIndex];
+    final productId = product['id'];
+
+    // Get controllers for the last product
+    final nameController = controller.getProductController(lastIndex, 'name');
+    final quantityController = controller.getProductController(
+      lastIndex,
+      'quantity',
+    );
+    final unitController = controller.getProductController(lastIndex, 'unit');
+    final priceController = controller.getProductController(
+      lastIndex,
+      'pricePerUnit',
+    );
+
+    // Check if all required fields are filled
+    final name = nameController.text.trim();
+    final quantity = quantityController.text.trim();
+    final unit = unitController.text.trim();
+    final price = priceController.text.trim();
+
+    if (name.isEmpty || quantity.isEmpty || unit.isEmpty || price.isEmpty) {
+      return false;
+    }
+
+    // Check if quantity and price are valid numbers
+    final quantityValue = double.tryParse(quantity);
+    final priceValue = double.tryParse(price);
+
+    if (quantityValue == null ||
+        priceValue == null ||
+        quantityValue <= 0 ||
+        priceValue < 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  // Check if all products have required fields filled
+  bool _areAllProductsComplete(AddEditQuotationController controller) {
+    if (controller.products.isEmpty) return true;
+
+    for (int i = 0; i < controller.products.length; i++) {
+      final product = controller.products[i];
+      final productId = product['id'];
+
+      // Get controllers for this product
+      final nameController = controller.getProductController(i, 'name');
+      final quantityController = controller.getProductController(i, 'quantity');
+      final unitController = controller.getProductController(i, 'unit');
+      final priceController = controller.getProductController(
+        i,
+        'pricePerUnit',
+      );
+
+      // Check if all required fields are filled
+      final name = nameController.text.trim();
+      final quantity = quantityController.text.trim();
+      final unit = unitController.text.trim();
+      final price = priceController.text.trim();
+
+      if (name.isEmpty || quantity.isEmpty || unit.isEmpty || price.isEmpty) {
+        return false;
+      }
+
+      // Check if quantity and price are valid numbers
+      final quantityValue = double.tryParse(quantity);
+      final priceValue = double.tryParse(price);
+
+      if (quantityValue == null ||
+          priceValue == null ||
+          quantityValue <= 0 ||
+          priceValue < 0) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   Widget _buildCustomerSection(AddEditQuotationController controller) {
@@ -602,14 +722,37 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: controller.addProduct,
-                  icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
-                  label: const Text(
+                  onPressed:
+                      controller.products.isEmpty ||
+                          _isLastProductComplete(controller)
+                      ? controller.addProduct
+                      : null,
+                  icon: Icon(
+                    Icons.add,
+                    color:
+                        controller.products.isEmpty ||
+                            _isLastProductComplete(controller)
+                        ? AppTheme.primaryOrange
+                        : AppTheme.textGrey,
+                  ),
+                  label: Text(
                     'เพิ่มใหม่',
-                    style: TextStyle(color: AppTheme.primaryOrange),
+                    style: TextStyle(
+                      color:
+                          controller.products.isEmpty ||
+                              _isLastProductComplete(controller)
+                          ? AppTheme.primaryOrange
+                          : AppTheme.textGrey,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.primaryOrange),
+                    side: BorderSide(
+                      color:
+                          controller.products.isEmpty ||
+                              _isLastProductComplete(controller)
+                          ? AppTheme.primaryOrange
+                          : AppTheme.textGrey,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -630,6 +773,31 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
             }).toList(),
             const SizedBox(height: 16),
           ],
+
+          // Help message for product requirements
+          if (controller.products.isNotEmpty &&
+              !_isLastProductComplete(controller))
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.errorRed.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: AppTheme.errorRed, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'กรุณากรอกข้อมูลสินค้าปัจจุบันให้ครบถ้วน (ชื่อ, จำนวน, หน่วย, ราคา) ก่อนเพิ่มสินค้าใหม่',
+                      style: TextStyle(color: AppTheme.errorRed, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -678,9 +846,10 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
 
           // Product Name
           _buildTextField(
-            label: 'ชื่อสินค้า/บริการ',
+            label: 'ชื่อสินค้า/บริการ *',
             hint: 'กรอกชื่อสินค้า/บริการ',
             controller: controller.getProductController(index, 'name'),
+            isRequired: true,
           ),
           const SizedBox(height: 12),
 
@@ -699,22 +868,24 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
               Expanded(
                 flex: 2,
                 child: _buildTextField(
-                  label: 'จำนวน',
+                  label: 'จำนวน *',
                   hint: '0',
                   controller: controller.getProductController(
                     index,
                     'quantity',
                   ),
                   keyboardType: TextInputType.number,
+                  isRequired: true,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 flex: 1,
                 child: _buildTextField(
-                  label: 'หน่วย',
+                  label: 'หน่วย *',
                   hint: 'ชิ้น',
                   controller: controller.getProductController(index, 'unit'),
+                  isRequired: true,
                 ),
               ),
             ],
@@ -727,7 +898,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
               Expanded(
                 flex: 2,
                 child: _buildTextField(
-                  label: 'ราคาต่อหน่วย',
+                  label: 'ราคาต่อหน่วย *',
                   hint: '0.00',
                   controller: controller.getProductController(
                     index,
@@ -735,6 +906,7 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
                   ),
                   keyboardType: TextInputType.number,
                   prefix: '฿',
+                  isRequired: true,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1315,10 +1487,10 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
     );
   }
 
-    void _showProductSelectionDialog(AddEditQuotationController controller) {
+  void _showProductSelectionDialog(AddEditQuotationController controller) {
     // Use real product data from controller
     final availableProducts = controller.availableProducts;
-    
+
     if (availableProducts.isEmpty) {
       Get.snackbar(
         'ข้อมูล',
@@ -1445,29 +1617,31 @@ class _AddEditQuotationPageState extends State<AddEditQuotationPage> {
               ),
             ),
             actions: [
-                             TextButton(
-                 onPressed: () => Navigator.of(context).pop(), 
-                 child: const Text('ยกเลิก')
-               ),
-                             ElevatedButton(
-                 onPressed: () {
-                   if (tempSelected.isNotEmpty) {
-                     controller.addProductsFromDatabase(tempSelected);
-                     Navigator.of(context).pop(); // Use Navigator.pop instead of Get.back()
-                   } else {
-                     Get.snackbar(
-                       'คำเตือน',
-                       'กรุณาเลือกสินค้าอย่างน้อย 1 รายการ',
-                       backgroundColor: Colors.orange,
-                       colorText: Colors.white,
-                     );
-                   }
-                 },
-                 style: ElevatedButton.styleFrom(
-                   backgroundColor: AppTheme.primaryOrange,
-                 ),
-                 child: const Text('เพิ่มสินค้า'),
-               ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('ยกเลิก'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (tempSelected.isNotEmpty) {
+                    controller.addProductsFromDatabase(tempSelected);
+                    Navigator.of(
+                      context,
+                    ).pop(); // Use Navigator.pop instead of Get.back()
+                  } else {
+                    Get.snackbar(
+                      'คำเตือน',
+                      'กรุณาเลือกสินค้าอย่างน้อย 1 รายการ',
+                      backgroundColor: Colors.orange,
+                      colorText: Colors.white,
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                ),
+                child: const Text('เพิ่มสินค้า'),
+              ),
             ],
           );
         },

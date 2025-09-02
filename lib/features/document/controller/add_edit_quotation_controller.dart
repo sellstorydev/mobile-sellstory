@@ -384,6 +384,9 @@ class AddEditQuotationController extends GetxController {
       // No default products - start with empty list
       _products = [];
 
+      // Add listeners to customer and seller controllers for real-time validation
+      _addFormControllerListeners();
+
       update();
     } catch (e) {
       print('❌ Failed to initialize form: $e');
@@ -394,6 +397,30 @@ class AddEditQuotationController extends GetxController {
         colorText: Colors.white,
       );
     }
+  }
+
+  // Add listeners to form controllers for real-time validation
+  void _addFormControllerListeners() {
+    try {
+      // Add listeners to customer and seller controllers
+      customerAddressController.addListener(() => update());
+      customerPostalCodeController.addListener(() => update());
+      customerNationalIdController.addListener(() => update());
+      customerPhoneController.addListener(() => update());
+      customerEmailController.addListener(() => update());
+      
+      sellerNameController.addListener(() => update());
+      sellerPhoneController.addListener(() => update());
+      jobNameController.addListener(() => update());
+      refIdController.addListener(() => update());
+    } catch (e) {
+      print('❌ Failed to add form controller listeners: $e');
+    }
+  }
+
+  // Force refresh UI for validation updates
+  void refreshValidation() {
+    update();
   }
 
   void _setLoading(bool loading) {
@@ -477,6 +504,7 @@ class AddEditQuotationController extends GetxController {
         sellerNameController.clear();
       }
 
+      // Force update to refresh UI validation
       update();
     } catch (e) {
       print('❌ Failed to change customer: $e');
@@ -680,6 +708,20 @@ class AddEditQuotationController extends GetxController {
 
   void addProduct() {
     try {
+      // Check if previous product has required fields filled
+      if (_products.isNotEmpty) {
+        final lastProductIndex = _products.length - 1;
+        if (!_isProductComplete(lastProductIndex)) {
+          Get.snackbar(
+            'คำเตือน',
+            'กรุณากรอกข้อมูลสินค้าปัจจุบันให้ครบถ้วนก่อนเพิ่มสินค้าใหม่',
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+          );
+          return;
+        }
+      }
+
       final productId = DateTime.now().millisecondsSinceEpoch.toString();
       final product = {
         'id': productId,
@@ -703,6 +745,9 @@ class AddEditQuotationController extends GetxController {
         'discount': TextEditingController(text: '0'),
       };
 
+      // Add listeners to all required field controllers for real-time validation
+      _addProductControllerListeners(productId);
+
       update();
     } catch (e) {
       print('❌ Failed to add product: $e');
@@ -712,6 +757,75 @@ class AddEditQuotationController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  // Add listeners to product controllers for real-time validation
+  void _addProductControllerListeners(String productId) {
+    try {
+      final controllers = _productControllers[productId];
+      if (controllers == null) return;
+
+      // Add listeners to required fields
+      controllers['name']?.addListener(() => update());
+      controllers['quantity']?.addListener(() => update());
+      controllers['unit']?.addListener(() => update());
+      controllers['pricePerUnit']?.addListener(() => update());
+    } catch (e) {
+      print('❌ Failed to add product controller listeners: $e');
+    }
+  }
+
+  // Check if a product has all required fields filled
+  bool _isProductComplete(int index) {
+    try {
+      if (index < 0 || index >= _products.length) return false;
+      
+      final productId = _products[index]['id'];
+      if (!_productControllers.containsKey(productId)) return false;
+      
+      final controllers = _productControllers[productId]!;
+      
+      // Required fields: name, quantity, unit, pricePerUnit
+      final name = controllers['name']?.text.trim() ?? '';
+      final quantity = controllers['quantity']?.text.trim() ?? '';
+      final unit = controllers['unit']?.text.trim() ?? '';
+      final pricePerUnit = controllers['pricePerUnit']?.text.trim() ?? '';
+      
+      // Check if all required fields are filled
+      if (name.isEmpty || quantity.isEmpty || unit.isEmpty || pricePerUnit.isEmpty) {
+        return false;
+      }
+      
+      // Check if quantity and price are valid numbers
+      final quantityValue = double.tryParse(quantity);
+      final priceValue = double.tryParse(pricePerUnit);
+      
+      if (quantityValue == null || priceValue == null || quantityValue <= 0 || priceValue < 0) {
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      print('❌ Failed to check product completion: $e');
+      return false;
+    }
+  }
+
+  // Check if all products have required fields filled
+  bool get areAllProductsComplete {
+    try {
+      if (_products.isEmpty) return true; // No products means complete
+      
+      for (int i = 0; i < _products.length; i++) {
+        if (!_isProductComplete(i)) {
+          return false;
+        }
+      }
+      return true;
+    } catch (e) {
+      print('❌ Failed to check all products completion: $e');
+      return false;
     }
   }
 
@@ -741,6 +855,9 @@ class AddEditQuotationController extends GetxController {
           'pricePerUnit': TextEditingController(text: newProduct['pricePerUnit'].toString()),
           'discount': TextEditingController(text: '0'),
         };
+
+        // Add listeners to all required field controllers for real-time validation
+        _addProductControllerListeners(productId);
       }
 
       update();
@@ -986,7 +1103,16 @@ class AddEditQuotationController extends GetxController {
         return;
       }
 
-      // Products are not required - can save with empty product list
+      // Check if all products have required fields filled
+      if (_products.isNotEmpty && !areAllProductsComplete) {
+        Get.snackbar(
+          'ข้อผิดพลาด',
+          'กรุณากรอกข้อมูลสินค้าทั้งหมดให้ครบถ้วน (ชื่อ, จำนวน, หน่วย, ราคา)',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
 
       if (_currentWorkspaceId == null || _currentUserId == null) {
         Get.snackbar(
