@@ -13,6 +13,10 @@ class ConversationTile extends StatelessWidget {
   final VoidCallback? onAddHashtag;
   final VoidCallback? onAssignSale;
   final VoidCallback? onChangeStatus;
+  // New: start (left-to-right) actions
+  final VoidCallback? onToggleBot;
+  final VoidCallback? onTogglePin;
+
 
   const ConversationTile({
     Key? key,
@@ -22,6 +26,8 @@ class ConversationTile extends StatelessWidget {
     this.onAddHashtag,
     this.onAssignSale,
     this.onChangeStatus,
+    this.onToggleBot,
+    this.onTogglePin,
   }) : super(key: key);
 
 
@@ -129,6 +135,15 @@ class ConversationTile extends StatelessWidget {
 
     final bool isPinned = (conversation['isPinned'] == true) ||
         ((conversation['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
+
+    // Bot status detection
+    bool isBotEnabled = false;
+    final dynamic botRaw = conversation['bot_status'] ?? conversation['isOnline'];
+    if (botRaw is String) {
+      isBotEnabled = botRaw.toUpperCase() == 'Y';
+    } else if (botRaw is bool) {
+      isBotEnabled = botRaw;
+    }
 
     // Title to show on the top line: prefer pageName/providerName, else platform label
     // final topTitle = pageTitle.isNotEmpty ? pageTitle : _platformLabel(platform);
@@ -408,6 +423,46 @@ class ConversationTile extends StatelessWidget {
     return Slidable(
       key: ValueKey(conversation['id'] ?? name),
       closeOnScroll: true,
+      startActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.48, // 2 actions * 0.24
+        children: [
+          CustomSlidableAction(
+            onPressed: (_) => onToggleBot?.call(),
+            backgroundColor: const Color(0xFFFF7A00),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 22),
+                const SizedBox(height: 4),
+                Text(
+                  isBotEnabled ? 'ปิดบอท' : 'เปิดบอท',
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          CustomSlidableAction(
+            onPressed: (_) => onTogglePin?.call(),
+            backgroundColor: Colors.amber.shade700,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.push_pin, color: Colors.white, size: 22),
+                const SizedBox(height: 4),
+                Text(
+                  isPinned ? 'ยกเลิก' : 'ปักหมุด',
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
       endActionPane: ActionPane(
         motion: const DrawerMotion(),
         extentRatio: 0.72, // 3 actions * 0.24

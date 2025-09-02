@@ -5,15 +5,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../controller/chat_controller.dart';
 import '../widgets/conversation_tile.dart';
 import '../widgets/chat_filter_chips.dart';
-import '../../../core/services/logger_service.dart'; // Add this import
-import '../widgets/customer_picker_sheet.dart';
-import 'chat_screen.dart'; // Import ChatScreen
+import '../../../core/services/logger_service.dart';
+import 'chat_screen.dart';
 import '../../../data/services/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/user_picker_sheet.dart';
 import '../widgets/hashtag_picker_sheet.dart';
 import '../widgets/chat_search_bar.dart';
 import '../widgets/chat_filter_sheet.dart';
+import '../../../data/repositories/chatroom_repository.dart';
 
 
 class ChatCenterPage extends StatefulWidget {
@@ -25,11 +25,12 @@ class ChatCenterPage extends StatefulWidget {
 
 class _ChatCenterPageState extends State<ChatCenterPage> {
   final TextEditingController _searchController = TextEditingController();
-  final LoggerService _logger = Get.find<LoggerService>(); // Add logger instance
+  final LoggerService _logger = Get.find<LoggerService>();
 
   late final ChatController _controller;
   String? _currentUserId;
   final ScrollController _listScrollController = ScrollController();
+  final ChatroomRepository _chatRepo = ChatroomRepository();
 
   // Top snack helper (use GetX snackbar at top)
   void _showTopSnack(String message, {bool isError = false}) {
@@ -37,12 +38,11 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     try { Get.closeAllSnackbars(); } catch (_) {}
     Get.snackbar(
       isError ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน',
+      message,
       margin: const EdgeInsets.all(12),
-      'Sales Management coming soon',
       snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 2),
       icon: Icon(isError ? Icons.error_outline : Icons.check_circle, color: Colors.white),
-
     );
   }
 
@@ -70,6 +70,37 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     _searchController.dispose();
     _listScrollController.dispose();
     super.dispose();
+  }
+
+  // AppBar builder for cleaner build()
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.white,
+      centerTitle: false,
+      titleSpacing: 0,
+      title: const Padding(
+        padding: EdgeInsets.only(left: 8),
+        child: Text(
+          'Chat Center',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+          ),
+        ),
+      ),
+      iconTheme: const IconThemeData(color: Colors.black),
+      actions: [
+        IconButton(
+          tooltip: 'รีเฟรช',
+          icon: const Icon(Icons.refresh),
+          onPressed: () => _controller.refresh(),
+          color: Colors.black87,
+        ),
+
+      ],
+    );
   }
 
   // Helpers to update chatroom document
@@ -136,15 +167,12 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
         .toList();
 
     try {
-      await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(wsId)
-          .collection('chatrooms')
-          .doc(chatId)
-          .set({
-            'hashtagIds': ids,
-            'hashtags': names,
-          }, SetOptions(merge: true));
+      await _chatRepo.setChatroomHashtags(
+        workspaceId: wsId,
+        chatroomId: chatId,
+        hashtagIds: ids,
+        hashtagNames: names,
+      );
 
       if (!mounted) return;
       _showTopSnack('อัปเดต Hashtag แล้ว (${names.length})');
@@ -207,30 +235,26 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       } catch (_) {}
     }
 
+
     try {
       if (customerId != null && customerId.isNotEmpty) {
         // Assign to customer-level assignees
-        await FirebaseFirestore.instance
-            .collection('workspaces')
-            .doc(wsId)
-            .collection('customers')
-            .doc(customerId)
-            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+        await _chatRepo.addAssigneeToCustomer(
+          workspaceId: wsId,
+          customerId: customerId,
+          userId: pickedUid,
+        );
       } else {
         // No customer linked: assign to chatroom-level assignees
-        await FirestoreService.to
-            .getChatroomsCollection(wsId)
-            .doc(chatId)
-            .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+        await _chatRepo.addAssigneeToChatroom(
+          workspaceId: wsId,
+          chatroomId: chatId,
+          userId: pickedUid,
+        );
       }
 
       // Optimistically update the list tile to show assignee immediately
-      String displayName = '';
-      try {
-        final u = await FirebaseFirestore.instance.collection('users').doc(pickedUid).get();
-        final m = u.data() ?? {};
-        displayName = (m['displayName'] ?? m['name'] ?? '').toString();
-      } catch (_) {}
+      String displayName = await _chatRepo.getUserDisplayName(pickedUid);
       if (displayName.isEmpty) displayName = pickedUid;
       _controller.addAssigneeLocal(chatId, pickedUid, displayName);
 
@@ -291,33 +315,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        centerTitle: false,
-        titleSpacing: 0,
-        title: const Padding(
-          padding: EdgeInsets.only(left: 8),
-          child: Text(
-            'Chat Center',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: Colors.black,
-            ),
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          IconButton(
-            tooltip: 'รีเฟรช',
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _controller.refresh(),
-            color: Colors.black87,
-          ),
-
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: Column(
         children: [
           ChatSearchBar(
@@ -423,6 +421,8 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
                   onAddHashtag: () => _onAddHashtag(conversation),
                   onAssignSale: () => _onAssignSale(conversation),
                   onChangeStatus: () => _onChangeStatus(conversation),
+                  onToggleBot: () => _toggleBot(conversation),
+                  onTogglePin: () => _togglePin(conversation),
                 ),
               );
             },
@@ -437,6 +437,90 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
         ],
       );
     });
+  }
+
+  Future<void> _toggleBot(Map<String, dynamic> conversation) async {
+    final wsId = _controller.getCurrentWorkspaceId();
+    final chatId = (conversation['id'] ?? '').toString();
+    if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
+      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
+      return;
+    }
+    // Current state
+    bool current = false;
+    final raw = conversation['bot_status'] ?? conversation['isOnline'];
+    if (raw is String) current = raw.toUpperCase() == 'Y';
+    if (raw is bool) current = raw;
+    final next = !current;
+
+    // Optimistic update
+    try {
+      final list = _controller.conversations;
+      final idx = list.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+      if (idx >= 0) {
+        list[idx]['bot_status'] = next ? 'Y' : 'N';
+        list[idx]['isOnline'] = next;
+        list.refresh();
+      }
+    } catch (_) {}
+
+    try {
+      await _chatRepo.setBotStatus(workspaceId: wsId, chatroomId: chatId, enabled: next);
+      _showTopSnack(next ? 'เปิดตอบกลับอัตโนมัติ' : 'ปิดตอบกลับอัตโนมัติ');
+    } catch (e) {
+      // Revert on failure
+      try {
+        final list = _controller.conversations;
+        final idx = list.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+        if (idx >= 0) {
+          list[idx]['bot_status'] = current ? 'Y' : 'N';
+          list[idx]['isOnline'] = current;
+          list.refresh();
+        }
+      } catch (_) {}
+      _showTopSnack('อัปเดตบอทไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
+  Future<void> _togglePin(Map<String, dynamic> conversation) async {
+    final wsId = _controller.getCurrentWorkspaceId();
+    final chatId = (conversation['id'] ?? '').toString();
+    if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
+      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
+      return;
+    }
+
+    final bool currentPinned = (conversation['isPinned'] == true) ||
+        ((conversation['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
+    final nextPinned = !currentPinned;
+
+    // Optimistic update
+    try {
+      final list = _controller.conversations;
+      final idx = list.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+      if (idx >= 0) {
+        list[idx]['chat_pin'] = nextPinned ? 'Y' : 'N';
+        list[idx]['isPinned'] = nextPinned;
+        list.refresh();
+      }
+    } catch (_) {}
+
+    try {
+      await _chatRepo.setPinned(workspaceId: wsId, chatroomId: chatId, pinned: nextPinned);
+      _showTopSnack(nextPinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว');
+    } catch (e) {
+      // Revert on failure
+      try {
+        final list = _controller.conversations;
+        final idx = list.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+        if (idx >= 0) {
+          list[idx]['chat_pin'] = currentPinned ? 'Y' : 'N';
+          list[idx]['isPinned'] = currentPinned;
+          list.refresh();
+        }
+      } catch (_) {}
+      _showTopSnack('อัปเดตปักหมุดไม่สำเร็จ: $e', isError: true);
+    }
   }
 
   void _onConversationTap(Map<String, dynamic> conversation) {
