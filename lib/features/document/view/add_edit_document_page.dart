@@ -1320,13 +1320,132 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'ตรายางบริษัท (Coming Soon)',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ตรายางบริษัท',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: DropdownButtonFormField<String>(
+                          value: controller.selectedCompanySealId,
+                          items: [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('เลือกตรายางบริษัท'),
+                            ),
+                            ...controller.availableCompanySeals.where((seal) => 
+                              seal != null && 
+                              seal['id'] != null
+                            ).map((seal) {
+                              return DropdownMenuItem<String>(
+                                value: seal['id'],
+                                child: Text(
+                                  seal['name'] ?? '',
+                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }),
+                          ],
+                          onChanged: (value) => controller.onCompanySealChanged(value),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Show selected company seal image below dropdown
+                      if (controller.selectedCompanySealId != null) ...[
+                        const SizedBox(height: 8),
+                        Builder(
+                          builder: (context) {
+                            final selectedSeal = controller.availableCompanySeals.firstWhere(
+                              (seal) => seal['id'] == controller.selectedCompanySealId,
+                              orElse: () => <String, dynamic>{},
+                            );
+                            
+                            if (selectedSeal['url']?.isNotEmpty == true) {
+                              return Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: AppTheme.borderGrey),
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppTheme.backgroundGrey.withOpacity(0.1),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 60,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: AppTheme.borderGrey),
+                                        borderRadius: BorderRadius.circular(4),
+                                        color: Colors.white,
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: Image.network(
+                                          selectedSeal['url'],
+                                          fit: BoxFit.contain,
+                                          width: 60,
+                                          height: 30,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              width: 60,
+                                              height: 30,
+                                              color: AppTheme.backgroundGrey,
+                                              child: Icon(Icons.image_not_supported, size: 20),
+                                            );
+                                          },
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return Container(
+                                              width: 60,
+                                              height: 30,
+                                              color: AppTheme.backgroundGrey,
+                                              child: const Center(
+                                                child: SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        selectedSeal['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

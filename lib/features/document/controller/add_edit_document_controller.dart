@@ -148,6 +148,16 @@ class AddEditDocumentController extends GetxController {
   List<Map<String, dynamic>> _templateSignatureFields = [];
   List<Map<String, dynamic>> get templateSignatureFields => _templateSignatureFields;
 
+  // Company seal management
+  List<Map<String, dynamic>> _availableCompanySeals = [];
+  List<Map<String, dynamic>> get availableCompanySeals => _availableCompanySeals;
+
+  bool _isLoadingCompanySeals = false;
+  bool get isLoadingCompanySeals => _isLoadingCompanySeals;
+
+  String? _selectedCompanySealId;
+  String? get selectedCompanySealId => _selectedCompanySealId;
+
   // More options section
   List<String> _selectedPaymentMethods = [];
   List<String> get selectedPaymentMethods => _selectedPaymentMethods;
@@ -269,6 +279,7 @@ class AddEditDocumentController extends GetxController {
         await loadProducts();
         await loadTemplates();
         await loadSignatures();
+        await loadCompanySeals();
         _initializeForm();
       } else {
         print('⚠️ No workspaces found for user: $_currentUserId');
@@ -841,6 +852,57 @@ class AddEditDocumentController extends GetxController {
     update();
   }
 
+  // Load company seals from workspace profile
+  Future<void> loadCompanySeals() async {
+    try {
+      if (_currentWorkspaceId == null) return;
+      _setCompanySealsLoading(true);
+      final workspaceDoc = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(_currentWorkspaceId)
+          .get();
+      if (workspaceDoc.exists) {
+        final workspaceData = workspaceDoc.data();
+        final companyProfile = workspaceData?['companyProfile'] as Map<String, dynamic>?;
+        final docSettings = companyProfile?['docSettings'] as Map<String, dynamic>?;
+        final companySeals = docSettings?['companySeals'] as List<dynamic>?;
+        if (companySeals != null && companySeals.isNotEmpty) {
+          _availableCompanySeals = companySeals.map((seal) {
+            if (seal is Map<String, dynamic>) {
+              return {
+                'id': seal['id']?.toString() ?? '',
+                'name': seal['name']?.toString() ?? '',
+                'ownerName': seal['ownerName']?.toString() ?? '',
+                'position': seal['position']?.toString() ?? '',
+                'url': seal['url']?.toString() ?? '',
+              };
+            }
+            return <String, dynamic>{};
+          }).where((seal) => seal.isNotEmpty).toList();
+          print('✅ Loaded ${_availableCompanySeals.length} company seals from workspace profile');
+        } else {
+          print('⚠️ No company seals found in workspace profile: $_currentWorkspaceId');
+          _availableCompanySeals = [];
+        }
+      } else {
+        print('⚠️ Workspace document not found: $_currentWorkspaceId');
+        _availableCompanySeals = [];
+      }
+      update();
+    } catch (e) {
+      print('❌ Failed to load company seals: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถโหลดข้อมูลตรายางบริษัทได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      _availableCompanySeals = [];
+    } finally {
+      _setCompanySealsLoading(false);
+    }
+  }
+
   // Handle signature selection
   void onSignatureChanged(String signatureRoleName, String? signatureId) {
     try {
@@ -877,6 +939,23 @@ class AddEditDocumentController extends GetxController {
     
     print('📋 Final signature assignments: $assignments');
     return assignments;
+  }
+
+  // Company seal methods
+  void _setCompanySealsLoading(bool loading) {
+    _isLoadingCompanySeals = loading;
+    update();
+  }
+
+  // Handle company seal selection
+  void onCompanySealChanged(String? sealId) {
+    try {
+      _selectedCompanySealId = sealId;
+      print('✅ Selected company seal: $sealId');
+      update();
+    } catch (e) {
+      print('❌ Failed to change company seal: $e');
+    }
   }
 
   // Seller section methods
@@ -1773,6 +1852,7 @@ class AddEditDocumentController extends GetxController {
         'sellerPhone': sellerPhoneController.text,
         'notes': notesController.text,
         'signatureAssignments': _buildSignatureAssignments(),
+        'companySealId': _selectedCompanySealId,
         'templateId': _selectedTemplateId ?? '',
         'customer': selectedCustomer != null ? {
           'id': selectedCustomer!.id,
