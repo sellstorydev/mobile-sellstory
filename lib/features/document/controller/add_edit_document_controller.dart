@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sellstory/features/document/view/quotations_list_page.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/customer.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/id_generation_service.dart';
+import '../view/document_center_page.dart';
 
 class AddEditDocumentController extends GetxController {
   final String? documentId;
@@ -1675,16 +1677,23 @@ class AddEditDocumentController extends GetxController {
         print('📝 Created new document with ID: $newDocumentId');
       }
 
-      Get.snackbar(
-        'สำเร็จ',
-        documentId != null
-            ? 'อัปเดตใบเสนอราคาเรียบร้อย'
-            : 'สร้างใบเสนอราคาเรียบร้อย',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+             // Show success notification with document ID
+       final documentNumber = docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}';
+       final successMessage = documentId != null
+           ? 'อัปเดตใบเสนอราคาเรียบร้อย - เลขที่: $documentNumber'
+           : 'สร้างใบเสนอราคาเรียบร้อย - เลขที่: $documentNumber';
+       
+       Get.snackbar(
+         'สำเร็จ',
+         successMessage,
+         backgroundColor: Colors.green,
+         colorText: Colors.white,
+         duration: Duration(seconds: 4),
+         snackPosition: SnackPosition.TOP,
+       );
 
-      Get.back();
+       // Navigate back to document list page
+       Get.off(() => const QuotationsListPage());
     } catch (e) {
       print('❌ Failed to save document: $e');
       Get.snackbar(

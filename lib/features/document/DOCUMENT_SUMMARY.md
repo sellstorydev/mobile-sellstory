@@ -134,6 +134,13 @@ The quotation data now matches the expected structure with:
 - **Custom Inputs Support**: User input fields are properly saved to `customInputs` object in database
 - **Flexible Product Addition**: No required field validation - users can add products freely once template is selected
 
+### Success Flow Enhancement
+- **Success Notification**: Shows success message with generated document ID in a snackbar
+- **Document ID Display**: Includes the document number in the success message for easy reference
+- **Navigation**: Uses `Get.off()` to navigate back to the document center page after successful save
+- **User Experience**: Provides clear feedback about operation result and generated document ID
+- **Extended Duration**: Success notification stays visible for 4 seconds to ensure user sees the document ID
+
 ### Save Data Structure Enhancement
 - **Dynamic Item Fields**: Product items now include only fields that exist in the selected template
 - **Custom Inputs Mapping**: User input fields from template are saved with their field ID as key
