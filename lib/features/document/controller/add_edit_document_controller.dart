@@ -135,6 +135,19 @@ class AddEditDocumentController extends GetxController {
   List<Map<String, dynamic>> _templateProductFields = [];
   List<Map<String, dynamic>> get templateProductFields => _templateProductFields;
 
+  // Signature management
+  List<Map<String, dynamic>> _availableSignatures = [];
+  List<Map<String, dynamic>> get availableSignatures => _availableSignatures;
+
+  bool _isLoadingSignatures = false;
+  bool get isLoadingSignatures => _isLoadingSignatures;
+
+  Map<String, String> _selectedSignatures = {}; // signatureRoleName -> signatureId
+  Map<String, String> get selectedSignatures => _selectedSignatures;
+
+  List<Map<String, dynamic>> _templateSignatureFields = [];
+  List<Map<String, dynamic>> get templateSignatureFields => _templateSignatureFields;
+
   // More options section
   List<String> _selectedPaymentMethods = [];
   List<String> get selectedPaymentMethods => _selectedPaymentMethods;
@@ -255,6 +268,7 @@ class AddEditDocumentController extends GetxController {
         await _loadWorkspaceMembers();
         await loadProducts();
         await loadTemplates();
+        await loadSignatures();
         _initializeForm();
       } else {
         print('⚠️ No workspaces found for user: $_currentUserId');
@@ -764,6 +778,107 @@ class AddEditDocumentController extends GetxController {
     update();
   }
 
+  // Load signatures from company profile
+  Future<void> loadSignatures() async {
+    try {
+      if (_currentWorkspaceId == null) return;
+      
+      _setSignaturesLoading(true);
+      
+      // Load signatures from Firebase path: workspaces/{WorkspaceId}/companyProfile.docSettings.signatures
+      final workspaceDoc = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(_currentWorkspaceId)
+          .get();
+      
+      if (workspaceDoc.exists) {
+        final workspaceData = workspaceDoc.data();
+        final companyProfile = workspaceData?['companyProfile'] as Map<String, dynamic>?;
+        final docSettings = companyProfile?['docSettings'] as Map<String, dynamic>?;
+        final signatures = docSettings?['signatures'] as List<dynamic>?;
+        
+        if (signatures != null && signatures.isNotEmpty) {
+          _availableSignatures = signatures.map((signature) {
+            if (signature is Map<String, dynamic>) {
+              return {
+                'id': signature['id']?.toString() ?? '',
+                'name': signature['name']?.toString() ?? '',
+                'ownerName': signature['ownerName']?.toString() ?? '',
+                'position': signature['position']?.toString() ?? '',
+                'url': signature['url']?.toString() ?? '',
+              };
+            }
+            return <String, dynamic>{};
+          }).where((signature) => signature.isNotEmpty).toList();
+          
+          print('✅ Loaded ${_availableSignatures.length} signatures from workspace profile');
+        } else {
+          print('⚠️ No signatures found in workspace profile: $_currentWorkspaceId');
+          _availableSignatures = [];
+        }
+      } else {
+        print('⚠️ Workspace document not found: $_currentWorkspaceId');
+        _availableSignatures = [];
+      }
+      
+      update();
+    } catch (e) {
+      print('❌ Failed to load signatures: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถโหลดข้อมูลลายเซ็นได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      _availableSignatures = [];
+    } finally {
+      _setSignaturesLoading(false);
+    }
+  }
+  
+  void _setSignaturesLoading(bool loading) {
+    _isLoadingSignatures = loading;
+    update();
+  }
+
+  // Handle signature selection
+  void onSignatureChanged(String signatureRoleName, String? signatureId) {
+    try {
+      if (signatureId != null) {
+        _selectedSignatures[signatureRoleName] = signatureId;
+        print('✅ Selected signature for role $signatureRoleName: $signatureId');
+      } else {
+        _selectedSignatures.remove(signatureRoleName);
+        print('ℹ️ Removed signature for role $signatureRoleName');
+      }
+      update();
+    } catch (e) {
+      print('❌ Failed to change signature: $e');
+    }
+  }
+
+  // Build signature assignments map for saving to database
+  Map<String, String> _buildSignatureAssignments() {
+    final Map<String, String> assignments = {};
+    
+    // Map each template signature field to its selected signature
+    for (final signatureField in _templateSignatureFields) {
+      final componentId = signatureField['id'] as String?;
+      final roleName = signatureField['signatureRoleName'] as String?;
+      
+      if (componentId != null && roleName != null) {
+        final selectedSignatureId = _selectedSignatures[roleName];
+        if (selectedSignatureId != null) {
+          assignments[componentId] = selectedSignatureId;
+          print('✅ Mapping signature component $componentId to signature $selectedSignatureId');
+        }
+      }
+    }
+    
+    print('📋 Final signature assignments: $assignments');
+    return assignments;
+  }
+
   // Seller section methods
   void onDocumentDateChanged(DateTime? date) {
     try {
@@ -1184,10 +1299,12 @@ class AddEditDocumentController extends GetxController {
         if (template != null) {
           print('✅ Selected template: ${template['name']}');
           _extractProductFieldsFromTemplate(template);
+          _extractSignatureFieldsFromTemplate(template);
         }
       } else {
         print('✅ No template selected');
         _resetToDefaultProductFields();
+        _templateSignatureFields.clear();
       }
       
       update();
@@ -1280,6 +1397,58 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to extract product fields from template: $e');
       _resetToDefaultProductFields();
+    }
+  }
+
+  // Extract signature fields from template
+  void _extractSignatureFieldsFromTemplate(Map<String, dynamic> template) {
+    try {
+      _templateSignatureFields.clear();
+      
+      final fullData = template['fullData'] as Map<String, dynamic>?;
+      if (fullData == null) {
+        print('⚠️ No full template data available');
+        _templateSignatureFields = [];
+        return;
+      }
+      
+      final body = fullData['body'] as Map<String, dynamic>?;
+      if (body == null) {
+        print('⚠️ No body section in template');
+        _templateSignatureFields = [];
+        return;
+      }
+      
+      final components = body['components'] as List<dynamic>?;
+      if (components == null) {
+        print('⚠️ No components in template body');
+        _templateSignatureFields = [];
+        return;
+      }
+      
+      // Find all components with type 'signature'
+      for (final component in components) {
+        if (component is Map<String, dynamic> && component['type'] == 'signature') {
+          final signatureField = {
+            'id': component['id']?.toString() ?? '',
+            'signatureRoleName': component['signatureRoleName']?.toString() ?? '',
+            'x': component['x'] ?? 0,
+            'y': component['y'] ?? 0,
+            'width': component['width'] ?? 0,
+            'height': component['height'] ?? 0,
+            'style': component['style'] ?? {},
+          };
+          
+          _templateSignatureFields.add(signatureField);
+        }
+      }
+      
+      print('✅ Extracted ${_templateSignatureFields.length} signature fields from template: ${template['name']}');
+      print('📋 Signature roles: ${_templateSignatureFields.map((f) => f['signatureRoleName']).toList()}');
+      
+    } catch (e) {
+      print('❌ Failed to extract signature fields from template: $e');
+      _templateSignatureFields = [];
     }
   }
   
@@ -1603,7 +1772,7 @@ class AddEditDocumentController extends GetxController {
         'sellerName': sellerNameController.text,
         'sellerPhone': sellerPhoneController.text,
         'notes': notesController.text,
-        'signatureAssignments': {},
+        'signatureAssignments': _buildSignatureAssignments(),
         'templateId': _selectedTemplateId ?? '',
         'customer': selectedCustomer != null ? {
           'id': selectedCustomer!.id,

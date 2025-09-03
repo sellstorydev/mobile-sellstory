@@ -151,7 +151,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                 ),
                                 const SizedBox(height: 12),
                               if (_sectionExpanded['status_template'] ??
-                                  true) ...[
+                                  true) 
                                 Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
@@ -251,12 +251,13 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                     ],
                                   ),
                                 ),
-                                  const SizedBox(height: 24),
-                                ],
+                                const SizedBox(height: 24),
                               ],
                             );
                           },
                         ),
+
+
 
                                                // Customer Section
                         GetBuilder<AddEditDocumentController>(
@@ -1140,12 +1141,166 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
           const SizedBox(height: 16),
 
-          // Signature and Stamp
-          _buildCheckboxField(
-            label: 'ลายเซ็นและตรายาง',
-            value: controller.includeSignature,
-            onChanged: controller.onIncludeSignatureChanged,
-          ),
+          // Signature Selection (only show if template has signature fields)
+          if (controller.templateSignatureFields.isNotEmpty) ...[
+            Text(
+              'ลายเซ็น',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...controller.templateSignatureFields.where((signatureField) => 
+              signatureField != null && 
+              signatureField['signatureRoleName'] != null
+            ).map((signatureField) {
+              final roleName = signatureField['signatureRoleName']?.toString() ?? '';
+              final selectedSignatureId = controller.selectedSignatures[roleName];
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    roleName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: DropdownButtonFormField<String>(
+                      value: selectedSignatureId,
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('เลือกลายเซ็น'),
+                        ),
+                        ...controller.availableSignatures.where((signature) => 
+                          signature != null && 
+                          signature['id'] != null
+                        ).map((signature) {
+                          return DropdownMenuItem<String>(
+                            value: signature['id'],
+                            child: Text(
+                              signature['name'] ?? '',
+                              style: const TextStyle(fontWeight: FontWeight.w500),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) => controller.onSignatureChanged(roleName, value),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Show selected signature image below dropdown
+                  if (selectedSignatureId != null) ...[
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) {
+                        final selectedSignature = controller.availableSignatures.firstWhere(
+                          (signature) => signature['id'] == selectedSignatureId,
+                          orElse: () => <String, dynamic>{},
+                        );
+                        
+                        if (selectedSignature['url']?.isNotEmpty == true) {
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: AppTheme.borderGrey),
+                              borderRadius: BorderRadius.circular(8),
+                              color: AppTheme.backgroundGrey.withOpacity(0.1),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: AppTheme.borderGrey),
+                                    borderRadius: BorderRadius.circular(4),
+                                    color: Colors.white,
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Image.network(
+                                      selectedSignature['url'],
+                                      fit: BoxFit.contain,
+                                      width: 60,
+                                      height: 30,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          width: 60,
+                                          height: 30,
+                                          color: AppTheme.backgroundGrey,
+                                          child: Icon(Icons.image_not_supported, size: 20),
+                                        );
+                                      },
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return Container(
+                                          width: 60,
+                                          height: 30,
+                                          color: AppTheme.backgroundGrey,
+                                          child: const Center(
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        selectedSignature['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${selectedSignature['ownerName'] ?? ''} - ${selectedSignature['position'] ?? ''}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                ],
+              );
+            }).toList(),
+          ],
           const SizedBox(height: 16),
 
           // Company Stamp (Coming Soon)

@@ -138,6 +138,15 @@ The quotation data now matches the expected structure with:
 - **Success Notification**: Shows success message with generated document ID in a snackbar
 - **Document ID Display**: Includes the document number in the success message for easy reference
 - **Navigation**: Uses `Get.off()` to navigate back to the document center page after successful save
+
+### Template Signature Integration
+- **Signature Field Extraction**: Automatically extracts signature fields from `body.components[signature]` in template data
+- **Signature Loading**: Fetches available signatures from `workspaces/{WorkspaceId}/companyProfile.docSettings.signatures` as JSON field
+- **Dynamic Signature UI**: Signature selection section is only shown when template contains signature components
+- **Role-Based Selection**: Each signature role from template gets its own dropdown with available signatures
+- **Signature Preview**: Shows signature image thumbnail, name, owner name, and position in dropdown options
+- **Signature Management**: Tracks selected signatures by role name for each template signature field
+- **Error Prevention**: Added safety checks and proper image constraints to prevent rendering issues
 - **User Experience**: Provides clear feedback about operation result and generated document ID
 - **Extended Duration**: Success notification stays visible for 4 seconds to ensure user sees the document ID
 
