@@ -163,8 +163,8 @@
           "customer": 2,
           "product": 2,
           "company": 3,
-          "jobCard": 28,
-          "quotation": 1
+          "quotation": 1,
+          "jobCard": 34
         }
       },
       "subCollection": {
@@ -264,6 +264,21 @@
               "fieldName": "Expenses"
             }
           },
+          "HsoHDGccqjnlfKVN7B3d": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756895548271,
+            "details": {
+              "cardId": "DTlfFRFN2Fv0o6dVP7HI",
+              "cardTitle": "Job Card Title",
+              "laneId": "hNGhlwpn4AYa4zje3own",
+              "laneName": "กฟกด"
+            }
+          },
           "IsMInymDQ4oomW77QqTF": {
             "boardId": "Mop2RUYjlM9kRoXGa001",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
@@ -312,6 +327,21 @@
               "fieldName": "Title",
               "from": "New Cardๅ_กก",
               "to": "123456"
+            }
+          },
+          "NBNXiWySgOTeWnzofSDF": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756896135031,
+            "details": {
+              "cardId": "1ejC9IJLOnDEltM2yZrH",
+              "cardTitle": "Job Card Title",
+              "laneId": "nvx4rzpcNcJk8GIw4YsK",
+              "laneName": "Done"
             }
           },
           "NUBtsTUrycKhPzdYDtr7": {
@@ -551,6 +581,114 @@
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/cards": {
+          "1ejC9IJLOnDEltM2yZrH": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "laneId": "nvx4rzpcNcJk8GIw4YsK",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "title": "Job Card Title",
+            "description": "<p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong>Details</strong></span></p>",
+            "status": "In Progress",
+            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [],
+            "hashtags": [
+              {
+                "id": "bew1234455",
+                "text": "Bew1234455",
+                "color": "#eab308"
+              },
+              {
+                "id": "bew213",
+                "text": "Bew213",
+                "color": "#f97316"
+              }
+            ],
+            "expenses": [],
+            "todos": [
+              {
+                "id": "todo-1756896068508",
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong>To-Do List true</strong></span></p>",
+                "completed": true,
+                "dueDate": null,
+                "mentions": []
+              },
+              {
+                "id": "todo-1756896077109",
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong>To-Do List false</strong></span></p>",
+                "completed": false,
+                "dueDate": null,
+                "mentions": []
+              }
+            ],
+            "notes": [],
+            "customer": "Bew",
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "company": {
+              "id": "aVGCGee5LmYsr9oXYfE8",
+              "value": "colaco company",
+              "label": "Main"
+            },
+            "watchers": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "collaborators": [],
+            "createdAt": 1756896134368,
+            "updatedAt": 1756896134368,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "bew kiw",
+            "order": 1,
+            "attachments": [],
+            "quotationTemplateId": "",
+            "customId": "JB-250903-0033",
+            "startDate": 1756832400000,
+            "endDate": 1757091600000,
+            "customerInterest": "เริ่มต้น",
+            "descriptionMentions": []
+          },
+          "1ocikZeTU6WEp52cGIqG": {
+            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "company": "test",
+            "createdAt": 1756895292010,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [
+              {
+                "name": "company",
+                "type": "company_object",
+                "value": {
+                  "id": "Z1h1nm9GM2nfusJh7YuD",
+                  "label": "Main",
+                  "value": "test"
+                }
+              }
+            ],
+            "customId": "JB-030925-0031",
+            "customer": "testssss",
+            "customerId": "IhxyfTOYQ6k1UxmdMTT2",
+            "laneId": "D8FI6YQaNYQLZavNCnyC",
+            "lanes": [
+              "D8FI6YQaNYQLZavNCnyC"
+            ],
+            "memberUids": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "members": [],
+            "name": "test company",
+            "order": 0,
+            "status": "Pending",
+            "title": "test company",
+            "updatedAt": 1756895292010,
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "BewLnwZa",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "workspaces": [
+              {
+                "id": "xKnLu20t7n6A0IJxl4NN",
+                "name": "",
+                "role": "member"
+              }
+            ]
+          },
           "3jxu5Me8oI3sjhAkLek2": {
             "boardId": "uysAvnxpDG4EbdbI7r1Y",
             "laneId": "9V1OtWzxrwJpLLFZoJHp",
@@ -580,7 +718,6 @@
             "laneId": "D8FI6YQaNYQLZavNCnyC",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
             "customFields": [],
-            "notes": [],
             "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "createdAt": 1756140015392,
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
@@ -687,7 +824,46 @@
                 "uploadedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
               }
             ],
-            "updatedAt": 1756874162340
+            "notes": [
+              {
+                "id": "note-1756890723214",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userDisplayName": "bew kiw",
+                "userPhotoURL": null,
+                "text": "<p>1111</p>",
+                "timestamp": 1756890723214,
+                "mentions": [],
+                "cardId": "6VAYUMDzobYF1cTzMOax",
+                "cardTitle": "1111",
+                "type": "text"
+              },
+              {
+                "id": "note-1756890725313",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userDisplayName": "bew kiw",
+                "userPhotoURL": null,
+                "text": "<p>333</p>",
+                "timestamp": 1756890725313,
+                "mentions": [],
+                "cardId": "6VAYUMDzobYF1cTzMOax",
+                "cardTitle": "1111",
+                "type": "text"
+              },
+              {
+                "id": "note-1756890728831",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userDisplayName": "bew kiw",
+                "userPhotoURL": null,
+                "text": "<p>sadfasdfasdf</p>",
+                "timestamp": 1756890728831,
+                "mentions": [],
+                "parentId": "note-1756890723214",
+                "cardId": "6VAYUMDzobYF1cTzMOax",
+                "cardTitle": "1111",
+                "type": "text"
+              }
+            ],
+            "updatedAt": 1756890730434
           },
           "CAHAmmRF3dHOKGfhfMc3": {
             "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
@@ -745,6 +921,70 @@
             "todos": [],
             "startDate": 1751130000000,
             "updatedAt": 1756784163281
+          },
+          "DTlfFRFN2Fv0o6dVP7HI": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "laneId": "hNGhlwpn4AYa4zje3own",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "title": "Job Card Title",
+            "description": "<p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong>Details</strong></span></p>",
+            "status": "In Progress",
+            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [],
+            "hashtags": [
+              {
+                "id": "bew213",
+                "text": "Bew213",
+                "color": "#f97316"
+              },
+              {
+                "id": "bew1234455",
+                "text": "Bew1234455",
+                "color": "#eab308"
+              }
+            ],
+            "expenses": [],
+            "todos": [
+              {
+                "id": "todo-1756895527479",
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong>To-Do List1</strong></span></p>",
+                "completed": false,
+                "dueDate": null,
+                "mentions": []
+              },
+              {
+                "id": "todo-1756895530750",
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong>To-Do List2</strong></span></p>",
+                "completed": false,
+                "dueDate": null,
+                "mentions": []
+              }
+            ],
+            "notes": [],
+            "customer": "Bew",
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "company": {
+              "id": "aVGCGee5LmYsr9oXYfE8",
+              "value": "colaco company",
+              "label": "Main"
+            },
+            "watchers": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "collaborators": [],
+            "createdAt": 1756895547093,
+            "updatedAt": 1756895547093,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "bew kiw",
+            "order": 1,
+            "attachments": [],
+            "quotationTemplateId": "",
+            "customId": "JB-250903-0032",
+            "startDate": 1756832400000,
+            "endDate": 1757091600000,
+            "customerInterest": "เริ่มต้น",
+            "descriptionMentions": []
           },
           "NHwtI90GGgXCvRarNPMP": {
             "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
@@ -814,6 +1054,72 @@
             "status": "Archived",
             "updatedAt": 1756874054375
           },
+          "PzLMSTX3YdwsV7xcTKWW": {
+            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "badges": [
+              "Bew213",
+              "Bew1234455"
+            ],
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "company": "test112345",
+            "createdAt": 1756895257262,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [
+              {
+                "name": "company",
+                "type": "company_object",
+                "value": {
+                  "id": "Vr6SXzHlVkWsYJYnyiMJ",
+                  "label": "Main",
+                  "value": "test112345"
+                }
+              }
+            ],
+            "customId": "JB-030925-0030",
+            "customer": "testssss",
+            "customerId": "IhxyfTOYQ6k1UxmdMTT2",
+            "description": "test desc1234",
+            "dueDate": {
+              "_seconds": 1758819600,
+              "_nanoseconds": 0
+            },
+            "hashtag": "#Bew213 #Bew1234455",
+            "hashtags": [
+              {
+                "color": "#f97316",
+                "id": "bew213",
+                "text": "Bew213"
+              },
+              {
+                "color": "#eab308",
+                "id": "bew1234455",
+                "text": "Bew1234455"
+              }
+            ],
+            "laneId": "hNGhlwpn4AYa4zje3own",
+            "lanes": [
+              "hNGhlwpn4AYa4zje3own"
+            ],
+            "memberUids": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "members": [],
+            "name": "Bew123456",
+            "order": 0,
+            "status": "Done",
+            "title": "Bew123456",
+            "updatedAt": 1756895257262,
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "BewLnwZa",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "workspaces": [
+              {
+                "id": "xKnLu20t7n6A0IJxl4NN",
+                "name": "",
+                "role": "member"
+              }
+            ]
+          },
           "YRd0VCq8PZ0ZO1SpYHw5": {
             "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "boardId": "Mop2RUYjlM9kRoXGa001",
@@ -871,6 +1177,121 @@
             "customerInterest": "น้อย (Low)",
             "order": 2,
             "updatedAt": 1756802252701
+          },
+          "nfWmwTAjWOwenuwEUBkH": {
+            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "badges": [
+              "Bew213"
+            ],
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "company": "test112345",
+            "createdAt": 1756892797520,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customId": "JB-030925-0029",
+            "customer": "testssss",
+            "customerId": "IhxyfTOYQ6k1UxmdMTT2",
+            "description": "test123",
+            "dueDate": {
+              "_seconds": 1759165200,
+              "_nanoseconds": 0
+            },
+            "hashtag": "#Bew213",
+            "hashtags": [
+              {
+                "color": "#f97316",
+                "id": "bew213",
+                "text": "Bew213"
+              }
+            ],
+            "laneId": "hNGhlwpn4AYa4zje3own",
+            "lanes": [
+              "hNGhlwpn4AYa4zje3own"
+            ],
+            "memberUids": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "members": [],
+            "name": "New Card1234sdsssssssss",
+            "order": 0,
+            "status": "In Progress",
+            "title": "New Card1234sdsssssssss",
+            "updatedAt": 1756892797520,
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "BewLnwZa",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "workspaces": [
+              {
+                "id": "xKnLu20t7n6A0IJxl4NN",
+                "name": "",
+                "role": "member"
+              }
+            ]
+          },
+          "uFrXNbIW9Vnukxe7X6Yf": {
+            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "badges": [
+              "Bew213",
+              "Bew1234455"
+            ],
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "company": "colaco company",
+            "createdAt": 1756896518716,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [
+              {
+                "name": "company",
+                "type": "company_object",
+                "value": {
+                  "id": "aVGCGee5LmYsr9oXYfE8",
+                  "label": "Main",
+                  "value": "colaco company"
+                }
+              }
+            ],
+            "customId": "JB-030925-0034",
+            "customer": "Bew",
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "description": "Details",
+            "dueDate": {
+              "_seconds": 1757091600,
+              "_nanoseconds": 0
+            },
+            "hashtag": "#Bew213 #Bew1234455",
+            "hashtags": [
+              {
+                "color": "#f97316",
+                "id": "bew213",
+                "text": "Bew213"
+              },
+              {
+                "color": "#eab308",
+                "id": "bew1234455",
+                "text": "Bew1234455"
+              }
+            ],
+            "laneId": "nvx4rzpcNcJk8GIw4YsK",
+            "lanes": [
+              "nvx4rzpcNcJk8GIw4YsK"
+            ],
+            "memberUids": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "members": [],
+            "name": "Job Card Title",
+            "order": 0,
+            "status": "In Progress",
+            "title": "Job Card Title",
+            "updatedAt": 1756896518716,
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "bew kiw",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "workspaces": [
+              {
+                "id": "xKnLu20t7n6A0IJxl4NN",
+                "name": "",
+                "role": "member"
+              }
+            ]
           },
           "zurP2JTWc5PkQMxferzT": {
             "boardId": "uysAvnxpDG4EbdbI7r1Y",

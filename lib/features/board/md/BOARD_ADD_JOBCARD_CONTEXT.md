@@ -1,7 +1,7 @@
 # Add jobcard
 
 ## Overview
-Add jobcard is page receive input from user to create card in lane on board screen.
+Add jobcard is page receive input from user to create card in lane on board screen. All value will store in frirestore only when press save button. and Based on data or data type you can see in Related Database.
 
 ## Project structure:
 - folder structure is `mvp`
@@ -25,7 +25,8 @@ All input in this file
 - Hashtag `multiple select`
 - Assignee `single select`
 - Customer `single select`
-- Company `single select`
+- Company `single select` 
+- Customer Interest `single select`  "เริ่มตัน|น้อย (Low)|กลาง (Medium)|มาก (High)" 
 - Expected Closing Date `date range select`
 - Status `single select` Pending|In Progress|Done|Canceled
 - Collaborators `multiple select`
@@ -52,7 +53,8 @@ All input in this file
 - Description is html input. Input only have b,i,u,color,h1,h2,h3 
 - Todolist have two option is select form template and create new. When select template go to get value from `/workspaces/{workspaces UIDs}/boards(sub col)/{board UIDs}/todoTemplates[json array]/name`. When tap "+ Add Item" app show input have 1 text input and 4 action. first action is check box ,second seclect datetime picker, third is edit ,four delete todo
 - Attached Files is file picker can select multi limit zise 50 mb, and store to firebase storage and get id folder create to firestore 
-- comment is text input and can reply comment to
+- Comment is text input and can reply comment to
+- Customer Interest is single select.value is  "เริ่มตัน|น้อย (Low)|กลาง (Medium)|มาก (High)" 
 
 ## Create input to database
 - job card id 
@@ -69,7 +71,8 @@ All input in this file
 - Description = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/description`
 - Todo List = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/todos[json array]` value(completed,dueDate,id,title)
 - Attached Files = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/attachments[json array]` value (filename,id,name,size,uploadedAt,url)
-- comment = you can mock data
+- comment = you can mock data 
+- Customer Interest =  `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/customerInterest`
 
 ## Related Database
 Collection
