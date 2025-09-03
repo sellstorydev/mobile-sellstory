@@ -1,3 +1,5 @@
+
+
 นี่จะเป็น file.md ของ card view ใน lane หน้า board 
 
 นี่จะเป็นค่า mapping ตัวแปรที่ใช้แสดงหน้า card view /workspaces/{workspace_id}/cards/{card_id}
