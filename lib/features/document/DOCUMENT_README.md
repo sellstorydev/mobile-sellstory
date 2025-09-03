@@ -1215,6 +1215,487 @@ example data:
 }
 ```
 
+#### workspaces/{WorkspaceId}/quotationTemplates/{Quotation template uids}
+example data:
+```
+{
+  "headers": [
+    {
+      "id": "header-ms-1",
+      "height": 100,
+      "displayOn": "all_pages",
+      "components": [
+        {
+          "id": "comp-ms-bg",
+          "type": "shape",
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 100,
+          "content": "",
+          "style": {
+            "zIndex": 0,
+            "backgroundColor": "#4f46e5"
+          }
+        },
+        {
+          "id": "comp-ms-logo",
+          "type": "image",
+          "x": 40,
+          "y": 30,
+          "width": 120,
+          "height": 40,
+          "content": "{company.logoUrl}",
+          "style": {
+            "zIndex": 1,
+            "objectFit": "contain"
+          }
+        }
+      ]
+    }
+  ],
+  "footers": [
+    {
+      "id": "footer-ms-1",
+      "height": 80,
+      "displayOn": "all_pages",
+      "components": [
+        {
+          "id": "comp-ms-footer-bg",
+          "type": "shape",
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 80,
+          "content": "",
+          "style": {
+            "zIndex": 0,
+            "backgroundColor": "#f3f4f6"
+          }
+        },
+        {
+          "id": "comp-ms-footer-text",
+          "type": "text",
+          "x": 40,
+          "y": 20,
+          "width": 710,
+          "height": 40,
+          "content": "<p style=\"font-size:12px; color:#555; text-align:center;\">ขอบคุณที่ให้ความไว้วางใจ | Thank you for your business!<br/>{company.name} | {company.phone}</p>",
+          "style": {
+            "zIndex": 1
+          }
+        }
+      ]
+    }
+  ],
+  "name": "Modern Standard Quotation",
+  "createdAt": 1756883171344,
+  "page": {
+    "width": "210mm",
+    "height": "297mm",
+    "fontFamily": "Kanit",
+    "pageNumbering": {
+      "enabled": true,
+      "format": "Page {page} of {total}",
+      "position": "bottom_right"
+    }
+  },
+  "body": {
+    "components": [
+      {
+        "id": "comp-ms-customer",
+        "type": "text",
+        "x": 40,
+        "y": 120,
+        "width": 300,
+        "height": 60,
+        "content": "<p style=\"color:#666;\">Prepared for:</p><h2 style=\"font-size: 16px; font-weight: bold;\">{customer.name}</h2>",
+        "style": {
+          "zIndex": 1
+        }
+      },
+      {
+        "id": "comp-ms-table",
+        "type": "table",
+        "x": 32,
+        "y": 172.99996948242188,
+        "width": 725,
+        "height": 575,
+        "columns": [
+          {
+            "id": "zPaHS",
+            "label": "สินค้า/บริการ",
+            "type": "product_field",
+            "sourceField": "name",
+            "isVisible": true,
+            "isEditable": true,
+            "order": 0,
+            "width": "50%",
+            "style": {
+              "isBold": true,
+              "fontSize": 13
+            }
+          },
+          {
+            "id": "W_g5e",
+            "label": "จำนวน",
+            "type": "predefined",
+            "predefinedField": "quantity",
+            "isVisible": true,
+            "isEditable": true,
+            "order": 1,
+            "width": "15%",
+            "align": "center",
+            "style": {
+              "fontSize": 13
+            }
+          },
+          {
+            "id": "Ymno3",
+            "label": "ราคาต่อหน่วย",
+            "type": "product_field",
+            "sourceField": "pricePerUnit",
+            "isVisible": true,
+            "isEditable": true,
+            "order": 2,
+            "width": "15%",
+            "align": "right",
+            "style": {
+              "fontSize": 13
+            }
+          },
+          {
+            "id": "ydgIX",
+            "label": "รวม",
+            "type": "predefined",
+            "predefinedField": "line_total",
+            "isVisible": true,
+            "isEditable": false,
+            "order": 3,
+            "width": "20%",
+            "align": "right",
+            "style": {
+              "fontSize": 13
+            }
+          },
+          {
+            "id": "yijiNdwuqjPqoM468sq_W",
+            "label": "New Column",
+            "type": "user_input",
+            "isVisible": true,
+            "isEditable": true,
+            "order": 4
+          }
+        ],
+        "style": {
+          "zIndex": 1,
+          "headerColor": "#4f46e5",
+          "textColor": "#ffffff",
+          "headerHeight": 40
+        },
+        "content": ""
+      },
+      {
+        "id": "comp-ms-summary",
+        "type": "summary",
+        "x": 450,
+        "y": 720,
+        "width": 300,
+        "height": 150,
+        "content": "",
+        "style": {
+          "zIndex": 1
+        },
+        "summaryFields": {
+          "subtotal": true,
+          "discount": true,
+          "vat": true,
+          "grandTotal": true
+        }
+      },
+      {
+        "id": "comp-LX-QH6m7CFDce-G5DTfLR",
+        "type": "summary",
+        "x": 59.782470703125,
+        "y": 696.6296081542969,
+        "width": 251,
+        "height": 200,
+        "content": "",
+        "style": {
+          "zIndex": 7
+        },
+        "summaryFields": {
+          "subtotal": true,
+          "discount": true,
+          "totalAfterDiscount": false,
+          "vat": true,
+          "grandTotal": true,
+          "wht": false,
+          "netTotal": false,
+          "deposit": false,
+          "shipping": false,
+          "amountDue": false
+        }
+      }
+    ]
+  },
+  "updatedAt": 1756883423992
+}
+```
+### workspaces/{Workspace Id}/quotationTemplates/{templateIds}
+example data:
+```
+{
+  "page": {
+    "width": "210mm",
+    "height": "297mm",
+    "fontFamily": "Sarabun",
+    "pageNumbering": {
+      "enabled": true,
+      "format": "Page {page} of {total}",
+      "position": "bottom_right"
+    }
+  },
+  "headers": [
+    {
+      "id": "header-MrTVY-f21rRbaXQXc42Kl",
+      "height": 140,
+      "displayOn": "all_pages",
+      "components": [
+        {
+          "id": "comp-eSTmpkGb7bMTUdId3Oxvv",
+          "type": "image",
+          "x": 40,
+          "y": 30,
+          "width": 120,
+          "height": 80,
+          "content": "{company.logoUrl}",
+          "style": {
+            "zIndex": 1,
+            "objectFit": "contain"
+          }
+        }
+      ]
+    },
+    {
+      "id": "header-3UUno2DcjQTTlvFtUP_HA",
+      "height": 120,
+      "displayOn": "first_page_only",
+      "components": [
+        {
+          "id": "comp-nIcCGfCZNh222I72wCYWj",
+          "type": "text",
+          "x": 40,
+          "y": 10,
+          "width": 350,
+          "height": 100,
+          "content": "<p style=\"font-size: 14px; font-weight: bold;\">{company.name}</p><p style=\"font-size: 12px; color: #4b5563;\">{company.address}</p><p style=\"font-size: 12px; color: #4b5563;\">เลขประจำตัวผู้เสียภาษี: {company.taxId}</p>",
+          "style": {
+            "zIndex": 1,
+            "lineHeight": "1.5"
+          }
+        },
+        {
+          "id": "comp-zmxwU7Uh0eWcQX1nq0kVN",
+          "type": "shape",
+          "x": 40,
+          "y": 118,
+          "width": 710,
+          "height": 2,
+          "style": {
+            "zIndex": 0,
+            "backgroundColor": "#e5e7eb"
+          },
+          "content": ""
+        },
+        {
+          "id": "comp-cpq-title",
+          "type": "text",
+          "x": 450,
+          "y": 40,
+          "width": 300,
+          "height": 80,
+          "content": "<h1 style=\"font-size: 28px; font-weight: bold; color: #111827;\">ใบเสนอราคา</h1><p style=\"font-size: 14px; color: #4b5563;\">QUOTATION</p>",
+          "style": {
+            "zIndex": 1,
+            "textAlign": "right"
+          }
+        },
+        {
+          "id": "comp-cpq-docinfo",
+          "type": "text",
+          "x": 450,
+          "y": 120,
+          "width": 300,
+          "height": 100,
+          "content": "<table style=\"font-size: 12px; width: 100%;\"><tr><td style=\"font-weight: bold; text-align: right; padding: 2px 8px;\">เลขที่:</td><td style=\"text-align: right; padding: 2px;\">{quotation.docNo}</td></tr><tr><td style=\"font-weight: bold; text-align: right; padding: 2px 8px;\">วันที่:</td><td style=\"text-align: right; padding: 2px;\">{quotation.createdAt}</td></tr><tr><td style=\"font-weight: bold; text-align: right; padding: 2px 8px;\">ยืนราคาถึง:</td><td style=\"text-align: right; padding: 2px;\">{quotation.validUntil}</td></tr></table>",
+          "style": {
+            "zIndex": 1
+          }
+        }
+      ]
+    }
+  ],
+  "footers": [
+    {
+      "id": "footer-lF5tHZ5UM0cdgbdk-Ad2N",
+      "height": 150,
+      "displayOn": "last_page_only",
+      "components": [
+        {
+          "id": "comp-P05USKavcBHzGW8AOsS_3",
+          "type": "text",
+          "x": 40,
+          "y": 20,
+          "width": 350,
+          "height": 100,
+          "content": "<p style=\"font-weight: bold;\">การชำระเงิน:</p><p>{payment.bankName}</p><p>ชื่อบัญชี: {payment.accountName}</p><p>เลขที่บัญชี: {payment.accountNumber}</p>",
+          "style": {
+            "zIndex": 1,
+            "fontSize": 12,
+            "lineHeight": "1.6"
+          }
+        },
+        {
+          "id": "comp-Zc9L0oi9VDw8qmTyX_vtZ",
+          "type": "text",
+          "x": 40,
+          "y": 100,
+          "width": 350,
+          "height": 40,
+          "content": "<p style=\"font-weight: bold;\">หมายเหตุ:</p><p style=\"color: #4b5563;\">{document.notes}</p>",
+          "style": {
+            "zIndex": 1,
+            "fontSize": 12,
+            "lineHeight": "1.6"
+          }
+        },
+        {
+          "id": "comp-Tikiaj8UYyJHCYmpbqkMs",
+          "type": "signature",
+          "x": 500,
+          "y": 30,
+          "width": 200,
+          "height": 80,
+          "signatureRoleName": "ผู้อนุมัติ",
+          "style": {
+            "zIndex": 1
+          },
+          "content": ""
+        }
+      ]
+    }
+  ],
+  "name": "Classic Professional Quotation",
+  "createdAt": 1756810137895,
+  "body": {
+    "components": [
+      {
+        "id": "comp-AfSgUm9gqmAxQB5YlfxPe",
+        "type": "text",
+        "x": 40,
+        "y": 10,
+        "width": 350,
+        "height": 80,
+        "content": "<p style=\"font-size: 12px; color: #4b5563;\">เรียน:</p><p style=\"font-size: 14px; font-weight: bold;\">{customer.name}</p><p style=\"font-size: 12px; color: #4b5563;\">{customer.address}</p><p style=\"font-size: 12px; color: #4b5563;\">เลขประจำตัวผู้เสียภาษี: {customer.nationalId}</p>",
+        "style": {
+          "zIndex": 1,
+          "lineHeight": "1.5"
+        }
+      },
+      {
+        "id": "comp-z8C-UtlynKfzHSghFP0rG",
+        "type": "table",
+        "x": 40,
+        "y": 100,
+        "width": 710,
+        "height": 500,
+        "columns": [
+          {
+            "id": "J6A6z",
+            "label": "รายการ",
+            "type": "product_field",
+            "sourceField": "name",
+            "isVisible": true,
+            "isEditable": false,
+            "order": 0,
+            "width": "40%",
+            "style": {
+              "isBold": true
+            }
+          },
+          {
+            "id": "n6BTF",
+            "label": "จำนวน",
+            "type": "predefined",
+            "predefinedField": "quantity",
+            "isVisible": true,
+            "isEditable": true,
+            "order": 1,
+            "width": "15%",
+            "align": "center"
+          },
+          {
+            "id": "MdCPU",
+            "label": "ราคา/หน่วย",
+            "type": "product_field",
+            "sourceField": "pricePerUnit",
+            "isVisible": true,
+            "isEditable": true,
+            "order": 2,
+            "width": "20%",
+            "align": "right"
+          },
+          {
+            "id": "3bVWP",
+            "label": "ยอดรวม",
+            "type": "predefined",
+            "predefinedField": "line_total",
+            "isVisible": true,
+            "isEditable": false,
+            "order": 3,
+            "formula": "{quantity} * {pricePerUnit}",
+            "width": "25%",
+            "align": "right"
+          }
+        ],
+        "style": {
+          "zIndex": 1,
+          "headerColor": "#f3f4f6",
+          "headerHeight": 35,
+          "borderColor": "#d1d5db",
+          "headerStyle": {
+            "isBold": true
+          }
+        },
+        "content": ""
+      },
+      {
+        "id": "comp-cpq-summary",
+        "type": "summary",
+        "x": 450,
+        "y": 599,
+        "width": 300,
+        "height": 150,
+        "content": "",
+        "style": {
+          "zIndex": 1
+        },
+        "summaryFields": {
+          "subtotal": true,
+          "discount": true,
+          "vat": true,
+          "grandTotal": true,
+          "wht": true,
+          "netTotal": true
+        }
+      }
+    ]
+  },
+  "updatedAt": 1756810146574
+}
+```
+
 **remark**
 - rule of generate "docNo" you can watch file `lib\core\services\id_generation_service.dart` example rule of this docNo
 ```

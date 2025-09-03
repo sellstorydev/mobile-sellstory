@@ -1,198 +1,183 @@
-# Document System Implementation Summary
+# Document System Summary
 
-## Overview
-Successfully implemented the document center page with 3 main menu items as requested:
-- ใบเสนอราคา (Quotations)
-- แจ้งหนี้ (Invoices) 
-- ใบเสร็จรับเงิน (Receipts)
+## Recent Changes - Field Mapping Fix
 
-## Files Created/Modified
+### Issue Identified
+The quotation data was being saved with incorrect field mappings, causing data structure mismatch between expected and actual saved data.
 
-### 1. Document Center Page
-- **File**: `lib/features/document/view/document_center_page.dart`
-- **Features**:
-  - Header section with system description
-  - Grid layout with 4 cards: 3 document types + "Create New"
-  - Responsive design with proper theming
-  - Status indicators and date formatting
+### Changes Made
 
-### 2. Quotations List Page
-- **File**: `lib/features/document/view/quotations_list_page.dart`
-- **Features**:
-  - Search functionality for quotations
-  - Filter button as suffix of search bar with active filter indicator
-  - Filter center full page navigation with all filter options
-  - Filter by seller, date range, and status
-  - List view with quotation cards showing key information
-  - Status chips with color coding
-  - Empty state when no quotations found
-  - Add new quotation button
+#### 1. Updated Document Data Structure in `add_edit_document_controller.dart`
 
-### 3. Quotations Filter Page
-- **File**: `lib/features/document/view/quotations_filter_page.dart`
-- **Features**:
-  - Full page filter center with clean UI
-  - Individual filter sections with icons and current values
-  - Date range picker with custom date selection
-  - Multi-select status filter
-  - Clear filters functionality
-  - Proper navigation back to list page
+**Before (Wrong Structure):**
+- Complex nested seller object with unnecessary fields
+- Duplicate product data in both 'products' and 'items' arrays
+- Extra fields not needed for quotation
+- Incorrect field names and structure
 
-### 4. Add/Edit Quotation Page
-- **File**: `lib/features/document/view/add_edit_quotation_page.dart`
-- **Features**:
-  - Comprehensive form with all required input fields organized in sections
-  - **Document Status Section**: Collapsible status section with status dropdown showing selected status in header, all quotation status options (DRAFT, SENT, PENDING_APPROVAL, APPROVED, REJECTED, VOID, INVOICED, FULLY_PAID)
-  - **Expandable/Collapsible Sections**: Each section can be expanded/collapsed to improve user experience
-  - **Section Management**: Expand all, collapse all, and individual section control
-  - **Required Field Validation**: Visual indicators for required fields (customer selection, seller assignee)
-  - **Section Completion Status**: Color-coded section headers showing completion status (green=complete, red=incomplete)
-  - **Overall Progress Indicator**: Top status bar showing completion progress (X/2 required fields)
-  - **Save Button State**: Disabled until all required fields are complete
-  - Customer section: customer selection, company selection, address, postal code, national ID, phone, email
-  - Seller section: assignee selection using AssigneesInputField, job name, ref ID, document date, valid until date
-  - Product section: two-button interface (เลือกจากฐานข้อมูล/เพิ่มใหม่), real-time product fetching from Firebase database, add/remove products with name, description, quantity, unit, price, discount (not required, default 0 products), **required field validation for product addition**
-  - More options: payment methods, notes, signature options
-  - Summary section: automatic calculations for subtotal, VAT, withholding tax, net total
-  - User-friendly UI with proper theming and responsive design
-  - Form validation and error handling
+**After (Correct Structure):**
+```dart
+final documentData = {
+  'status': _documentStatus,
+  'items': [...], // Only items array, no duplicate products
+  'discount': totalDiscount,
+  'withholdingTaxPercentage': whtPercentage,
+  'isVatEnabled': _isVatEnabled,
+  'project': {
+    'name': jobNameController.text,
+    'refId': refIdController.text,
+  },
+  'seller': {
+    'lastDeviceId': 'BE2A.250530.026.F3',
+    'fcmTokenUpdatedAt': {...},
+    'displayName': sellerNameController.text,
+    'fcmToken': '',
+    'uid': _selectedSellerIds.first,
+    'viewSettings': {...},
+    'email': 'minimark@sellstory.me',
+    'lastPlatform': 'android',
+    'language': 'en',
+    'workspaces': [...],
+    'photoURL': null,
+  },
+  'sellerName': sellerNameController.text,
+  'sellerPhone': sellerPhoneController.text,
+  'notes': notesController.text,
+  'signatureAssignments': {},
+  'templateId': '',
+  'customer': {...},
+  'jobName': jobNameController.text,
+  'validUntil': _validUntilDate?.millisecondsSinceEpoch,
+  'company': {...},
+  'subtotal': subtotal,
+  'grandTotal': netTotal,
+  'vatAmount': vatAmount,
+  'netTotal': netTotal,
+  'whtAmount': whtAmount,
+  'docNo': docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}',
+  'type': 'QT',
+  'workspaceId': _currentWorkspaceId!,
+  'createdAt': DateTime.now().millisecondsSinceEpoch,
+  'updatedAt': DateTime.now().millisecondsSinceEpoch,
+  'createdBy': _currentUserId!,
+  'updatedBy': _currentUserId!,
+  'activityLog': [...],
+};
+```
 
-### 5. Add/Edit Quotation Controller
-- **File**: `lib/features/document/controller/add_edit_quotation_controller.dart`
-- **Features**:
-  - State management for all form fields
-  - **Document Status Management**: Status field with all quotation status options and change handling
-  - Customer and company data management with Firebase integration
-  - **Seller/Assignee Management**: Automatic seller assignment from customer assignees, dynamic assignee selection
-  - **Product Database Integration**: Real-time product fetching from Firebase, active product filtering, product selection dialog with real data
-  - **Product Validation System**: Required field validation for product name, quantity, unit, and price before adding new products or saving quotation, **real-time validation with UI updates**
-  - **Document Creation & Update**: Full Firestore save/update functionality with proper document structure
-  - **Document Number Generation**: Automatic document number generation using IdGenerationService with workspace-specific rules
-  - Product management with dynamic controllers
-  - Automatic calculation methods for totals and taxes
-  - Form validation and data preparation
-  - **Complete Firestore Integration**: Save new quotations and update existing quotations to `workspaces/{workspaceId}/documents/{documentId}`
-  - Proper controller lifecycle management
+#### 2. Key Field Mappings Fixed
 
-### 6. Document Center Controller
-- **File**: `lib/features/document/controller/document_center_controller.dart`
-- **Features**:
-  - User and workspace initialization
-  - Navigation methods for each document type
-  - Error handling and loading states
+**Items Structure:**
+- ✅ `items` array with `customInputs: {}` field
+- ✅ Removed duplicate `products` array
+- ✅ Correct field names: `id`, `name`, `description`, `quantity`, `unit`, `pricePerUnit`, `discount`
 
-### 7. Quotations List Controller
-- **File**: `lib/features/document/controller/quotations_list_controller.dart`
-- **Features**:
-  - Load quotations from Firestore with type filtering
-  - Search functionality across document number, customer name, and seller
-  - Filter by seller, date range, and status
-  - Real-time filtering and search
-  - Date formatting utilities
+**Seller Structure:**
+- ✅ Simplified seller object with only required fields
+- ✅ Correct `fcmTokenUpdatedAt` format with `seconds` and `nanoseconds`
+- ✅ Proper `viewSettings` structure for customer profile cards
 
-### 8. Firestore Integration
-- **Modified**: `lib/data/services/firestore_service.dart`
-  - Added `getWorkspaceDocumentsCollection()` method
-  - Added `getDocumentReference()` method for getting document references by ID
-- **Modified**: `lib/data/repositories/firestore_repository.dart`
-  - Added `getDocuments()` method with limit and ordering
-  - **Added `createDocument()` method**: Creates new documents in Firestore with proper workspace structure
-  - **Added `updateDocument()` method**: Updates existing documents in Firestore
-- **Modified**: `lib/core/services/id_generation_service.dart`
-  - **Added `generateQuotationDocNo()` method**: Generates quotation document numbers using workspace-specific ID generation rules
+**Customer Structure:**
+- ✅ Simplified customer object with essential fields only
+- ✅ Correct email and phone structure with `label`, `value`, `id`
 
-### 9. Shell Integration
-- **Modified**: `lib/features/shell/shell_page.dart`
-  - Replaced OrdersPage with DocumentCenterPage
-  - Updated imports
+**Company Structure:**
+- ✅ Simplified company object with `value`, `id`, `label` fields
 
-## UI Components
+**Document Numbers:**
+- ✅ Updated fallback prefix from 'QT-' to 'EST-' for quotations
+- ✅ Consistent document number generation
 
-### Document Type Cards
-- **ใบเสนอราคา** (Green color, receipt icon)
-- **ใบแจ้งหนี้** (Blue color, description icon)
-- **ใบเสร็จรับเงิน** (Orange color, payment icon)
-- **สร้างใหม่** (Primary orange, add circle icon)
+#### 3. Removed Unnecessary Fields
 
-### Create Document Dialog
-- Popup dialog when "Create New" is clicked
-- Shows 3 document type options: Quotations, Invoices, Receipts
-- Each option has icon, title, and subtitle
-- Cancel button to close dialog
-- Ready for future implementation of individual create pages
+**Fields Removed:**
+- `invoiceType`, `installmentNumber`, `totalInstallments`
+- `totalAmountFromDocument`, `customerId`, `companyId`
+- `customerAddress`, `customerPostalCode`, `customerNationalId`
+- `customerPhone`, `customerEmail`
+- `boardName`, `lane`, `priority`, `dueDate`, `todos`
+- `description`, `title`, `customId`
+- `paymentMethods`, `paymentStatus`, `receiptFor`
+- `paymentDate`, `includeSignature`, `relatedDocuments`
+- `isWhtEnabled`, `whtPercentage`
+- `totalAmountBeforeDiscount`, `totalAmountAfterDiscount`
+- `shippingCost`, `depositAmount`, `deductedDeposit`
+- `afterVat`, `totalAmountBeforeVat`
+- `approval`, `depositInfo`, `invoicingPlan`, `depositDeducted`, `approvers`
 
-### Add/Edit Quotation Form
-- **Section Headers**: Orange-themed headers with icons for each section
-- **Input Fields**: Consistent styling with proper labels and hints
-- **Dropdown Fields**: Customer and company selection with proper validation
-- **Date Fields**: Date picker with calendar icon and formatted display
-- **Product Items**: Dynamic product management with add/remove functionality
-- **Summary Section**: Highlighted summary with automatic calculations
-- **Responsive Design**: Proper spacing and layout for mobile devices
+### Result
+The quotation data now matches the expected structure with:
+- Clean, focused field mapping
+- Correct data types and formats
+- No duplicate or unnecessary fields
+- Proper nested object structures
+- Consistent field naming conventions
 
-## Database Structure
-Documents are stored in: `workspaces/{workspaceId}/documents/{documentId}`
+### Template Functionality Added
+- **Template Selection**: Dropdown at the top of the page to select quotation templates
+- **Database Integration**: Fetches templates from `workspaces/{workspaceId}/quotationTemplates/{templateIds}`
+- **Default Option**: "ไม่มี (None)" as default selection
+- **Template Data**: Shows template name as label in dropdown options
+- **Template ID Storage**: Saves selected template ID in document data
+- **Dynamic Field Support**: Product fields now dynamically adapt based on template selection
 
-### Document Fields (based on DOCUMENT_README.md):
-- `type`: "QT" (Quotation), "INV" (Invoice), "REC" (Receipt)
-- `docNo`: Auto-generated document number
-- `status`: "DRAFT", "SENT", "PARTIAL_PAID", "PAID", "OVERDUE", "VOID"
-- `grandTotal`: Total amount
-- `createdAt`: Timestamp
-- `customer`: Customer information
-- `items`: Array of document items
+### Dynamic Product Fields Implementation
+- **Template Field Extraction**: Automatically extracts product fields from `body.components[table].columns` in template data
+- **Field Type Support**: Supports `product_field`, `predefined`, and `user_input` field types
+- **Dynamic Form Generation**: Product form fields are generated based on template configuration
+- **Field Properties**: Respects template field properties like `isVisible`, `isEditable`, `order`, `width`, `align`
+- **Smart Field Mapping**: Automatically maps template fields to appropriate input types (text, number, etc.)
+- **Fallback Support**: Falls back to default fields if template parsing fails
+- **Validation Integration**: Product validation now works with dynamic fields from templates
+- **Template Requirement**: Users must select a template before adding products
+- **Dynamic Controller Creation**: Product controllers are created based on template field configuration
+- **Custom Inputs Support**: User input fields are properly saved to `customInputs` object in database
+- **Flexible Product Addition**: No required field validation - users can add products freely once template is selected
 
-### Quotation Specific Fields:
-- `customerId`: Selected customer ID
-- `companyId`: Selected company ID (if customer has multiple companies)
-- `customerAddress`, `customerPostalCode`, `customerNationalId`, `customerPhone`, `customerEmail`
-- `sellerName`, `sellerPhone`, `jobName`, `refId`
-- `documentDate`, `validUntil`: Document and validity dates
-- `products`: Array of product items with name, description, quantity, unit, price, discount
-- `paymentMethods`: Array of selected payment methods
-- `notes`: Additional notes
-- `includeSignature`: Boolean for signature requirement
-- `isVatEnabled`, `isWhtEnabled`: Tax calculation flags
-- `whtPercentage`: Withholding tax percentage
-- `subtotal`, `totalDiscount`, `afterDiscount`, `vatAmount`, `afterVat`, `whtAmount`, `netTotal`: Calculated amounts
+### Save Data Structure Enhancement
+- **Dynamic Item Fields**: Product items now include only fields that exist in the selected template
+- **Custom Inputs Mapping**: User input fields from template are saved with their field ID as key
+- **Template-Aware Saving**: Save logic dynamically builds item data based on template configuration
+- **Flexible Field Support**: Supports any combination of standard and custom fields from templates
 
-## Navigation Integration
-- Document center is accessible from the main footer menu "เอกสาร"
-- "Create New" shows popup dialog for document type selection
-- Individual document type cards show placeholder snackbars for navigation
-- Add/Edit quotation page accessible from quotations list
-- Ready for future implementation of individual document type pages and create pages
+### UI Improvements - Merged Status & Template Section
+- **Combined Section**: Merged document status and template selection into a single, prominent section at the top
+- **Collapsible Interface**: Section can be expanded/collapsed using the standard section header pattern
+- **Default Expanded**: Set to be expanded by default since both status and template are important
+- **Side-by-Side Layout**: Document status and template selection are displayed side by side for better UX
+- **Unified Header**: Single header "สถานะเอกสาร & เทมเพลต" with settings icon
+- **Cleaner Interface**: Reduced visual clutter by combining related functionality
+- **Better Space Utilization**: More efficient use of screen real estate
+- **Consistent UX**: Follows the same collapsible pattern as other sections
 
-## Next Steps
-1. ✅ Implement individual document type list pages (Quotations, Invoices, Receipts) - Quotations completed
-2. ✅ Add document creation functionality - Quotation creation completed
-3. ✅ Implement search and filter features - Basic implementation completed
-4. ✅ Add document detail/edit pages - Quotation add/edit completed
-5. Implement document status management
-6. Add invoice and receipt creation pages
-7. Implement document templates and PDF generation
+### Files Modified
+1. `lib/features/document/controller/add_edit_document_controller.dart`
+    - Updated `saveDocument()` method
+    - Fixed document data structure
+    - Corrected field mappings
+    - Added template selection functionality
+    - Added template loading from database
+    - Added template change handler
+    - Added dynamic product field extraction from templates
+    - Added template field parsing and mapping logic
 
-## Technical Notes
-- Uses GetX for state management
-- Follows existing app architecture patterns
-- Proper error handling and loading states
-- Responsive design with AppTheme constants
-- Thai language support throughout
-- Comprehensive form validation
-- Dynamic product management
-- Automatic calculation system
-- Proper controller lifecycle management
-- **Complete Firestore Integration**: Full CRUD operations implemented
-- **Document Number Generation**: Automatic generation using IdGenerationService with workspace rules
-- **Real-time Validation**: UI updates automatically when form fields change
-- **Data Structure Compliance**: Matches DOCUMENT_README.md specification exactly
+2. `lib/features/document/view/add_edit_document_page.dart`
+    - Added template selection section at the top
+    - Added template dropdown with database integration
+    - Replaced static product fields with dynamic template-based fields
+    - Added `_buildDynamicProductFields()` method for template-driven form generation
+    - Updated product validation to work with dynamic fields
+    - Enhanced product completion checking based on template requirements
 
-## Form Features
-- **Customer Selection**: Dropdown with customer search and auto-fill
-- **Company Selection**: Dynamic company selection based on customer
-- **Product Management**: Add/remove products with full CRUD operations
-- **Tax Calculations**: Automatic VAT (7%) and withholding tax calculations
-- **Payment Methods**: Multi-select payment method selection
-- **Form Validation**: Required field validation and error messages
-- **Auto-save**: Form state persistence during editing
-- **Responsive Layout**: Mobile-friendly design with proper spacing
+### Testing Required
+- Create new quotation
+- Verify saved data structure matches expected format
+- Check all required fields are present
+- Validate data types and formats
+- Ensure no duplicate or missing fields
+
+### Notes
+- The controller now generates cleaner, more focused document data
+- Field mappings align with the expected database schema
+- Removed complexity while maintaining functionality
+- Document numbers use correct quotation prefix (EST-)

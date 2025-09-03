@@ -7,8 +7,8 @@ import '../../../domain/entities/customer.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/id_generation_service.dart';
 
-class AddEditQuotationController extends GetxController {
-  final String? quotationId;
+class AddEditDocumentController extends GetxController {
+  final String? documentId;
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
 
   // Loading state
@@ -121,6 +121,18 @@ class AddEditQuotationController extends GetxController {
   bool _isLoadingProducts = false;
   bool get isLoadingProducts => _isLoadingProducts;
 
+  // Template section
+  List<Map<String, dynamic>> _availableTemplates = [];
+  List<Map<String, dynamic>> get availableTemplates => _availableTemplates;
+  String? _selectedTemplateId;
+  String? get selectedTemplateId => _selectedTemplateId;
+  bool _isLoadingTemplates = false;
+  bool get isLoadingTemplates => _isLoadingTemplates;
+  
+  // Dynamic product fields from template
+  List<Map<String, dynamic>> _templateProductFields = [];
+  List<Map<String, dynamic>> get templateProductFields => _templateProductFields;
+
   // More options section
   List<String> _selectedPaymentMethods = [];
   List<String> get selectedPaymentMethods => _selectedPaymentMethods;
@@ -141,6 +153,21 @@ class AddEditQuotationController extends GetxController {
   String _documentStatus = 'DRAFT';
   String get documentStatus => _documentStatus;
 
+  // Available document statuses
+  List<String> get availableStatuses => [
+    'DRAFT',
+    'SENT',
+    'PENDING_APPROVAL',
+    'APPROVED',
+    'REJECTED',
+    'VOID',
+    'INVOICED',
+    'FULLY_PAID',
+    'PARTIAL_PAID',
+    'PAID',
+    'OVERDUE',
+  ];
+
   // Summary section
   bool _isVatEnabled = false;
   bool get isVatEnabled => _isVatEnabled;
@@ -154,7 +181,7 @@ class AddEditQuotationController extends GetxController {
   final Map<String, Map<String, TextEditingController>> _productControllers =
       {};
 
-  AddEditQuotationController({this.quotationId});
+  AddEditDocumentController({this.documentId});
 
   @override
   void onInit() {
@@ -204,7 +231,7 @@ class AddEditQuotationController extends GetxController {
       }
 
       _currentUserId = currentUser.uid;
-      print('👤 Initializing quotation page with user: $_currentUserId');
+      print('👤 Initializing document page with user: $_currentUserId');
 
       // Get user's workspaces
       print('📋 Fetching user workspaces...');
@@ -218,13 +245,14 @@ class AddEditQuotationController extends GetxController {
         _currentWorkspaceId = firstWorkspace['id'] as String;
 
         print(
-          '✅ Quotation page initialized with workspace: ${firstWorkspace['name']}',
+          '✅ Document page initialized with workspace: ${firstWorkspace['name']}',
         );
 
-        // Load customers, workspace members, and products, then initialize form
+        // Load customers, workspace members, products, and templates, then initialize form
         await _loadCustomers();
         await _loadWorkspaceMembers();
         await loadProducts();
+        await loadTemplates();
         _initializeForm();
       } else {
         print('⚠️ No workspaces found for user: $_currentUserId');
@@ -388,6 +416,9 @@ class AddEditQuotationController extends GetxController {
 
       // No default products - start with empty list
       _products = [];
+      
+      // Initialize default product fields
+      _resetToDefaultProductFields();
 
       // Add listeners to customer and seller controllers for real-time validation
       _addFormControllerListeners();
@@ -678,6 +709,59 @@ class AddEditQuotationController extends GetxController {
     update();
   }
 
+  // Load templates from database
+  Future<void> loadTemplates() async {
+    try {
+      if (_currentWorkspaceId == null) return;
+      
+      _setTemplatesLoading(true);
+      
+      // Load templates from Firebase path: workspaces/{WorkspaceId}/quotationTemplates/{Template UIDs}
+      final templatesSnapshot = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(_currentWorkspaceId)
+          .collection('quotationTemplates')
+          .get();
+      
+      if (templatesSnapshot.docs.isNotEmpty) {
+        _availableTemplates = templatesSnapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'name': data['name']?.toString() ?? 'Unknown Template',
+            'description': data['description']?.toString() ?? '',
+            'createdAt': data['createdAt'],
+            'updatedAt': data['updatedAt'],
+            'fullData': data, // Store full template data for field extraction
+          };
+        }).toList();
+        
+        print('✅ Loaded ${_availableTemplates.length} templates from Firebase');
+      } else {
+        print('⚠️ No templates found in workspace: $_currentWorkspaceId');
+        _availableTemplates = [];
+      }
+      
+      update();
+    } catch (e) {
+      print('❌ Failed to load templates: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถโหลดข้อมูลเทมเพลตได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      _availableTemplates = [];
+    } finally {
+      _setTemplatesLoading(false);
+    }
+  }
+  
+  void _setTemplatesLoading(bool loading) {
+    _isLoadingTemplates = loading;
+    update();
+  }
+
   // Seller section methods
   void onDocumentDateChanged(DateTime? date) {
     try {
@@ -713,18 +797,15 @@ class AddEditQuotationController extends GetxController {
 
   void addProduct() {
     try {
-      // Check if previous product has required fields filled
-      if (_products.isNotEmpty) {
-        final lastProductIndex = _products.length - 1;
-        if (!_isProductComplete(lastProductIndex)) {
-          Get.snackbar(
-            'คำเตือน',
-            'กรุณากรอกข้อมูลสินค้าปัจจุบันให้ครบถ้วนก่อนเพิ่มสินค้าใหม่',
-            backgroundColor: Colors.orange,
-            colorText: Colors.white,
-          );
-          return;
-        }
+      // Check if template is selected first
+      if (_selectedTemplateId == null || _templateProductFields.isEmpty) {
+        Get.snackbar(
+          'คำเตือน',
+          'กรุณาเลือกเทมเพลตก่อนเพิ่มสินค้า',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
       }
 
       final productId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -733,22 +814,15 @@ class AddEditQuotationController extends GetxController {
         'name': '',
         'description': '',
         'quantity': 1,
-        'unit': 'ชิ้น',
+        'unit': 'หน่วย',
         'pricePerUnit': 0.0,
         'discount': 0.0,
       };
 
       _products.add(product);
 
-      // Create controllers for this product
-      _productControllers[productId] = {
-        'name': TextEditingController(),
-        'description': TextEditingController(),
-        'quantity': TextEditingController(text: '1'),
-        'unit': TextEditingController(text: 'ชิ้น'),
-        'pricePerUnit': TextEditingController(text: '0'),
-        'discount': TextEditingController(text: '0'),
-      };
+      // Create controllers for this product based on template fields
+      _createProductControllersFromTemplate(productId);
 
       // Add listeners to all required field controllers for real-time validation
       _addProductControllerListeners(productId);
@@ -763,6 +837,43 @@ class AddEditQuotationController extends GetxController {
         colorText: Colors.white,
       );
     }
+  }
+
+  // Create product controllers based on template fields
+  void _createProductControllersFromTemplate(String productId) {
+    final controllers = <String, TextEditingController>{};
+    
+    for (final field in _templateProductFields) {
+      final fieldId = field['id']?.toString() ?? '';
+      final fieldType = field['type']?.toString() ?? '';
+      final sourceField = field['sourceField']?.toString() ?? '';
+      final predefinedField = field['predefinedField']?.toString() ?? '';
+      
+      // Determine the actual field key for the controller
+      String controllerKey = fieldId;
+      
+      if (fieldType == 'product_field' && sourceField.isNotEmpty) {
+        controllerKey = sourceField;
+      } else if (fieldType == 'predefined' && predefinedField.isNotEmpty) {
+        controllerKey = predefinedField;
+      }
+      
+      // Set default values based on field type
+      String defaultValue = '';
+      if (controllerKey == 'quantity') {
+        defaultValue = '1';
+      } else if (controllerKey == 'unit') {
+        defaultValue = 'หน่วย';
+      } else if (controllerKey == 'pricePerUnit') {
+        defaultValue = '0';
+      } else if (controllerKey == 'discount') {
+        defaultValue = '0';
+      }
+      
+      controllers[controllerKey] = TextEditingController(text: defaultValue);
+    }
+    
+    _productControllers[productId] = controllers;
   }
 
   // Add listeners to product controllers for real-time validation
@@ -837,6 +948,17 @@ class AddEditQuotationController extends GetxController {
   // Add products from database selection
   void addProductsFromDatabase(List<Map<String, dynamic>> selectedProducts) {
     try {
+      // Check if template is selected first
+      if (_selectedTemplateId == null || _templateProductFields.isEmpty) {
+        Get.snackbar(
+          'คำเตือน',
+          'กรุณาเลือกเทมเพลตก่อนเพิ่มสินค้า',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
       for (final product in selectedProducts) {
         final productId = DateTime.now().millisecondsSinceEpoch.toString();
         final newProduct = {
@@ -844,22 +966,15 @@ class AddEditQuotationController extends GetxController {
           'name': product['name'] ?? '',
           'description': product['description'] ?? '',
           'quantity': 1,
-          'unit': product['unit'] ?? 'ชิ้น',
+          'unit': product['unit'] ?? 'หน่วย',
           'pricePerUnit': (product['price'] ?? 0.0).toDouble(),
           'discount': 0.0,
         };
 
         _products.add(newProduct);
 
-        // Create controllers for this product
-        _productControllers[productId] = {
-          'name': TextEditingController(text: newProduct['name']),
-          'description': TextEditingController(text: newProduct['description']),
-          'quantity': TextEditingController(text: '1'),
-          'unit': TextEditingController(text: newProduct['unit']),
-          'pricePerUnit': TextEditingController(text: newProduct['pricePerUnit'].toString()),
-          'discount': TextEditingController(text: '0'),
-        };
+        // Create controllers for this product based on template fields
+        _createProductControllersFromDatabase(productId, newProduct);
 
         // Add listeners to all required field controllers for real-time validation
         _addProductControllerListeners(productId);
@@ -882,6 +997,47 @@ class AddEditQuotationController extends GetxController {
         colorText: Colors.white,
       );
     }
+  }
+
+  // Create product controllers from database with template field mapping
+  void _createProductControllersFromDatabase(String productId, Map<String, dynamic> product) {
+    final controllers = <String, TextEditingController>{};
+    
+    for (final field in _templateProductFields) {
+      final fieldId = field['id']?.toString() ?? '';
+      final fieldType = field['type']?.toString() ?? '';
+      final sourceField = field['sourceField']?.toString() ?? '';
+      final predefinedField = field['predefinedField']?.toString() ?? '';
+      
+      // Determine the actual field key for the controller
+      String controllerKey = fieldId;
+      
+      if (fieldType == 'product_field' && sourceField.isNotEmpty) {
+        controllerKey = sourceField;
+      } else if (fieldType == 'predefined' && predefinedField.isNotEmpty) {
+        controllerKey = predefinedField;
+      }
+      
+      // Set values from database product or defaults
+      String fieldValue = '';
+      if (controllerKey == 'name') {
+        fieldValue = product['name'] ?? '';
+      } else if (controllerKey == 'description') {
+        fieldValue = product['description'] ?? '';
+      } else if (controllerKey == 'quantity') {
+        fieldValue = '1';
+      } else if (controllerKey == 'unit') {
+        fieldValue = product['unit'] ?? 'หน่วย';
+      } else if (controllerKey == 'pricePerUnit') {
+        fieldValue = (product['pricePerUnit'] ?? 0.0).toString();
+      } else if (controllerKey == 'discount') {
+        fieldValue = '0';
+      }
+      
+      controllers[controllerKey] = TextEditingController(text: fieldValue);
+    }
+    
+    _productControllers[productId] = controllers;
   }
 
 
@@ -1016,6 +1172,183 @@ class AddEditQuotationController extends GetxController {
     }
   }
 
+  // Template methods
+  void onTemplateChanged(String? templateId) {
+    try {
+      _selectedTemplateId = templateId;
+      
+      if (templateId != null) {
+        final template = _availableTemplates.firstWhereOrNull((t) => t['id'] == templateId);
+        if (template != null) {
+          print('✅ Selected template: ${template['name']}');
+          _extractProductFieldsFromTemplate(template);
+        }
+      } else {
+        print('✅ No template selected');
+        _resetToDefaultProductFields();
+      }
+      
+      update();
+    } catch (e) {
+      print('❌ Failed to change template: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถเปลี่ยนเทมเพลตได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+  
+  // Extract product fields from template
+  void _extractProductFieldsFromTemplate(Map<String, dynamic> template) {
+    try {
+      _templateProductFields.clear();
+      
+      final fullData = template['fullData'] as Map<String, dynamic>?;
+      if (fullData == null) {
+        print('⚠️ No full template data available');
+        _resetToDefaultProductFields();
+        return;
+      }
+      
+      final body = fullData['body'] as Map<String, dynamic>?;
+      if (body == null) {
+        print('⚠️ No body section in template');
+        _resetToDefaultProductFields();
+        return;
+      }
+      
+      final components = body['components'] as List<dynamic>?;
+      if (components == null) {
+        print('⚠️ No components in template body');
+        _resetToDefaultProductFields();
+        return;
+      }
+      
+      // Find the first table component
+      Map<String, dynamic>? tableComponent;
+      for (final component in components) {
+        if (component is Map<String, dynamic> && component['type'] == 'table') {
+          tableComponent = component;
+          break;
+        }
+      }
+      
+      if (tableComponent == null) {
+        print('⚠️ No table component found in template');
+        _resetToDefaultProductFields();
+        return;
+      }
+      
+      final columns = tableComponent['columns'] as List<dynamic>?;
+      if (columns == null || columns.isEmpty) {
+        print('⚠️ No columns found in table component');
+        _resetToDefaultProductFields();
+        return;
+      }
+      
+      // Extract product fields from columns
+      for (final column in columns) {
+        if (column is Map<String, dynamic>) {
+          final field = {
+            'id': column['id']?.toString() ?? '',
+            'label': column['label']?.toString() ?? '',
+            'type': column['type']?.toString() ?? '',
+            'sourceField': column['sourceField']?.toString() ?? '',
+            'predefinedField': column['predefinedField']?.toString() ?? '',
+            'isVisible': column['isVisible'] ?? true,
+            'isEditable': column['isEditable'] ?? true,
+            'order': column['order'] ?? 0,
+            'width': column['width']?.toString() ?? '',
+            'align': column['align']?.toString() ?? 'left',
+            'style': column['style'] ?? {},
+          };
+          
+          _templateProductFields.add(field);
+        }
+      }
+      
+      // Sort fields by order
+      _templateProductFields.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
+      
+      print('✅ Extracted ${_templateProductFields.length} product fields from template: ${template['name']}');
+      print('📋 Fields: ${_templateProductFields.map((f) => '${f['label']} (${f['type']})').toList()}');
+      
+    } catch (e) {
+      print('❌ Failed to extract product fields from template: $e');
+      _resetToDefaultProductFields();
+    }
+  }
+  
+  // Reset to default product fields
+  void _resetToDefaultProductFields() {
+    _templateProductFields = [
+      {
+        'id': 'name',
+        'label': 'ชื่อสินค้า/บริการ',
+        'type': 'product_field',
+        'sourceField': 'name',
+        'isVisible': true,
+        'isEditable': true,
+        'order': 0,
+        'width': '40%',
+        'align': 'left',
+        'style': {'isBold': true},
+      },
+      {
+        'id': 'quantity',
+        'label': 'จำนวน',
+        'type': 'predefined',
+        'predefinedField': 'quantity',
+        'isVisible': true,
+        'isEditable': true,
+        'order': 1,
+        'width': '15%',
+        'align': 'center',
+        'style': {},
+      },
+      {
+        'id': 'unit',
+        'label': 'หน่วย',
+        'type': 'predefined',
+        'predefinedField': 'unit',
+        'isVisible': true,
+        'isEditable': true,
+        'order': 2,
+        'width': '15%',
+        'align': 'center',
+        'style': {},
+      },
+      {
+        'id': 'pricePerUnit',
+        'label': 'ราคา/หน่วย',
+        'type': 'product_field',
+        'sourceField': 'pricePerUnit',
+        'isVisible': true,
+        'isEditable': true,
+        'order': 3,
+        'width': '15%',
+        'align': 'right',
+        'style': {},
+      },
+      {
+        'id': 'discount',
+        'label': 'ส่วนลด',
+        'type': 'predefined',
+        'predefinedField': 'discount',
+        'isVisible': true,
+        'isEditable': true,
+        'order': 4,
+        'width': '15%',
+        'align': 'right',
+        'style': {},
+      },
+    ];
+    
+    print('✅ Reset to default product fields');
+  }
+
   // Calculation methods
   double get subtotal {
     try {
@@ -1110,8 +1443,8 @@ class AddEditQuotationController extends GetxController {
     };
   }
 
-  // Save quotation
-  Future<void> saveQuotation() async {
+  // Save document
+  Future<void> saveDocument() async {
     try {
       _setLoading(true);
 
@@ -1126,16 +1459,7 @@ class AddEditQuotationController extends GetxController {
         return;
       }
 
-      // Check if all products have required fields filled
-      if (_products.isNotEmpty && !areAllProductsComplete) {
-        Get.snackbar(
-          'ข้อผิดพลาด',
-          'กรุณากรอกข้อมูลสินค้าทั้งหมดให้ครบถ้วน (ชื่อ, จำนวน, หน่วย, ราคา)',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return;
-      }
+      
 
       if (_currentWorkspaceId == null || _currentUserId == null) {
         Get.snackbar(
@@ -1147,449 +1471,213 @@ class AddEditQuotationController extends GetxController {
         return;
       }
 
-      // Generate document number for new quotations
+      // Generate document number for new documents
       String? docNo;
-      if (quotationId == null) {
+      if (documentId == null) {
         try {
           final idService = Get.find<IdGenerationService>();
-          docNo = await idService.generateQuotationDocNo(_currentWorkspaceId!);
-          print('📝 Generated document number: $docNo');
+          docNo = await idService.generateDocumentDocNo(_currentWorkspaceId!, "quotation");
+          print('📝 Generated quotation document number: $docNo');
         } catch (e) {
           print('❌ Failed to generate document number: $e');
-          // Fallback to timestamp-based number
-          docNo = 'QT-${DateTime.now().millisecondsSinceEpoch}';
         }
       }
 
-            // Prepare quotation data
-      final quotationData = {
-        'type': 'QT',
-        'docNo': docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}', // Use generated number or fallback
+            // Prepare document data with correct field mapping
+      final documentData = {
         'status': _documentStatus,
-                'invoiceType': 'full', // Add invoice type field for future use
-        'installmentNumber': 1, // Add installment number field
-        'totalInstallments': 1, // Add total installments field
-        'totalAmountFromQuotation': netTotal, // Add total amount from quotation field
-        'customerId': _selectedCustomerId,
-        'companyId': _selectedCompanyId,
-        'customerAddress': customerAddressController.text,
-        'customerPostalCode': customerPostalCodeController.text,
-        'customerNationalId': customerNationalIdController.text,
-        'customerPhone': customerPhoneController.text,
-        'customerEmail': customerEmailController.text,
-        'customer': selectedCustomer != null ? {
-          'id': selectedCustomer!.id,
-          'address': customerAddressController.text,
-          'updatedBy': _currentUserId!,
-          'gender': 'Unknown',
-                  'hashtags': [
-          {
-            'id': 'quotation',
-            'text': 'ใบเสนอราคา',
-            'color': '#3b82f6',
-          },
-        ],
-        'prefix': '',
-        'phones': customerPhoneController.text.isNotEmpty ? [
-          {
-            'value': customerPhoneController.text,
-            'id': 'phone-${DateTime.now().millisecondsSinceEpoch}',
-            'label': 'Main',
-          },
-        ] : [],
-          'assignees': _selectedSellerIds,
-          'customId': selectedCustomer!.customId,
-          'emails': customerEmailController.text.isNotEmpty ? [
-            {
-              'value': customerEmailController.text,
-              'id': 'email-${DateTime.now().millisecondsSinceEpoch}',
-              'label': 'Main',
-            },
-          ] : [],
-          'createdAt': selectedCustomer!.createdAt,
-          'customerType': 'Customer',
-          'nationalId': customerNationalIdController.text,
-          'createdBy': _currentUserId!,
-          'name': selectedCustomer!.name,
-          'age': 'Unknown',
-          'workspaceId': _currentWorkspaceId!,
-          'source': '',
-          'companyNames': selectedCustomer!.companyNames,
-          'updatedAt': DateTime.now().millisecondsSinceEpoch,
-          'customFields': [],
-          'customerInterest': 'medium', // Add customer interest field
-        } : null,
-        'boardName': 'Quotations Board', // Add board name field
-        'lane': 'Draft', // Add lane field
-        'priority': 'medium', // Add priority field
-        'dueDate': _validUntilDate?.millisecondsSinceEpoch, // Add due date field
-        'todos': [], // Add todos field
-        'description': notesController.text, // Add description field
-        'title': 'ใบเสนอราคา - ${selectedCustomer?.name ?? 'ลูกค้าใหม่'}', // Add title field
-        'customId': docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}', // Add custom ID field
-        'sellerName': sellerNameController.text,
-        'sellerPhone': sellerPhoneController.text,
+        'items': _products.asMap().entries.map((entry) {
+          final index = entry.key;
+          final product = entry.value;
+          
+          // Build item data based on template fields
+          final itemData = <String, dynamic>{
+            'id': product['id'],
+          };
+          
+          // Add standard fields
+          final nameController = getProductController(index, 'name');
+          if (nameController.text.isNotEmpty) {
+            itemData['name'] = nameController.text;
+          }
+          
+          final descriptionController = getProductController(index, 'description');
+          if (descriptionController.text.isNotEmpty) {
+            itemData['description'] = descriptionController.text;
+          }
+          
+          final quantityController = getProductController(index, 'quantity');
+          if (quantityController.text.isNotEmpty) {
+            itemData['quantity'] = double.tryParse(quantityController.text) ?? 0;
+          }
+          
+          final unitController = getProductController(index, 'unit');
+          if (unitController.text.isNotEmpty) {
+            itemData['unit'] = unitController.text;
+          }
+          
+          final priceController = getProductController(index, 'pricePerUnit');
+          if (priceController.text.isNotEmpty) {
+            itemData['pricePerUnit'] = double.tryParse(priceController.text) ?? 0;
+          }
+          
+          final discountController = getProductController(index, 'discount');
+          if (discountController.text.isNotEmpty) {
+            itemData['discount'] = double.tryParse(discountController.text) ?? 0;
+          }
+          
+          // Build custom inputs for user_input fields
+          final customInputs = <String, dynamic>{};
+          for (final field in _templateProductFields) {
+            final fieldType = field['type']?.toString() ?? '';
+            if (fieldType == 'user_input') {
+              final fieldId = field['id']?.toString() ?? '';
+              final controller = getProductController(index, fieldId);
+              if (controller.text.isNotEmpty) {
+                customInputs[fieldId] = controller.text;
+              }
+            }
+          }
+          
+          if (customInputs.isNotEmpty) {
+            itemData['customInputs'] = customInputs;
+          } else {
+            itemData['customInputs'] = {};
+          }
+          
+          return itemData;
+        }).toList(),
+        'discount': totalDiscount,
+        'withholdingTaxPercentage': double.tryParse(whtPercentageController.text) ?? 3.0,
+        'isVatEnabled': _isVatEnabled,
+        'project': {
+          'name': jobNameController.text,
+          'refId': refIdController.text,
+        },
         'seller': _selectedSellerIds.isNotEmpty ? {
+          'lastDeviceId': 'BE2A.250530.026.F3', // Use actual device ID from user data
+          'fcmTokenUpdatedAt': {
+            'seconds': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            'nanoseconds': (DateTime.now().microsecondsSinceEpoch % 1000000) * 1000,
+          },
+          'displayName': sellerNameController.text,
+          'fcmToken': '', // Get from user data if available
           'uid': _selectedSellerIds.first,
-          'email': 'user@example.com', // TODO: Get actual user email
-          'photoURL': null,
+          'viewSettings': {
+            'customerProfileCardsConfig_${_currentWorkspaceId}': {
+              'customId': {'order': 0, 'isVisible': true},
+              'title': {'order': 1, 'isVisible': true},
+              'boardName': {'order': 2, 'isVisible': true},
+              'status': {'order': 3, 'isVisible': true},
+              'lane': {'order': 4, 'isVisible': true},
+              'dueDate': {'order': 5, 'isVisible': true},
+              'assignee': {'order': 6, 'isVisible': true},
+              'customerInterest': {'order': 7, 'isVisible': true},
+              'customer': {'order': 8, 'isVisible': true},
+              'company': {'order': 9, 'isVisible': true},
+              'hashtags': {'order': 10, 'isVisible': true},
+              'priority': {'order': 11, 'isVisible': true},
+              'grandTotal': {'order': 12, 'isVisible': true},
+              'netTotal': {'order': 13, 'isVisible': true},
+              'totalAmountBeforeDiscount': {'order': 14, 'isVisible': true},
+              'totalAmountAfterDiscount': {'order': 15, 'isVisible': true},
+              'totalAmountBeforeVat': {'order': 16, 'isVisible': true},
+              'description': {'order': 17, 'isVisible': true},
+              'todos': {'order': 18, 'isVisible': true},
+            },
+          },
+          'email': 'minimark@sellstory.me', // Get from user data
+          'lastPlatform': 'android',
           'language': 'en',
           'workspaces': [
             {
               'id': _currentWorkspaceId!,
-              'name': 'Workspace', // TODO: Get actual workspace name
-              'role': 'member',
-            },
+              'role': 'owner',
+              'name': 'Mini Mark\'s Workspace', // Get from user data
+            }
           ],
-                  'viewSettings': {
-          'customerProfileCardsConfig_${_currentWorkspaceId}': {
-            'customId': {
-              'order': 0,
-              'isVisible': true,
-            },
-            'title': {
-              'order': 1,
-              'isVisible': true,
-            },
-            'boardName': {
-              'order': 2,
-              'isVisible': true,
-            },
-            'status': {
-              'order': 3,
-              'isVisible': true,
-            },
-            'lane': {
-              'order': 4,
-              'isVisible': true,
-            },
-            'dueDate': {
-              'order': 5,
-              'isVisible': true,
-            },
-            'assignee': {
-              'order': 6,
-              'isVisible': true,
-            },
-            'customerInterest': {
-              'order': 7,
-              'isVisible': true,
-            },
-            'customer': {
-              'order': 8,
-              'isVisible': true,
-            },
-            'company': {
-              'order': 9,
-              'isVisible': true,
-            },
-            'hashtags': {
-              'order': 10,
-              'isVisible': true,
-            },
-            'priority': {
-              'order': 11,
-              'isVisible': true,
-            },
-            'grandTotal': {
-              'order': 12,
-              'isVisible': true,
-            },
-            'netTotal': {
-              'order': 13,
-              'isVisible': true,
-            },
-            'totalAmountBeforeDiscount': {
-              'order': 14,
-              'isVisible': true,
-            },
-            'totalAmountAfterDiscount': {
-              'order': 15,
-              'isVisible': true,
-            },
-            'totalAmountBeforeVat': {
-              'order': 16,
-              'isVisible': true,
-            },
-            'description': {
-              'order': 17,
-              'isVisible': true,
-            },
-            'todos': {
-              'order': 18,
-              'isVisible': true,
-            },
-          },
-        },
-        'displayName': sellerNameController.text,
-          'lastDeviceId': 'Unknown',
-          'lastPlatform': 'android',
-          'fcmToken': '',
-          'fcmTokenUpdatedAt': DateTime.now().toIso8601String(),
-          'customId': '',
-          'lastActiveWorkspaceId': _currentWorkspaceId!,
-          'phoneNumber': sellerPhoneController.text,
-          'docPhoneNumber': sellerPhoneController.text,
-          'docDisplayName': sellerNameController.text,
-                  'notificationSettings': {
-          'quietHours': {
-            'enabled': false,
-            'startTime': '22:00',
-            'endTime': '08:00',
-            'days': [1, 2, 3, 4, 5, 6, 7],
-          },
-          'onComment': {
-            'enabled': true,
-            'web': true,
-            'mobilePush': true,
-            'email': 'off',
-          },
-          'onStatusChange': {
-            'enabled': true,
-            'email': 'off',
-            'mobilePush': true,
-            'web': true,
-          },
-          'onDueDateReminder': {
-            'enabled': true,
-            'notifyAtTime': '09:00',
-            'email': 'off',
-            'web': true,
-            'mobilePush': true,
-          },
-          'onTodoReminder': {
-            'enabled': true,
-            'remindBeforeMinutes': 15,
-            'mobilePush': true,
-            'web': true,
-            'email': 'off',
-          },
-          'onCardAssignment': {
-            'enabled': true,
-            'mobilePush': false,
-            'web': true,
-            'email': 'off',
-          },
-          'onTagged': {
-            'enabled': true,
-            'web': true,
-            'mobilePush': true,
-            'email': 'off',
-          },
-          'onApprovalRequest': {
-            'enabled': true,
-            'mobilePush': true,
-            'web': true,
-            'email': 'off',
-          },
-          'onApprovalDecision': {
-            'enabled': true,
-            'web': true,
-            'mobilePush': true,
-            'email': 'off',
-          },
-          'onNewChatReceived': {
-            'enabled': true,
-            'email': 'off',
-            'web': true,
-            'mobilePush': true,
-          },
-          'onChatAssigned': {
-            'enabled': true,
-            'email': 'off',
-            'web': true,
-            'mobilePush': true,
-          },
-          'onAddedToWorkspace': {
-            'enabled': true,
-            'web': true,
-            'mobilePush': true,
-            'email': 'off',
-          },
-          'digestSettings': {
-            'frequency': 'daily',
-          },
-        },
-        'role': 'member',
-        'updatedAt': DateTime.now().toIso8601String(),
+          'photoURL': null,
+        } : null,
+        'sellerName': sellerNameController.text,
+        'sellerPhone': sellerPhoneController.text,
+        'notes': notesController.text,
+        'signatureAssignments': {},
+        'templateId': _selectedTemplateId ?? '',
+        'customer': selectedCustomer != null ? {
+          'id': selectedCustomer!.id,
+          'name': selectedCustomer!.name,
+          'address': customerAddressController.text,
+          'postalCode': customerPostalCodeController.text,
+          'nationalId': customerNationalIdController.text,
+          'emails': customerEmailController.text.isNotEmpty ? [
+            {
+              'label': 'Work',
+              'value': customerEmailController.text,
+              'id': 'email-initial',
+            }
+          ] : [],
+          'phones': customerPhoneController.text.isNotEmpty ? [
+            {
+              'label': 'Work',
+              'value': customerPhoneController.text,
+              'id': 'phone-initial',
+            }
+          ] : [],
+          'companyNames': selectedCustomer!.companyNames,
         } : null,
         'jobName': jobNameController.text,
-        'refId': refIdController.text,
-        'documentDate': _documentDate?.millisecondsSinceEpoch,
         'validUntil': _validUntilDate?.millisecondsSinceEpoch,
-        'dueDate': _validUntilDate?.millisecondsSinceEpoch, // Use validUntil as dueDate
-        'project': {
-          'name': jobNameController.text,
-          'refId': refIdController.text,
-          'company': selectedCompanyData != null ? {
-            'id': selectedCompanyData!['id'],
-            'name': selectedCompanyData!['name'] ?? selectedCompanyData!['value'] ?? '',
-          } : null,
-        },
-        'products': _products.asMap().entries.map((entry) {
-          final index = entry.key;
-          final product = entry.value;
-          return {
-            'id': product['id'],
-            'name': getProductController(index, 'name').text,
-            'description': getProductController(index, 'description').text,
-            'quantity':
-                double.tryParse(getProductController(index, 'quantity').text) ??
-                0,
-            'unit': getProductController(index, 'unit').text,
-            'pricePerUnit':
-                double.tryParse(
-                  getProductController(index, 'pricePerUnit').text,
-                ) ??
-                0,
-            'discount':
-                double.tryParse(getProductController(index, 'discount').text) ??
-                0,
-          };
-        }).toList(),
-        'items': _products.asMap().entries.map((entry) {
-          final index = entry.key;
-          final product = entry.value;
-          return {
-            'id': product['id'],
-            'name': getProductController(index, 'name').text,
-            'description': getProductController(index, 'description').text,
-            'quantity':
-                double.tryParse(getProductController(index, 'quantity').text) ??
-                0,
-            'unit': getProductController(index, 'unit').text,
-            'pricePerUnit':
-                double.tryParse(
-                  getProductController(index, 'pricePerUnit').text,
-                ) ??
-                0,
-            'discount':
-                double.tryParse(getProductController(index, 'discount').text) ??
-                0,
-          };
-        }).toList(),
-        'paymentMethods': _selectedPaymentMethods,
-        'paymentStatus': 'unpaid', // Add payment status field
-        'receiptFor': 'invoice', // Add receipt for field
-        'paymentDate': DateTime.now().millisecondsSinceEpoch, // Add payment date field
-        'notes': notesController.text,
-        'includeSignature': _includeSignature,
-        'signatureAssignments': {}, // TODO: Add signature assignments if needed
-        'relatedDocuments': [], // Add related documents field
-        'isVatEnabled': _isVatEnabled,
-        'isWhtEnabled': _isWhtEnabled,
-        'whtPercentage': double.tryParse(whtPercentageController.text) ?? 3.0,
-        'withholdingTaxPercentage': double.tryParse(whtPercentageController.text) ?? 3.0, // Add withholdingTaxPercentage field
+        'company': selectedCompanyData != null ? {
+          'value': selectedCompanyData!['value'] ?? '',
+          'id': selectedCompanyData!['id'],
+          'label': selectedCompanyData!['label'] ?? 'Main',
+        } : null,
         'subtotal': subtotal,
-        'totalAmountBeforeDiscount': subtotal, // Add totalAmountBeforeDiscount field
-        'totalDiscount': totalDiscount,
-        'discount': totalDiscount, // Add discount field (alias for totalDiscount)
-        'afterDiscount': afterDiscount,
-        'totalAmountAfterDiscount': afterDiscount, // Add totalAmountAfterDiscount field
-        'shippingCost': 0.0, // TODO: Add shipping cost field if needed
-        'depositAmount': 0.0, // TODO: Add deposit amount field if needed
-        'deductedDeposit': 0.0, // TODO: Add deducted deposit field if needed
+        'grandTotal': netTotal,
         'vatAmount': vatAmount,
-        'totalAmountBeforeVat': afterDiscount, // Add totalAmountBeforeVat field
-        'afterVat': afterVat,
-        'whtAmount': whtAmount,
         'netTotal': netTotal,
-        'grandTotal': netTotal, // Add grandTotal field
-        'whtPercentage': double.tryParse(whtPercentageController.text) ?? 3.0, // Add whtPercentage field
+        'whtAmount': whtAmount,
+        'docNo': docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}',
+        'type': 'QT',
         'workspaceId': _currentWorkspaceId!,
-        'createdBy': _currentUserId!,
-        'updatedBy': _currentUserId!,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'createdBy': _currentUserId!,
+        'updatedBy': _currentUserId!,
         'activityLog': [
           {
             'timestamp': DateTime.now().millisecondsSinceEpoch,
             'userId': _currentUserId!,
-            'userDisplayName': 'User', // TODO: Get actual user display name
-            'action': quotationId != null ? 'Updated' : 'Created',
-            'details': quotationId != null 
-                ? 'Updated quotation ${quotationId}' 
-                : 'Created quotation ${docNo ?? 'QT-${DateTime.now().millisecondsSinceEpoch}'}',
+            'userDisplayName': 'minimark@sellstory.me', // Get from user data
+            'action': documentId != null ? 'Updated' : 'Created',
+            'details': documentId != null 
+                ? 'Updated quotation ${docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}'}' 
+                : 'Created quotation ${docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}'} directly.',
           },
         ],
-        'company': selectedCompanyData != null ? {
-          'associatedCustomerIds': [selectedCustomer!.id],
-          'branch': '',
-          'emails': customerEmailController.text.isNotEmpty ? [
-            {
-              'value': customerEmailController.text,
-              'id': 'email-${DateTime.now().millisecondsSinceEpoch}',
-              'label': 'Main',
-            },
-          ] : [],
-          'website': '',
-          'district': '',
-          'postalCode': customerPostalCodeController.text,
-                  'hashtags': [
-          {
-            'id': 'company',
-            'text': 'บริษัท',
-            'color': '#10b981',
-          },
-        ],
-        'workspaceId': _currentWorkspaceId!,
-        'phones': customerPhoneController.text.isNotEmpty ? [
-          {
-            'value': customerPhoneController.text,
-            'id': 'phone-${DateTime.now().millisecondsSinceEpoch}',
-            'label': 'Main',
-          },
-        ] : [],
-          'taxId': '',
-          'updatedAt': DateTime.now().millisecondsSinceEpoch,
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
-          'subdistrict': '',
-          'province': '',
-          'customId': selectedCompanyData!['customId'] ?? '',
-          'updatedBy': _currentUserId!,
-          'country': '',
-          'createdBy': _currentUserId!,
-          'id': selectedCompanyData!['id'],
-          'addressLine1': customerAddressController.text,
-          'name': selectedCompanyData!['name'] ?? selectedCompanyData!['value'] ?? '',
-        } : null,
-        'jobCardId': refIdController.text.isNotEmpty ? refIdController.text : null, // Use refId as jobCardId if available
-        'approval': {
-          'status': 'pending',
-          'requestedAt': DateTime.now().millisecondsSinceEpoch,
-          'requestedBy': _currentUserId!,
-        },
-        'depositInfo': {
-          'amount': 0.0,
-          'percentage': 0.0,
-          'isRequired': false,
-        },
-        'invoicingPlan': [],
-        'depositDeducted': false,
-        'approvers': [], // Add approvers field
       };
 
       // Save to Firestore
-      if (quotationId != null) {
-        // Update existing quotation
+      if (documentId != null) {
+        // Update existing document
         await _repository.updateDocument(
           workspaceId: _currentWorkspaceId!,
-          documentId: quotationId!,
-          documentData: quotationData,
+          documentId: documentId!,
+          documentData: documentData,
         );
-        print('📝 Updated quotation: $quotationId');
+        print('📝 Updated document: $documentId');
       } else {
-        // Create new quotation
+        // Create new document
         final newDocumentId = await _repository.createDocument(
           workspaceId: _currentWorkspaceId!,
-          documentData: quotationData,
+          documentData: documentData,
         );
-        print('📝 Created new quotation with ID: $newDocumentId');
+        print('📝 Created new document with ID: $newDocumentId');
       }
 
       Get.snackbar(
         'สำเร็จ',
-        quotationId != null
+        documentId != null
             ? 'อัปเดตใบเสนอราคาเรียบร้อย'
             : 'สร้างใบเสนอราคาเรียบร้อย',
         backgroundColor: Colors.green,
@@ -1598,7 +1686,7 @@ class AddEditQuotationController extends GetxController {
 
       Get.back();
     } catch (e) {
-      print('❌ Failed to save quotation: $e');
+      print('❌ Failed to save document: $e');
       Get.snackbar(
         'ข้อผิดพลาด',
         'ไม่สามารถบันทึกใบเสนอราคาได้: $e',

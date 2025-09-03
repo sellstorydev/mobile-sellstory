@@ -12,7 +12,11 @@ class AddEditDocumentPage extends StatefulWidget {
   final String? documentId; // null for new, non-null for edit
   final String documentType; // 'QT' for quotation, 'INV' for invoice
 
-  const AddEditDocumentPage({super.key, this.documentId, required this.documentType});
+  const AddEditDocumentPage({
+    super.key,
+    this.documentId,
+    required this.documentType,
+  });
 
   @override
   State<AddEditDocumentPage> createState() => _AddEditDocumentPageState();
@@ -37,15 +41,19 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<AddEditDocumentController>(
-      init: AddEditDocumentController(documentId: widget.documentId, documentType: widget.documentType),
+      init: AddEditDocumentController(documentId: widget.documentId),
       builder: (controller) {
         return Scaffold(
           backgroundColor: AppTheme.backgroundGrey,
           appBar: AppBar(
             title: Text(
               widget.documentId == null
-                  ? (widget.documentType == 'QT' ? 'สร้างใบเสนอราคา' : 'สร้างใบแจ้งหนี้')
-                  : (widget.documentType == 'QT' ? 'แก้ไขใบเสนอราคา' : 'แก้ไขใบแจ้งหนี้'),
+                  ? (widget.documentType == 'QT'
+                        ? 'สร้างใบเสนอราคา'
+                        : 'สร้างใบแจ้งหนี้')
+                  : (widget.documentType == 'QT'
+                        ? 'แก้ไขใบเสนอราคา'
+                        : 'แก้ไขใบแจ้งหนี้'),
               style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
@@ -85,13 +93,13 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                 ),
                 tooltip: 'ย่อทุกส่วน',
               ),
-                             GetBuilder<AddEditDocumentController>(
-                 builder: (controller) {
-                   return TextButton(
-                     onPressed:
-                         (controller.isLoading || !_areRequiredFieldsComplete())
-                         ? null
-                         : controller.saveDocument,
+              GetBuilder<AddEditDocumentController>(
+                builder: (controller) {
+                  return TextButton(
+                    onPressed:
+                        (controller.isLoading || !_areRequiredFieldsComplete())
+                        ? null
+                        : controller.saveDocument,
                     child: controller.isLoading
                         ? const SizedBox(
                             width: 16,
@@ -128,97 +136,194 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                 )
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
-                                     child: Column(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                                                                      // Document Status Section
-                        GetBuilder<AddEditDocumentController>(
-                          builder: (controller) {
-                            return Column(
-                              children: [
-                                _buildSectionHeader(
-                                  'สถานะเอกสาร: ${_getStatusDisplayName(controller.documentStatus)}',
-                                  Icons.description,
-                                  'status',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Document Status and Template Section
+                      GetBuilder<AddEditDocumentController>(
+                        builder: (controller) {
+                          return Column(
+                            children: [
+                              _buildSectionHeader(
+                                'สถานะเอกสาร & เทมเพลต',
+                                Icons.settings,
+                                'status_template',
+                              ),
+                              const SizedBox(height: 12),
+                              if (_sectionExpanded['status_template'] ??
+                                  true) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.backgroundWhite,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppTheme.borderGrey,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'สถานะเอกสาร',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppTheme.textPrimary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          DropdownButtonFormField<String>(
+                                            value: controller.documentStatus,
+                                            items: controller.availableStatuses
+                                                .map((status) {
+                                                  return DropdownMenuItem<
+                                                    String
+                                                  >(
+                                                    value: status,
+                                                    child: Text(status),
+                                                  );
+                                                })
+                                                .toList(),
+                                            onChanged: controller
+                                                .onDocumentStatusChanged,
+                                            decoration: const InputDecoration(
+                                              border: OutlineInputBorder(),
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'เทมเพลตเอกสาร',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppTheme.textPrimary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          DropdownButtonFormField<String>(
+                                            value:
+                                                controller.selectedTemplateId,
+                                            items: [
+                                              const DropdownMenuItem<String>(
+                                                value: null,
+                                                child: Text('ไม่มี (None)'),
+                                              ),
+                                              ...controller.availableTemplates
+                                                  .map((template) {
+                                                    return DropdownMenuItem<
+                                                      String
+                                                    >(
+                                                      value: template['id'],
+                                                      child: Text(
+                                                        template['name'],
+                                                      ),
+                                                    );
+                                                  }),
+                                            ],
+                                            onChanged:
+                                                controller.onTemplateChanged,
+                                            decoration: const InputDecoration(
+                                              border: OutlineInputBorder(),
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 12),
-                                if (_sectionExpanded['status'] ?? false) ...[
-                                  _buildDocumentStatusSection(controller),
-                                  const SizedBox(height: 24),
-                                ],
+                                const SizedBox(height: 24),
                               ],
-                            );
-                          },
-                        ),
+                            ],
+                          );
+                        },
+                      ),
 
-                                               // Customer Section
-                        GetBuilder<AddEditDocumentController>(
-                         builder: (controller) {
-                           return Column(
-                             children: [
-                               _buildSectionHeader(
-                                 'ข้อมูลลูกค้า',
-                                 Icons.person,
-                                 'customer',
-                               ),
-                               const SizedBox(height: 12),
-                               if (_sectionExpanded['customer'] ?? false) ...[
-                                 _buildCustomerSection(controller),
-                                 const SizedBox(height: 24),
-                               ],
-                             ],
-                           );
-                         },
-                       ),
+                      // Customer Section
+                      GetBuilder<AddEditDocumentController>(
+                        builder: (controller) {
+                          return Column(
+                            children: [
+                              _buildSectionHeader(
+                                'ข้อมูลลูกค้า',
+                                Icons.person,
+                                'customer',
+                              ),
+                              const SizedBox(height: 12),
+                              if (_sectionExpanded['customer'] ?? false) ...[
+                                _buildCustomerSection(controller),
+                                const SizedBox(height: 24),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
 
-                                             // Seller Section
-                       GetBuilder<AddEditDocumentController>(
-                         builder: (controller) {
-                           return Column(
-                             children: [
-                               _buildSectionHeader(
-                                 'ข้อมูลผู้ขาย',
-                                 Icons.business,
-                                 'seller',
-                               ),
-                               const SizedBox(height: 12),
-                               if (_sectionExpanded['seller'] ?? false) ...[
-                                 _buildSellerSection(controller),
-                                 const SizedBox(height: 24),
-                               ],
-                             ],
-                           );
-                         },
-                       ),
+                      // Seller Section
+                      GetBuilder<AddEditDocumentController>(
+                        builder: (controller) {
+                          return Column(
+                            children: [
+                              _buildSectionHeader(
+                                'ข้อมูลผู้ขาย',
+                                Icons.business,
+                                'seller',
+                              ),
+                              const SizedBox(height: 12),
+                              if (_sectionExpanded['seller'] ?? false) ...[
+                                _buildSellerSection(controller),
+                                const SizedBox(height: 24),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
 
-                                             // Product Section
-                       GetBuilder<AddEditDocumentController>(
-                         builder: (controller) {
-                           return Column(
-                             children: [
-                               _buildSectionHeader(
-                                 'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
-                                 Icons.inventory,
-                                 'product',
-                               ),
-                               const SizedBox(height: 12),
-                               if (_sectionExpanded['product'] ?? false) ...[
-                                 _buildProductSection(controller),
-                                 const SizedBox(height: 24),
-                               ],
-                             ],
-                           );
-                         },
-                                               ),
+                      // Product Section
+                      GetBuilder<AddEditDocumentController>(
+                        builder: (controller) {
+                          return Column(
+                            children: [
+                              _buildSectionHeader(
+                                'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
+                                Icons.inventory,
+                                'product',
+                              ),
+                              const SizedBox(height: 12),
+                              if (_sectionExpanded['product'] ?? false) ...[
+                                _buildProductSection(controller),
+                                const SizedBox(height: 24),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
 
-
-
-                       // More Options Section
-                       _buildSectionHeader(
-                         'ข้อมูลเพิ่มเติม',
-                         Icons.settings,
-                         'more',
-                       ),
+                      // More Options Section
+                      _buildSectionHeader(
+                        'ข้อมูลเพิ่มเติม',
+                        Icons.settings,
+                        'more',
+                      ),
                       const SizedBox(height: 12),
                       if (_sectionExpanded['more'] ?? false) ...[
                         _buildMoreOptionsSection(controller),
@@ -246,7 +351,10 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
   Widget _buildSectionHeader(String title, IconData icon, String sectionKey) {
     final isExpanded = _sectionExpanded[sectionKey] ?? false;
-    final isRequired = sectionKey == 'customer' || sectionKey == 'seller' || sectionKey == 'product';
+    final isRequired =
+        sectionKey == 'customer' ||
+        sectionKey == 'seller' ||
+        sectionKey == 'product';
     final isComplete = _isSectionComplete(sectionKey);
 
     return Container(
@@ -335,38 +443,44 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     );
   }
 
-     // Check if section is complete based on required fields
-   bool _isSectionComplete(String sectionKey) {
-     final controller = Get.find<AddEditDocumentController>();
+  // Check if section is complete based on required fields
+  bool _isSectionComplete(String sectionKey) {
+    final controller = Get.find<AddEditDocumentController>();
 
-     switch (sectionKey) {
-       case 'status':
-         return controller.documentStatus.isNotEmpty; // Status is always complete if set
-       case 'customer':
-         return controller.selectedCustomerId != null &&
-             controller.selectedCustomerId!.isNotEmpty;
-       case 'seller':
-         return controller.selectedSellerIds.isNotEmpty;
-       case 'product':
-         final controller = Get.find<AddEditDocumentController>();
-         return _areAllProductsComplete(
-           controller,
-         ); // Check if all products are complete
-       case 'more':
-         return true; // Optional section
-       case 'summary':
-         return true; // Calculated section
-       default:
-         return true;
-     }
-   }
+    switch (sectionKey) {
+      case 'status':
+        return controller
+            .documentStatus
+            .isNotEmpty; // Status is always complete if set
+      case 'status_template':
+        return controller
+            .documentStatus
+            .isNotEmpty; // Status is always complete if set
+      case 'customer':
+        return controller.selectedCustomerId != null &&
+            controller.selectedCustomerId!.isNotEmpty;
+      case 'seller':
+        return controller.selectedSellerIds.isNotEmpty;
+      case 'product':
+        final controller = Get.find<AddEditDocumentController>();
+        return _areAllProductsComplete(
+          controller,
+        ); // Check if all products are complete
+      case 'more':
+        return true; // Optional section
+      case 'summary':
+        return true; // Calculated section
+      default:
+        return true;
+    }
+  }
 
   // Check if all required fields are complete
   bool _areRequiredFieldsComplete() {
-          final controller = Get.find<AddEditDocumentController>();
-      return _isSectionComplete('customer') &&
-          _isSectionComplete('seller') &&
-          _areAllProductsComplete(controller);
+    final controller = Get.find<AddEditDocumentController>();
+    return _isSectionComplete('customer') &&
+        _isSectionComplete('seller') &&
+        _areAllProductsComplete(controller);
   }
 
   // Check if the last product has all required fields filled
@@ -374,43 +488,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     if (controller.products.isEmpty) return true;
 
     final lastIndex = controller.products.length - 1;
-    final product = controller.products[lastIndex];
-    final productId = product['id'];
-
-    // Get controllers for the last product
-    final nameController = controller.getProductController(lastIndex, 'name');
-    final quantityController = controller.getProductController(
-      lastIndex,
-      'quantity',
-    );
-    final unitController = controller.getProductController(lastIndex, 'unit');
-    final priceController = controller.getProductController(
-      lastIndex,
-      'pricePerUnit',
-    );
-
-    // Check if all required fields are filled
-    final name = nameController.text.trim();
-    final quantity = quantityController.text.trim();
-    final unit = unitController.text.trim();
-    final price = priceController.text.trim();
-
-    if (name.isEmpty || quantity.isEmpty || unit.isEmpty || price.isEmpty) {
-      return false;
-    }
-
-    // Check if quantity and price are valid numbers
-    final quantityValue = double.tryParse(quantity);
-    final priceValue = double.tryParse(price);
-
-    if (quantityValue == null ||
-        priceValue == null ||
-        quantityValue <= 0 ||
-        priceValue < 0) {
-      return false;
-    }
-
-    return true;
+    return _isProductCompleteWithTemplate(controller, lastIndex);
   }
 
   // Check if all products have required fields filled
@@ -418,40 +496,68 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     if (controller.products.isEmpty) return true;
 
     for (int i = 0; i < controller.products.length; i++) {
-      final product = controller.products[i];
-      final productId = product['id'];
-
-      // Get controllers for this product
-      final nameController = controller.getProductController(i, 'name');
-      final quantityController = controller.getProductController(i, 'quantity');
-      final unitController = controller.getProductController(i, 'unit');
-      final priceController = controller.getProductController(
-        i,
-        'pricePerUnit',
-      );
-
-      // Check if all required fields are filled
-      final name = nameController.text.trim();
-      final quantity = quantityController.text.trim();
-      final unit = unitController.text.trim();
-      final price = priceController.text.trim();
-
-      if (name.isEmpty || quantity.isEmpty || unit.isEmpty || price.isEmpty) {
-        return false;
-      }
-
-      // Check if quantity and price are valid numbers
-      final quantityValue = double.tryParse(quantity);
-      final priceValue = double.tryParse(price);
-
-      if (quantityValue == null ||
-          priceValue == null ||
-          quantityValue <= 0 ||
-          priceValue < 0) {
+      if (!_isProductCompleteWithTemplate(controller, i)) {
         return false;
       }
     }
 
+    return true;
+  }
+  
+  // Check if a product is complete based on template fields
+  bool _isProductCompleteWithTemplate(AddEditDocumentController controller, int index) {
+    final fields = controller.templateProductFields;
+    if (fields.isEmpty) return true; // No template fields means complete
+    
+    for (final field in fields) {
+      final fieldId = field['id']?.toString() ?? '';
+      final fieldType = field['type']?.toString() ?? '';
+      final isVisible = field['isVisible'] ?? true;
+      
+      if (!isVisible) continue;
+      
+      // Check required fields based on field type
+      bool isRequired = false;
+      String fieldValue = '';
+      
+      if (fieldType == 'product_field') {
+        if (field['sourceField'] == 'name' || fieldId == 'name') {
+          isRequired = true;
+          fieldValue = controller.getProductController(index, 'name').text.trim();
+        } else if (field['sourceField'] == 'pricePerUnit' || fieldId == 'pricePerUnit') {
+          isRequired = true;
+          fieldValue = controller.getProductController(index, 'pricePerUnit').text.trim();
+        }
+      } else if (fieldType == 'predefined') {
+        if (field['predefinedField'] == 'quantity' || fieldId == 'quantity') {
+          isRequired = true;
+          fieldValue = controller.getProductController(index, 'quantity').text.trim();
+        } else if (field['predefinedField'] == 'unit' || fieldId == 'unit') {
+          isRequired = true;
+          fieldValue = controller.getProductController(index, 'unit').text.trim();
+        }
+      }
+      
+      if (isRequired && fieldValue.isEmpty) {
+        return false;
+      }
+      
+      // Validate numeric fields
+      if (isRequired && (fieldId == 'quantity' || field['predefinedField'] == 'quantity')) {
+        final quantityValue = double.tryParse(fieldValue);
+        if (quantityValue == null || quantityValue <= 0) {
+          return false;
+        }
+      }
+      
+      if (isRequired && (fieldId == 'pricePerUnit' || field['sourceField'] == 'pricePerUnit')) {
+        final priceValue = double.tryParse(fieldValue);
+        if (priceValue == null || priceValue < 0) {
+          return false;
+        }
+      }
+    }
+    
     return true;
   }
 
@@ -710,12 +816,37 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Template requirement warning
+          if (controller.selectedTemplateId == null) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.errorRed.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber, color: AppTheme.errorRed, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'กรุณาเลือกเทมเพลตเอกสารก่อนเพิ่มสินค้า เพื่อกำหนดฟิลด์ที่ต้องการ',
+                      style: TextStyle(color: AppTheme.errorRed, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Product Selection Buttons
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: controller.isLoadingProducts
+                  onPressed: (controller.isLoadingProducts || controller.selectedTemplateId == null)
                       ? null
                       : () => _showProductSelectionDialog(controller),
                   icon: controller.isLoadingProducts
@@ -733,11 +864,15 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                   label: Text(
                     controller.isLoadingProducts
                         ? 'กำลังโหลด...'
-                        : 'เลือกจากฐานข้อมูล',
+                        : controller.selectedTemplateId == null
+                            ? 'เลือกเทมเพลตก่อน'
+                            : 'เลือกจากฐานข้อมูล',
                     style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryOrange,
+                    backgroundColor: controller.selectedTemplateId == null 
+                        ? AppTheme.textGrey 
+                        : AppTheme.primaryOrange,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -748,36 +883,30 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed:
-                      controller.products.isEmpty ||
-                          _isLastProductComplete(controller)
-                      ? controller.addProduct
-                      : null,
+                  onPressed: controller.selectedTemplateId == null
+                      ? null
+                      : controller.addProduct,
                   icon: Icon(
                     Icons.add,
-                    color:
-                        controller.products.isEmpty ||
-                            _isLastProductComplete(controller)
-                        ? AppTheme.primaryOrange
-                        : AppTheme.textGrey,
+                    color: controller.selectedTemplateId == null
+                        ? AppTheme.textGrey
+                        : AppTheme.primaryOrange,
                   ),
                   label: Text(
-                    'เพิ่มใหม่',
+                    controller.selectedTemplateId == null
+                        ? 'เลือกเทมเพลตก่อน'
+                        : 'เพิ่มใหม่',
                     style: TextStyle(
-                      color:
-                          controller.products.isEmpty ||
-                              _isLastProductComplete(controller)
-                          ? AppTheme.primaryOrange
-                          : AppTheme.textGrey,
+                      color: controller.selectedTemplateId == null
+                          ? AppTheme.textGrey
+                          : AppTheme.primaryOrange,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
-                      color:
-                          controller.products.isEmpty ||
-                              _isLastProductComplete(controller)
-                          ? AppTheme.primaryOrange
-                          : AppTheme.textGrey,
+                      color: controller.selectedTemplateId == null
+                          ? AppTheme.textGrey
+                          : AppTheme.primaryOrange,
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -870,89 +999,114 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
           const SizedBox(height: 12),
 
-          // Product Name
-          _buildTextField(
-            label: 'ชื่อสินค้า/บริการ *',
-            hint: 'กรอกชื่อสินค้า/บริการ',
-            controller: controller.getProductController(index, 'name'),
-            isRequired: true,
-          ),
-          const SizedBox(height: 12),
-
-          // Description
-          _buildTextField(
-            label: 'รายละเอียด',
-            hint: 'กรอกรายละเอียดสินค้า/บริการ',
-            controller: controller.getProductController(index, 'description'),
-            maxLines: 2,
-          ),
-          const SizedBox(height: 12),
-
-          // Quantity and Unit
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: _buildTextField(
-                  label: 'จำนวน *',
-                  hint: '0',
-                  controller: controller.getProductController(
-                    index,
-                    'quantity',
-                  ),
-                  keyboardType: TextInputType.number,
-                  isRequired: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: _buildTextField(
-                  label: 'หน่วย *',
-                  hint: 'ชิ้น',
-                  controller: controller.getProductController(index, 'unit'),
-                  isRequired: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Price and Discount
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: _buildTextField(
-                  label: 'ราคาต่อหน่วย *',
-                  hint: '0.00',
-                  controller: controller.getProductController(
-                    index,
-                    'pricePerUnit',
-                  ),
-                  keyboardType: TextInputType.number,
-                  prefix: '฿',
-                  isRequired: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: _buildTextField(
-                  label: 'ส่วนลด',
-                  hint: '0.00',
-                  controller: controller.getProductController(
-                    index,
-                    'discount',
-                  ),
-                  keyboardType: TextInputType.number,
-                  prefix: '฿',
-                ),
-              ),
-            ],
-          ),
+          // Dynamic product fields based on template
+          _buildDynamicProductFields(controller, index),
         ],
       ),
+    );
+  }
+  
+  Widget _buildDynamicProductFields(AddEditDocumentController controller, int index) {
+    final fields = controller.templateProductFields;
+    if (fields.isEmpty) {
+      return const Text('ไม่พบฟิลด์สินค้าในเทมเพลต');
+    }
+    
+    List<Widget> fieldWidgets = [];
+    
+    for (int i = 0; i < fields.length; i++) {
+      final field = fields[i];
+      final fieldId = field['id']?.toString() ?? '';
+      final fieldLabel = field['label']?.toString() ?? '';
+      final fieldType = field['type']?.toString() ?? '';
+      final isVisible = field['isVisible'] ?? true;
+      final isEditable = field['isEditable'] ?? true;
+      
+      if (!isVisible) continue;
+      
+      Widget fieldWidget;
+      
+      switch (fieldType) {
+        case 'product_field':
+        case 'predefined':
+        case 'user_input':
+          // Determine the field type and create appropriate input
+          if (fieldId == 'name' || field['sourceField'] == 'name') {
+            fieldWidget = _buildTextField(
+              label: '$fieldLabel *',
+              hint: 'กรอก$fieldLabel',
+              controller: controller.getProductController(index, 'name'),
+              isRequired: true,
+            );
+          } else if (fieldId == 'description' || field['sourceField'] == 'description') {
+            fieldWidget = _buildTextField(
+              label: fieldLabel,
+              hint: 'กรอก$fieldLabel',
+              controller: controller.getProductController(index, 'description'),
+              maxLines: 2,
+            );
+          } else if (fieldId == 'quantity' || field['predefinedField'] == 'quantity') {
+            fieldWidget = _buildTextField(
+              label: '$fieldLabel *',
+              hint: '0',
+              controller: controller.getProductController(index, 'quantity'),
+              keyboardType: TextInputType.number,
+              isRequired: true,
+            );
+          } else if (fieldId == 'unit' || field['predefinedField'] == 'unit') {
+            fieldWidget = _buildTextField(
+              label: '$fieldLabel *',
+              hint: 'ชิ้น',
+              controller: controller.getProductController(index, 'unit'),
+              isRequired: true,
+            );
+          } else if (fieldId == 'pricePerUnit' || field['sourceField'] == 'pricePerUnit') {
+            fieldWidget = _buildTextField(
+              label: '$fieldLabel *',
+              hint: '0.00',
+              controller: controller.getProductController(index, 'pricePerUnit'),
+              keyboardType: TextInputType.number,
+              prefix: '฿',
+              isRequired: true,
+            );
+          } else if (fieldId == 'discount' || field['predefinedField'] == 'discount') {
+            fieldWidget = _buildTextField(
+              label: fieldLabel,
+              hint: '0.00',
+              controller: controller.getProductController(index, 'discount'),
+              keyboardType: TextInputType.number,
+              prefix: '฿',
+            );
+          } else {
+            // Generic field for unknown types
+            fieldWidget = _buildTextField(
+              label: fieldLabel,
+              hint: 'กรอก$fieldLabel',
+              controller: controller.getProductController(index, fieldId),
+            );
+          }
+          break;
+          
+        default:
+          // Generic field for unknown types
+          fieldWidget = _buildTextField(
+            label: fieldLabel,
+            hint: 'กรอก$fieldLabel',
+            controller: controller.getProductController(index, fieldId),
+          );
+      }
+      
+      fieldWidgets.add(fieldWidget);
+      
+      // Add spacing between fields (except for the last one)
+      if (i < fields.length - 1) {
+        fieldWidgets.add(const SizedBox(height: 12));
+      }
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: fieldWidgets,
     );
   }
 
@@ -1027,8 +1181,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
       ),
     );
   }
-
-
 
   Widget _buildSummarySection(AddEditDocumentController controller) {
     return Container(
@@ -1523,96 +1675,96 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     );
   }
 
-     // Helper method to get status display name
-   String _getStatusDisplayName(String status) {
-     switch (status) {
-       // Quotation statuses
-       case 'DRAFT':
-         return 'ร่าง (Draft)';
-       case 'SENT':
-         return 'ส่งแล้ว (Sent)';
-       case 'PENDING_APPROVAL':
-         return 'รอการอนุมัติ (Pending Approval)';
-       case 'APPROVED':
-         return 'อนุมัติแล้ว (Approved)';
-       case 'REJECTED':
-         return 'ปฏิเสธ (Rejected)';
-       case 'VOID':
-         return 'ยกเลิก (Void)';
-       case 'INVOICED':
-         return 'ออกใบแจ้งหนี้แล้ว (Invoiced)';
-       case 'FULLY_PAID':
-         return 'ชำระเงินครบแล้ว (Fully Paid)';
-       // Invoice statuses
-       case 'PARTIAL_PAID':
-         return 'ชำระบางส่วน (Partial Paid)';
-       case 'PAID':
-         return 'ชำระแล้ว (Paid)';
-       case 'OVERDUE':
-         return 'เกินกำหนด (Overdue)';
-       default:
-         return 'ร่าง (Draft)';
-     }
-   }
+  // Helper method to get status display name
+  String _getStatusDisplayName(String status) {
+    switch (status) {
+      // Quotation statuses
+      case 'DRAFT':
+        return 'ร่าง (Draft)';
+      case 'SENT':
+        return 'ส่งแล้ว (Sent)';
+      case 'PENDING_APPROVAL':
+        return 'รอการอนุมัติ (Pending Approval)';
+      case 'APPROVED':
+        return 'อนุมัติแล้ว (Approved)';
+      case 'REJECTED':
+        return 'ปฏิเสธ (Rejected)';
+      case 'VOID':
+        return 'ยกเลิก (Void)';
+      case 'INVOICED':
+        return 'ออกใบแจ้งหนี้แล้ว (Invoiced)';
+      case 'FULLY_PAID':
+        return 'ชำระเงินครบแล้ว (Fully Paid)';
+      // Invoice statuses
+      case 'PARTIAL_PAID':
+        return 'ชำระบางส่วน (Partial Paid)';
+      case 'PAID':
+        return 'ชำระแล้ว (Paid)';
+      case 'OVERDUE':
+        return 'เกินกำหนด (Overdue)';
+      default:
+        return 'ร่าง (Draft)';
+    }
+  }
 
-   // Build document status section
-   Widget _buildDocumentStatusSection(AddEditDocumentController controller) {
-     return Container(
-       padding: const EdgeInsets.all(16),
-       decoration: BoxDecoration(
-         color: AppTheme.backgroundWhite,
-         borderRadius: BorderRadius.circular(12),
-         border: Border.all(color: AppTheme.primaryOrange),
-       ),
-       child: Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           Text(
-             'สถานะเอกสาร',
-             style: const TextStyle(
-               fontSize: 16,
-               fontWeight: FontWeight.w600,
-               color: AppTheme.textPrimary,
-             ),
-           ),
-           const SizedBox(height: 12),
-           DropdownButtonFormField<String>(
-             value: controller.documentStatus,
-             items: controller.availableStatuses.map((status) {
-               return DropdownMenuItem(
-                 value: status,
-                 child: Text(_getStatusDisplayName(status)),
-               );
-             }).toList(),
-             onChanged: controller.onDocumentStatusChanged,
-             decoration: InputDecoration(
-               hintText: 'เลือกสถานะเอกสาร',
-               border: OutlineInputBorder(
-                 borderRadius: BorderRadius.circular(8),
-                 borderSide: const BorderSide(color: AppTheme.borderGrey),
-               ),
-               enabledBorder: OutlineInputBorder(
-                 borderRadius: BorderRadius.circular(8),
-                 borderSide: const BorderSide(color: AppTheme.borderGrey),
-               ),
-               focusedBorder: OutlineInputBorder(
-                 borderRadius: BorderRadius.circular(8),
-                 borderSide: const BorderSide(color: AppTheme.primaryOrange),
-               ),
-               contentPadding: const EdgeInsets.symmetric(
-                 horizontal: 12,
-                 vertical: 12,
-               ),
-             ),
-           ),
-         ],
-       ),
-     );
-   }
+  // Build document status section
+  Widget _buildDocumentStatusSection(AddEditDocumentController controller) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primaryOrange),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'สถานะเอกสาร',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: controller.documentStatus,
+            items: controller.availableStatuses.map((status) {
+              return DropdownMenuItem(
+                value: status,
+                child: Text(_getStatusDisplayName(status)),
+              );
+            }).toList(),
+            onChanged: controller.onDocumentStatusChanged,
+            decoration: InputDecoration(
+              hintText: 'เลือกสถานะเอกสาร',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppTheme.borderGrey),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppTheme.borderGrey),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppTheme.primaryOrange),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-       void _showProductSelectionDialog(AddEditDocumentController controller) {
-     // Use real product data from controller
-     final availableProducts = controller.availableProducts;
+  void _showProductSelectionDialog(AddEditDocumentController controller) {
+    // Use real product data from controller
+    final availableProducts = controller.availableProducts;
 
     if (availableProducts.isEmpty) {
       Get.snackbar(
