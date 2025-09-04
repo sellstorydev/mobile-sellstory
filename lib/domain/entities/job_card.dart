@@ -21,7 +21,7 @@ class JobCard {
   final String customer; // Add customer field
   final String updatedByDisplayName; // Add display name field
   final String? customerId; // Add customer ID field
-  final String? company; // Add company field
+  final Map<String, dynamic>? company; // Add company field as object
   final String? hashtag; // Add hashtag field (legacy)
   final List<Map<String, dynamic>> hashtags; // Add hashtags field (new DTB structure)
   final String? customerInterest; // Add customer interest field
@@ -92,7 +92,7 @@ class JobCard {
     String? customer,
     String? updatedByDisplayName,
     String? customerId,
-    String? company,
+    Map<String, dynamic>? company,
     String? hashtag,
     List<Map<String, dynamic>>? hashtags,
     String? customerInterest,
@@ -191,7 +191,7 @@ class JobCard {
     if (customer.isNotEmpty) data['customer'] = customer;
     if (updatedByDisplayName.isNotEmpty) data['updatedByDisplayName'] = updatedByDisplayName;
     if (customerId?.isNotEmpty == true) data['customerId'] = customerId;
-    if (company?.isNotEmpty == true) data['company'] = company;
+    if (company != null) data['company'] = company;
     if (hashtag?.isNotEmpty == true) data['hashtag'] = hashtag;
     if (hashtags.isNotEmpty) data['hashtags'] = hashtags;
     if (customerInterest?.isNotEmpty == true) data['customerInterest'] = customerInterest;
@@ -377,9 +377,9 @@ class JobCard {
 
     // Company can be string or map
     final companyRaw = map['company'];
-    final String? company = companyRaw == null
+    final Map<String, dynamic>? company = companyRaw == null
         ? null
-        : (companyRaw is String ? companyRaw : _nullableStringFrom(companyRaw['name'] ?? companyRaw));
+        : (companyRaw is String ? {'value': companyRaw, 'label': companyRaw, 'id': ''} : Map<String, dynamic>.from(companyRaw));
 
     // Board/workspace may be direct strings
     final String boardId = _stringFrom(map['boardId']);

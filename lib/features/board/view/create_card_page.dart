@@ -548,7 +548,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
       // Prepare todos data in correct format
       final todosData = _todoItems.map((todo) => {
-        'id': todo['id'],
+        'id': 'todo-${todo['id']}', // Add 'todo-' prefix to match correct structure
         'title': todo['text'] ?? '',
         'completed': todo['isCompleted'] ?? false,
         'dueDate': todo['dueDate']?.millisecondsSinceEpoch,
@@ -576,7 +576,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         customer: customerName,
         updatedByDisplayName: assigneeDisplayName, // Use assignee display name
         customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
-        company: companyData != null ? companyData['value'] : null, // Store company name as string for backward compatibility
+        company: companyData, // Store company as object with id, label, value
         customerInterest: _selectedCustomerInterest,
         hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
         hashtags: _selectedHashtags,
@@ -1875,6 +1875,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
         children: [
           Row(
             children: [
+              // Checkbox for todo completion
+              Checkbox(
+                value: todo['isCompleted'] ?? false,
+                onChanged: (bool? value) {
+                  setState(() {
+                    todo['isCompleted'] = value ?? false;
+                  });
+                },
+                activeColor: AppTheme.primaryOrange,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              
               // Input field
               Expanded(
                 child: TextField(
@@ -1887,32 +1899,14 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   onChanged: (value) {
                     todo['text'] = value;
                   },
-                ),
-              ),
-              const SizedBox(width: 8),
-              
-              // Add button (save current todo)
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    // Add button functionality - could save or mark as added
-                    if (controller.text.trim().isNotEmpty) {
-                      // You can add any save logic here
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Todo "${controller.text.trim()}" added!'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                  padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  style: TextStyle(
+                    decoration: (todo['isCompleted'] ?? false) 
+                      ? TextDecoration.lineThrough 
+                      : TextDecoration.none,
+                    color: (todo['isCompleted'] ?? false) 
+                      ? Colors.grey[600] 
+                      : Colors.black87,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
