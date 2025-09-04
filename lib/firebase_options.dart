@@ -54,7 +54,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyABzQQmv8I9wQsBGjh7VNJU6h6KaeJ2pJI',
-    appId: '1:489911602258:android:96270bea8216214595638b',
+    appId: '1:489911602258:android:07e703a2e7ff8ccf95638b',
     messagingSenderId: '489911602258',
     projectId: 'kanbanflow-iq93h',
     storageBucket: 'kanbanflow-iq93h.firebasestorage.app',
@@ -62,12 +62,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDHbTUAISvJOEAHPdyqQ16slR3oPaSnW0U',
-    appId: '1:489911602258:ios:39d449b7f1e8b6e595638b',
+    appId: '1:489911602258:ios:c11fa7a4d2ce0ad595638b',
     messagingSenderId: '489911602258',
     projectId: 'kanbanflow-iq93h',
     storageBucket: 'kanbanflow-iq93h.firebasestorage.app',
-    iosClientId: '489911602258-0pt2sm59lvef95pnkmge98bjkkfmg8v6.apps.googleusercontent.com',
-    iosBundleId: 'me.sellstory.app',
+    iosClientId: '489911602258-iq7uf5kao3roptfff7k8uvi26e22sfjn.apps.googleusercontent.com',
+    iosBundleId: 'me.sellstory.pro',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
