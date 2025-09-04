@@ -8,6 +8,8 @@ class JobCard {
   final String status;
   final String customId;
   final DateTime? dueDate;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final List<String> badges;
   final double amount;
   final String laneId;
@@ -41,6 +43,8 @@ class JobCard {
     this.status = 'To Do',
     this.customId = '',
     this.dueDate,
+    this.startDate,
+    this.endDate,
     required this.badges,
     required this.amount,
     required this.laneId,
@@ -75,6 +79,8 @@ class JobCard {
     String? status,
     String? customId,
     DateTime? dueDate,
+    DateTime? startDate,
+    DateTime? endDate,
     List<String>? badges,
     double? amount,
     String? laneId,
@@ -108,6 +114,8 @@ class JobCard {
       status: status ?? this.status,
       customId: customId ?? this.customId,
       dueDate: dueDate ?? this.dueDate,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
       badges: badges ?? this.badges,
       amount: amount ?? this.amount,
       laneId: laneId ?? this.laneId,
@@ -173,6 +181,8 @@ class JobCard {
     if (status.isNotEmpty) data['status'] = status;
     if (customId.isNotEmpty) data['customId'] = customId;
     if (dueDate != null) data['dueDate'] = Timestamp.fromDate(dueDate!);
+    if (startDate != null) data['startDate'] = startDate!.millisecondsSinceEpoch;
+    if (endDate != null) data['endDate'] = endDate!.millisecondsSinceEpoch;
     if (badges.isNotEmpty) data['badges'] = badges;
     if (amount > 0) data['amount'] = amount;
     if (laneId.isNotEmpty) data['laneId'] = laneId;

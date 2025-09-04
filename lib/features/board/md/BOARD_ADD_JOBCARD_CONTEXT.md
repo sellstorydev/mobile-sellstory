@@ -1,16 +1,202 @@
 # Add jobcard
 
 ## Overview
-Add jobcard is page receive input from user to create card in lane on board screen. All value will store in frirestore only when press save button. and Based on data or data type you can see in Related Database.
+Add jobcard is page receive input from user to create card in lane on board screen. All value will store in frirestore only when press save button. and Based on data or data type you can see in Related Database. After save this page should go back.
+and see card in lane on board screen 
 
 ## Project structure:
-- folder structure is `mvp`
+- folder structure is `mvp` (Model View Presenter)
 - framework is `flutter`
+
+mvp_scaffold:
+  feature_id: add_jobcard
+  flutter_framework: getx
+  root_path: lib/features/board
+
+  routes:
+    name: CreateCardRoute
+    path: /board/create-card
+    back_after_save: true
+    back_to: /board  # หรือเจาะจง Board เดิม
+
+  bindings:
+    file: bindings/create_card_binding.dart
+    class: CreateCardBinding
+    inject:
+      - type: JobCardRepository
+        impl: FirebaseJobCardRepository
+      - type: CreateCardPresenter
+        deps: [JobCardRepository]
+
+  files:
+    - path: model/job_card.dart
+      class: JobCard
+      type: model
+    - path: data/job_card_repository.dart
+      class: JobCardRepository
+      type: repository_interface
+    - path: data/firebase_job_card_repository.dart
+      class: FirebaseJobCardRepository
+      type: repository_impl
+    - path: presenter/create_card_presenter.dart
+      class: CreateCardPresenter
+      type: presenter
+    - path: view/create_card_page.dart
+      class: CreateCardPage
+      type: view
+    - path: widgets/ # component เสริม เช่น chips, pickers
+
+  state:
+    class: CreateCardState
+    fields:
+      jobCardId: {type: String?, default: null, readonly: true}
+      title: {type: String, required: true, minLength: 1, maxLength: 200}
+      laneId: {type: String, required: true}
+      hashtags: {type: List<HashtagTag>, default: []}
+      assigneeUid: {type: String?, required: true}
+      customerId: {type: String?, required: true}
+      company: {type: CompanyRef?, default: null} # {id,label,value}
+      customerInterest: {type: CustomerInterest, required: false, default: "เริ่มต้น"}
+      startDate: {type: int?, unit: epochMillis}
+      endDate: {type: int?, unit: epochMillis}
+      status: {type: JobStatus, required: true, default: Pending}
+      collaborators: {type: List<String>, default: []}
+      watchers: {type: List<String>, default: []}
+      descriptionHtml: {type: String, sanitize: [b,i,u,color,h1,h2,h3]}
+      todos: {type: List<TodoItem>, default: []}
+
+  enums:
+    JobStatus: [Pending, InProgress, Done, Canceled]
+    CustomerInterest: ["เริ่มต้น","น้อย (Low)","กลาง (Medium)","มาก (High)"]
+
+  id_generation:
+    source_settings_path: workspaces/{workspaceId}/companyProfile/idGenerationRules/jobCard
+    last_counter_path: workspaces/{workspaceId}/companyProfile/lastUsedCounters/jobCard
+    algorithm:
+      - read prefix, dateFormat, separator, minLength
+      - generate: <prefix><separator><date(format)><separator><counter(pad to minLength)>
+      - counter: last_counter + 1, update atomically (transaction)
+
+  selects:
+    lane:
+      query: workspaces/{workspaceId}/lanes where boardId == {boardId}
+      value_field: id
+      label_field: name
+    hashtag_master:
+      path: workspaces/{workspaceId}/companyProfile/hashtagSettings/masterList[]
+      map_to:
+        - hashtags[]: array<{id,text,color}>
+        - hashtag: string (e.g. "#Bew1234455 #Bew213")
+    customer:
+      path: workspaces/{workspaceId}/customers
+      value_field: docId
+      label_field: name
+      also_use:
+        companyNames[] -> for company select
+    company:
+      source: customers/{customerId}/companyNames[]  # {id,label,value}
+    users_single_select:
+      query: users where workspaces[].id contains {workspaceId}
+      value_field: uid
+      label_field: displayName
+    users_multi_select:
+      same_as: users_single_select
+
+  ui_contract:
+    view_methods:
+      showLoading(): void
+      hideLoading(): void
+      showError(message: String): void
+      showToast(message: String): void
+    presenter_methods:
+      init(workspaceId: String, boardId: String, currentUserId: String): Future<void>
+      pickLane(laneId: String): void
+      pickHashtags(list: List<HashtagTag>): void
+      pickAssignee(uid: String): void
+      pickCustomer(customerId: String): void
+      pickCompany(company: CompanyRef?): void
+      pickInterest(value: CustomerInterest): void
+      pickStatus(value: JobStatus): void
+      pickDateRange(startEpoch: int?, endEpoch: int?): void
+      editDescription(html: String): void
+      addTodo(title: String, dueDateEpoch: int?): void
+      updateTodo(id: String, title?: String, dueDateEpoch?: int?, completed?: bool): void
+      removeTodo(id: String): void
+      submit(): Future<void>
+
+  validation_rules:
+    - title: required
+    - laneId: required
+    - assigneeUid: required
+    - customerId: required
+    - date_range: startDate <= endDate (if both present)
+    - status: must be in enums.JobStatus
+    - descriptionHtml: sanitize to allowed tags only
+
+  firestore_write_map:
+    doc_path: workspaces/{workspaceId}/cards/{cardId}
+    fields:
+      title: state.title
+      laneId: state.laneId
+      hashtags: state.hashtags  # array<{id,text,color}>
+      hashtag: "join with '#'+text and space"
+      customId: generated.jobCardId
+      assignedTo: state.assigneeUid
+      customerId: state.customerId
+      company: state.company  # {id,label,value} or null
+      startDate: state.startDate
+      endDate: state.endDate
+      status: state.status
+      collaborators: state.collaborators
+      watchers: state.watchers
+      description: state.descriptionHtml
+      todos: state.todos  # [{id,title,completed,dueDate?}]
+      workspaceId: {workspaceId}
+      boardId: {boardId}
+      createdBy: {currentUserId}
+      createdAt: now()
+      updatedBy: {currentUserId}
+      updatedAt: now()
+
+  navigation_after_save:
+    action: pop_to
+    target: /board
+    refresh_signal: board_should_reload=true
+
+  activity_log:
+    path: workspaces/{workspaceId}/activities
+    on_create:
+      type: card-create
+      details: {cardId, cardTitle: state.title, laneId: state.laneId}
+    on_update_title:
+      type: card-update-field
+      details: {cardId, fieldName: "Title", from, to}
+
+  security_requirements:
+    - user must be member of workspaces/{workspaceId}.members OR users/{uid}.workspaces contains {workspaceId}
+    - writes must be denied if status not in enums.JobStatus
+
+  test_scenarios:
+    - "save minimal": title+lane+assignee+customer -> created card visible in lane
+    - "date invalid": endDate < startDate -> block with error
+    - "hashtag join": two tags -> hashtag string "#TagA #TagB"
+    - "permission": non-member user -> write denied
+
+  i18n_keys:
+    screen_title: board.create_card.title
+    save_button: common.save
+    cancel_button: common.cancel
+    toast_saved: board.create_card.saved
+    error_required: common.error.required
+
+
 
 ## Tool
 - `get: ^4.6.6` - State management and dependency injection
 - `firebase_core`: ^3.4.0
 - `firebase_auth`: ^5.3.0
+- `firebase_database`: ^11.1.4
+- `firebase_database`: ^5.4.0
 - `cloud_firestore`: ^5.4.0
 
 ## Path
@@ -34,8 +220,7 @@ All input in this file
 - Description `html input`
 - Expense Items `No need to do anything yet`
 - Todo List `input and select`
-- Attached Files `file picker`
-- Comments `input`
+
 
 
 ## Feature
@@ -44,7 +229,7 @@ All input in this file
 - Lane is single select.This select use value from `workspaces/{workspace UIDs}/lanes(sub col)/{lane UIDs}/name`
 - Hashtag is single select. This select use value from `workspaces/{workspace UIDs}/companyProfile/hashtagSettings/masterList[Json Array]/name || color`
 - Customer is single select. This select use value from `workspaces/{workspace UIDs}/customers(sub col)/name`
-- Company is single select. This select use value from `workspaces/{workspace UIDs}/companies(sub col)/name`
+- Company is single select. This select use value from `workspaces/{workspace UIDs}/customers(sub col)/companyNames[json Array]`
 - Assignee  is single select. This select use value from `users/{user UIDs}/displayName`.You should check all user in collection `users` have workspaces in path `users/{user UIDs}/workspaces[json array]/id`
 - Expected Closing Date is date range picker only date
 - Status is single select only have value Pending|In Progress|Done|Canceled
@@ -52,8 +237,6 @@ All input in this file
 - Watchers is multiple select This select use value from `users/{user UIDs}/displayName`.You should check all user in collection `users` have workspaces in path `users/{user UIDs}/workspaces[json array]/id`
 - Description is html input. Input only have b,i,u,color,h1,h2,h3 
 - Todolist have two option is select form template and create new. When select template go to get value from `/workspaces/{workspaces UIDs}/boards(sub col)/{board UIDs}/todoTemplates[json array]/name`. When tap "+ Add Item" app show input have 1 text input and 4 action. first action is check box ,second seclect datetime picker, third is edit ,four delete todo
-- Attached Files is file picker can select multi limit zise 50 mb, and store to firebase storage and get id folder create to firestore 
-- Comment is text input and can reply comment to
 - Customer Interest is single select.value is  "เริ่มตัน|น้อย (Low)|กลาง (Medium)|มาก (High)" 
 
 ## Create input to database
@@ -70,8 +253,6 @@ All input in this file
 - Watchers =  `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/watchers[]` value (user UIDs)
 - Description = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/description`
 - Todo List = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/todos[json array]` value(completed,dueDate,id,title)
-- Attached Files = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/attachments[json array]` value (filename,id,name,size,uploadedAt,url)
-- comment = you can mock data 
 - Customer Interest =  `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/customerInterest`
 
 ## Related Database
