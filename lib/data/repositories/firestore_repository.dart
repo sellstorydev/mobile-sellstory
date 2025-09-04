@@ -934,12 +934,24 @@ class FirestoreRepository {
           customId: jobId,
         ).toMap();
 
+        // Convert updatedAt to Firestore Timestamp format to match web structure
+        if (cardData['updatedAt'] != null) {
+          final updatedAtMs = cardData['updatedAt'] as int;
+          cardData['updatedAt'] = {
+            '_seconds': (updatedAtMs / 1000).floor(),
+            '_nanoseconds': ((updatedAtMs % 1000) * 1000000).toInt(),
+          };
+        }
+
         // Debug logging for card data
         print('📝 FirestoreRepository.createCard - Debug Card Data:');
         print('  - Original card title: "${card.title}"');
+        print('  - Original card watchers: ${card.watchers}');
+        print('  - Original card collaborators: ${card.collaborators}');
         print('  - Original card updatedByDisplayName: "${card.updatedByDisplayName}"');
         print('  - Card data title: "${cardData['title']}"');
-        print('  - Card data name: "${cardData['name']}"');
+        print('  - Card data watchers: ${cardData['watchers']}');
+        print('  - Card data collaborators: ${cardData['collaborators']}');
         print('  - Card data updatedByDisplayName: "${cardData['updatedByDisplayName']}"');
         print('  - Card data keys: ${cardData.keys.toList()}');
 

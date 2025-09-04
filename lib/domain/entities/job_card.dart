@@ -145,65 +145,52 @@ class JobCard {
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
-    // Build the map based on DTB.md Card structure
+    // Build the map based on correct web structure
     final Map<String, dynamic> data = {
       'workspaceId': workspaceId,
-      'name': title, // Card name per DTB.md
-      'title': title, // Also include title field for compatibility
+      'title': title,
+      'boardId': boardId,
     };
 
-    // Required fields per DTB.md Card structure
-    if (createdBy.isNotEmpty) data['createdBy'] = createdBy;
-    
-    // DTB.md Card structure requires these arrays
-    data['memberUids'] = watchers.isNotEmpty ? watchers : [createdBy]; // Use watchers or creator
-    data['members'] = []; // Will be populated by backend/system
-    
-    // lanes array per DTB.md (may store lane IDs related to this card)
-    if (laneId.isNotEmpty) {
-      data['lanes'] = [laneId];
-    } else {
-      data['lanes'] = [];
-    }
-    
-    // Optional workspaces array per DTB.md
-    if (workspaceId.isNotEmpty) {
-      data['workspaces'] = [{
-        'id': workspaceId,
-        'name': '', // Will be populated by backend
-        'role': 'member'
-      }];
-    }
+    // Include id if available
+    if (id.isNotEmpty) data['id'] = id;
 
-    // Job card specific fields (not in DTB.md Card but needed for job cards)
-    if (description.isNotEmpty) data['description'] = description;
+    // Required fields per web structure
+    if (description.isNotEmpty) {
+      data['description'] = description;
+    }
     if (assignedTo.isNotEmpty) data['assignedTo'] = assignedTo;
     if (status.isNotEmpty) data['status'] = status;
     if (customId.isNotEmpty) data['customId'] = customId;
     if (dueDate != null) data['dueDate'] = Timestamp.fromDate(dueDate!);
     if (startDate != null) data['startDate'] = startDate!.millisecondsSinceEpoch;
     if (endDate != null) data['endDate'] = endDate!.millisecondsSinceEpoch;
-    if (badges.isNotEmpty) data['badges'] = badges;
-    if (amount > 0) data['amount'] = amount;
     if (laneId.isNotEmpty) data['laneId'] = laneId;
-    if (boardId.isNotEmpty) data['boardId'] = boardId;
     if (order >= 0) data['order'] = order; // Allow 0 order
     if (customer.isNotEmpty) data['customer'] = customer;
     if (updatedByDisplayName.isNotEmpty) data['updatedByDisplayName'] = updatedByDisplayName;
     if (customerId?.isNotEmpty == true) data['customerId'] = customerId;
     if (company != null) data['company'] = company;
-    if (hashtag?.isNotEmpty == true) data['hashtag'] = hashtag;
-    if (hashtags.isNotEmpty) data['hashtags'] = hashtags;
     if (customerInterest?.isNotEmpty == true) data['customerInterest'] = customerInterest;
-    if (expenses.isNotEmpty) data['expenses'] = expenses;
-    if (todos.isNotEmpty) data['todos'] = todos;
-    if (notes.isNotEmpty) data['notes'] = notes;
-    if (customFields.isNotEmpty) data['customFields'] = customFields;
+    if (createdBy.isNotEmpty) data['createdBy'] = createdBy;
     if (updatedBy.isNotEmpty) data['updatedBy'] = updatedBy;
-    if (collaborators.isNotEmpty) data['collaborators'] = collaborators;
     if (priority?.isNotEmpty == true) data['priority'] = priority;
 
-    // Always include timestamps (convert to epoch ms per DTB.md conventions)
+    // Arrays - always include these fields (empty arrays if no data)
+    data['customFields'] = customFields.isNotEmpty ? customFields : [];
+    data['hashtags'] = hashtags.isNotEmpty ? hashtags : [];
+    data['expenses'] = expenses.isNotEmpty ? expenses : [];
+    data['todos'] = todos.isNotEmpty ? todos : [];
+    data['notes'] = notes.isNotEmpty ? notes : [];
+    data['attachments'] = []; // Always empty array for new cards
+    data['watchers'] = watchers; // Always include watchers array (could be empty or with values)
+    data['collaborators'] = collaborators; // Always include collaborators array (could be empty or with values)
+    data['descriptionMentions'] = []; // Always empty array for new cards
+
+    // Additional fields for web compatibility
+    data['quotationTemplateId'] = '';
+
+    // Always include timestamps (convert to epoch ms for web compatibility)
     data['createdAt'] = createdAt.millisecondsSinceEpoch;
     data['updatedAt'] = updatedAt.millisecondsSinceEpoch;
 
