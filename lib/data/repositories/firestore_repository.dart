@@ -770,7 +770,7 @@ class FirestoreRepository {
         'userId': userId
       });
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      
+    
     return _firestoreService.getDocumentsStream(
         cardsCollection,
       queryBuilder: (query) => query
@@ -799,8 +799,44 @@ class FirestoreRepository {
       rethrow;
     }
   }
-  
-  // Create a new lane
+
+  // Get cards for a specific customer
+  Stream<List<JobCard>> getCardsForCustomerStream(String workspaceId, String customerId) {
+    try {
+      _logger.methodEntry('FirestoreRepository.getCardsForCustomerStream', {
+        'workspaceId': workspaceId,
+        'customerId': customerId
+      });
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+    
+    return _firestoreService.getDocumentsStream(
+        cardsCollection,
+      queryBuilder: (query) => query
+            .where('customerId', isEqualTo: customerId),
+    ).map((snapshot) {
+        final cards = snapshot.docs.map((doc) {
+          final cardData = doc.data();
+          print('📋 Customer card hashtags data: ${cardData['hashtags']}');
+          
+          // Use fromMap to ensure all fields including hashtags are properly mapped
+          return JobCard.fromMap(cardData, doc.id);
+      }).toList();
+      
+      // Sort cards by order after fetching
+      cards.sort((a, b) => a.order.compareTo(b.order));
+      
+        _logger.systemEvent('Customer cards loaded', {
+          'workspaceId': workspaceId,
+          'customerId': customerId,
+          'cardsCount': cards.length
+        });
+        return cards;
+      });
+    } catch (e) {
+      _logger.error('Failed to get customer cards stream', e);
+      rethrow;
+    }
+  }  // Create a new lane
   Future<String> createLane(String workspaceId, Lane lane) async {
     try {
       _logger.methodEntry('FirestoreRepository.createLane', {

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:async';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../domain/entities/customer.dart';
+import '../../../domain/entities/job_card.dart';
+import '../../../data/repositories/firestore_repository.dart';
 import '../controller/customers_controller.dart';
 import 'add_edit_customer_page.dart';
 import '../../../core/widgets/permission_guard.dart';
@@ -25,6 +28,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   final HashtagService _hashtagService = HashtagService();
   final WorkspaceMembersService _workspaceMembersService = WorkspaceMembersService();
   final CustomersController _controller = Get.find<CustomersController>();
+  final FirestoreRepository _repository = Get.find<FirestoreRepository>();
   List<HashtagOption> _availableHashtags = [];
   List<WorkspaceMember> _workspaceMembers = [];
   bool _isLoadingHashtags = true;
@@ -38,6 +42,14 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   
   // Tab controller
   late TabController _tabController;
+  
+  // Job cards data
+  Stream<List<JobCard>>? _jobCardsStream;
+  int _jobCardCount = 0;
+  int _todoCount = 0;
+  List<JobCard> _jobCards = [];
+  bool _jobCardsLoading = true;
+  StreamSubscription<List<JobCard>>? _jobCardsSub;
 
   // Helper methods to check for valid data
   bool _hasValidEmails() {
@@ -89,12 +101,45 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     _loadHashtags();
     _loadWorkspaceMembers();
     _listenToCustomerUpdates();
+    _initJobCardsStream();
+  }
+
+  void _initJobCardsStream() {
+    // Get current workspace ID
+    final workspaceId = _controller.currentWorkspaceId.value.isNotEmpty 
+        ? _controller.currentWorkspaceId.value 
+        : widget.customer.workspaceId;
+    
+    // Initialize the job cards stream for this customer
+    _jobCardsStream = _repository.getCardsForCustomerStream(workspaceId, widget.customer.id);
+    
+    // Listen to job cards stream to update counts
+    _jobCardsSub = _jobCardsStream?.listen((jobCards) {
+      if (!mounted) return;
+      int todoCount = 0;
+      for (final jobCard in jobCards) {
+        todoCount += jobCard.todos.length;
+      }
+
+      setState(() {
+        _jobCards = jobCards;
+        _jobCardsLoading = false;
+        _jobCardCount = jobCards.length;
+        _todoCount = todoCount;
+      });
+    }, onError: (_) {
+      if (!mounted) return;
+      setState(() {
+        _jobCardsLoading = false; // stop infinite loading even on error
+      });
+    });
   }
 
   @override
   void dispose() {
     // Dispose the customer update listener to prevent memory leaks
     _customerUpdateListener?.dispose();
+  _jobCardsSub?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -261,60 +306,57 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           // Tab Bar and TabBarView (new section)
           Expanded(
             flex: 1,
-            child: DefaultTabController(
-              length: 6,
-              child: Column(
-                children: [
-                  // Tab Bar
-                  Container(
-                    color: AppTheme.backgroundWhite,
-                    child: TabBar(
-                      controller: _tabController,
-                      indicatorColor: AppTheme.primaryOrange,
-                      labelColor: AppTheme.primaryOrange,
-                      unselectedLabelColor: AppTheme.textSecondary,
-                      labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-                      isScrollable: true,
-                      indicatorWeight: 3,
-                      tabs: [
-                        Tab(text: 'Job card (0)'),
-                        Tab(text: 'สิ่งที่ต้องทำ (0)'),
-                        Tab(text: 'ประวัติ (0)'),
-                        Tab(text: 'คลังเอกสาร (0)'),
-                        Tab(text: 'โน๊ต (0)'),
-                        Tab(text: 'เอกสารการขาย (0)'),
-                      ],
-                    ),
+            child: Column(
+              children: [
+                // Tab Bar
+                Container(
+                  color: AppTheme.backgroundWhite,
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorColor: AppTheme.primaryOrange,
+                    labelColor: AppTheme.primaryOrange,
+                    unselectedLabelColor: AppTheme.textSecondary,
+                    labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                    isScrollable: true,
+                    indicatorWeight: 3,
+                    tabs: [
+                      Tab(text: 'Job card ($_jobCardCount)'),
+                      Tab(text: 'สิ่งที่ต้องทำ ($_todoCount)'),
+                      Tab(text: 'ประวัติ (0)'),
+                      Tab(text: 'คลังเอกสาร (0)'),
+                      Tab(text: 'โน๊ต (0)'),
+                      Tab(text: 'เอกสารการขาย (0)'),
+                    ],
                   ),
-                  
-                  // Tab Content
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        // Job Card Tab
-                        _buildJobCardTab(),
-                        
-                        // สิ่งที่ต้องทำ Tab
-                        _buildTodoTab(),
-                        
-                        // ประวัติ Tab
-                        _buildHistoryTab(),
-                        
-                        // คลังเอกสาร Tab
-                        _buildDocumentTab(),
-                        
-                        // โน๊ต Tab
-                        _buildNoteTab(),
-                        
-                        // เอกสารการขาย Tab
-                        _buildSalesDocumentTab(),
-                      ],
-                    ),
+                ),
+                
+                // Tab Content
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // Job Card Tab
+                      _buildJobCardTab(),
+                      
+                      // สิ่งที่ต้องทำ Tab
+                      _buildTodoTab(),
+                      
+                      // ประวัติ Tab
+                      _buildHistoryTab(),
+                      
+                      // คลังเอกสาร Tab
+                      _buildDocumentTab(),
+                      
+                      // โน๊ต Tab
+                      _buildNoteTab(),
+                      
+                      // เอกสารการขาย Tab
+                      _buildSalesDocumentTab(),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -924,33 +966,464 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
 
   // Tab content builders
   Widget _buildJobCardTab() {
+    if (_jobCardsLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_jobCards.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.work_outline,
+              size: 48,
+              color: AppTheme.textSecondary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'ยังไม่มี Job Card สำหรับลูกค้านี้',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       color: AppTheme.backgroundGrey,
-      child: Center(
-        child: Text(
-          'Job Card\n(Coming Soon)',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.textSecondary,
-          ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView.builder(
+          itemCount: _jobCards.length,
+          itemBuilder: (context, index) {
+            final jobCard = _jobCards[index];
+            return _buildJobCardItem(jobCard);
+          },
         ),
       ),
     );
   }
-
-  Widget _buildTodoTab() {
+  
+  Widget _buildJobCardItem(JobCard jobCard) {
     return Container(
-      color: AppTheme.backgroundGrey,
-      child: Center(
-        child: Text(
-          'สิ่งที่ต้องทำ\n(Coming Soon)',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row with Job ID and Status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Job ID
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  jobCard.customId.isNotEmpty ? jobCard.customId : jobCard.id,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryOrange,
+                  ),
+                ),
+              ),
+              
+              // Status
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(jobCard.status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  jobCard.status,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: _getStatusColor(jobCard.status),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Job Title
+          Text(
+            jobCard.title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          
+          const SizedBox(height: 8),
+          
+          // Job Details
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (jobCard.assignedTo.isNotEmpty) ...[
+                      _buildJobCardDetailRow(
+                        Icons.person_outline, 
+                        'ผู้รับผิดชอบ', 
+                        _getAssigneeName(jobCard.assignedTo),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (jobCard.customerInterest?.isNotEmpty == true) ...[
+                      _buildJobCardDetailRow(
+                        Icons.favorite_outline, 
+                        'ความสนใจ', 
+                        jobCard.customerInterest!,
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (jobCard.dueDate != null) ...[
+                      _buildJobCardDetailRow(
+                        Icons.calendar_today_outlined, 
+                        'กำหนดส่ง', 
+                        _formatDate(jobCard.dueDate!),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          // Hashtags
+          if (jobCard.hashtags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: jobCard.hashtags.map((hashtag) {
+                final hashtagText = hashtag['text'] as String? ?? hashtag['id'] as String? ?? '';
+                final hashtagColor = hashtag['color'] as String? ?? '';
+                
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _parseColor(hashtagColor).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _parseColor(hashtagColor).withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    '#$hashtagText',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: _parseColor(hashtagColor),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildJobCardDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: AppTheme.textSecondary,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$label: ',
+          style: const TextStyle(
+            fontSize: 12,
             color: AppTheme.textSecondary,
           ),
         ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'done':
+        return Colors.green;
+      case 'in progress':
+      case 'doing':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      case 'on hold':
+        return Colors.orange;
+      default:
+        return AppTheme.textSecondary;
+    }
+  }
+  
+  String _getAssigneeName(String assigneeId) {
+    final member = _workspaceMembers.firstWhere(
+      (member) => member.uid == assigneeId,
+      orElse: () => WorkspaceMember(
+        uid: assigneeId,
+        email: '',
+        displayName: assigneeId, // Fallback to ID if member not found
+        permission: 'member',
+      ),
+    );
+    return member.displayName;
+  }
+
+  Widget _buildTodoTab() {
+    if (_jobCardsLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Collect all todos from cached job cards
+    final allTodos = <Map<String, dynamic>>[];
+    for (final jobCard in _jobCards) {
+      for (final todo in jobCard.todos) {
+        final todoWithContext = Map<String, dynamic>.from(todo);
+        todoWithContext['jobCardId'] = jobCard.id;
+        todoWithContext['jobCardTitle'] = jobCard.title;
+        todoWithContext['jobCardCustomId'] = jobCard.customId.isNotEmpty ? jobCard.customId : jobCard.id;
+        allTodos.add(todoWithContext);
+      }
+    }
+
+    if (allTodos.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.checklist_outlined,
+              size: 48,
+              color: AppTheme.textSecondary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'ยังไม่มี To-Do สำหรับลูกค้านี้',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      color: AppTheme.backgroundGrey,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView.builder(
+          itemCount: allTodos.length,
+          itemBuilder: (context, index) {
+            final todo = allTodos[index];
+            return _buildTodoItem(todo);
+          },
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildTodoItem(Map<String, dynamic> todo) {
+    final isCompleted = todo['completed'] as bool? ?? false;
+    final todoTitle = todo['title'] as String? ?? '';
+    final dueDate = todo['dueDate'];
+    final jobCardTitle = todo['jobCardTitle'] as String? ?? '';
+    final jobCardCustomId = todo['jobCardCustomId'] as String? ?? '';
+    
+    // Parse HTML title to plain text
+    String plainTitle = todoTitle;
+    try {
+      // Simple HTML tag removal - you might want to use a proper HTML parser
+      plainTitle = todoTitle.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+      if (plainTitle.isEmpty) {
+        plainTitle = 'Untitled To-Do';
+      }
+    } catch (e) {
+      plainTitle = 'Untitled To-Do';
+    }
+    
+    DateTime? todoDate;
+    if (dueDate != null) {
+      try {
+        if (dueDate is int) {
+          todoDate = DateTime.fromMillisecondsSinceEpoch(dueDate);
+        }
+      } catch (e) {
+        // Handle date parsing error
+      }
+    }
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with completion status and job card info
+          Row(
+            children: [
+              // Completion checkbox
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: isCompleted ? Colors.green : Colors.transparent,
+                  border: Border.all(
+                    color: isCompleted ? Colors.green : AppTheme.textSecondary,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: isCompleted
+                    ? const Icon(
+                        Icons.check,
+                        size: 14,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
+              
+              const SizedBox(width: 12),
+              
+              // Job Card info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'จาก Job Card: $jobCardCustomId',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (jobCardTitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        jobCardTitle,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              
+              // Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isCompleted ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isCompleted ? 'เสร็จแล้ว' : 'ยังไม่เสร็จ',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: isCompleted ? Colors.green : Colors.orange,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Todo title
+          Text(
+            plainTitle,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+              decoration: isCompleted ? TextDecoration.lineThrough : null,
+              decorationColor: AppTheme.textSecondary,
+            ),
+          ),
+          
+          // Due date
+          if (todoDate != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule,
+                  size: 14,
+                  color: AppTheme.textSecondary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'กำหนดส่ง: ${_formatDate(todoDate)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
