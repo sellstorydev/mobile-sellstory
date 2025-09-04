@@ -387,11 +387,21 @@ class _CreateCardPageState extends State<CreateCardPage> {
         final todos = selectedTemplate['todos'] as List;
         setState(() {
           for (final todo in todos) {
+            // Calculate due date from dueInDays
+            DateTime? calculatedDueDate;
+            if (todo['dueInDays'] != null && todo['dueInDays'] is int) {
+              final now = DateTime.now();
+              // Set time to 00:00:00 and add the specified days
+              calculatedDueDate = DateTime(now.year, now.month, now.day).add(
+                Duration(days: todo['dueInDays'] as int),
+              );
+            }
+            
             _todoItems.add({
               'id': DateTime.now().millisecondsSinceEpoch.toString(),
               'text': todo['title'] ?? '',
               'isCompleted': false,
-              'dueDate': null,
+              'dueDate': calculatedDueDate,
               'duration': null,
               'endTime': null,
               'controller': TextEditingController(text: todo['title'] ?? ''),
