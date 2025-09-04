@@ -259,7 +259,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         for (final company in customer.companyNames!) {
           companyMap[company['id']] = {
             'id': company['id'],
-            'name': company['label'],
+            'name': company['value'], // ใช้ value แทน label เพื่อแสดงชื่อสั้นๆ
             'value': company['value'],
           };
         }
