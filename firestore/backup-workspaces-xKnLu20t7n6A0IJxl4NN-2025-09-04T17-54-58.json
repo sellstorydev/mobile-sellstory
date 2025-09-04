@@ -763,16 +763,11 @@
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "updatedByDisplayName": "bew kiw",
-            "order": 1,
             "quotationTemplateId": "",
             "startDate": 1756918800000,
             "endDate": 1757091600000,
             "customerInterest": "กลาง (Medium)",
             "descriptionMentions": [],
-            "isVatEnabled": true,
-            "additionalDiscount": {
-              "value": 20
-            },
             "withholdingTaxPercentage": 3,
             "customId": "JB-250904-0043",
             "attachments": [
@@ -823,7 +818,13 @@
               }
             ],
             "id": "AhzmaDyKm4wwcMntM3hO",
-            "updatedAt": 1756977912097
+            "isVatEnabled": true,
+            "order": 0,
+            "additionalDiscount": {
+              "value": 97,
+              "type": "percentage"
+            },
+            "updatedAt": 1757008014158
           },
           "zurP2JTWc5PkQMxferzT": {
             "boardId": "uysAvnxpDG4EbdbI7r1Y",

@@ -1,0 +1,449 @@
+{
+  "users": {
+    "xvdZZF0XGsWwR1yZtUdG8cQQgtU2": {
+      "uid": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+      "email": "ja@gmail.com",
+      "displayName": "bew kiw",
+      "photoURL": null,
+      "language": "en",
+      "lastPlatform": "ios",
+      "workspaces": [
+        {
+          "id": "xKnLu20t7n6A0IJxl4NN",
+          "name": "test1",
+          "role": "owner"
+        },
+        {
+          "id": "3Z8UlZ5632kAHYrWPS8a",
+          "name": "test2",
+          "role": "owner"
+        },
+        {
+          "id": "ueqzWiKWyxpXyewgqQEC",
+          "name": "testworkspace lol1",
+          "role": "owner"
+        }
+      ],
+      "lastActiveWorkspaceId": "xKnLu20t7n6A0IJxl4NN",
+      "lastDeviceId": "0E03E3E1-077B-4989-B129-8D4E458CCDF0",
+      "updatedAt": {
+        "_seconds": 1756722963,
+        "_nanoseconds": 929000000
+      },
+      "fcmToken": "cWyViZfkg0NWvwATNb_pzu:APA91bEt4lJF2NIcBlQnhK7u-YjJ5Z_9vUtI46dNootQ53wLJVtcls-7wqeLpXHdv6KXDhuTrlFhDvJC_4ks82pQ5lXJi46fZcHhTMxizReI5GdoR9nxeQw",
+      "viewSettings": {
+        "status": {
+          "isVisible": true,
+          "order": 2,
+          "style": {
+            "color": "#000000",
+            "fontWeight": "normal",
+            "fontSize": 14
+          }
+        },
+        "grandTotal": {
+          "order": 12,
+          "style": {
+            "fontWeight": "normal",
+            "fontSize": 14,
+            "color": "#000000"
+          },
+          "isVisible": true
+        },
+        "jobId": {
+          "style": {
+            "fontWeight": "normal",
+            "color": "#000000",
+            "fontSize": 14
+          },
+          "isVisible": true,
+          "order": 1
+        },
+        "hashtags": {
+          "order": 10,
+          "isVisible": false,
+          "style": {
+            "color": "#666666",
+            "fontSize": 14,
+            "fontWeight": "normal"
+          }
+        },
+        "assignee": {
+          "style": {
+            "color": "#000000",
+            "fontSize": 14,
+            "fontWeight": "normal"
+          },
+          "order": 5,
+          "isVisible": true
+        },
+        "totalAfterDiscount": {
+          "order": 15,
+          "isVisible": false,
+          "style": {
+            "fontSize": 14,
+            "fontWeight": "normal",
+            "color": "#666666"
+          }
+        },
+        "todoList": {
+          "isVisible": false,
+          "order": 18,
+          "style": {
+            "fontWeight": "normal",
+            "fontSize": 14,
+            "color": "#666666"
+          }
+        },
+        "priority": {
+          "order": 11,
+          "isVisible": true,
+          "style": {
+            "fontWeight": "normal",
+            "fontSize": 14,
+            "color": "#000000"
+          }
+        },
+        "customerInterest": {
+          "style": {
+            "fontWeight": "normal",
+            "fontSize": 14,
+            "color": "#000000"
+          },
+          "order": 6,
+          "isVisible": true
+        },
+        "collaborators": {
+          "isVisible": false,
+          "order": 7,
+          "style": {
+            "color": "#666666",
+            "fontSize": 14,
+            "fontWeight": "normal"
+          }
+        },
+        "company": {
+          "order": 9,
+          "style": {
+            "color": "#666666",
+            "fontSize": 14,
+            "fontWeight": "normal"
+          },
+          "isVisible": false
+        },
+        "description": {
+          "style": {
+            "fontWeight": "normal",
+            "fontSize": 14,
+            "color": "#666666"
+          },
+          "order": 17,
+          "isVisible": false
+        },
+        "customer": {
+          "style": {
+            "color": "#000000",
+            "fontSize": 14,
+            "fontWeight": "normal"
+          },
+          "order": 8,
+          "isVisible": true
+        },
+        "kanbanCardDisplayFieldsConfig_Mop2RUYjlM9kRoXGa001": {
+          "customId": {
+            "style": {},
+            "isVisible": true,
+            "order": 0
+          },
+          "priority": {
+            "order": 10,
+            "style": {},
+            "isVisible": true
+          },
+          "hashtags": {
+            "order": 9,
+            "style": {},
+            "isVisible": true
+          },
+          "netTotal": {
+            "isVisible": true,
+            "order": 12,
+            "style": {}
+          },
+          "company": {
+            "isVisible": true,
+            "style": {},
+            "order": 8
+          },
+          "status": {
+            "isVisible": true,
+            "order": 1,
+            "style": {}
+          },
+          "assignee": {
+            "isVisible": true,
+            "style": {},
+            "order": 4
+          },
+          "todos": {
+            "isVisible": true,
+            "style": {},
+            "order": 17
+          },
+          "grandTotal": {
+            "isVisible": true,
+            "order": 11,
+            "style": {}
+          },
+          "customer": {
+            "isVisible": true,
+            "style": {},
+            "order": 7
+          },
+          "description": {
+            "isVisible": true,
+            "style": {},
+            "order": 16
+          },
+          "totalAmountBeforeVat": {
+            "order": 15,
+            "isVisible": true,
+            "style": {}
+          },
+          "customerInterest": {
+            "isVisible": true,
+            "order": 5,
+            "style": {}
+          },
+          "collaborators": {
+            "order": 6,
+            "style": {},
+            "isVisible": true
+          },
+          "totalAmountAfterDiscount": {
+            "style": {},
+            "isVisible": true,
+            "order": 14
+          },
+          "dueDate": {
+            "style": {},
+            "order": 2,
+            "isVisible": true
+          },
+          "totalAmountBeforeDiscount": {
+            "order": 13,
+            "style": {},
+            "isVisible": true
+          },
+          "createdAt": {
+            "isVisible": true,
+            "order": 3,
+            "style": {}
+          }
+        },
+        "totalBeforeVAT": {
+          "order": 16,
+          "style": {
+            "fontSize": 14,
+            "color": "#666666",
+            "fontWeight": "normal"
+          },
+          "isVisible": false
+        },
+        "totalBeforeDiscount": {
+          "style": {
+            "fontWeight": "normal",
+            "fontSize": 14,
+            "color": "#666666"
+          },
+          "order": 14,
+          "isVisible": false
+        },
+        "netTotal": {
+          "order": 13,
+          "style": {
+            "fontWeight": "normal",
+            "fontSize": 14,
+            "color": "#000000"
+          },
+          "isVisible": true
+        },
+        "customerProfileCardsConfig_WNF9tUB8pFM6QKQw9Fj3": {
+          "customId": {
+            "isVisible": true,
+            "order": 0,
+            "style": {}
+          },
+          "title": {
+            "isVisible": true,
+            "order": 1,
+            "style": {}
+          },
+          "boardName": {
+            "isVisible": true,
+            "order": 2,
+            "style": {}
+          },
+          "status": {
+            "isVisible": true,
+            "order": 3,
+            "style": {}
+          },
+          "lane": {
+            "isVisible": true,
+            "order": 4,
+            "style": {}
+          },
+          "dueDate": {
+            "isVisible": true,
+            "order": 5,
+            "style": {}
+          },
+          "assignee": {
+            "isVisible": true,
+            "order": 6,
+            "style": {}
+          },
+          "customerInterest": {
+            "isVisible": true,
+            "order": 7,
+            "style": {}
+          },
+          "customer": {
+            "isVisible": true,
+            "order": 8,
+            "style": {}
+          },
+          "company": {
+            "isVisible": true,
+            "order": 9,
+            "style": {}
+          },
+          "hashtags": {
+            "isVisible": true,
+            "order": 10,
+            "style": {}
+          },
+          "priority": {
+            "isVisible": true,
+            "order": 11,
+            "style": {}
+          },
+          "grandTotal": {
+            "isVisible": true,
+            "order": 12,
+            "style": {}
+          },
+          "netTotal": {
+            "isVisible": true,
+            "order": 13,
+            "style": {}
+          },
+          "totalAmountBeforeDiscount": {
+            "isVisible": true,
+            "order": 14,
+            "style": {}
+          },
+          "totalAmountAfterDiscount": {
+            "isVisible": true,
+            "order": 15,
+            "style": {}
+          },
+          "totalAmountBeforeVat": {
+            "isVisible": true,
+            "order": 16,
+            "style": {}
+          },
+          "description": {
+            "isVisible": true,
+            "order": 17,
+            "style": {}
+          },
+          "todos": {
+            "isVisible": true,
+            "order": 18,
+            "style": {}
+          }
+        },
+        "createdDate": {
+          "isVisible": true,
+          "style": {
+            "fontSize": 14,
+            "fontWeight": "normal",
+            "color": "#000000"
+          },
+          "order": 4
+        },
+        "dateRange": {
+          "style": {
+            "color": "#000000",
+            "fontWeight": "normal",
+            "fontSize": 14
+          },
+          "order": 3,
+          "isVisible": true
+        }
+      },
+      "fcmTokenUpdatedAt": {
+        "_seconds": 1757002653,
+        "_nanoseconds": 973000000
+      },
+      "subCollection": {
+        "users/xvdZZF0XGsWwR1yZtUdG8cQQgtU2/devices": {
+          "0E03E3E1-077B-4989-B129-8D4E458CCDF0": {
+            "forceSignOut": false,
+            "isActive": true,
+            "platform": "ios",
+            "token": "cWyViZfkg0NWvwATNb_pzu:APA91bEt4lJF2NIcBlQnhK7u-YjJ5Z_9vUtI46dNootQ53wLJVtcls-7wqeLpXHdv6KXDhuTrlFhDvJC_4ks82pQ5lXJi46fZcHhTMxizReI5GdoR9nxeQw",
+            "updatedAt": {
+              "_seconds": 1757002653,
+              "_nanoseconds": 916000000
+            }
+          },
+          "2F2A576C-CF24-4BD1-AA70-6BD4321C51C5": {
+            "platform": "ios",
+            "token": "cmdEXYZ-5EL8s6U-iahfRr:APA91bFX1yyn61IVMfhPYoYkyJ424YLfQH3UjCosnclpvABxQY_CV2vPj1bELYmBcQ6wbnuFA5A-wn_TLgSYTsz9ckG0FPtYkY0wLivf27h6iWPRE71dOXc",
+            "updatedAt": {
+              "_seconds": 1756715557,
+              "_nanoseconds": 804000000
+            },
+            "forceSignOut": true,
+            "kickAt": {
+              "_seconds": 1756716867,
+              "_nanoseconds": 32000000
+            },
+            "kickReason": "exceeded_limit",
+            "isActive": false,
+            "kickByDevice": "0E03E3E1-077B-4989-B129-8D4E458CCDF0"
+          },
+          "5E11B86B-11AF-49F3-9277-1CAD8E100B30": {
+            "platform": "ios",
+            "token": "fE2KMMVsFk8voSfUZ6f20b:APA91bFOCOFOSL1vK1eeqsEsOz3phc1bxDTNqQ_i3PGwHI4wQXAN6NUEh_XZzq3DFHpkrsZ6wqj5Pn9a0KzatBhJ4YkUsXhEGqNmuYOHjWMg7-GaM3_pur8",
+            "updatedAt": {
+              "_seconds": 1756283897,
+              "_nanoseconds": 504000000
+            },
+            "forceSignOut": true,
+            "kickAt": {
+              "_seconds": 1756715664,
+              "_nanoseconds": 192000000
+            },
+            "kickReason": "exceeded_limit",
+            "isActive": false,
+            "kickByDevice": "D98C8C2E-FE74-4A5E-9783-354DE800B0BA"
+          },
+          "D98C8C2E-FE74-4A5E-9783-354DE800B0BA": {
+            "forceSignOut": false,
+            "isActive": true,
+            "platform": "ios",
+            "token": "csx9_kXTk0xDhVpsGebEih:APA91bHlUWuZ4aLV_eShMmL9GZJf3YW4ZPU2yDRi0dULKPMkBoszVqI0SxKK4NYHFW0VLUgm1MmDDJHs2uiI6BBv_q6F5Qw4gr8MDU7HZY_Spz2cWbm-Diw",
+            "updatedAt": {
+              "_seconds": 1756715664,
+              "_nanoseconds": 771000000
+            }
+          }
+        }
+      }
+    }
+  }
+}
