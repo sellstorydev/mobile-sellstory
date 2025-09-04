@@ -600,7 +600,7 @@ class _CardViewPageState extends State<CardViewPage> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            _currentCard.company?.isNotEmpty == true ? _currentCard.company! : 'None',
+            _currentCard.company?['value']?.toString() ?? 'None',
             style: TextStyle(
               fontSize: 14,
               color: _currentCard.company?.isNotEmpty == true ? Colors.black : Colors.grey,
@@ -717,7 +717,7 @@ class _CardViewPageState extends State<CardViewPage> {
         _buildInfoRow('Status', _currentCard.status),
         _buildInfoRow('Created Date', _formatDate(_currentCard.createdAt)),
         _buildInfoRow('Assignee', _getAssigneeName(_currentCard.assignedTo)),
-        _buildInfoRow('Company', _currentCard.company ?? '-'),
+        _buildInfoRow('Company', _currentCard.company?['value']?.toString() ?? '-'),
         _buildInfoRow('Customer Interest', _currentCard.customerInterest ?? '-'),
         _buildInfoRow('Collaborators', _getCollaboratorsNames()),
         _buildInfoRow('Customer', _currentCard.customer.isNotEmpty ? _currentCard.customer : '-'),

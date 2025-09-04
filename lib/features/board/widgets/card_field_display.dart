@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../data/repositories/firestore_repository.dart';
 
 class CardFieldDisplay extends StatelessWidget {
-  final String fieldId;
-  final String fieldName;
+  final String? fieldId;
+  final String? fieldName;
   final dynamic value;
   final bool isVisible;
   final int order;
@@ -32,7 +30,7 @@ class CardFieldDisplay extends StatelessWidget {
         children: [
           // Field label with colon
           Text(
-            '$fieldName: ',
+            '${fieldName ?? 'Unknown'}: ',
             style: (style ?? const TextStyle()).copyWith(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -62,9 +60,9 @@ class CardFieldDisplay extends StatelessWidget {
 
     switch (fieldId) {
       case 'priority':
-        return _buildPriorityBadge(value.toString());
+        return _buildPriorityBadge(value?.toString() ?? 'low');
       case 'status':
-        return _buildStatusBadge(value.toString());
+        return _buildStatusBadge(value?.toString() ?? 'pending');
       case 'hashtags':
         return _buildHashtagsList(value);
       case 'collaborators':
@@ -91,9 +89,10 @@ class CardFieldDisplay extends StatelessWidget {
       case 'totalAfterDiscount':
       case 'totalBeforeVAT':
         return _buildCurrencyDisplay(value);
+      case null:
       default:
         return Text(
-          value.toString(),
+          value?.toString() ?? '-',
           style: (style ?? const TextStyle()).copyWith(
             fontSize: 12,
             color: Colors.black87,
@@ -104,6 +103,11 @@ class CardFieldDisplay extends StatelessWidget {
   }
 
   Widget _buildPriorityBadge(String priority) {
+    // Handle null or empty priority
+    if (priority.isEmpty || priority == 'null') {
+      priority = 'low'; // Default to low priority
+    }
+    
     Color badgeColor;
     String displayText;
     
@@ -177,7 +181,9 @@ class CardFieldDisplay extends StatelessWidget {
       spacing: 4,
       runSpacing: 2,
       children: hashtags.map<Widget>((hashtag) {
-        final text = hashtag is Map ? hashtag['text'] ?? hashtag['id'] : hashtag.toString();
+        final text = hashtag is Map 
+            ? (hashtag['text']?.toString() ?? hashtag['id']?.toString() ?? 'tag') 
+            : (hashtag?.toString() ?? 'tag');
         final color = hashtag is Map ? hashtag['color'] ?? '#f97316' : '#f97316';
         
         return Container(
@@ -313,7 +319,9 @@ class CardFieldDisplay extends StatelessWidget {
       return const Text('-', style: TextStyle(fontSize: 12, color: Colors.grey));
     }
 
-    final name = assignee is Map ? assignee['displayName'] ?? assignee['name'] : assignee.toString();
+    final name = assignee is Map 
+        ? (assignee['displayName']?.toString() ?? assignee['name']?.toString() ?? 'Unknown') 
+        : (assignee?.toString() ?? 'Unknown');
     
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -348,7 +356,9 @@ class CardFieldDisplay extends StatelessWidget {
       return const Text('-', style: TextStyle(fontSize: 12, color: Colors.grey));
     }
 
-    final name = customer is Map ? customer['name'] : customer.toString();
+    final name = customer is Map 
+        ? (customer['name']?.toString() ?? 'Unknown Customer') 
+        : (customer?.toString() ?? 'Unknown Customer');
     
     return Text(
       name,
@@ -361,7 +371,9 @@ class CardFieldDisplay extends StatelessWidget {
       return const Text('-', style: TextStyle(fontSize: 12, color: Colors.grey));
     }
 
-    final name = company is Map ? company['name'] : company.toString();
+    final name = company is Map 
+        ? (company['name']?.toString() ?? 'Unknown Company') 
+        : (company?.toString() ?? 'Unknown Company');
     
     return Text(
       name,

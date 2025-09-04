@@ -880,7 +880,7 @@ class BoardController extends GetxController implements BoardView {
            safeContains(card.assignedTo, searchLower) ||
            safeContains(card.status, searchLower) ||
            safeContains(card.updatedByDisplayName, searchLower) ||
-           safeContains(card.company, searchLower) ||
+           safeContains(card.company?['value'], searchLower) ||
            safeContains(card.hashtag ?? '', searchLower);
   }
   
