@@ -21,7 +21,7 @@ class CustomerDetailPage extends StatefulWidget {
   State<CustomerDetailPage> createState() => _CustomerDetailPageState();
 }
 
-class _CustomerDetailPageState extends State<CustomerDetailPage> {
+class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTickerProviderStateMixin {
   final HashtagService _hashtagService = HashtagService();
   final WorkspaceMembersService _workspaceMembersService = WorkspaceMembersService();
   final CustomersController _controller = Get.find<CustomersController>();
@@ -35,6 +35,9 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   
   // Worker to manage the customer updates listener
   Worker? _customerUpdateListener;
+  
+  // Tab controller
+  late TabController _tabController;
 
   // Helper methods to check for valid data
   bool _hasValidEmails() {
@@ -78,18 +81,11 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
     return customer.assignees.isNotEmpty;
   }
 
-  String _formatCompanyNames(List<Map<String, dynamic>> companyNames) {
-    if (companyNames.isEmpty) return '';
-    return companyNames
-        .where((company) => company['value'] != null && company['value'].toString().trim().isNotEmpty)
-        .map((company) => company['value'].toString())
-        .join(', ');
-  }
-
   @override
   void initState() {
     super.initState();
     _currentCustomer = widget.customer;
+    _tabController = TabController(length: 6, vsync: this);
     _loadHashtags();
     _loadWorkspaceMembers();
     _listenToCustomerUpdates();
@@ -99,6 +95,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   void dispose() {
     // Dispose the customer update listener to prevent memory leaks
     _customerUpdateListener?.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -195,64 +192,132 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile Card
-            _buildProfileCard(),
-            const SizedBox(height: 16),
-            
-            // Customer Information
-            _buildInfoSection('ข้อมูลลูกค้า', [
-              _buildInfoRow('รหัสลูกค้า', _currentCustomer!.customId),
-              _buildInfoRow('ชื่อ', '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
-              _buildInfoRow('เพศ', _currentCustomer!.gender),
-              _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
-              _buildInfoRow('ประเภท', _currentCustomer!.customerType),
-            ]),
-            
-            const SizedBox(height: 16),
-            
-            // Contact Information
-            _buildInfoSection('ข้อมูลติดต่อ', [
-              _buildEmailsDisplay(),
-              _buildPhonesDisplay(),
-            ]),
-            
-            const SizedBox(height: 16),
-            
-            // Company Information
-            if (_hasValidCompanies()) ...[
-              _buildInfoSection('ข้อมูลบริษัท', [
-                _buildCompanyNamesDisplay(),
-              ]),
-              const SizedBox(height: 16),
-            ],
-            
-            // Additional Information
-            _buildInfoSection('ข้อมูลเพิ่มเติม', [
-              if (_currentCustomer!.nationalId.isNotEmpty)
-                _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
-              if (_currentCustomer!.address.isNotEmpty)
-                _buildInfoRow('ที่อยู่', _currentCustomer!.address),
-              if (_currentCustomer!.source.isNotEmpty)
-                _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
-              _buildHashtagDisplay(), // Always show hashtag section
-                             if (_hasValidAssignees())
-                 _buildAssigneesDisplay(),
-            ]),
-            
-            const SizedBox(height: 16),
-            
-            // System Information
-            _buildInfoSection('ข้อมูลระบบ', [
-              _buildInfoRow('สร้างเมื่อ', _formatDate(_currentCustomer!.createdAt)),
-              _buildInfoRow('อัปเดตล่าสุด', _formatDate(_currentCustomer!.updatedAt)),
-            ]),
-          ],
-        ),
+      body: Column(
+        children: [
+          // Existing customer info section (scrollable)
+          Expanded(
+            flex: 2,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Card
+                  _buildProfileCard(),
+                  const SizedBox(height: 16),
+                  
+                  // Customer Information
+                  _buildInfoSection('ข้อมูลลูกค้า', [
+                    _buildInfoRow('รหัสลูกค้า', _currentCustomer!.customId),
+                    _buildInfoRow('ชื่อ', '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
+                    _buildInfoRow('เพศ', _currentCustomer!.gender),
+                    _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
+                    _buildInfoRow('ประเภท', _currentCustomer!.customerType),
+                  ]),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Contact Information
+                  _buildInfoSection('ข้อมูลติดต่อ', [
+                    _buildEmailsDisplay(),
+                    _buildPhonesDisplay(),
+                  ]),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Company Information
+                  if (_hasValidCompanies()) ...[
+                    _buildInfoSection('ข้อมูลบริษัท', [
+                      _buildCompanyNamesDisplay(),
+                    ]),
+                    const SizedBox(height: 16),
+                  ],
+                  
+                  // Additional Information
+                  _buildInfoSection('ข้อมูลเพิ่มเติม', [
+                    if (_currentCustomer!.nationalId.isNotEmpty)
+                      _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
+                    if (_currentCustomer!.address.isNotEmpty)
+                      _buildInfoRow('ที่อยู่', _currentCustomer!.address),
+                    if (_currentCustomer!.source.isNotEmpty)
+                      _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
+                    _buildHashtagDisplay(), // Always show hashtag section
+                    if (_hasValidAssignees())
+                       _buildAssigneesDisplay(),
+                  ]),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // System Information
+                  _buildInfoSection('ข้อมูลระบบ', [
+                    _buildInfoRow('สร้างเมื่อ', _formatDate(_currentCustomer!.createdAt)),
+                    _buildInfoRow('อัปเดตล่าสุด', _formatDate(_currentCustomer!.updatedAt)),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+          
+          // Tab Bar and TabBarView (new section)
+          Expanded(
+            flex: 1,
+            child: DefaultTabController(
+              length: 6,
+              child: Column(
+                children: [
+                  // Tab Bar
+                  Container(
+                    color: AppTheme.backgroundWhite,
+                    child: TabBar(
+                      controller: _tabController,
+                      indicatorColor: AppTheme.primaryOrange,
+                      labelColor: AppTheme.primaryOrange,
+                      unselectedLabelColor: AppTheme.textSecondary,
+                      labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                      isScrollable: true,
+                      indicatorWeight: 3,
+                      tabs: [
+                        Tab(text: 'Job card (0)'),
+                        Tab(text: 'สิ่งที่ต้องทำ (0)'),
+                        Tab(text: 'ประวัติ (0)'),
+                        Tab(text: 'คลังเอกสาร (0)'),
+                        Tab(text: 'โน๊ต (0)'),
+                        Tab(text: 'เอกสารการขาย (0)'),
+                      ],
+                    ),
+                  ),
+                  
+                  // Tab Content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        // Job Card Tab
+                        _buildJobCardTab(),
+                        
+                        // สิ่งที่ต้องทำ Tab
+                        _buildTodoTab(),
+                        
+                        // ประวัติ Tab
+                        _buildHistoryTab(),
+                        
+                        // คลังเอกสาร Tab
+                        _buildDocumentTab(),
+                        
+                        // โน๊ต Tab
+                        _buildNoteTab(),
+                        
+                        // เอกสารการขาย Tab
+                        _buildSalesDocumentTab(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -853,6 +918,103 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Tab content builders
+  Widget _buildJobCardTab() {
+    return Container(
+      color: AppTheme.backgroundGrey,
+      child: Center(
+        child: Text(
+          'Job Card\n(Coming Soon)',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTodoTab() {
+    return Container(
+      color: AppTheme.backgroundGrey,
+      child: Center(
+        child: Text(
+          'สิ่งที่ต้องทำ\n(Coming Soon)',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab() {
+    return Container(
+      color: AppTheme.backgroundGrey,
+      child: Center(
+        child: Text(
+          'ประวัติ\n(Coming Soon)',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentTab() {
+    return Container(
+      color: AppTheme.backgroundGrey,
+      child: Center(
+        child: Text(
+          'คลังเอกสาร\n(Coming Soon)',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoteTab() {
+    return Container(
+      color: AppTheme.backgroundGrey,
+      child: Center(
+        child: Text(
+          'โน๊ต\n(Coming Soon)',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSalesDocumentTab() {
+    return Container(
+      color: AppTheme.backgroundGrey,
+      child: Center(
+        child: Text(
+          'เอกสารการขาย\n(Coming Soon)',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+          ),
+        ),
       ),
     );
   }
