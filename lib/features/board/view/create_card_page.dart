@@ -697,43 +697,152 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
               ),
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          : Column(
                 children: [
-                  _buildJobIdSection(),
-                  const SizedBox(height: 16),
-                  _buildTitleSection(),
-                  const SizedBox(height: 16),
-                                      _buildLaneSection(),
-                  const SizedBox(height: 16),
-                  _buildHashtagSection(),
-                  const SizedBox(height: 16),
-                  _buildAssigneeSection(),
-                  const SizedBox(height: 16),
-                  _buildCustomerSection(),
-                  const SizedBox(height: 16),
-                  _buildCompanySection(),
-                  const SizedBox(height: 16),
-                  _buildCustomerInterestSection(),
-                  const SizedBox(height: 16),
-                  _buildExpectedClosingDateSection(),
-                  const SizedBox(height: 16),
-                  _buildStatusSection(),
-                  const SizedBox(height: 16),
-                  _buildCollaboratorsSection(),
-                  const SizedBox(height: 16),
-                  _buildWatchersSection(),
-                  const SizedBox(height: 16),
-                  _buildDetailsSection(),
-                  const SizedBox(height: 16),
-                  _buildTodoListSection(),
-                  const SizedBox(height: 32),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Basic Information Section
+                          _buildSectionCard(
+                            title: 'Basic Information',
+                            icon: Icons.info_outline,
+                            color: Colors.blue,
+                            children: [
+                              _buildJobIdSection(),
+                              const SizedBox(height: 20),
+                              _buildTitleSection(),
+                              const SizedBox(height: 20),
+                              _buildLaneSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Assignment Section
+                          _buildSectionCard(
+                            title: 'Assignment & Tags',
+                            icon: Icons.assignment_ind,
+                            color: Colors.purple,
+                            children: [
+                              _buildHashtagSection(),
+                              const SizedBox(height: 20),
+                              _buildAssigneeSection(),
+                              const SizedBox(height: 20),
+                              _buildCollaboratorsSection(),
+                              const SizedBox(height: 20),
+                              _buildWatchersSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Customer Information Section
+                          _buildSectionCard(
+                            title: 'Customer Information',
+                            icon: Icons.business,
+                            color: Colors.green,
+                            children: [
+                              _buildCustomerSection(),
+                              const SizedBox(height: 20),
+                              _buildCompanySection(),
+                              const SizedBox(height: 20),
+                              _buildCustomerInterestSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Timeline & Status Section
+                          _buildSectionCard(
+                            title: 'Timeline & Status',
+                            icon: Icons.schedule,
+                            color: Colors.orange,
+                            children: [
+                              _buildExpectedClosingDateSection(),
+                              const SizedBox(height: 20),
+                              _buildStatusSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Content Section
+                          _buildSectionCard(
+                            title: 'Content & Tasks',
+                            icon: Icons.edit_document,
+                            color: Colors.indigo,
+                            children: [
+                              _buildDetailsSection(),
+                              const SizedBox(height: 20),
+                              _buildTodoListSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
                   _buildActionButtons(),
                 ],
               ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
             ),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -835,41 +944,99 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Hashtag',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Icon(Icons.tag, size: 18, color: Colors.purple[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Hashtags',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         InkWell(
           onTap: _openHashtagModal,
           child: Container(
             width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            constraints: const BoxConstraints(minHeight: 56),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[400]!),
-              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey[50],
             ),
             child: _selectedHashtags.isEmpty
-                ? const Text(
-                    'Tap to select hashtags...',
-                    style: TextStyle(color: Colors.grey),
+                ? Row(
+                    children: [
+                      Icon(Icons.add_circle_outline, size: 20, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Tap to select hashtags...',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   )
-                : Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _selectedHashtags.map((hashtag) {
-                      return Chip(
-                        label: Text('#${hashtag['text']}'),
-                        backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
-                        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      );
-                    }).toList(),
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 16, color: Colors.purple[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Selected (${_selectedHashtags.length})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.purple[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _selectedHashtags.map((hashtag) {
+                          return Chip(
+                            label: Text(
+                              '#${hashtag['text']}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.edit, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Tap to edit selection',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
           ),
         ),
@@ -1102,73 +1269,129 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Expected Closing Date',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(
-              child: InkWell(
-                onTap: () => _selectStartDate(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _startDate != null
-                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                              : 'Start Date',
-                          style: TextStyle(
-                            color: _startDate != null ? Colors.black : Colors.grey,
-                          ),
-                        ),
-                      ),
-                      const Icon(Icons.calendar_today, color: Colors.grey),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: InkWell(
-                onTap: () => _selectEndDate(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _endDate != null
-                              ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                              : 'End Date',
-                          style: TextStyle(
-                            color: _endDate != null ? Colors.black : Colors.grey,
-                          ),
-                        ),
-                      ),
-                      const Icon(Icons.calendar_today, color: Colors.grey),
-                    ],
-                  ),
-                ),
+            Icon(Icons.date_range, size: 18, color: Colors.teal[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Expected Closing Date',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => _selectStartDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _startDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(6),
+                      color: _startDate != null ? Colors.teal[50] : Colors.white,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.today,
+                              size: 16,
+                              color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Start Date',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _startDate != null
+                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                              : 'Select start date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _startDate != null ? Colors.black87 : Colors.grey[500],
+                            fontWeight: _startDate != null ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward, size: 18, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: () => _selectEndDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _endDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(6),
+                      color: _endDate != null ? Colors.teal[50] : Colors.white,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.event,
+                              size: 16,
+                              color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'End Date',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _endDate != null
+                              ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                              : 'Select end date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _endDate != null ? Colors.black87 : Colors.grey[500],
+                            fontWeight: _endDate != null ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -1178,34 +1401,74 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Status',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: _statusOptions.map((status) {
-            final isSelected = _selectedStatus == status['value'];
-            return ElevatedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _selectedStatus = status['value'];
-                });
-              },
-              icon: Icon(status['icon'], size: 16),
-              label: Text(status['label']),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isSelected ? AppTheme.primaryOrange : Colors.grey[300],
-                foregroundColor: isSelected ? Colors.white : Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        Row(
+          children: [
+            Icon(Icons.flag, size: 18, color: Colors.orange[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Status',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
-            );
-          }).toList(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
+          ),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _statusOptions.map((status) {
+              final isSelected = _selectedStatus == status['value'];
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: isSelected ? [
+                    BoxShadow(
+                      color: AppTheme.primaryOrange.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ] : null,
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedStatus = status['value'];
+                    });
+                  },
+                  icon: Icon(status['icon'], size: 16),
+                  label: Text(
+                    status['label'],
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isSelected ? AppTheme.primaryOrange : Colors.white,
+                    foregroundColor: isSelected ? Colors.white : Colors.black87,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: BorderSide(
+                        color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    elevation: isSelected ? 2 : 0,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
@@ -1215,70 +1478,165 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Collaborators',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Icon(Icons.people, size: 18, color: Colors.blue[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Collaborators',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
           ),
           child: Column(
             children: [
-              // Selected collaborators chips
-              if (_selectedCollaborators.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: _selectedCollaborators.map((userId) {
-                      final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
-                      final userName = user?['name'] ?? userId;
-                      return Chip(
-                        label: Text(userName),
-                        onDeleted: () {
-                          setState(() {
-                            _selectedCollaborators.remove(userId);
-                          });
-                        },
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                      );
-                    }).toList(),
+              // Selected collaborators section
+              if (_selectedCollaborators.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 16, color: Colors.blue[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Selected (${_selectedCollaborators.length})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: _selectedCollaborators.map((userId) {
+                          final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
+                          final displayName = user?['displayName'] ?? user?['name'] ?? userId;
+                          return Chip(
+                            label: Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            backgroundColor: Colors.blue[100],
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedCollaborators.remove(userId);
+                              });
+                            },
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
                 ),
-              // Add collaborator button
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                child: DropdownButtonFormField<String>(
-                  value: null,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Add Collaborator',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                  items: _availableUsers
-                      .where((user) => !_selectedCollaborators.contains(user['id']))
-                      .map((user) {
-                    return DropdownMenuItem<String>(
-                      value: user['id'],
-                      child: Text(user['name'] ?? user['id']),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null && !_selectedCollaborators.contains(value)) {
-                      setState(() {
-                        _selectedCollaborators.add(value);
-                      });
-                    }
-                  },
+                Divider(height: 1, color: Colors.grey[300]),
+              ],
+              
+              // Available collaborators section
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.person_add, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Available to Add',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _availableUsers.where((user) => !_selectedCollaborators.contains(user['id'])).isEmpty
+                      ? Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                              SizedBox(width: 8),
+                              Text(
+                                'All users have been selected',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: _availableUsers
+                              .where((user) => !_selectedCollaborators.contains(user['id']))
+                              .map((user) {
+                            final displayName = user['displayName'] ?? user['name'] ?? user['id'];
+                            return FilterChip(
+                              label: Text(
+                                displayName,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              selected: false,
+                              backgroundColor: Colors.white,
+                              selectedColor: Colors.blue[100],
+                              checkmarkColor: Colors.blue[700],
+                              onSelected: (selected) {
+                                if (selected && !_selectedCollaborators.contains(user['id'])) {
+                                  setState(() {
+                                    _selectedCollaborators.add(user['id']);
+                                  });
+                                }
+                              },
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            );
+                          }).toList(),
+                        ),
+                  ],
                 ),
               ),
             ],
@@ -1292,70 +1650,165 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Watchers',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Icon(Icons.visibility, size: 18, color: Colors.green[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Watchers',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
           ),
           child: Column(
             children: [
-              // Selected watchers chips
-              if (_selectedWatchers.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: _selectedWatchers.map((userId) {
-                      final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
-                      final userName = user?['name'] ?? userId;
-                      return Chip(
-                        label: Text(userName),
-                        onDeleted: () {
-                          setState(() {
-                            _selectedWatchers.remove(userId);
-                          });
-                        },
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                      );
-                    }).toList(),
+              // Selected watchers section
+              if (_selectedWatchers.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Selected (${_selectedWatchers.length})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: _selectedWatchers.map((userId) {
+                          final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
+                          final displayName = user?['displayName'] ?? user?['name'] ?? userId;
+                          return Chip(
+                            label: Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            backgroundColor: Colors.green[100],
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedWatchers.remove(userId);
+                              });
+                            },
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
                 ),
-              // Add watcher button
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                child: DropdownButtonFormField<String>(
-                  value: null,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Add Watcher',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                  items: _availableUsers
-                      .where((user) => !_selectedWatchers.contains(user['id']))
-                      .map((user) {
-                    return DropdownMenuItem<String>(
-                      value: user['id'],
-                      child: Text(user['name'] ?? user['id']),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null && !_selectedWatchers.contains(value)) {
-                      setState(() {
-                        _selectedWatchers.add(value);
-                      });
-                    }
-                  },
+                Divider(height: 1, color: Colors.grey[300]),
+              ],
+              
+              // Available watchers section
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.person_add, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Available to Add',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _availableUsers.where((user) => !_selectedWatchers.contains(user['id'])).isEmpty
+                      ? Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                              SizedBox(width: 8),
+                              Text(
+                                'All users have been selected',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: _availableUsers
+                              .where((user) => !_selectedWatchers.contains(user['id']))
+                              .map((user) {
+                            final displayName = user['displayName'] ?? user['name'] ?? user['id'];
+                            return FilterChip(
+                              label: Text(
+                                displayName,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              selected: false,
+                              backgroundColor: Colors.white,
+                              selectedColor: Colors.green[100],
+                              checkmarkColor: Colors.green[700],
+                              onSelected: (selected) {
+                                if (selected && !_selectedWatchers.contains(user['id'])) {
+                                  setState(() {
+                                    _selectedWatchers.add(user['id']);
+                                  });
+                                }
+                              },
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            );
+                          }).toList(),
+                        ),
+                  ],
                 ),
               ),
             ],
@@ -1509,36 +1962,78 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
 
   Widget _buildActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : () => Get.back(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[300],
-              foregroundColor: Colors.black87,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text('Cancel'),
+    final bool canSave = !_isLoading &&
+        (MobilePermissionsService.to.isOwner ||
+         MobilePermissionsService.to.can('jobcard:create'));
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _isLoading ||
-                    !(MobilePermissionsService.to.isOwner ||
-                      MobilePermissionsService.to.can('jobcard:create'))
-                ? null
-                : _saveCard,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryOrange,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : () => Get.back(),
+                icon: const Icon(Icons.close, size: 18),
+                label: const Text('Cancel'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  side: BorderSide(color: Colors.grey[300]!),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
             ),
-            child: const Text('Save'),
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 3,
+              child: ElevatedButton.icon(
+                onPressed: canSave ? _saveCard : null,
+                icon: _isLoading 
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.save, size: 18),
+                label: Text(
+                  _isLoading ? 'Saving...' : 'Save Card',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: canSave ? AppTheme.primaryOrange : Colors.grey[400],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: canSave ? 2 : 0,
+                  shadowColor: AppTheme.primaryOrange.withOpacity(0.3),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
