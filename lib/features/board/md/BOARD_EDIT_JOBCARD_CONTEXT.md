@@ -1,3 +1,281 @@
+# Add jobcard
+
+## Overview
+Add jobcard is page receive input from user to create card in lane on board screen. All value will store in frirestore only when press save button. and Based on data or data type you can see in Related Database. After save this page should go back.
+and see card in lane on board screen 
+
+## Project structure:
+- folder structure is `mvp` (Model View Presenter)
+- framework is `flutter`
+
+mvp_scaffold:
+  feature_id: add_jobcard
+  flutter_framework: getx
+  root_path: lib/features/board
+
+  routes:
+    name: CreateCardRoute
+    path: /board/create-card
+    back_after_save: true
+    back_to: /board  # หรือเจาะจง Board เดิม
+
+  bindings:
+    file: bindings/create_card_binding.dart
+    class: CreateCardBinding
+    inject:
+      - type: JobCardRepository
+        impl: FirebaseJobCardRepository
+      - type: CreateCardPresenter
+        deps: [JobCardRepository]
+
+  files:
+    - path: model/job_card.dart
+      class: JobCard
+      type: model
+    - path: data/job_card_repository.dart
+      class: JobCardRepository
+      type: repository_interface
+    - path: data/firebase_job_card_repository.dart
+      class: FirebaseJobCardRepository
+      type: repository_impl
+    - path: presenter/create_card_presenter.dart
+      class: CreateCardPresenter
+      type: presenter
+    - path: view/create_card_page.dart
+      class: CreateCardPage
+      type: view
+    - path: widgets/ # component เสริม เช่น chips, pickers
+
+  state:
+    class: CreateCardState
+    fields:
+      jobCardId: {type: String?, default: null, readonly: true}
+      title: {type: String, required: true, minLength: 1, maxLength: 200}
+      laneId: {type: String, required: true}
+      hashtags: {type: List<HashtagTag>, default: []}
+      assigneeUid: {type: String?, required: true}
+      customerId: {type: String?, required: true}
+      company: {type: CompanyRef?, default: null} # {id,label,value}
+      customerInterest: {type: CustomerInterest, required: false, default: "เริ่มต้น"}
+      startDate: {type: int?, unit: epochMillis}
+      endDate: {type: int?, unit: epochMillis}
+      status: {type: JobStatus, required: true, default: Pending}
+      collaborators: {type: List<String>, default: []}
+      watchers: {type: List<String>, default: []}
+      descriptionHtml: {type: String, sanitize: [b,i,u,color,h1,h2,h3]}
+      todos: {type: List<TodoItem>, default: []}
+
+  enums:
+    JobStatus: [Pending, InProgress, Done, Canceled]
+    CustomerInterest: ["เริ่มต้น","น้อย (Low)","กลาง (Medium)","มาก (High)"]
+
+  id_generation:
+    source_settings_path: workspaces/{workspaceId}/companyProfile/idGenerationRules/jobCard
+    last_counter_path: workspaces/{workspaceId}/companyProfile/lastUsedCounters/jobCard
+    algorithm:
+      - read prefix, dateFormat, separator, minLength
+      - generate: <prefix><separator><date(format)><separator><counter(pad to minLength)>
+      - counter: last_counter + 1, update atomically (transaction)
+
+  selects:
+    lane:
+      query: workspaces/{workspaceId}/lanes where boardId == {boardId}
+      value_field: id
+      label_field: name
+    hashtag_master:
+      path: workspaces/{workspaceId}/companyProfile/hashtagSettings/masterList[]
+      map_to:
+        - hashtags[]: array<{id,text,color}>
+        - hashtag: string (e.g. "#Bew1234455 #Bew213")
+    customer:
+      path: workspaces/{workspaceId}/customers
+      value_field: docId
+      label_field: name
+      also_use:
+        companyNames[] -> for company select
+    company:
+      source: customers/{customerId}/companyNames[]  # {id,label,value}
+    users_single_select:
+      query: users where workspaces[].id contains {workspaceId}
+      value_field: uid
+      label_field: displayName
+    users_multi_select:
+      same_as: users_single_select
+
+  ui_contract:
+    view_methods:
+      showLoading(): void
+      hideLoading(): void
+      showError(message: String): void
+      showToast(message: String): void
+    presenter_methods:
+      init(workspaceId: String, boardId: String, currentUserId: String): Future<void>
+      pickLane(laneId: String): void
+      pickHashtags(list: List<HashtagTag>): void
+      pickAssignee(uid: String): void
+      pickCustomer(customerId: String): void
+      pickCompany(company: CompanyRef?): void
+      pickInterest(value: CustomerInterest): void
+      pickStatus(value: JobStatus): void
+      pickDateRange(startEpoch: int?, endEpoch: int?): void
+      editDescription(html: String): void
+      addTodo(title: String, dueDateEpoch: int?): void
+      updateTodo(id: String, title?: String, dueDateEpoch?: int?, completed?: bool): void
+      removeTodo(id: String): void
+      submit(): Future<void>
+
+  validation_rules:
+    - title: required
+    - laneId: required
+    - assigneeUid: required
+    - customerId: required
+    - date_range: startDate <= endDate (if both present)
+    - status: must be in enums.JobStatus
+    - descriptionHtml: sanitize to allowed tags only
+
+  firestore_write_map:
+    doc_path: workspaces/{workspaceId}/cards/{cardId}
+    fields:
+      title: state.title
+      laneId: state.laneId
+      hashtags: state.hashtags  # array<{id,text,color}>
+      hashtag: "join with '#'+text and space"
+      customId: generated.jobCardId
+      assignedTo: state.assigneeUid
+      customerId: state.customerId
+      company: state.company  # {id,label,value} or null
+      startDate: state.startDate
+      endDate: state.endDate
+      status: state.status
+      collaborators: state.collaborators
+      watchers: state.watchers
+      description: state.descriptionHtml
+      todos: state.todos  # [{id,title,completed,dueDate?}]
+      workspaceId: {workspaceId}
+      boardId: {boardId}
+      createdBy: {currentUserId}
+      createdAt: now()
+      updatedBy: {currentUserId}
+      updatedAt: now()
+
+  navigation_after_save:
+    action: pop_to
+    target: /board
+    refresh_signal: board_should_reload=true
+
+  activity_log:
+    path: workspaces/{workspaceId}/activities
+    on_create:
+      type: card-create
+      details: {cardId, cardTitle: state.title, laneId: state.laneId}
+    on_update_title:
+      type: card-update-field
+      details: {cardId, fieldName: "Title", from, to}
+
+  security_requirements:
+    - user must be member of workspaces/{workspaceId}.members OR users/{uid}.workspaces contains {workspaceId}
+    - writes must be denied if status not in enums.JobStatus
+
+  test_scenarios:
+    - "save minimal": title+lane+assignee+customer -> created card visible in lane
+    - "date invalid": endDate < startDate -> block with error
+    - "hashtag join": two tags -> hashtag string "#TagA #TagB"
+    - "permission": non-member user -> write denied
+
+  i18n_keys:
+    screen_title: board.create_card.title
+    save_button: common.save
+    cancel_button: common.cancel
+    toast_saved: board.create_card.saved
+    error_required: common.error.required
+
+
+
+## Tool
+- `get: ^4.6.6` - State management and dependency injection
+- `firebase_core`: ^3.4.0
+- `firebase_auth`: ^5.3.0
+- `firebase_database`: ^11.1.4
+- `firebase_database`: ^5.4.0
+- `cloud_firestore`: ^5.4.0
+
+## Path
+- board folder `lib/features/board`
+- jobcard create page `lib/features/board/view/create_card_page.dart`
+
+## input
+All input in this file
+- Job Card id `input`
+- Job Card Title `input`
+- Lane `single select`
+- Hashtag `multiple select`
+- Assignee `single select`
+- Customer `single select`
+- Company `single select` 
+- Customer Interest `single select`  "เริ่มตัน|น้อย (Low)|กลาง (Medium)|มาก (High)" 
+- Expected Closing Date `date range select`
+- Status `single select` Pending|In Progress|Done|Canceled
+- Collaborators `multiple select`
+- Watchers `multiple select`
+- Description `html input`
+- Expense Items `No need to do anything yet`
+- Todo List `input and select`
+- Attached Files `input file picker`
+- Comment `input` can reply text
+
+
+
+## Feature
+-  Job card id is disable input when tap save job card id auto generate. this input don't nedd value when save. No need to do anything yet.
+- Job Card Title is text input
+- Lane is single select.This select use value from `workspaces/{workspace UIDs}/lanes(sub col)/{lane UIDs}/name`
+- Hashtag is single select. This select use value from `workspaces/{workspace UIDs}/companyProfile/hashtagSettings/masterList[Json Array]/name || color`
+- Customer is single select. This select use value from `workspaces/{workspace UIDs}/customers(sub col)/name`
+- Company is single select. This select use value from `workspaces/{workspace UIDs}/customers(sub col)/companyNames[json Array]`
+- Assignee  is single select. This select use value from `users/{user UIDs}/displayName`.You should check all user in collection `users` have workspaces in path `users/{user UIDs}/workspaces[json array]/id`
+- Expected Closing Date is date range picker only date
+- Status is single select only have value Pending|In Progress|Done|Canceled
+- Collaborators is multiple select This select use value from `users/{user UIDs}/displayName`.You should check all user in collection `users` have workspaces in path `users/{user UIDs}/workspaces[json array]/id`
+- Watchers is multiple select This select use value from `users/{user UIDs}/displayName`.You should check all user in collection `users` have workspaces in path `users/{user UIDs}/workspaces[json array]/id`
+- Description is html input. Input only have b,i,u,color,h1,h2,h3 
+- Todolist have two option is select form template and create new. When select template go to get value from `/workspaces/{workspaces UIDs}/boards(sub col)/{board UIDs}/todoTemplates[json array]/name`. When tap "+ Add Item" app show input have 1 text input and 4 action. first action is check box ,second seclect datetime picker, third is edit ,four delete todo
+- Customer Interest is single select.value is  "เริ่มตัน|น้อย (Low)|กลาง (Medium)|มาก (High)" 
+
+## Create input to database
+- job card id 
+- job card title = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/title`
+- Lane = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/laneId`
+- hashtage = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/hashtags[json array]` and  `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/hashtag`string( "#Bew1234455 #Bew213")
+- Customer = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/customId`
+- Company = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/company` value json(id,label,value)
+- Assignee = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/assignedTo`
+- Expected Closing Date = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/startDate` and `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/endDate`
+- status = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/status`
+- Collaborators = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/collaborators[]` value (user UIDs)
+- Watchers =  `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/watchers[]` value (user UIDs)
+- Description = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/description`
+- Todo List = `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/todos[json array]` value(completed,dueDate,id,title)
+- Customer Interest =  `/workspaces/{workspace UIDs}/cards/{card UIDs}(sub col)/customerInterest`
+
+## Related Database
+Collection
+`workspaces` 
+Sub collection of workspaces
+`activities`
+`boards`
+`cards`
+`companies`
+`customers`
+`lanes`
+`products`
+
+Collection
+`users` 
+Sub collection of users
+`notifications`
+
+#### workspaces/{workspace UIDs}/
+```
 {
   "workspaces": {
     "xKnLu20t7n6A0IJxl4NN": {
@@ -163,8 +441,8 @@
           "customer": 2,
           "product": 2,
           "company": 3,
-          "quotation": 1,
-          "jobCard": 43
+          "jobCard": 28,
+          "quotation": 1
         }
       },
       "subCollection": {
@@ -212,21 +490,6 @@
             "details": {
               "cardId": "6VAYUMDzobYF1cTzMOax",
               "cardTitle": "123456ดด",
-              "laneId": "D8FI6YQaNYQLZavNCnyC",
-              "laneName": "To Do"
-            }
-          },
-          "9L7nn622F7J7aikV8kyx": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "userDisplayName": "bew kiw",
-            "userPhotoURL": null,
-            "type": "card-create",
-            "timestamp": 1756929979477,
-            "details": {
-              "cardId": "MWt8RXcVWjHthMKJWe7T",
-              "cardTitle": "Job Card Title",
               "laneId": "D8FI6YQaNYQLZavNCnyC",
               "laneName": "To Do"
             }
@@ -279,21 +542,6 @@
               "fieldName": "Expenses"
             }
           },
-          "HsoHDGccqjnlfKVN7B3d": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "userDisplayName": "bew kiw",
-            "userPhotoURL": null,
-            "type": "card-create",
-            "timestamp": 1756895548271,
-            "details": {
-              "cardId": "DTlfFRFN2Fv0o6dVP7HI",
-              "cardTitle": "Job Card Title",
-              "laneId": "hNGhlwpn4AYa4zje3own",
-              "laneName": "กฟกด"
-            }
-          },
           "IsMInymDQ4oomW77QqTF": {
             "boardId": "Mop2RUYjlM9kRoXGa001",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
@@ -344,21 +592,6 @@
               "to": "123456"
             }
           },
-          "NBNXiWySgOTeWnzofSDF": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "userDisplayName": "bew kiw",
-            "userPhotoURL": null,
-            "type": "card-create",
-            "timestamp": 1756896135031,
-            "details": {
-              "cardId": "1ejC9IJLOnDEltM2yZrH",
-              "cardTitle": "Job Card Title",
-              "laneId": "nvx4rzpcNcJk8GIw4YsK",
-              "laneName": "Done"
-            }
-          },
           "NUBtsTUrycKhPzdYDtr7": {
             "boardId": "uysAvnxpDG4EbdbI7r1Y",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
@@ -400,23 +633,6 @@
             "details": {
               "cardId": "9ZqnRBV0fWvaHh40wQwS",
               "cardTitle": "New Card",
-              "sourceLaneId": "qesjwQS3saV9h3wzyYMz",
-              "sourceLaneName": "In Progress",
-              "destinationLaneId": "D8FI6YQaNYQLZavNCnyC",
-              "destinationLaneName": "To Do"
-            }
-          },
-          "Wwi6MHFIcWkrvU6lZKap": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "userDisplayName": "bew kiw",
-            "userPhotoURL": null,
-            "type": "card-move",
-            "timestamp": 1756958191307,
-            "details": {
-              "cardId": "HpGRXT8zJVFwke2fKiVd",
-              "cardTitle": "Job Card Title",
               "sourceLaneId": "qesjwQS3saV9h3wzyYMz",
               "sourceLaneName": "In Progress",
               "destinationLaneId": "D8FI6YQaNYQLZavNCnyC",
@@ -503,21 +719,6 @@
               "destinationLaneName": "Done"
             }
           },
-          "ph1zNpg5zab1TNwWHu6g": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "userDisplayName": "bew kiw",
-            "userPhotoURL": null,
-            "type": "card-create",
-            "timestamp": 1756930238926,
-            "details": {
-              "cardId": "bxcCuQimRU3tmcWvmFGJ",
-              "cardTitle": "Job Card Title",
-              "laneId": "qesjwQS3saV9h3wzyYMz",
-              "laneName": "In Progress"
-            }
-          },
           "sn9v7FbTImAMRHvA0Nox": {
             "boardId": "uysAvnxpDG4EbdbI7r1Y",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
@@ -531,21 +732,6 @@
               "cardTitle": "New Job",
               "laneId": "wGzrjxCb85kpTEqvaucY",
               "laneName": "To Do"
-            }
-          },
-          "u7FPMvrUgjHO34Gvqhb9": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "userDisplayName": "bew kiw",
-            "userPhotoURL": null,
-            "type": "card-create",
-            "timestamp": 1756975590435,
-            "details": {
-              "cardId": "AhzmaDyKm4wwcMntM3hO",
-              "cardTitle": "Job Card Title",
-              "laneId": "qesjwQS3saV9h3wzyYMz",
-              "laneName": "In Progress"
             }
           },
           "vmRw80PF3umcUg4xyrq5": {
@@ -597,30 +783,12 @@
               {
                 "id": "template-1756883110952",
                 "name": "bewtest 1111",
-                "todos": [
-                  {
-                    "title": "bewtest 1111 (1)",
-                    "dueInDays": 1
-                  },
-                  {
-                    "title": "bewtest 1111 (2)",
-                    "dueInDays": 1
-                  }
-                ]
+                "todos": []
               },
               {
-                "todos": [
-                  {
-                    "title": "bewtest11112 (1)",
-                    "dueInDays": 1
-                  },
-                  {
-                    "title": "bewtest11112 (2)",
-                    "dueInDays": 1
-                  }
-                ],
                 "id": "template-1756883120551",
-                "name": "bewtest11112"
+                "name": "bewtest11112",
+                "todos": []
               }
             ]
           },
@@ -685,41 +853,66 @@
             "company": null,
             "customId": "JB-250825-0016"
           },
-          "AhzmaDyKm4wwcMntM3hO": {
+          "6VAYUMDzobYF1cTzMOax": {
             "boardId": "Mop2RUYjlM9kRoXGa001",
-            "laneId": "qesjwQS3saV9h3wzyYMz",
+            "laneId": "D8FI6YQaNYQLZavNCnyC",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "title": "Job Card Title",
-            "description": "<p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Details</u></em></strong></span></p>",
-            "status": "In Progress",
-            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "customFields": [],
-            "hashtags": [
+            "notes": [],
+            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "createdAt": 1756140015392,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "bew kiw",
+            "customer": "Bew",
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "customId": "JB-250825-0025",
+            "id": "6VAYUMDzobYF1cTzMOax",
+            "memberUids": [
+              ""
+            ],
+            "members": [],
+            "lanes": [
+              "D8FI6YQaNYQLZavNCnyC"
+            ],
+            "name": "123456ดด",
+            "workspaces": [
               {
-                "id": "bew213",
-                "text": "Bew213",
-                "color": "#f97316"
-              },
-              {
-                "id": "bew1234455",
-                "text": "Bew1234455",
-                "color": "#eab308"
+                "id": "xKnLu20t7n6A0IJxl4NN",
+                "name": "",
+                "role": "member"
               }
             ],
-            "expenses": [
+            "hashtags": [
               {
-                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
-                "productId": "34N6d2Az4sYF7ZHvyFHN",
-                "name": "Example html",
-                "description": "",
-                "quantity": 1,
-                "unit": "item",
-                "pricePerUnit": 51234,
-                "discount": 20,
-                "discountType": "percentage"
+                "color": "#eab308",
+                "id": "bew1234455",
+                "text": "Bew1234455"
               },
               {
-                "id": "exp-1756975564459-RwedKMymVqN8W3nFYbJP",
+                "color": "#f97316",
+                "id": "bew213",
+                "text": "Bew213"
+              }
+            ],
+            "hashtag": "#Bew1234455 #Bew213",
+            "todos": [
+              {
+                "id": "todo-1756233374696",
+                "title": "test115022",
+                "completed": false,
+                "dueDate": 1756256760000
+              },
+              {
+                "id": "todo-1756233931754",
+                "title": "",
+                "completed": false
+              }
+            ],
+            "status": "Cancelled",
+            "expenses": [
+              {
+                "id": "exp-1756351748426-RwedKMymVqN8W3nFYbJP",
                 "productId": "RwedKMymVqN8W3nFYbJP",
                 "name": "test1",
                 "description": "",
@@ -730,54 +923,232 @@
                 "discountType": "amount"
               }
             ],
-            "todos": [
-              {
-                "id": "todo-1756975522376",
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong>To-Do List false</strong></span></p>",
-                "completed": false,
-                "dueDate": 1756918860000,
-                "mentions": []
-              },
-              {
-                "id": "todo-1756975523853",
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong>To-Do List true</strong></span></p>",
-                "completed": false,
-                "dueDate": 1756918860000,
-                "mentions": []
-              }
-            ],
-            "notes": [],
-            "customer": "Bew",
-            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "endDate": 1757091600000,
+            "quotationTemplateId": "",
+            "startDate": 1756746000000,
+            "dueDateLose": 1756746000000,
+            "customerInterest": "กลาง (Medium)",
             "company": {
-              "label": "Main",
               "id": "aVGCGee5LmYsr9oXYfE8",
+              "label": "Main",
               "value": "colaco company"
             },
-            "watchers": [
-              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
-            ],
             "collaborators": [
+              "d3z7heLqwYXXC3u3O9uR7iO9ium2",
               "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
             ],
-            "createdAt": 1756975589247,
-            "updatedAt": 1756975589247,
-            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedByDisplayName": "bew kiw",
-            "order": 1,
-            "attachments": [],
-            "quotationTemplateId": "",
-            "startDate": 1756918800000,
-            "endDate": 1757091600000,
-            "customerInterest": "กลาง (Medium)",
             "descriptionMentions": [],
-            "isVatEnabled": true,
-            "additionalDiscount": {
-              "value": 20
+            "order": 1,
+            "watchers": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "d3z7heLqwYXXC3u3O9uR7iO9ium2"
+            ],
+            "title": "1111",
+            "description": "<h1><em><u>Bew111111234</u></em></h1>",
+            "attachments": [
+              {
+                "id": "workspaces/xKnLu20t7n6A0IJxl4NN/cards/6VAYUMDzobYF1cTzMOax/1756874147072-Screenshot 2025-09-03 at 9.42.37 AM.png",
+                "name": "Screenshot 2025-09-03 at 9.42.37 AM.png",
+                "filename": "Screenshot 2025-09-03 at 9.42.37 AM.png",
+                "url": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FxKnLu20t7n6A0IJxl4NN%2Fcards%2F6VAYUMDzobYF1cTzMOax%2F1756874147072-Screenshot%202025-09-03%20at%209.42.37%E2%80%AFAM.png?alt=media&token=0c0864ea-0747-4aac-a0da-adc5c335bc05",
+                "uploadedAt": 1756874148176,
+                "size": 178795,
+                "uploadedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+              },
+              {
+                "id": "workspaces/xKnLu20t7n6A0IJxl4NN/cards/6VAYUMDzobYF1cTzMOax/1756874161312-sample1.epub",
+                "name": "sample1.epub",
+                "filename": "sample1.epub",
+                "url": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FxKnLu20t7n6A0IJxl4NN%2Fcards%2F6VAYUMDzobYF1cTzMOax%2F1756874161312-sample1.epub?alt=media&token=2bf99d8e-fc5b-47e0-b3d3-6f2930008d48",
+                "uploadedAt": 1756874162340,
+                "size": 191468,
+                "uploadedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+              }
+            ],
+            "updatedAt": 1756874162340
+          },
+          "CAHAmmRF3dHOKGfhfMc3": {
+            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "createdAt": 1756283526086,
+            "createdBy": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "customId": "JB-270825-0027",
+            "customer": "testssss",
+            "customerId": "IhxyfTOYQ6k1UxmdMTT2",
+            "laneId": "qesjwQS3saV9h3wzyYMz",
+            "lanes": [
+              "qesjwQS3saV9h3wzyYMz"
+            ],
+            "memberUids": [
+              "d3z7heLqwYXXC3u3O9uR7iO9ium2"
+            ],
+            "members": [],
+            "name": "123456789120.00",
+            "order": 0,
+            "title": "123456789120.00",
+            "updatedBy": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "updatedByDisplayName": "BewLnwZa",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "workspaces": [
+              {
+                "id": "xKnLu20t7n6A0IJxl4NN",
+                "name": "",
+                "role": "member"
+              }
+            ],
+            "id": "CAHAmmRF3dHOKGfhfMc3",
+            "status": "Done",
+            "expenses": [
+              {
+                "id": "exp-1756351733796-34N6d2Az4sYF7ZHvyFHN",
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "name": "Example html",
+                "description": "",
+                "quantity": 1,
+                "unit": "item",
+                "pricePerUnit": 51234,
+                "discount": 0,
+                "discountType": "amount"
+              }
+            ],
+            "attachments": [],
+            "notes": [],
+            "hashtags": [],
+            "endDate": 1753981200000,
+            "customFields": [],
+            "description": "",
+            "watchers": [],
+            "collaborators": [],
+            "quotationTemplateId": "",
+            "todos": [],
+            "startDate": 1751130000000,
+            "updatedAt": 1756784163281
+          },
+          "NHwtI90GGgXCvRarNPMP": {
+            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "badges": [
+              "Bew213",
+              "Bew1234455"
+            ],
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "createdAt": 1756802238831,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customId": "JB-020925-0028",
+            "customer": "testssss",
+            "customerId": "IhxyfTOYQ6k1UxmdMTT2",
+            "description": "test1234",
+            "hashtag": "#Bew213 #Bew1234455",
+            "hashtags": [
+              {
+                "color": "#f97316",
+                "id": "bew213",
+                "text": "Bew213"
+              },
+              {
+                "color": "#eab308",
+                "id": "bew1234455",
+                "text": "Bew1234455"
+              }
+            ],
+            "laneId": "D8FI6YQaNYQLZavNCnyC",
+            "lanes": [
+              "D8FI6YQaNYQLZavNCnyC"
+            ],
+            "memberUids": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "members": [],
+            "name": "New Card",
+            "order": 0,
+            "title": "New Card",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "BewLnwZa",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "workspaces": [
+              {
+                "id": "xKnLu20t7n6A0IJxl4NN",
+                "name": "",
+                "role": "member"
+              }
+            ],
+            "attachments": [],
+            "notes": [],
+            "customFields": [],
+            "dueDate": {
+              "seconds": 1758906000,
+              "nanoseconds": 0
             },
-            "withholdingTaxPercentage": 3,
-            "customId": "JB-250904-0043"
+            "watchers": [],
+            "collaborators": [],
+            "quotationTemplateId": "",
+            "company": {
+              "value": "test",
+              "id": "Z1h1nm9GM2nfusJh7YuD",
+              "label": "Main"
+            },
+            "id": "NHwtI90GGgXCvRarNPMP",
+            "todos": [],
+            "expenses": [],
+            "status": "Archived",
+            "updatedAt": 1756874054375
+          },
+          "YRd0VCq8PZ0ZO1SpYHw5": {
+            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "createdAt": 1756283362326,
+            "createdBy": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "customId": "JB-270825-0026",
+            "customer": "Bew",
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "laneId": "D8FI6YQaNYQLZavNCnyC",
+            "lanes": [
+              "D8FI6YQaNYQLZavNCnyC"
+            ],
+            "memberUids": [
+              "d3z7heLqwYXXC3u3O9uR7iO9ium2"
+            ],
+            "members": [],
+            "name": "test0123465",
+            "status": "Pending",
+            "title": "test0123465",
+            "updatedBy": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "updatedByDisplayName": "bew kiw",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "workspaces": [
+              {
+                "id": "xKnLu20t7n6A0IJxl4NN",
+                "name": "",
+                "role": "member"
+              }
+            ],
+            "id": "YRd0VCq8PZ0ZO1SpYHw5",
+            "expenses": [
+              {
+                "id": "exp-1756351741174-34N6d2Az4sYF7ZHvyFHN",
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "name": "Example html",
+                "description": "",
+                "quantity": 1,
+                "unit": "item",
+                "pricePerUnit": 51234,
+                "discount": 0,
+                "discountType": "amount"
+              }
+            ],
+            "attachments": [],
+            "notes": [],
+            "hashtags": [],
+            "endDate": 1761757200000,
+            "customFields": [],
+            "description": "",
+            "watchers": [],
+            "collaborators": [],
+            "quotationTemplateId": "",
+            "todos": [],
+            "startDate": 1758992400000,
+            "customerInterest": "น้อย (Low)",
+            "order": 2,
+            "updatedAt": 1756802252701
           },
           "zurP2JTWc5PkQMxferzT": {
             "boardId": "uysAvnxpDG4EbdbI7r1Y",
@@ -1021,6 +1392,23 @@
             "title": "ๅๅๅๅ",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN"
           },
+          "hNGhlwpn4AYa4zje3own": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "cards": [],
+            "createdAt": {
+              "_seconds": 1756696678,
+              "_nanoseconds": 690054000
+            },
+            "hasMoreCards": false,
+            "name": "กฟกด",
+            "order": 3,
+            "title": "กฟกด",
+            "updatedAt": {
+              "_seconds": 1756696678,
+              "_nanoseconds": 690060000
+            },
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN"
+          },
           "nvx4rzpcNcJk8GIw4YsK": {
             "boardId": "Mop2RUYjlM9kRoXGa001",
             "cards": [],
@@ -1117,3 +1505,52 @@
     }
   }
 }
+```
+#### users/{user UIDs}/
+```
+{
+  "users": {
+    "d3z7heLqwYXXC3u3O9uR7iO9ium2": {
+      "uid": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+      "email": "jarukit.bunchan@gmail.com",
+      "displayName": "BewLnwZa",
+      "photoURL": null,
+      "language": "en",
+      "workspaces": [
+        {
+          "id": "xKnLu20t7n6A0IJxl4NN",
+          "name": "test1",
+          "role": "admin"
+        },
+        {
+          "id": "Hh8DkaJ88XXgjtJwOlqi",
+          "name": "BewLnwZa007",
+          "role": "owner"
+        }
+      ],
+      "lastActiveWorkspaceId": "xKnLu20t7n6A0IJxl4NN",
+      "lastDeviceId": "2F2A576C-CF24-4BD1-AA70-6BD4321C51C5",
+      "lastPlatform": "ios",
+      "fcmToken": "cmdEXYZ-5EL8s6U-iahfRr:APA91bFX1yyn61IVMfhPYoYkyJ424YLfQH3UjCosnclpvABxQY_CV2vPj1bELYmBcQ6wbnuFA5A-wn_TLgSYTsz9ckG0FPtYkY0wLivf27h6iWPRE71dOXc",
+      "fcmTokenUpdatedAt": {
+        "_seconds": 1756283312,
+        "_nanoseconds": 79000000
+      },
+      "subCollection": {
+        "users/d3z7heLqwYXXC3u3O9uR7iO9ium2/devices": {
+          "2F2A576C-CF24-4BD1-AA70-6BD4321C51C5": {
+            "forceSignOut": false,
+            "isActive": true,
+            "platform": "ios",
+            "token": "cmdEXYZ-5EL8s6U-iahfRr:APA91bFX1yyn61IVMfhPYoYkyJ424YLfQH3UjCosnclpvABxQY_CV2vPj1bELYmBcQ6wbnuFA5A-wn_TLgSYTsz9ckG0FPtYkY0wLivf27h6iWPRE71dOXc",
+            "updatedAt": {
+              "_seconds": 1756283312,
+              "_nanoseconds": 2000000
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
