@@ -924,11 +924,22 @@ class BoardController extends GetxController implements BoardView {
   }
   
   void toggleStatusFilter(String status) {
+    print('🎯 Status pressed: $status');
+    print('🎯 Current selected statuses before: $selectedStatuses');
+    
+    // Single select logic - clear all others first
     if (selectedStatuses.contains(status)) {
-      selectedStatuses.remove(status);
+      // If already selected, clear all (deselect)
+      selectedStatuses.clear();
+      print('🎯 Cleared all statuses (deselected $status)');
     } else {
+      // If not selected, clear all and select only this one
+      selectedStatuses.clear();
       selectedStatuses.add(status);
+      print('🎯 Selected only $status, cleared others');
     }
+    
+    print('🎯 Final selected statuses: $selectedStatuses');
     _performFilter();
   }
   
@@ -945,6 +956,17 @@ class BoardController extends GetxController implements BoardView {
   
   void toggleShowCardsWithoutDate() {
     showCardsWithoutDate.value = !showCardsWithoutDate.value;
+    _performFilter();
+  }
+  
+  void clearAllFilters() {
+    selectedAssignees.clear();
+    selectedCustomers.clear();
+    selectedHashtags.clear();
+    selectedInterests.clear();
+    selectedStatuses.clear();
+    selectedDateFilterTypes.clear();
+    showCardsWithoutDate.value = false;
     _performFilter();
   }
   

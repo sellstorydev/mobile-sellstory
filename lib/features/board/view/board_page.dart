@@ -621,18 +621,26 @@ class _BoardPageState extends State<BoardPage> {
           
           // Status Summary Cards
           Obx(() {
+            print('🎯 Status Summary Cards Obx called - hasWorkspaces: ${_controller.hasWorkspaces}, lanes count: ${_controller.lanes.length}');
+            
             if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
               final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                                  _controller.selectedCustomers.isNotEmpty ||
                                  _controller.selectedHashtags.isNotEmpty ||
                                  _controller.selectedStatuses.isNotEmpty ||
                                  _controller.selectedDateFilterTypes.isNotEmpty;
+              
+              print('🎯 hasAnyFilter: $hasAnyFilter, selectedStatuses: ${_controller.selectedStatuses}');
+              
               final displayLanes = (_controller.isSearching.value || hasAnyFilter)
                   ? _controller.filteredLanes 
                   : _controller.lanes;
               final allCards = displayLanes
                   .expand((lane) => lane.cards)
                   .toList();
+                  
+              print('🎯 Display lanes count: ${displayLanes.length}, All cards count: ${allCards.length}');
+              
               return SizedBox(
                 height: 65,
                 child: SingleChildScrollView(
@@ -650,6 +658,17 @@ class _BoardPageState extends State<BoardPage> {
             }
             return const SizedBox.shrink();
           }),
+          
+          // Debug clear filters button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ElevatedButton(
+              onPressed: () {
+                _controller.clearAllFilters();
+              },
+              child: const Text('Clear All Filters (Debug)'),
+            ),
+          ),
           // Board View
           Expanded(child: _buildBoardView()),
         ],

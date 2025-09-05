@@ -16,6 +16,10 @@ class StatusSummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('🎯 StatusSummaryCards build() called with ${cards.length} cards');
+    print('🎯 Selected statuses: $selectedStatuses');
+    
+    // Show summary cards even if no cards are available
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: const BoxDecoration(color: Colors.white),
