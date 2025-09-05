@@ -95,7 +95,8 @@ class _EditCardPageState extends State<EditCardPage> {
     _selectedCompany = widget.card.company?['id'] ?? 'none'; // Initialize company from JobCard
     _selectedCustomerInterest = (widget.card.customerInterest?.isNotEmpty ?? false) ? widget.card.customerInterest! : 'เริ่มต้น';
     _selectedStatus = widget.card.status;
-    _expectedClosingDate = widget.card.dueDate;
+    _startDate = widget.card.startDate;
+    _endDate = widget.card.endDate;
     
     // Initialize hashtags (same as create page)
     _selectedHashtags = List<Map<String, dynamic>>.from(widget.card.hashtags);
@@ -272,6 +273,40 @@ class _EditCardPageState extends State<EditCardPage> {
     }
   }
 
+  Future<void> _selectStartDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+        // Ensure end date is not before start date
+        if (_endDate != null && _endDate!.isBefore(picked)) {
+          _endDate = null;
+        }
+      });
+    }
+  }
+
+  Future<void> _selectEndDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? _startDate ?? DateTime.now(),
+      firstDate: _startDate ?? DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _endDate = picked;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
           return Scaffold(
@@ -400,50 +435,121 @@ class _EditCardPageState extends State<EditCardPage> {
             const Text(
               'Expected Closing Date',
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () async {
-            final date = await showDatePicker(
-              context: context,
-              initialDate: _expectedClosingDate ?? DateTime.now(),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
-            );
-            if (date != null) {
-              setState(() {
-                _expectedClosingDate = date;
-              });
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE1E5E9)),
-              borderRadius: BorderRadius.circular(6),
-              color: Colors.white,
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Text(
-                  _expectedClosingDate != null
-                      ? '${_expectedClosingDate!.day}/${_expectedClosingDate!.month}/${_expectedClosingDate!.year}'
-                      : 'Select a date',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: _expectedClosingDate != null ? Colors.black87 : Colors.grey[600],
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => _selectStartDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _startDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(6),
+                      color: _startDate != null ? Colors.teal[50] : Colors.white,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.today,
+                              size: 16,
+                              color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Start Date',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _startDate != null
+                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                              : 'Select start date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _startDate != null ? Colors.black87 : Colors.grey[500],
+                            fontWeight: _startDate != null ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward, size: 18, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: () => _selectEndDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _endDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(6),
+                      color: _endDate != null ? Colors.teal[50] : Colors.white,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.event,
+                              size: 16,
+                              color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'End Date',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _endDate != null
+                              ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                              : 'Select end date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _endDate != null ? Colors.black87 : Colors.grey[500],
+                            fontWeight: _endDate != null ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1314,12 +1420,12 @@ class _EditCardPageState extends State<EditCardPage> {
         const SizedBox(height: 8),
         TextField(
           controller: _jobIdController,
-          enabled: false,
+          enabled: true,
           decoration: const InputDecoration(
-            hintText: 'auto-generated',
+            hintText: 'Enter Job ID',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            fillColor: Color(0xFFF5F5F5),
+            fillColor: Colors.white,
             filled: true,
           ),
         ),
