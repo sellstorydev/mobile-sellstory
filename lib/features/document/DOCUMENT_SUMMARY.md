@@ -1,6 +1,137 @@
 # Document System Summary
 
-## Recent Changes - Enhanced Dynamic Product Fields & Custom Field Support
+## Recent Changes - Enhanced Summary Section with End-of-Bill Discount
+
+### Issue Addressed
+Added "ส่วนลดท้ายบิล" (end-of-bill discount) functionality to the summary section with proper checkbox behavior and updated calculation logic to use dynamic line_total fields from templates.
+
+### Changes Made
+
+#### 1. Added End-of-Bill Discount Controller and State
+
+**Added to AddEditDocumentController:**
+```dart
+bool _isEndOfBillDiscountEnabled = false;
+bool get isEndOfBillDiscountEnabled => _isEndOfBillDiscountEnabled;
+final TextEditingController endOfBillDiscountController = TextEditingController();
+```
+
+**Added callback method:**
+```dart
+void onEndOfBillDiscountEnabledChanged(bool? value) {
+  if (value != null) {
+    _isEndOfBillDiscountEnabled = value;
+    if (!value) {
+      endOfBillDiscountController.text = '';
+    }
+    update();
+  }
+}
+```
+
+#### 2. Updated Calculation Logic
+
+**IMPORTANT CLARIFICATION:** "Total of product totals" refers to the sum of dynamic line_total fields from the template that have `predefinedField: "line_total"`. These fields can contain complex formulas like `{quantity} * {pricePerUnit} * {customFields.multiply}`.
+
+**New calculation flow:** `(sum of all line_total fields) - ส่วนลดท้ายบิล + ภาษีมูลค่าเพิ่ม + หักภาษี ณ ที่จ่าย`
+
+**Updated subtotal calculation to use template line_total fields:**
+```dart
+double get subtotal {
+  try {
+    return _products.fold(0.0, (sum, product) {
+      final productIndex = _products.indexOf(product);
+      
+      // Use template-based calculation for line total
+      final lineTotal = calculateProductTotal(productIndex);
+      
+      return sum + lineTotal;
+    });
+  } catch (e) {
+    print('❌ Failed to calculate subtotal: $e');
+    return 0.0;
+  }
+}
+```
+
+**Added new getter:**
+```dart
+double get endOfBillDiscountAmount {
+  if (!_isEndOfBillDiscountEnabled) return 0.0;
+  return double.tryParse(endOfBillDiscountController.text) ?? 0.0;
+}
+```
+
+**Updated calculation methods:**
+```dart
+double get afterDiscount => subtotal - endOfBillDiscountAmount;
+double get vatAmount => _isVatEnabled ? afterDiscount * 0.07 : 0.0;
+double get afterVat => afterDiscount + vatAmount;
+double get netTotal => afterVat - whtAmount;
+```
+
+#### 3. Auto-Detection of Existing Discount Data
+
+**Enhanced document loading:**
+```dart
+// End-of-bill discount settings
+final discountAmount = documentData['discount'];
+if (discountAmount != null && discountAmount > 0) {
+  _isEndOfBillDiscountEnabled = true;
+  endOfBillDiscountController.text = discountAmount.toString();
+}
+```
+
+#### 4. Updated Summary Section UI
+
+**Enhanced _buildSummarySection:**
+- Added checkbox for "ส่วนลดท้ายบิล"
+- Added conditional input field for discount amount when checkbox is checked
+- Shows "ยอดรวมหลังหักส่วนลด" only when discount is enabled
+- Updated calculation display flow
+
+**Key UI Features:**
+- Checkbox automatically checks if existing discount data is found
+- Input field appears only when checkbox is checked
+- Real-time calculation updates with `onChanged: (value) => controller.update()`
+- Proper validation with numeric keyboard type
+
+#### 5. Database Integration
+
+**Updated document saving:**
+```dart
+'discount': endOfBillDiscountAmount, // Changed from totalDiscount
+```
+
+### Technical Implementation Details
+
+#### Field Mapping:
+- Database field: `discount` (document-level)
+- UI field: "ส่วนลดท้ายบิล" checkbox + input
+- Controller: `endOfBillDiscountController`
+- State: `_isEndOfBillDiscountEnabled`
+
+#### Calculation Flow:
+1. **Subtotal**: Sum of all product totals (based on template formulas)
+2. **End-of-bill Discount**: User-entered amount (if enabled)
+3. **After Discount**: Subtotal - End-of-bill discount
+4. **VAT**: 7% of after-discount amount (if enabled)
+5. **After VAT**: After discount + VAT
+6. **WHT**: Percentage of after-VAT amount (if enabled)
+7. **Net Total**: After VAT - WHT
+
+#### Auto-Detection Logic:
+- Checks `documentData['discount']` during document loading
+- If discount > 0, automatically enables checkbox and populates field
+- If discount = 0 or null, checkbox remains unchecked
+
+#### Validation Features:
+- Numeric input type for discount field
+- Empty field handling (defaults to 0)
+- Checkbox disables input when unchecked
+- Real-time calculation updates
+
+### Previous Implementation (Enhanced Dynamic Product Fields & Custom Field Support)
 
 ### Issue Addressed
 Fixed dynamic product field handling to properly support all field types from templates, including custom fields with nested sourceField values like `"customFields.multiply"`.

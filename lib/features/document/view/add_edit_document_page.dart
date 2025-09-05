@@ -1592,23 +1592,36 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             controller.subtotal.toStringAsFixed(2),
             '฿',
           ),
-          const SizedBox(height: 12),
-
-          // Discount
-          _buildSummaryRow(
-            'ส่วนลด',
-            controller.totalDiscount.toStringAsFixed(2),
-            '฿',
-          ),
-          const SizedBox(height: 12),
-
-          // After Discount
-          _buildSummaryRow(
-            'ยอดรวมหลังหักส่วนลด',
-            controller.afterDiscount.toStringAsFixed(2),
-            '฿',
-          ),
           const SizedBox(height: 16),
+
+          // End-of-bill discount checkbox
+          _buildCheckboxField(
+            label: 'ส่วนลดท้ายบิล',
+            value: controller.isEndOfBillDiscountEnabled,
+            onChanged: controller.onEndOfBillDiscountEnabledChanged,
+          ),
+          const SizedBox(height: 12),
+
+          // End-of-bill discount input
+          if (controller.isEndOfBillDiscountEnabled) ...[
+            _buildTextField(
+              label: 'จำนวนส่วนลด',
+              hint: '0',
+              controller: controller.endOfBillDiscountController,
+              keyboardType: TextInputType.number,
+              suffix: '฿',
+              onChanged: (value) => controller.update(),
+            ),
+            const SizedBox(height: 12),
+            
+            // After End-of-bill discount
+            _buildSummaryRow(
+              'ยอดรวมหลังหักส่วนลด',
+              controller.afterDiscount.toStringAsFixed(2),
+              '฿',
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // VAT Checkbox
           _buildCheckboxField(
@@ -1658,6 +1671,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                     controller: controller.whtPercentageController,
                     keyboardType: TextInputType.number,
                     suffix: '%',
+                    onChanged: (value) => controller.update(),
                   ),
                 ),
                 const SizedBox(width: 12),

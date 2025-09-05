@@ -200,7 +200,11 @@ class AddEditDocumentController extends GetxController {
   bool _isWhtEnabled = false;
   bool get isWhtEnabled => _isWhtEnabled;
 
+  bool _isEndOfBillDiscountEnabled = false;
+  bool get isEndOfBillDiscountEnabled => _isEndOfBillDiscountEnabled;
+
   final TextEditingController whtPercentageController = TextEditingController();
+  final TextEditingController endOfBillDiscountController = TextEditingController();
 
   // Product controllers map
   final Map<String, Map<String, TextEditingController>> _productControllers =
@@ -229,6 +233,7 @@ class AddEditDocumentController extends GetxController {
     refIdController.dispose();
     notesController.dispose();
     whtPercentageController.dispose();
+    endOfBillDiscountController.dispose();
 
     // Dispose product controllers
     for (final controllers in _productControllers.values) {
@@ -1078,6 +1083,13 @@ class AddEditDocumentController extends GetxController {
       final whtPercentage = documentData['withholdingTaxPercentage']?.toString() ?? '3.0';
       whtPercentageController.text = whtPercentage;
       
+      // End-of-bill discount settings
+      final discountAmount = documentData['discount'];
+      if (discountAmount != null && discountAmount > 0) {
+        _isEndOfBillDiscountEnabled = true;
+        endOfBillDiscountController.text = discountAmount.toString();
+      }
+      
       print('✅ Basic document info loaded');
       
     } catch (e) {
@@ -1728,6 +1740,26 @@ class AddEditDocumentController extends GetxController {
     }
   }
 
+  void onEndOfBillDiscountEnabledChanged(bool? value) {
+    try {
+      if (value != null) {
+        _isEndOfBillDiscountEnabled = value;
+        if (!value) {
+          endOfBillDiscountController.text = '';
+        }
+        update();
+      }
+    } catch (e) {
+      print('❌ Failed to change end-of-bill discount enabled: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถเปลี่ยนการเปิดใช้งานส่วนลดท้ายบิลได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   // Document status methods
   void onDocumentStatusChanged(String? status) {
     try {
@@ -1982,20 +2014,12 @@ class AddEditDocumentController extends GetxController {
   double get subtotal {
     try {
       return _products.fold(0.0, (sum, product) {
-        final quantity =
-            double.tryParse(
-              getProductController(_products.indexOf(product), 'quantity').text,
-            ) ??
-            0;
-        final pricePerUnit =
-            double.tryParse(
-              getProductController(
-                _products.indexOf(product),
-                'pricePerUnit',
-              ).text,
-            ) ??
-            0;
-        return sum + (quantity * pricePerUnit);
+        final productIndex = _products.indexOf(product);
+        
+        // Use template-based calculation for line total
+        final lineTotal = calculateProductTotal(productIndex);
+        
+        return sum + lineTotal;
       });
     } catch (e) {
       print('❌ Failed to calculate subtotal: $e');
@@ -2019,7 +2043,18 @@ class AddEditDocumentController extends GetxController {
     }
   }
 
-  double get afterDiscount => subtotal - totalDiscount;
+  // End-of-bill discount amount
+  double get endOfBillDiscountAmount {
+    try {
+      if (!_isEndOfBillDiscountEnabled) return 0.0;
+      return double.tryParse(endOfBillDiscountController.text) ?? 0.0;
+    } catch (e) {
+      print('❌ Failed to calculate end-of-bill discount: $e');
+      return 0.0;
+    }
+  }
+
+  double get afterDiscount => subtotal - endOfBillDiscountAmount;
 
   double get vatAmount => _isVatEnabled ? afterDiscount * 0.07 : 0.0;
 
@@ -2341,7 +2376,7 @@ class AddEditDocumentController extends GetxController {
           
           return itemData;
         }).toList(),
-        'discount': totalDiscount,
+        'discount': endOfBillDiscountAmount,
         'withholdingTaxPercentage': double.tryParse(whtPercentageController.text) ?? 3.0,
         'isVatEnabled': _isVatEnabled,
         'project': {
