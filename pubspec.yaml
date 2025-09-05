@@ -108,7 +108,7 @@ dependencies:
   video_player: ^2.9.2
   audioplayers: ^6.0.0
   pdfx: ^2.6.0
-  video_thumbnail: ^0.5.6
+  # video_thumbnail: ^0.5.6
 
   # Slidable list item actions
   flutter_slidable: ^3.1.0
