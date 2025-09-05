@@ -43,6 +43,7 @@ class BoardController extends GetxController implements BoardView {
   final RxList<String> selectedCustomers = <String>[].obs;
   final RxList<String> selectedHashtags = <String>[].obs;
   final RxList<String> selectedInterests = <String>[].obs;
+  final RxList<String> selectedStatuses = <String>[].obs;
   final RxBool isFiltering = false.obs;
   final RxList<String> availableAssignees = <String>[].obs;
   final RxList<String> availableCustomers = <String>[].obs;
@@ -742,17 +743,18 @@ class BoardController extends GetxController implements BoardView {
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
     final hasDateFilter = selectedDateFilterTypes.isNotEmpty;
+    final hasStatusFilter = selectedStatuses.isNotEmpty;
     final hasSearchQuery = searchQuery.value.isNotEmpty;
     
-    if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasDateFilter)) {
+    if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasStatusFilter || hasDateFilter)) {
       print('🔍 Reapplying search and filter');
       _performSearch(searchQuery.value);
       _performFilter();
     } else if (hasSearchQuery) {
       print('🔍 Reapplying search filter: "${searchQuery.value}"');
       _performSearch(searchQuery.value);
-    } else if (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasDateFilter) {
-      print('🔍 Reapplying filters - Assignees: ${selectedAssignees.length}, Customers: ${selectedCustomers.length}, Hashtags: ${selectedHashtags.length}, Date: ${hasDateFilter}');
+    } else if (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasStatusFilter || hasDateFilter) {
+      print('🔍 Reapplying filters - Assignees: ${selectedAssignees.length}, Customers: ${selectedCustomers.length}, Hashtags: ${selectedHashtags.length}, Statuses: ${selectedStatuses.length}, Date: ${hasDateFilter}');
       _performFilter();
     } else {
       filteredLanes.value = state.lanes;
@@ -921,6 +923,13 @@ class BoardController extends GetxController implements BoardView {
     _performFilter();
   }
   
+  void filterByStatus(String status) {
+    // Clear other status selections and select only this status
+    selectedStatuses.clear();
+    selectedStatuses.add(status);
+    _performFilter();
+  }
+  
   void toggleDateFilterType(String dateType) {
     if (selectedDateFilterTypes.contains(dateType)) {
       selectedDateFilterTypes.remove(dateType);
@@ -1019,6 +1028,7 @@ class BoardController extends GetxController implements BoardView {
     selectedCustomers.clear();
     selectedHashtags.clear();
     selectedInterests.clear();
+    selectedStatuses.clear();
     selectedDateFilterTypes.clear();
     selectedStartDate.value = null;
     selectedEndDate.value = null;
@@ -1038,11 +1048,12 @@ class BoardController extends GetxController implements BoardView {
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
     final hasInterestFilter = selectedInterests.isNotEmpty;
+    final hasStatusFilter = selectedStatuses.isNotEmpty;
     final hasDateFilter = selectedDateFilterTypes.isNotEmpty && 
                          (selectedStartDate.value != null || selectedEndDate.value != null);
     final hasShowWithoutDate = showCardsWithoutDate.value;
     
-    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasInterestFilter && !hasDateFilter && !hasShowWithoutDate) {
+    if (!hasAssigneeFilter && !hasCustomerFilter && !hasHashtagFilter && !hasInterestFilter && !hasStatusFilter && !hasDateFilter && !hasShowWithoutDate) {
       isFiltering.value = false;
       if (searchQuery.value.isNotEmpty) {
         _performSearch(searchQuery.value);
@@ -1058,6 +1069,7 @@ class BoardController extends GetxController implements BoardView {
     print('🔍 Filtering - Customers: ${selectedCustomers.length} selected: $selectedCustomers');
     print('🔍 Filtering - Hashtags: ${selectedHashtags.length} selected: $selectedHashtags');
     print('🔍 Filtering - Interests: ${selectedInterests.length} selected: $selectedInterests');
+    print('🔍 Filtering - Statuses: ${selectedStatuses.length} selected: $selectedStatuses');
     print('🔍 Filtering - Date Types: ${selectedDateFilterTypes.length} selected: $selectedDateFilterTypes from ${selectedStartDate.value} to ${selectedEndDate.value}');
     print('🔍 Filtering - Show Without Date: $hasShowWithoutDate');
     
@@ -1097,12 +1109,13 @@ class BoardController extends GetxController implements BoardView {
     for (final lane in sourceLanes) {
       print('🔍 Checking lane "${lane.title}" with ${lane.cards.length} cards');
       
-      // Filter cards by assignee, customer, hashtag, interest, and/or date
+      // Filter cards by assignee, customer, hashtag, interest, status, and/or date
       final filteredCards = lane.cards.where((card) {
         bool assigneeMatches = true;
         bool customerMatches = true;
         bool hashtagMatches = true;
         bool interestMatches = true;
+        bool statusMatches = true;
         bool dateMatches = true;
         
         // Check assignee filter (OR logic - match any selected assignee)
@@ -1127,6 +1140,11 @@ class BoardController extends GetxController implements BoardView {
         if (hasInterestFilter) {
           interestMatches = selectedInterests.any((selectedInterest) => 
             (card.customerInterest ?? '').toLowerCase().contains(selectedInterest.toLowerCase()));
+        }
+        
+        // Check status filter (OR logic - match any selected status)
+        if (hasStatusFilter) {
+          statusMatches = selectedStatuses.contains(card.status);
         }
         
         // Check date filter
@@ -1161,8 +1179,8 @@ class BoardController extends GetxController implements BoardView {
           });
         }
         
-        final matches = assigneeMatches && customerMatches && hashtagMatches && interestMatches && dateMatches && withoutDateMatches;
-        print('🔍 Card "${card.title}" - Assignee: "${card.assignedTo}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), CustomerId: "${card.customerId ?? ''}" (${customerMatches}), Hashtag: "${card.hashtags}" (${hashtagMatches}), Interest: "${card.customerInterest ?? ''}" (${interestMatches}), Date: (${dateMatches}) - Match: $matches');
+        final matches = assigneeMatches && customerMatches && hashtagMatches && interestMatches && statusMatches && dateMatches && withoutDateMatches;
+        print('🔍 Card "${card.title}" - Assignee: "${card.assignedTo}" (${assigneeMatches}), Customer: "${card.customer}" (${customerMatches}), CustomerId: "${card.customerId ?? ''}" (${customerMatches}), Hashtag: "${card.hashtags}" (${hashtagMatches}), Interest: "${card.customerInterest ?? ''}" (${interestMatches}), Status: "${card.status}" (${statusMatches}), Date: (${dateMatches}) - Match: $matches');
         
         // Debug: Show why card didn't match
         if (!matches) {
@@ -1351,7 +1369,7 @@ class BoardController extends GetxController implements BoardView {
   
   // Getter for lanes to use in UI (returns filtered/searched lanes)
   List<Lane> get displayLanes {
-    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedDateFilterTypes.isNotEmpty) {
+    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedStatuses.isNotEmpty || selectedDateFilterTypes.isNotEmpty) {
       return filteredLanes;
     }
     return lanes;

@@ -625,6 +625,7 @@ class _BoardPageState extends State<BoardPage> {
               final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                                  _controller.selectedCustomers.isNotEmpty ||
                                  _controller.selectedHashtags.isNotEmpty ||
+                                 _controller.selectedStatuses.isNotEmpty ||
                                  _controller.selectedDateFilterTypes.isNotEmpty;
               final displayLanes = (_controller.isSearching.value || hasAnyFilter)
                   ? _controller.filteredLanes 
@@ -636,7 +637,13 @@ class _BoardPageState extends State<BoardPage> {
                 height: 65,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: StatusSummaryCards(cards: allCards),
+                  child: StatusSummaryCards(
+                    cards: allCards,
+                    onStatusTap: (String status) {
+                      // Filter cards by selected status
+                      _controller.filterByStatus(status);
+                    },
+                  ),
                 ),
               );
             }
@@ -776,6 +783,7 @@ class _BoardPageState extends State<BoardPage> {
       final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                          _controller.selectedCustomers.isNotEmpty ||
                          _controller.selectedHashtags.isNotEmpty ||
+                         _controller.selectedStatuses.isNotEmpty ||
                          _controller.selectedDateFilterTypes.isNotEmpty;
       final displayLanes = (_controller.isSearching.value || hasAnyFilter)
           ? _controller.filteredLanes 
@@ -788,10 +796,11 @@ class _BoardPageState extends State<BoardPage> {
           final hasAssignee = _controller.selectedAssignees.isNotEmpty;
           final hasCustomer = _controller.selectedCustomers.isNotEmpty;
           final hasHashtag = _controller.selectedHashtags.isNotEmpty;
+          final hasStatus = _controller.selectedStatuses.isNotEmpty;
           final hasDate = _controller.selectedDateFilterTypes.isNotEmpty;
           
           // Count the number of active filters
-          final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasDate].where((x) => x).length;
+          final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasStatus, hasDate].where((x) => x).length;
           
           if (filterCount >= 3) {
             filterMessage = 'ไม่พบงานสำหรับเงื่อนไขที่เลือกทั้งหมด';
@@ -813,6 +822,8 @@ class _BoardPageState extends State<BoardPage> {
             filterMessage = 'ไม่พบงานสำหรับลูกค้าที่เลือก';
           } else if (hasHashtag) {
             filterMessage = 'ไม่พบงานสำหรับแฮชแท็กที่เลือก';
+          } else if (hasStatus) {
+            filterMessage = 'ไม่พบงานสำหรับสถานะที่เลือก';
           } else if (hasDate) {
             filterMessage = 'ไม่พบงานในช่วงวันที่ที่เลือก';
           }
