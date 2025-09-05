@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
-import '../../../data/services/mobile_permissions_service.dart';
-import '../../../data/services/firestore_service.dart';
+import '../../../data/repositories/firestore_repository.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -21,12 +21,16 @@ class EditCardPage extends StatefulWidget {
 
 class _EditCardPageState extends State<EditCardPage> {
   final BoardController _controller = Get.find<BoardController>();
+  final FirestoreRepository _repository = Get.find<FirestoreRepository>();
   
   // Form controllers
   final TextEditingController _jobIdController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
+  
+  // Current user information
+  Map<String, dynamic>? _currentUserInfo;
   
   // Hashtag state (same as create page)
   List<Map<String, dynamic>> _selectedHashtags = [];
@@ -88,6 +92,9 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Future<void> _initializeData() async {
+    // Load current user information
+    await _loadCurrentUserInfo();
+    
     // Load card data
     _jobIdController.text = widget.card.customId;
     _titleController.text = widget.card.title;
@@ -1454,14 +1461,35 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
+  Future<void> _loadCurrentUserInfo() async {
+    try {
+      // Get current user from Firebase Auth
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        // Load user information from Firestore
+        _currentUserInfo = await _repository.getCurrentUserInfo(currentUser.uid);
+        print('🔄 Current user loaded: ${_currentUserInfo?['displayName']}');
+      }
+    } catch (e) {
+      print('❌ Failed to load current user info: $e');
+      // Set fallback user info
+      _currentUserInfo = {
+        'uid': 'unknown-user',
+        'displayName': 'Current User',
+        'email': '',
+        'photoURL': null,
+      };
+    }
+  }
+
   void _addComment() {
     if (_commentController.text.trim().isEmpty) return;
     
     final newComment = {
       'id': 'note-${DateTime.now().millisecondsSinceEpoch}',
-      'userId': 'current-user-id', // Replace with actual current user ID
-      'userDisplayName': 'Current User', // Replace with actual user name
-      'userPhotoURL': null,
+      'userId': _currentUserInfo?['uid'] ?? 'unknown-user',
+      'userDisplayName': _currentUserInfo?['displayName'] ?? 'Current User',
+      'userPhotoURL': _currentUserInfo?['photoURL'],
       'text': '<p>${_commentController.text.trim()}</p>',
       'timestamp': DateTime.now().millisecondsSinceEpoch,
       'mentions': [],
@@ -1481,9 +1509,9 @@ class _EditCardPageState extends State<EditCardPage> {
   void _addReply(String parentId, String replyText) {
     final newReply = {
       'id': 'note-${DateTime.now().millisecondsSinceEpoch}',
-      'userId': 'current-user-id', // Replace with actual current user ID
-      'userDisplayName': 'Current User', // Replace with actual user name
-      'userPhotoURL': null,
+      'userId': _currentUserInfo?['uid'] ?? 'unknown-user',
+      'userDisplayName': _currentUserInfo?['displayName'] ?? 'Current User',
+      'userPhotoURL': _currentUserInfo?['photoURL'],
       'text': '<p>$replyText</p>',
       'timestamp': DateTime.now().millisecondsSinceEpoch,
       'mentions': [],
@@ -1615,6 +1643,8 @@ class _EditCardPageState extends State<EditCardPage> {
         customerInterest: _selectedCustomerInterest,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,
+        startDate: _startDate,
+        endDate: _endDate,
         hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
         hashtags: _selectedHashtags,
         todos: todosData,

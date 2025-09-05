@@ -1743,4 +1743,52 @@ class FirestoreRepository {
       rethrow;
     }
   }
+
+  // Get current user's information including displayName
+  Future<Map<String, dynamic>?> getCurrentUserInfo(String userId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getCurrentUserInfo', {
+        'userId': userId,
+      });
+
+      final userRef = _firestoreService.firestore.collection('users').doc(userId);
+      final userDoc = await userRef.get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        
+        // Extract display name - prefer displayName, fallback to email
+        String displayName = '';
+        if (userData['displayName'] != null && userData['displayName'].toString().isNotEmpty) {
+          displayName = userData['displayName'].toString();
+        } else if (userData['email'] != null && userData['email'].toString().isNotEmpty) {
+          displayName = userData['email'].toString();
+        } else {
+          displayName = 'Unknown User';
+        }
+
+        final userInfo = {
+          'uid': userData['uid'] ?? userId,
+          'email': userData['email'] ?? '',
+          'displayName': displayName,
+          'photoURL': userData['photoURL'],
+        };
+        
+        _logger.methodExit('FirestoreRepository.getCurrentUserInfo', {
+          'displayName': displayName,
+        });
+        
+        return userInfo;
+      }
+
+      _logger.methodExit('FirestoreRepository.getCurrentUserInfo', {
+        'userNotFound': true,
+      });
+      
+      return null;
+    } catch (e) {
+      _logger.error('Failed to get current user info', e);
+      rethrow;
+    }
+  }
 }

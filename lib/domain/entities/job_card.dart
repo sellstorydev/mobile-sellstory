@@ -163,9 +163,9 @@ class JobCard {
       'assignedTo': assignedTo,
       'status': status,
       'customId': customId,
-      'dueDate': dueDate?.millisecondsSinceEpoch,
-      'startDate': startDate?.millisecondsSinceEpoch,
-      'endDate': endDate?.millisecondsSinceEpoch,
+      'dueDate': _dateToTimestamp(dueDate),
+      'startDate': _dateToTimestamp(startDate),
+      'endDate': _dateToTimestamp(endDate),
       'badges': badges,
       'amount': amount,
       'laneId': laneId,
@@ -312,6 +312,10 @@ class JobCard {
       additionalDiscount: map['additionalDiscount'] != null ? Map<String, dynamic>.from(map['additionalDiscount'] as Map) : null,
       withholdingTaxPercentage: map['withholdingTaxPercentage'] ?? 0,
     );
+  }
+
+  static int? _dateToTimestamp(DateTime? date) {
+    return date?.millisecondsSinceEpoch;
   }
 
   static String _stringFrom(dynamic value) {
