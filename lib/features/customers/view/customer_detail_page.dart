@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../board/view/card_view_page.dart';
 import 'package:get/get.dart';
 import 'dart:async';
+import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/services/workspace_members_service.dart';
@@ -1011,7 +1011,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   
   Widget _buildJobCardItem(JobCard jobCard) {
     return InkWell(
-      onTap: () => Get.to(() => CardViewPage(card: jobCard)),
+      onTap: () => Get.toNamed(AppRoutes.editCard, arguments: jobCard),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
 import '../../../core/widgets/assignees_input_field.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../controller/calendar_controller.dart';
-import '../../board/view/card_view_page.dart';
 import '../../../domain/entities/job_card.dart';
 
 class CalendarPage extends StatefulWidget {
@@ -764,7 +764,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 // Find the job card from the controller's data
                 final jobCard = _findJobCardById(controller, cardId);
                 if (jobCard != null) {
-                  Get.to(() => CardViewPage(card: jobCard));
+                  Get.toNamed(AppRoutes.editCard, arguments: jobCard);
                 } else {
                   Get.snackbar(
                     'Error',
@@ -790,7 +790,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 // Find the parent job card from the controller's data
                 final jobCard = _findJobCardById(controller, parentCardId);
                 if (jobCard != null) {
-                  Get.to(() => CardViewPage(card: jobCard));
+                  Get.toNamed(AppRoutes.editCard, arguments: jobCard);
                 } else {
                   Get.snackbar(
                     'Error',

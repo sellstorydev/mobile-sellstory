@@ -24,7 +24,6 @@ class AppRoutes {
   static const String shell = '/shell';
   static const String board = '/board';
   static const String userCards = '/user-cards';
-  static const String cardDetail = '/card-detail';
   static const String cardView = '/card-view';
   static const String createCard = '/create-card';
   static const String editCard = '/edit-card';
@@ -61,10 +60,6 @@ class AppRoutes {
       page: () => const UserCardsPage(),
     ),
     GetPage(
-      name: cardDetail,
-      page: () => EditCardPage(card: Get.arguments),
-    ),
-    GetPage(
       name: cardView,
       page: () => CardViewPage(card: Get.arguments),
     ),
@@ -78,7 +73,7 @@ class AppRoutes {
     ),
     GetPage(
       name: editCard,
-      page: () => EditCardPage(card: Get.arguments['card']),
+      page: () => EditCardPage(card: Get.arguments),
     ),
     GetPage(
       name: createBoard,

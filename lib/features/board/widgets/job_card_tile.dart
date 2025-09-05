@@ -142,8 +142,8 @@ class JobCardTile extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap ?? () {
-        // Navigate to card view page (read-only)
-        Get.toNamed(AppRoutes.cardView, arguments: card);
+        // Navigate to edit card page directly
+        Get.toNamed(AppRoutes.editCard, arguments: card);
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -184,7 +184,7 @@ class JobCardTile extends StatelessWidget {
                     onSelected: (value) {
                       switch (value) {
                         case 'edit':
-                          Get.toNamed(AppRoutes.cardDetail, arguments: card);
+                          Get.toNamed(AppRoutes.editCard, arguments: card);
                           break;
                         case 'detail':
                           Get.toNamed(AppRoutes.cardView, arguments: card);
