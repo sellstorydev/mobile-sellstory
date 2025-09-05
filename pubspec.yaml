@@ -1,7 +1,7 @@
 name: sellstory
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
+# pub.dev using `flutter pub pu blish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
@@ -18,7 +18,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # of the product and file versions while build-number is used as the build suffix.
 # Version is managed by Xcode for iOS builds
 # This version should match the iOS version in Xcode
-version: 1.10.8+12
+version: 1.0.0+1
 
 environment:
   sdk: ^3.8.1

@@ -1,37 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
-import '../controller/customers_controller.dart';
-import '../widgets/customer_tile.dart';
-import 'customer_detail_page.dart';
-import 'add_edit_customer_page.dart';
+import '../controller/companies_controller.dart';
+import '../widgets/company_tile.dart';
+import 'company_detail_page.dart';
+import 'add_edit_company_page.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../board/widgets/workspace_app_bar.dart';
 import '../../board/controller/board_controller.dart';
 
-
-class CustomersPage extends StatefulWidget {
-  const CustomersPage({super.key});
+class CompanyCenterPage extends StatefulWidget {
+  const CompanyCenterPage({super.key});
 
   @override
-  State<CustomersPage> createState() => _CustomersPageState();
+  State<CompanyCenterPage> createState() => _CompanyCenterPageState();
 }
 
-
-
-class _CustomersPageState extends State<CustomersPage> {
-  late CustomersController _controller;
+class _CompanyCenterPageState extends State<CompanyCenterPage> {
+  late CompaniesController _controller;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    // Ensure CustomersController exists
-    if (!Get.isRegistered<CustomersController>()) {
-      Get.put<CustomersController>(Get.find());
+    // Ensure CompaniesController exists
+    if (!Get.isRegistered<CompaniesController>()) {
+      Get.put<CompaniesController>(CompaniesController());
     }
-    _controller = Get.find<CustomersController>();
+    _controller = Get.find<CompaniesController>();
   }
 
   @override
@@ -40,7 +37,6 @@ class _CustomersPageState extends State<CustomersPage> {
     _searchFocus.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -57,12 +53,11 @@ class _CustomersPageState extends State<CustomersPage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
       appBar: WorkspaceAppBar(controller: boardCtrl),
-
       body: PermissionGuard(
-        permission: 'customer:view:all',
+        permission: 'company:view:all',
         fallback: const Center(
           child: Text(
-            'คุณไม่มีสิทธิ์ดูรายชื่อลูกค้า',
+            'คุณไม่มีสิทธิ์ดูรายชื่อบริษัท',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
         ),
@@ -70,14 +65,14 @@ class _CustomersPageState extends State<CustomersPage> {
           children: [
             _buildSearchBar(context),
             _buildHeaderSection(context),
-            Expanded(child: _buildCustomerList()),
+            Expanded(child: _buildCompanyList()),
           ],
         ),
       ),
     );
   }
 
-  // === UI: Search Bar (ตามภาพตัวอย่าง) ===
+  // === UI: Search Bar ===
   Widget _buildSearchBar(BuildContext context) {
     return Container(
       color: AppTheme.backgroundWhite,
@@ -97,8 +92,7 @@ class _CustomersPageState extends State<CustomersPage> {
                 onChanged: _controller.setSearchQuery,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText:
-                  'ชื่อลูกค้า,บริษัท,เบอร์โทร,อีเมล,เลขประจำตัวผู้เสียภาษี',
+                  hintText: 'ชื่อบริษัท, เลขประจำตัวผู้เสียภาษี, สาขา, เบอร์โทร, อีเมล',
                   hintStyle: const TextStyle(color: AppTheme.textSecondary),
                   border: InputBorder.none,
                   prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
@@ -106,14 +100,14 @@ class _CustomersPageState extends State<CustomersPage> {
                     final showClear = _controller.searchQuery.value.isNotEmpty;
                     return showClear
                         ? IconButton(
-                      tooltip: 'ล้างคำค้น',
-                      icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
-                      onPressed: () {
-                        _searchController.clear();
-                        _controller.clearSearch();
-                        _searchFocus.requestFocus();
-                      },
-                    )
+                            tooltip: 'ล้างคำค้น',
+                            icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
+                            onPressed: () {
+                              _searchController.clear();
+                              _controller.clearSearch();
+                              _searchFocus.requestFocus();
+                            },
+                          )
                         : const SizedBox.shrink();
                   }),
                 ),
@@ -121,7 +115,6 @@ class _CustomersPageState extends State<CustomersPage> {
             ),
           ),
           const SizedBox(width: 10),
-          // ปุ่มแว่นขยายเล็ก ๆ ตามฟีลในภาพ (กดแล้วปิดคีย์บอร์ด)
           Material(
             color: AppTheme.primaryOrange,
             borderRadius: BorderRadius.circular(10),
@@ -140,7 +133,7 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  // === UI: Header "จำนวน XX คน" + ปุ่มเพิ่มลูกค้า (Outlined ส้ม) ===
+  // === UI: Header "จำนวน XX บริษัท" + ปุ่มเพิ่มบริษัท ===
   Widget _buildHeaderSection(BuildContext context) {
     return Container(
       color: AppTheme.backgroundWhite,
@@ -148,7 +141,7 @@ class _CustomersPageState extends State<CustomersPage> {
       child: Row(
         children: [
           Obx(() {
-            final count = _controller.filteredCustomerCount;
+            final count = _controller.filteredCompanyCount;
             return RichText(
               text: TextSpan(
                 style: const TextStyle(
@@ -164,14 +157,14 @@ class _CustomersPageState extends State<CustomersPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const TextSpan(text: ' คน'),
+                  const TextSpan(text: ' บริษัท'),
                 ],
               ),
             );
           }),
           const Spacer(),
           PermissionGuard(
-            permission: 'customer:create',
+            permission: 'company:create',
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.primaryOrange,
@@ -179,16 +172,14 @@ class _CustomersPageState extends State<CustomersPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              icon: const Icon(Icons.person_add_alt_1, size: 18),
-              label: const Text('เพิ่มลูกค้า'),
+              icon: const Icon(Icons.business, size: 18),
+              label: const Text('เพิ่มบริษัท'),
               onPressed: () {
-                guardAction(context, 'customer:create', () {
+                guardAction(context, 'company:create', () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AddEditCustomerPage(
-                        customerSources: _controller.customerSources,
-                      ),
+                      builder: (_) => const AddEditCompanyPage(),
                     ),
                   );
                 });
@@ -200,8 +191,8 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  // === UI: รายการลูกค้า + Pull-to-Refresh + สถานะ error/empty ===
-  Widget _buildCustomerList() {
+  // === UI: รายการบริษัท + Pull-to-Refresh + สถานะ error/empty ===
+  Widget _buildCompanyList() {
     return Obx(() {
       if (_controller.isLoading.value) {
         return const Center(
@@ -215,20 +206,20 @@ class _CustomersPageState extends State<CustomersPage> {
           onRetry: () {
             final workspaceId = _controller.currentWorkspaceId.value;
             if (workspaceId.isNotEmpty) {
-              _controller.loadCustomers(workspaceId);
+              _controller.loadCompanies(workspaceId);
             }
           },
         );
       }
 
-      if (_controller.filteredCustomers.isEmpty) {
+      if (_controller.filteredCompanies.isEmpty) {
         final isSearching = _controller.searchQuery.value.isNotEmpty;
         return _EmptyState(
-          icon: isSearching ? Icons.search_off : Icons.people_outline,
-          title: isSearching ? 'ไม่พบลูกค้าที่ค้นหา' : 'ไม่มีลูกค้า',
+          icon: isSearching ? Icons.search_off : Icons.business_outlined,
+          title: isSearching ? 'ไม่พบบริษัทที่ค้นหา' : 'ไม่มีบริษัท',
           subtitle: isSearching
               ? 'ลองค้นหาด้วยคำอื่น'
-              : 'เริ่มต้นเพิ่มลูกค้าคนแรกของคุณ',
+              : 'เริ่มต้นเพิ่มบริษัทแรกของคุณ',
         );
       }
 
@@ -237,16 +228,15 @@ class _CustomersPageState extends State<CustomersPage> {
         onRefresh: () async {
           final workspaceId = _controller.currentWorkspaceId.value;
           if (workspaceId.isNotEmpty) {
-            await _controller.loadCustomers(workspaceId);
+            await _controller.loadCompanies(workspaceId);
           }
         },
         child: ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          itemCount: _controller.filteredCustomers.length,
-          separatorBuilder: (_, __) =>
-          const Divider(height: 1, color: Color(0xFFEAEAEA)),
+          itemCount: _controller.filteredCompanies.length,
+          separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFEAEAEA)),
           itemBuilder: (context, index) {
-            final customer = _controller.filteredCustomers[index];
+            final company = _controller.filteredCompanies[index];
             return Material(
               color: Colors.white,
               child: InkWell(
@@ -254,13 +244,13 @@ class _CustomersPageState extends State<CustomersPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CustomerDetailPage(customer: customer),
+                      builder: (_) => CompanyDetailPage(company: company),
                     ),
                   );
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: CustomerTile(customer: customer),
+                  child: CompanyTile(company: company),
                 ),
               ),
             );
@@ -271,7 +261,7 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 }
 
-// === Widgets: สถานะว่าง/ผิดพลาด แบบกะทัดรัด ===
+// === Widgets: สถานะว่าง/ผิดพลาด ===
 class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;

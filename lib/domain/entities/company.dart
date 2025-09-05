@@ -3,8 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Company {
   final String id;
   final String name;
+  final String branch;
+  final String taxId;
   final List<Map<String, dynamic>> emails;
   final List<Map<String, dynamic>> phones;
+  final String website;
+  final String addressLine1;
+  final String province;
+  final String district;
+  final String subdistrict;
+  final String postalCode;
+  final String country;
   final String workspaceId;
   final String customId;
   final DateTime createdAt;
@@ -12,12 +21,24 @@ class Company {
   final String createdBy;
   final String updatedBy;
   final List<String> associatedCustomerIds;
+  final List<Map<String, dynamic>> customFields;
+  final List<Map<String, dynamic>> hashtags;
+  final List<Map<String, dynamic>> notes;
 
   Company({
     required this.id,
     required this.name,
+    this.branch = '',
+    this.taxId = '',
     required this.emails,
     required this.phones,
+    this.website = '',
+    this.addressLine1 = '',
+    this.province = '',
+    this.district = '',
+    this.subdistrict = '',
+    this.postalCode = '',
+    this.country = '',
     required this.workspaceId,
     required this.customId,
     required this.createdAt,
@@ -25,13 +46,25 @@ class Company {
     required this.createdBy,
     required this.updatedBy,
     required this.associatedCustomerIds,
+    this.customFields = const [],
+    this.hashtags = const [],
+    this.notes = const [],
   });
 
   Company copyWith({
     String? id,
     String? name,
+    String? branch,
+    String? taxId,
     List<Map<String, dynamic>>? emails,
     List<Map<String, dynamic>>? phones,
+    String? website,
+    String? addressLine1,
+    String? province,
+    String? district,
+    String? subdistrict,
+    String? postalCode,
+    String? country,
     String? workspaceId,
     String? customId,
     DateTime? createdAt,
@@ -39,12 +72,24 @@ class Company {
     String? createdBy,
     String? updatedBy,
     List<String>? associatedCustomerIds,
+    List<Map<String, dynamic>>? customFields,
+    List<Map<String, dynamic>>? hashtags,
+    List<Map<String, dynamic>>? notes,
   }) {
     return Company(
       id: id ?? this.id,
       name: name ?? this.name,
+      branch: branch ?? this.branch,
+      taxId: taxId ?? this.taxId,
       emails: emails ?? this.emails,
       phones: phones ?? this.phones,
+      website: website ?? this.website,
+      addressLine1: addressLine1 ?? this.addressLine1,
+      province: province ?? this.province,
+      district: district ?? this.district,
+      subdistrict: subdistrict ?? this.subdistrict,
+      postalCode: postalCode ?? this.postalCode,
+      country: country ?? this.country,
       workspaceId: workspaceId ?? this.workspaceId,
       customId: customId ?? this.customId,
       createdAt: createdAt ?? this.createdAt,
@@ -52,14 +97,26 @@ class Company {
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
       associatedCustomerIds: associatedCustomerIds ?? this.associatedCustomerIds,
+      customFields: customFields ?? this.customFields,
+      hashtags: hashtags ?? this.hashtags,
+      notes: notes ?? this.notes,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'name': name,
+      'branch': branch,
+      'taxId': taxId,
       'emails': emails,
       'phones': phones,
+      'website': website,
+      'addressLine1': addressLine1,
+      'province': province,
+      'district': district,
+      'subdistrict': subdistrict,
+      'postalCode': postalCode,
+      'country': country,
       'workspaceId': workspaceId,
       'customId': customId,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -67,6 +124,9 @@ class Company {
       'createdBy': createdBy,
       'updatedBy': updatedBy,
       'associatedCustomerIds': associatedCustomerIds,
+      'customFields': customFields,
+      'hashtags': hashtags,
+      'notes': notes,
     };
   }
 
@@ -74,8 +134,17 @@ class Company {
     return Company(
       id: id,
       name: map['name'] ?? '',
+      branch: map['branch'] ?? '',
+      taxId: map['taxId'] ?? '',
       emails: List<Map<String, dynamic>>.from(map['emails'] ?? []),
       phones: List<Map<String, dynamic>>.from(map['phones'] ?? []),
+      website: map['website'] ?? '',
+      addressLine1: map['addressLine1'] ?? '',
+      province: map['province'] ?? '',
+      district: map['district'] ?? '',
+      subdistrict: map['subdistrict'] ?? '',
+      postalCode: map['postalCode'] ?? '',
+      country: map['country'] ?? '',
       workspaceId: map['workspaceId'] ?? '',
       customId: map['customId'] ?? '',
       createdAt: (map['createdAt'] is Timestamp) 
@@ -87,7 +156,23 @@ class Company {
       createdBy: map['createdBy'] ?? '',
       updatedBy: map['updatedBy'] ?? '',
       associatedCustomerIds: List<String>.from(map['associatedCustomerIds'] ?? []),
+      customFields: List<Map<String, dynamic>>.from(map['customFields'] ?? []),
+      hashtags: List<Map<String, dynamic>>.from(map['hashtags'] ?? []),
+      notes: List<Map<String, dynamic>>.from(map['notes'] ?? []),
     );
+  }
+
+  String get fullAddress {
+    final parts = [
+      addressLine1,
+      subdistrict,
+      district,
+      province,
+      postalCode,
+      country,
+    ].where((part) => part.isNotEmpty).toList();
+
+    return parts.join(', ');
   }
 
   @override
@@ -96,34 +181,24 @@ class Company {
     return other is Company &&
         other.id == id &&
         other.name == name &&
-        other.emails == emails &&
-        other.phones == phones &&
+        other.branch == branch &&
+        other.taxId == taxId &&
         other.workspaceId == workspaceId &&
-        other.customId == customId &&
-        other.createdAt == createdAt &&
-        other.updatedAt == updatedAt &&
-        other.createdBy == createdBy &&
-        other.updatedBy == updatedBy &&
-        other.associatedCustomerIds == associatedCustomerIds;
+        other.customId == customId;
   }
 
   @override
   int get hashCode {
     return id.hashCode ^
         name.hashCode ^
-        emails.hashCode ^
-        phones.hashCode ^
+        branch.hashCode ^
+        taxId.hashCode ^
         workspaceId.hashCode ^
-        customId.hashCode ^
-        createdAt.hashCode ^
-        updatedAt.hashCode ^
-        createdBy.hashCode ^
-        updatedBy.hashCode ^
-        associatedCustomerIds.hashCode;
+        customId.hashCode;
   }
 
   @override
   String toString() {
-    return 'Company(id: $id, name: $name, emails: $emails, phones: $phones, workspaceId: $workspaceId, customId: $customId, createdAt: $createdAt, updatedAt: $updatedAt, createdBy: $createdBy, updatedBy: $updatedBy, associatedCustomerIds: $associatedCustomerIds)';
+    return 'Company(id: $id, name: $name, branch: $branch, taxId: $taxId, customId: $customId)';
   }
 }
