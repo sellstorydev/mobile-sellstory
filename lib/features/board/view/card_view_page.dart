@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
-import 'card_detail_page.dart'; // For edit functionality
+import 'edit_card_page.dart'; // Changed from card_detail_page.dart to edit_card_page.dart
 import '../../../data/services/mobile_permissions_service.dart';
 
 class CardViewPage extends StatefulWidget {
@@ -226,7 +226,7 @@ class _CardViewPageState extends State<CardViewPage> {
                 MobilePermissionsService.to.can('jobcard:edit:all'))
               IconButton(
                 onPressed: () {
-                  Get.to(() => CardDetailPage(card: _currentCard));
+                  Get.to(() => EditCardPage(card: _currentCard));
                 },
                 icon: const Icon(Icons.edit),
                 tooltip: 'Edit Card',

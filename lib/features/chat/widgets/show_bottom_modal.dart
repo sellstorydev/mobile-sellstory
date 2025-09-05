@@ -10,7 +10,7 @@ import 'notes_sheet.dart';
 import 'user_picker_sheet.dart';
 import 'customer_picker_sheet.dart';
 import 'jobcard_picker_sheet.dart';
-import '../../board/view/card_detail_page.dart';
+import '../../board/view/edit_card_page.dart';
 import '../../../domain/entities/job_card.dart';
 import 'package:get/get.dart';
 import '../../../core/services/hashtag_service.dart';
@@ -805,7 +805,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       final data = snap.data() ?? {};
       final job = JobCard.fromMap(data, snap.id);
 
-      // Ensure BoardController is ready with the current workspace for CardDetailPage
+      // Ensure BoardController is ready with the current workspace for EditCardPage
       final boardController = Get.isRegistered<BoardController>()
           ? Get.find<BoardController>()
           : Get.put(BoardController());
@@ -824,7 +824,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
 
       // Schedule navigation on next microtask/frame without checking mounted
       await Future.microtask(() {});
-      Get.to(() => CardDetailPage(card: job));
+      Get.to(() => EditCardPage(card: job));
     } catch (e) {
       if (!mounted) return;
       _showTopSnack('เปิด Job Card ไม่สำเร็จ', isError: true);

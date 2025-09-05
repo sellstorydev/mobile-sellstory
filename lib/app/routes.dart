@@ -4,7 +4,6 @@ import '../features/login/view/login_page.dart';
 import '../features/shell/shell_page.dart';
 import '../features/board/view/board_page.dart';
 import '../features/board/view/user_cards_page.dart';
-import '../features/board/view/card_detail_page.dart';
 import '../features/board/view/card_view_page.dart';
 import '../features/board/view/create_card_page.dart';
 import '../features/board/view/create_workspace_page.dart';
@@ -63,7 +62,7 @@ class AppRoutes {
     ),
     GetPage(
       name: cardDetail,
-      page: () => CardDetailPage(card: Get.arguments),
+      page: () => EditCardPage(card: Get.arguments),
     ),
     GetPage(
       name: cardView,
