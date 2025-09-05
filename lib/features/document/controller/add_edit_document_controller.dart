@@ -280,7 +280,13 @@ class AddEditDocumentController extends GetxController {
         await loadTemplates();
         await loadSignatures();
         await loadCompanySeals();
-        _initializeForm();
+        
+        // If editing existing document, load its data
+        if (documentId != null) {
+          await loadExistingDocument();
+        } else {
+          _initializeForm();
+        }
       } else {
         print('⚠️ No workspaces found for user: $_currentUserId');
         Get.snackbar(
@@ -958,6 +964,354 @@ class AddEditDocumentController extends GetxController {
     }
   }
 
+  // Load existing document data for editing
+  Future<void> loadExistingDocument() async {
+    try {
+      if (documentId == null || _currentWorkspaceId == null) return;
+      
+      print('📋 Loading existing document: $documentId');
+      _setLoading(true);
+      
+      final documentDoc = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(_currentWorkspaceId)
+          .collection('documents')
+          .doc(documentId)
+          .get();
+      
+      if (!documentDoc.exists) {
+        print('❌ Document not found: $documentId');
+        Get.snackbar(
+          'ข้อผิดพลาด',
+          'ไม่พบเอกสารที่ต้องการแก้ไข',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+      
+      final documentData = documentDoc.data()!;
+      print('✅ Document data loaded: ${documentData.keys.toList()}');
+      
+      // Load basic document info
+      await _loadDocumentBasicInfo(documentData);
+      
+      // Load customer data
+      await _loadDocumentCustomerInfo(documentData);
+      
+      // Load seller data
+      await _loadDocumentSellerInfo(documentData);
+      
+      // Load template first (needed for signatures and products)
+      await _loadDocumentTemplate(documentData);
+      
+      // Load products (after template is loaded)
+      await _loadDocumentProducts(documentData);
+      
+      // Load signatures and company seal (after template is loaded)
+      await _loadDocumentSignaturesAndSeal(documentData);
+      
+      // Initialize form with loaded data
+      _initializeForm();
+      
+      print('✅ Existing document loaded successfully');
+      update();
+      
+    } catch (e) {
+      print('❌ Failed to load existing document: $e');
+      Get.snackbar(
+        'ข้อผิดพลาด',
+        'ไม่สามารถโหลดข้อมูลเอกสารได้: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Load basic document information
+  Future<void> _loadDocumentBasicInfo(Map<String, dynamic> documentData) async {
+    try {
+      // Document status
+      final status = documentData['status']?.toString() ?? 'DRAFT';
+      _documentStatus = status;
+      
+      // Document dates
+      final createdAt = documentData['createdAt'];
+      if (createdAt != null) {
+        _documentDate = DateTime.fromMillisecondsSinceEpoch(createdAt);
+      }
+      
+      final validUntil = documentData['validUntil'];
+      if (validUntil != null) {
+        _validUntilDate = DateTime.fromMillisecondsSinceEpoch(validUntil);
+      }
+      
+      // Notes
+      final notes = documentData['notes']?.toString() ?? '';
+      notesController.text = notes;
+      
+      // Job name and ref ID
+      final jobName = documentData['jobName']?.toString() ?? '';
+      jobNameController.text = jobName;
+      
+      final refId = documentData['refId']?.toString() ?? '';
+      refIdController.text = refId;
+      
+      // Payment methods
+      final paymentMethods = documentData['paymentMethod'] as List<dynamic>?;
+      if (paymentMethods != null) {
+        _selectedPaymentMethods = paymentMethods
+            .map((method) => method.toString())
+            .where((method) => method.isNotEmpty)
+            .toList();
+      }
+      
+      // VAT and WHT settings
+      final isVatEnabled = documentData['isVatEnabled'] ?? false;
+      _isVatEnabled = isVatEnabled;
+      
+      final isWhtEnabled = documentData['isWhtEnabled'] ?? false;
+      _isWhtEnabled = isWhtEnabled;
+      
+      final whtPercentage = documentData['withholdingTaxPercentage']?.toString() ?? '3.0';
+      whtPercentageController.text = whtPercentage;
+      
+      print('✅ Basic document info loaded');
+      
+    } catch (e) {
+      print('❌ Failed to load basic document info: $e');
+    }
+  }
+
+  // Load customer information from document
+  Future<void> _loadDocumentCustomerInfo(Map<String, dynamic> documentData) async {
+    try {
+      final customerData = documentData['customer'] as Map<String, dynamic>?;
+      if (customerData != null) {
+        final customerId = customerData['id']?.toString();
+        if (customerId != null) {
+          _selectedCustomerId = customerId;
+          
+          // Load customer details into controllers
+          final address = customerData['address']?.toString() ?? '';
+          customerAddressController.text = address;
+          
+          final postalCode = customerData['postalCode']?.toString() ?? '';
+          customerPostalCodeController.text = postalCode;
+          
+          final nationalId = customerData['nationalId']?.toString() ?? '';
+          customerNationalIdController.text = nationalId;
+          
+          // Load customer emails and phones
+          final emails = customerData['emails'] as List<dynamic>?;
+          if (emails != null && emails.isNotEmpty) {
+            final firstEmail = emails.first;
+            if (firstEmail is Map<String, dynamic>) {
+              final emailValue = firstEmail['value']?.toString() ?? '';
+              customerEmailController.text = emailValue;
+            }
+          }
+          
+          final phones = customerData['phones'] as List<dynamic>?;
+          if (phones != null && phones.isNotEmpty) {
+            final firstPhone = phones.first;
+            if (firstPhone is Map<String, dynamic>) {
+              final phoneValue = firstPhone['value']?.toString() ?? '';
+              customerPhoneController.text = phoneValue;
+            }
+          }
+          
+          // Load company selection
+          final companyData = documentData['company'] as Map<String, dynamic>?;
+          if (companyData != null) {
+            final companyId = companyData['id']?.toString();
+            if (companyId != null) {
+              _selectedCompanyId = companyId;
+            }
+          }
+        }
+      }
+      
+      print('✅ Customer info loaded');
+      
+    } catch (e) {
+      print('❌ Failed to load customer info: $e');
+    }
+  }
+
+  // Load seller information from document
+  Future<void> _loadDocumentSellerInfo(Map<String, dynamic> documentData) async {
+    try {
+      final sellerData = documentData['seller'] as Map<String, dynamic>?;
+      if (sellerData != null) {
+        final sellerId = sellerData['uid']?.toString();
+        if (sellerId != null) {
+          _selectedSellerIds = [sellerId];
+          
+          // Load seller details into controllers
+          final displayName = sellerData['displayName']?.toString() ?? '';
+          sellerNameController.text = displayName;
+          
+          final phone = sellerData['docPhoneNumber']?.toString() ?? '';
+          sellerPhoneController.text = phone;
+        }
+      }
+      
+      print('✅ Seller info loaded');
+      
+    } catch (e) {
+      print('❌ Failed to load seller info: $e');
+    }
+  }
+
+  // Load products from document
+  Future<void> _loadDocumentProducts(Map<String, dynamic> documentData) async {
+    try {
+      final items = documentData['items'] as List<dynamic>?;
+      if (items != null && items.isNotEmpty) {
+        _products.clear();
+        
+        for (final item in items) {
+          if (item is Map<String, dynamic>) {
+            final product = {
+              'id': item['id']?.toString() ?? '',
+              'name': item['name']?.toString() ?? '',
+              'description': item['description']?.toString() ?? '',
+              'quantity': item['quantity']?.toString() ?? '',
+              'unit': item['unit']?.toString() ?? '',
+              'pricePerUnit': item['pricePerUnit']?.toString() ?? '',
+              'discount': item['discount']?.toString() ?? '',
+            };
+            
+            _products.add(product);
+          }
+        }
+        
+        // Initialize product controllers for loaded products
+        _initializeProductControllers();
+        
+        print('✅ Products loaded: ${_products.length} items');
+      }
+      
+    } catch (e) {
+      print('❌ Failed to load products: $e');
+    }
+  }
+
+  // Load signatures and company seal from document
+  Future<void> _loadDocumentSignaturesAndSeal(Map<String, dynamic> documentData) async {
+    try {
+      // Load signature assignments
+      final signatureAssignments = documentData['signatureAssignments'] as Map<String, dynamic>?;
+      if (signatureAssignments != null) {
+        _selectedSignatures.clear();
+        
+        // Map component IDs back to role names
+        for (final entry in signatureAssignments.entries) {
+          final componentId = entry.key;
+          final signatureId = entry.value?.toString();
+          
+          if (signatureId != null) {
+            // Find the role name for this component ID
+            for (final signatureField in _templateSignatureFields) {
+              if (signatureField['id'] == componentId) {
+                final roleName = signatureField['signatureRoleName']?.toString();
+                if (roleName != null) {
+                  _selectedSignatures[roleName] = signatureId;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        print('✅ Signature assignments loaded: ${_selectedSignatures.length} roles');
+      }
+      
+      // Load company seal
+      final companySealId = documentData['companySealId']?.toString();
+      if (companySealId != null) {
+        _selectedCompanySealId = companySealId;
+        print('✅ Company seal loaded: $companySealId');
+      }
+      
+    } catch (e) {
+      print('❌ Failed to load signatures and seal: $e');
+    }
+  }
+
+  // Load template from document
+  Future<void> _loadDocumentTemplate(Map<String, dynamic> documentData) async {
+    try {
+      final templateId = documentData['templateId']?.toString();
+      if (templateId != null) {
+        _selectedTemplateId = templateId;
+        
+        // Find and select the template
+        final template = _availableTemplates.firstWhereOrNull(
+          (t) => t['id'] == templateId,
+        );
+        
+        if (template != null) {
+          // Extract signature fields and product fields from template
+          _extractSignatureFieldsFromTemplate(template);
+          _extractProductFieldsFromTemplate(template);
+          print('✅ Template loaded: ${template['name']}');
+        }
+      }
+      
+    } catch (e) {
+      print('❌ Failed to load template: $e');
+    }
+  }
+
+  // Initialize product controllers for existing products
+  void _initializeProductControllers() {
+    try {
+      // Clear existing controllers
+      for (final controllers in _productControllers.values) {
+        for (final controller in controllers.values) {
+          controller.dispose();
+        }
+      }
+      _productControllers.clear();
+      
+      // Create controllers for each product
+      for (int i = 0; i < _products.length; i++) {
+        final product = _products[i];
+        final controllers = <String, TextEditingController>{};
+        
+        // Create controllers for each field
+        controllers['name'] = TextEditingController(text: product['name'] ?? '');
+        controllers['description'] = TextEditingController(text: product['description'] ?? '');
+        controllers['quantity'] = TextEditingController(text: product['quantity'] ?? '');
+        controllers['unit'] = TextEditingController(text: product['unit'] ?? '');
+        controllers['pricePerUnit'] = TextEditingController(text: product['pricePerUnit'] ?? '');
+        controllers['discount'] = TextEditingController(text: product['discount'] ?? '');
+        
+        // Add custom field controllers if template has them
+        if (_templateProductFields.isNotEmpty) {
+          for (final field in _templateProductFields) {
+            final fieldId = field['id']?.toString() ?? '';
+            if (fieldId.isNotEmpty && !controllers.containsKey(fieldId)) {
+              final fieldValue = product[fieldId]?.toString() ?? '';
+              controllers[fieldId] = TextEditingController(text: fieldValue);
+            }
+          }
+        }
+        
+        _productControllers[i.toString()] = controllers;
+      }
+      
+      print('✅ Product controllers initialized for ${_products.length} products');
+      
+    } catch (e) {
+      print('❌ Failed to initialize product controllers: $e');
+    }
+  }
+
   // Seller section methods
   void onDocumentDateChanged(DateTime? date) {
     try {
@@ -1049,9 +1403,16 @@ class AddEditDocumentController extends GetxController {
       String controllerKey = fieldId;
       
       if (fieldType == 'product_field' && sourceField.isNotEmpty) {
-        controllerKey = sourceField;
+        // Handle nested custom fields like "customFields.multiply"
+        if (sourceField.startsWith('customFields.')) {
+          controllerKey = sourceField.replaceFirst('customFields.', '');
+        } else {
+          controllerKey = sourceField;
+        }
       } else if (fieldType == 'predefined' && predefinedField.isNotEmpty) {
         controllerKey = predefinedField;
+      } else if (fieldType == 'user_input') {
+        controllerKey = fieldId;
       }
       
       // Set default values based on field type
@@ -1064,6 +1425,8 @@ class AddEditDocumentController extends GetxController {
         defaultValue = '0';
       } else if (controllerKey == 'discount') {
         defaultValue = '0';
+      } else if (field['inputType'] == 'number') {
+        defaultValue = '1'; // Default for numeric custom fields
       }
       
       controllers[controllerKey] = TextEditingController(text: defaultValue);
@@ -1209,9 +1572,16 @@ class AddEditDocumentController extends GetxController {
       String controllerKey = fieldId;
       
       if (fieldType == 'product_field' && sourceField.isNotEmpty) {
-        controllerKey = sourceField;
+        // Handle nested custom fields like "customFields.multiply"
+        if (sourceField.startsWith('customFields.')) {
+          controllerKey = sourceField.replaceFirst('customFields.', '');
+        } else {
+          controllerKey = sourceField;
+        }
       } else if (fieldType == 'predefined' && predefinedField.isNotEmpty) {
         controllerKey = predefinedField;
+      } else if (fieldType == 'user_input') {
+        controllerKey = fieldId;
       }
       
       // Set values from database product or defaults
@@ -1228,6 +1598,14 @@ class AddEditDocumentController extends GetxController {
         fieldValue = (product['pricePerUnit'] ?? 0.0).toString();
       } else if (controllerKey == 'discount') {
         fieldValue = '0';
+      } else {
+        // Check if this is a custom field from the database
+        final customFields = product['customFields'] as Map<String, dynamic>?;
+        if (customFields != null && customFields.containsKey(controllerKey)) {
+          fieldValue = customFields[controllerKey].toString();
+        } else if (field['inputType'] == 'number') {
+          fieldValue = '1'; // Default for numeric custom fields
+        }
       }
       
       controllers[controllerKey] = TextEditingController(text: fieldValue);
@@ -1455,6 +1833,7 @@ class AddEditDocumentController extends GetxController {
             'type': column['type']?.toString() ?? '',
             'sourceField': column['sourceField']?.toString() ?? '',
             'predefinedField': column['predefinedField']?.toString() ?? '',
+            'formula': column['formula']?.toString() ?? '',
             'isVisible': column['isVisible'] ?? true,
             'isEditable': column['isEditable'] ?? true,
             'order': column['order'] ?? 0,
@@ -1659,6 +2038,148 @@ class AddEditDocumentController extends GetxController {
 
   double get netTotal => afterVat - whtAmount;
 
+  // Calculate individual product total based on template formula
+  double calculateProductTotal(int productIndex) {
+    try {
+      // Find the line_total field with formula in template
+      final formulaField = _templateProductFields.firstWhere(
+        (field) => field['predefinedField'] == 'line_total' && 
+                  field['formula'] != null && 
+                  (field['formula'] as String).isNotEmpty,
+        orElse: () => {},
+      );
+      
+      if (formulaField.isEmpty) {
+        // Default calculation if no formula found
+        final quantity = double.tryParse(
+          getProductController(productIndex, 'quantity').text,
+        ) ?? 0;
+        final pricePerUnit = double.tryParse(
+          getProductController(productIndex, 'pricePerUnit').text,
+        ) ?? 0;
+        final discount = double.tryParse(
+          getProductController(productIndex, 'discount').text,
+        ) ?? 0;
+        return (quantity * pricePerUnit) - discount;
+      }
+      
+      // Parse and calculate based on formula
+      String formula = formulaField['formula'] as String;
+      
+      // Get all available product values from controllers
+      final productId = _products[productIndex]['id'];
+      final controllers = _productControllers[productId] ?? {};
+      
+      // Replace all possible formula variables with actual values
+      for (final entry in controllers.entries) {
+        final fieldKey = entry.key;
+        final controller = entry.value;
+        final value = double.tryParse(controller.text) ?? 0;
+        
+        // Replace standard field variables
+        formula = formula.replaceAll('{$fieldKey}', value.toString());
+        
+        // Replace custom field variables (e.g., {customFields.multiply})
+        formula = formula.replaceAll('{customFields.$fieldKey}', value.toString());
+      }
+      
+      // Also handle common standard fields explicitly
+      final quantity = double.tryParse(getProductController(productIndex, 'quantity').text) ?? 0;
+      final pricePerUnit = double.tryParse(getProductController(productIndex, 'pricePerUnit').text) ?? 0;
+      final discount = double.tryParse(getProductController(productIndex, 'discount').text) ?? 0;
+      
+      formula = formula.replaceAll('{quantity}', quantity.toString());
+      formula = formula.replaceAll('{pricePerUnit}', pricePerUnit.toString());
+      formula = formula.replaceAll('{discount}', discount.toString());
+      
+      // Evaluate the formula
+      return _evaluateFormula(formula);
+      
+    } catch (e) {
+      print('❌ Failed to calculate product total for index $productIndex: $e');
+      return 0.0;
+    }
+  }
+  
+  // Simple formula evaluator for basic arithmetic operations
+  double _evaluateFormula(String formula) {
+    try {
+      // Remove spaces
+      formula = formula.replaceAll(' ', '');
+      
+      // Handle basic operations: +, -, *, /
+      // This is a simple evaluator for security - only handles basic math
+      
+      // Split by addition/subtraction (lowest precedence)
+      final addSubParts = _splitByOperators(formula, ['+', '-']);
+      double result = 0;
+      
+      for (int i = 0; i < addSubParts.length; i++) {
+        final part = addSubParts[i];
+        final value = part['value'] ?? '';
+        if (part['operator'] == '+' || part['operator'] == null) {
+          result += _evaluateMultiplyDivide(value);
+        } else if (part['operator'] == '-') {
+          result -= _evaluateMultiplyDivide(value);
+        }
+      }
+      
+      return result;
+    } catch (e) {
+      print('❌ Failed to evaluate formula: $formula, error: $e');
+      return 0.0;
+    }
+  }
+  
+  // Evaluate multiplication and division (higher precedence)
+  double _evaluateMultiplyDivide(String expression) {
+    final mulDivParts = _splitByOperators(expression, ['*', '/']);
+    double result = double.tryParse(mulDivParts[0]['value'] ?? '0') ?? 0;
+    
+    for (int i = 1; i < mulDivParts.length; i++) {
+      final part = mulDivParts[i];
+      final value = double.tryParse(part['value'] ?? '0') ?? 0;
+      
+      if (part['operator'] == '*') {
+        result *= value;
+      } else if (part['operator'] == '/') {
+        if (value != 0) {
+          result /= value;
+        }
+      }
+    }
+    
+    return result;
+  }
+  
+  // Helper method to split expression by operators
+  List<Map<String, String?>> _splitByOperators(String expression, List<String> operators) {
+    List<Map<String, String?>> parts = [];
+    String currentValue = '';
+    String? currentOperator;
+    
+    for (int i = 0; i < expression.length; i++) {
+      final char = expression[i];
+      
+      if (operators.contains(char)) {
+        if (currentValue.isNotEmpty) {
+          parts.add({'value': currentValue, 'operator': currentOperator});
+          currentValue = '';
+          currentOperator = char;
+        }
+      } else {
+        currentValue += char;
+      }
+    }
+    
+    // Add the last part
+    if (currentValue.isNotEmpty) {
+      parts.add({'value': currentValue, 'operator': currentOperator});
+    }
+    
+    return parts;
+  }
+
   // Validate customer data
   bool get isCustomerDataValid {
     if (_selectedCustomerId == null) return false;
@@ -1745,7 +2266,7 @@ class AddEditDocumentController extends GetxController {
             'id': product['id'],
           };
           
-          // Add standard fields
+          // Add standard fields first
           final nameController = getProductController(index, 'name');
           if (nameController.text.isNotEmpty) {
             itemData['name'] = nameController.text;
@@ -1776,12 +2297,29 @@ class AddEditDocumentController extends GetxController {
             itemData['discount'] = double.tryParse(discountController.text) ?? 0;
           }
           
-          // Build custom inputs for user_input fields
+          // Build customFields for product_field types with customFields sourceField and user_input fields
+          final customFields = <String, dynamic>{};
           final customInputs = <String, dynamic>{};
+          
           for (final field in _templateProductFields) {
             final fieldType = field['type']?.toString() ?? '';
-            if (fieldType == 'user_input') {
-              final fieldId = field['id']?.toString() ?? '';
+            final sourceField = field['sourceField']?.toString() ?? '';
+            final fieldId = field['id']?.toString() ?? '';
+            
+            if (fieldType == 'product_field' && sourceField.startsWith('customFields.')) {
+              // This is a custom field in the product data
+              final customFieldKey = sourceField.replaceFirst('customFields.', '');
+              final controller = getProductController(index, customFieldKey);
+              if (controller.text.isNotEmpty) {
+                // Try to parse as number if it's a numeric field
+                if (field['inputType'] == 'number') {
+                  customFields[customFieldKey] = double.tryParse(controller.text) ?? controller.text;
+                } else {
+                  customFields[customFieldKey] = controller.text;
+                }
+              }
+            } else if (fieldType == 'user_input') {
+              // This is a user input field
               final controller = getProductController(index, fieldId);
               if (controller.text.isNotEmpty) {
                 customInputs[fieldId] = controller.text;
@@ -1789,6 +2327,12 @@ class AddEditDocumentController extends GetxController {
             }
           }
           
+          // Add customFields to itemData if any exist
+          if (customFields.isNotEmpty) {
+            itemData['customFields'] = customFields;
+          }
+          
+          // Add customInputs to itemData
           if (customInputs.isNotEmpty) {
             itemData['customInputs'] = customInputs;
           } else {

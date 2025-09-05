@@ -1022,79 +1022,127 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
       final fieldType = field['type']?.toString() ?? '';
       final isVisible = field['isVisible'] ?? true;
       final isEditable = field['isEditable'] ?? true;
+      final formula = field['formula']?.toString() ?? '';
       
       if (!isVisible) continue;
       
       Widget fieldWidget;
       
-      switch (fieldType) {
-        case 'product_field':
-        case 'predefined':
-        case 'user_input':
-          // Determine the field type and create appropriate input
-          if (fieldId == 'name' || field['sourceField'] == 'name') {
-            fieldWidget = _buildTextField(
-              label: '$fieldLabel *',
-              hint: 'กรอก$fieldLabel',
-              controller: controller.getProductController(index, 'name'),
-              isRequired: true,
-            );
-          } else if (fieldId == 'description' || field['sourceField'] == 'description') {
-            fieldWidget = _buildTextField(
-              label: fieldLabel,
-              hint: 'กรอก$fieldLabel',
-            controller: controller.getProductController(index, 'description'),
-            maxLines: 2,
-            );
-          } else if (fieldId == 'quantity' || field['predefinedField'] == 'quantity') {
-            fieldWidget = _buildTextField(
-              label: '$fieldLabel *',
-                  hint: '0',
-              controller: controller.getProductController(index, 'quantity'),
-                  keyboardType: TextInputType.number,
-                  isRequired: true,
-            );
-          } else if (fieldId == 'unit' || field['predefinedField'] == 'unit') {
-            fieldWidget = _buildTextField(
-              label: '$fieldLabel *',
-                  hint: 'ชิ้น',
-                  controller: controller.getProductController(index, 'unit'),
-                  isRequired: true,
-            );
-          } else if (fieldId == 'pricePerUnit' || field['sourceField'] == 'pricePerUnit') {
-            fieldWidget = _buildTextField(
-              label: '$fieldLabel *',
-                  hint: '0.00',
-              controller: controller.getProductController(index, 'pricePerUnit'),
-                  keyboardType: TextInputType.number,
-                  prefix: '฿',
-                  isRequired: true,
-            );
-          } else if (fieldId == 'discount' || field['predefinedField'] == 'discount') {
-            fieldWidget = _buildTextField(
-              label: fieldLabel,
-                  hint: '0.00',
-              controller: controller.getProductController(index, 'discount'),
-                  keyboardType: TextInputType.number,
-                  prefix: '฿',
-            );
-          } else {
+      // Check if this is a calculated field with formula
+      if (fieldType == 'predefined' && 
+          field['predefinedField'] == 'line_total' && 
+          formula.isNotEmpty) {
+        // This is a calculated total field - display as read-only with calculated value
+        fieldWidget = _buildCalculatedTotalField(
+          controller: controller,
+          productIndex: index,
+          label: fieldLabel,
+          formula: formula,
+        );
+      } else {
+        // Regular input fields
+        switch (fieldType) {
+          case 'product_field':
+          case 'predefined':
+          case 'user_input':
+            // Determine the controller key for this field
+            String controllerKey = fieldId;
+            bool isNumericField = false;
+            
+            // Handle different field mappings
+            if (fieldType == 'product_field' && field['sourceField'] != null) {
+              final sourceField = field['sourceField'].toString();
+              if (sourceField.startsWith('customFields.')) {
+                controllerKey = sourceField.replaceFirst('customFields.', '');
+                isNumericField = field['inputType'] == 'number';
+              } else {
+                controllerKey = sourceField;
+              }
+            } else if (fieldType == 'predefined' && field['predefinedField'] != null) {
+              controllerKey = field['predefinedField'].toString();
+            } else if (fieldType == 'user_input') {
+              controllerKey = fieldId;
+            }
+            
+            // Build appropriate field based on type
+            if (controllerKey == 'name') {
+              fieldWidget = _buildTextField(
+                label: '$fieldLabel *',
+                hint: 'กรอก $fieldLabel',
+                controller: controller.getProductController(index, controllerKey),
+                isRequired: true,
+                isEnabled: isEditable, // Respect isEditable from template
+                onChanged: (value) => controller.update(),
+              );
+            } else if (controllerKey == 'description') {
+              fieldWidget = _buildTextField(
+                label: fieldLabel,
+                hint: 'กรอก $fieldLabel',
+                controller: controller.getProductController(index, controllerKey),
+                maxLines: 2,
+                isEnabled: isEditable, // Respect isEditable from template
+              );
+            } else if (controllerKey == 'quantity') {
+              fieldWidget = _buildTextField(
+                label: '$fieldLabel *',
+                hint: '0',
+                controller: controller.getProductController(index, controllerKey),
+                keyboardType: TextInputType.number,
+                isRequired: true,
+                isEnabled: isEditable, // Respect isEditable from template
+                onChanged: (value) => controller.update(),
+              );
+            } else if (controllerKey == 'unit') {
+              fieldWidget = _buildTextField(
+                label: '$fieldLabel *',
+                hint: 'ชิ้น',
+                controller: controller.getProductController(index, controllerKey),
+                isRequired: true,
+                isEnabled: isEditable, // Respect isEditable from template
+              );
+            } else if (controllerKey == 'pricePerUnit') {
+              fieldWidget = _buildTextField(
+                label: '$fieldLabel *',
+                hint: '0.00',
+                controller: controller.getProductController(index, controllerKey),
+                keyboardType: TextInputType.number,
+                prefix: '฿',
+                isRequired: true,
+                isEnabled: isEditable, // Respect isEditable from template
+                onChanged: (value) => controller.update(),
+              );
+            } else if (controllerKey == 'discount') {
+              fieldWidget = _buildTextField(
+                label: fieldLabel,
+                hint: '0.00',
+                controller: controller.getProductController(index, controllerKey),
+                keyboardType: TextInputType.number,
+                prefix: '฿',
+                isEnabled: isEditable, // Respect isEditable from template
+                onChanged: (value) => controller.update(),
+              );
+            } else {
+              // Generic field - check if it's numeric
+              fieldWidget = _buildTextField(
+                label: fieldLabel,
+                hint: isNumericField ? '0' : 'กรอก $fieldLabel',
+                controller: controller.getProductController(index, controllerKey),
+                keyboardType: isNumericField ? TextInputType.number : TextInputType.text,
+                isEnabled: isEditable, // Respect isEditable from template
+                onChanged: (value) => controller.update(), // Always trigger update for custom fields
+              );
+            }
+            break;
+            
+          default:
             // Generic field for unknown types
             fieldWidget = _buildTextField(
               label: fieldLabel,
-              hint: 'กรอก$fieldLabel',
+              hint: 'กรอก $fieldLabel',
               controller: controller.getProductController(index, fieldId),
+              onChanged: (value) => controller.update(),
             );
-          }
-          break;
-          
-        default:
-          // Generic field for unknown types
-          fieldWidget = _buildTextField(
-            label: fieldLabel,
-            hint: 'กรอก$fieldLabel',
-            controller: controller.getProductController(index, fieldId),
-          );
+        }
       }
       
       fieldWidgets.add(fieldWidget);
@@ -1108,6 +1156,77 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: fieldWidgets,
+    );
+  }
+
+  // Build calculated total field that displays formula result
+  Widget _buildCalculatedTotalField({
+    required AddEditDocumentController controller,
+    required int productIndex,
+    required String label,
+    required String formula,
+  }) {
+    final calculatedTotal = controller.calculateProductTotal(productIndex);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppTheme.backgroundGrey.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppTheme.borderLightGrey),
+          ),
+          child: Row(
+            children: [
+              Text(
+                '฿',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  calculatedTotal.toStringAsFixed(2),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppTheme.primaryOrange,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.calculate,
+                size: 16,
+                color: AppTheme.textSecondary,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'คำนวณจาก: $formula',
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppTheme.textSecondary,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1599,6 +1718,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     String? prefix,
     String? suffix,
     bool isRequired = false,
+    bool isEnabled = true,
     Function(String)? onChanged,
   }) {
     return Column(
@@ -1617,6 +1737,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
+          enabled: isEnabled,
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
@@ -1651,6 +1772,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     required List<DropdownMenuItem<String>> items,
     required Function(String?)? onChanged,
     bool isRequired = false,
+    bool isEnabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1667,7 +1789,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
         DropdownButtonFormField<String>(
           value: value,
           items: items,
-          onChanged: onChanged,
+          onChanged: isEnabled ? onChanged : null,
           decoration: InputDecoration(
             hintText: hint,
             border: OutlineInputBorder(
