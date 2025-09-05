@@ -91,7 +91,8 @@ class _EditCardPageState extends State<EditCardPage> {
     _detailsController.text = widget.card.description;
     _selectedLane = widget.card.laneId;
     _selectedAssignee = widget.card.assignedTo;
-    _selectedCustomer = widget.card.customer;
+    _selectedCustomer = widget.card.customerId ?? ''; // ใช้ customerId แทน customer
+    _selectedCompany = widget.card.company?['id'] ?? 'none'; // Initialize company from JobCard
     _selectedCustomerInterest = (widget.card.customerInterest?.isNotEmpty ?? false) ? widget.card.customerInterest! : 'เริ่มต้น';
     _selectedStatus = widget.card.status;
     _expectedClosingDate = widget.card.dueDate;
@@ -108,6 +109,11 @@ class _EditCardPageState extends State<EditCardPage> {
     
     // Load available options
     await _loadAvailableOptions();
+    
+    // โหลด companies ของ customer ที่เลือกไว้
+    if (_selectedCustomer.isNotEmpty && _selectedCustomer != 'none') {
+      await _loadCompaniesForCustomer(_selectedCustomer);
+    }
   }
 
   Future<void> _loadAvailableOptions() async {
@@ -164,37 +170,11 @@ class _EditCardPageState extends State<EditCardPage> {
       _selectedCustomer = '';
     }
     
-    // Load companies from Firestore
-    try {
-      print('🔄 Loading companies from Firestore...');
-      final companies = await _controller.getCompanies();
-      
-      // Deduplicate companies by ID to prevent dropdown issues
-      final companyMap = <String, Map<String, dynamic>>{};
-      companyMap['none'] = {'id': 'none', 'name': 'None'};
-      
-      for (final company in companies) {
-        if (!companyMap.containsKey(company.id)) {
-          companyMap[company.id] = {
-            'id': company.id,
-            'name': company.name,
-          };
-        }
-      }
-      _availableCompanies = companyMap.values.toList();
-      
-      print('✅ Companies loaded: ${_availableCompanies.length - 1} companies');
-      
-      // Validate selected company exists in available companies
-      if (_selectedCompany.isNotEmpty) {
-        final companyExists = _availableCompanies.any((company) => company['id'] == _selectedCompany);
-        if (!companyExists) {
-          print('⚠️ Selected company $_selectedCompany not found in available companies, resetting to none');
-          _selectedCompany = 'none';
-        }
-      }
-    } catch (e) {
-      print('❌ Failed to load companies: $e');
+    // Initialize company selection if customer is already selected
+    if (_selectedCustomer.isNotEmpty) {
+      await _loadCompaniesForCustomer(_selectedCustomer);
+    } else {
+      // Initialize with default "None" option
       _availableCompanies = [
         {'id': 'none', 'name': 'None'},
       ];
@@ -240,6 +220,55 @@ class _EditCardPageState extends State<EditCardPage> {
       print('❌ Failed to load workspace users: $e');
       _availableAssignees = [];
       _selectedAssignee = '';
+    }
+  }
+
+  Future<void> _loadCompaniesForCustomer(String customerId) async {
+    try {
+      print('🔄 Loading companies for customer: $customerId');
+      
+      // Get customer details to access companyNames
+      final customers = await _controller.getCustomers();
+      final customer = customers.firstWhereOrNull((c) => c.id == customerId);
+      
+      if (customer != null && customer.companyNames.isNotEmpty) {
+        final companyMap = <String, Map<String, dynamic>>{};
+        companyMap['none'] = {'id': 'none', 'name': 'None'};
+        
+        for (final company in customer.companyNames) {
+          companyMap[company['id']] = {
+            'id': company['id'],
+            'name': company['value'], // ใช้ value แทน label เพื่อแสดงชื่อสั้นๆ
+            'value': company['value'],
+          };
+        }
+        
+        setState(() {
+          _availableCompanies = companyMap.values.toList();
+          // ถ้า company ปัจจุบันไม่มีในรายการใหม่ ให้รีเซ็ต
+          if (_selectedCompany != 'none' && !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
+            _selectedCompany = 'none';
+          }
+        });
+        
+        print('✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies');
+      } else {
+        setState(() {
+          _availableCompanies = [
+            {'id': 'none', 'name': 'None'},
+          ];
+          _selectedCompany = 'none';
+        });
+        print('⚠️ No companies found for customer');
+      }
+    } catch (e) {
+      print('❌ Failed to load companies for customer: $e');
+      setState(() {
+        _availableCompanies = [
+          {'id': 'none', 'name': 'None'},
+        ];
+        _selectedCompany = 'none';
+      });
     }
   }
 
@@ -1595,6 +1624,55 @@ class _EditCardPageState extends State<EditCardPage> {
           onChanged: (value) {
             setState(() {
               _selectedCustomer = value ?? '';
+            });
+            
+            // Load companies for selected customer
+            if (value != null && value.isNotEmpty) {
+              _loadCompaniesForCustomer(value);
+            } else {
+              setState(() {
+                _availableCompanies = [
+                  {'id': 'none', 'name': 'None'},
+                ];
+                _selectedCompany = 'none';
+              });
+            }
+          },
+        ),
+        const SizedBox(height: 20),
+        // Company Section
+        const Text(
+          'Company',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _selectedCompany.isNotEmpty && _availableCompanies.any((c) => c['id'] == _selectedCompany) 
+              ? _selectedCompany 
+              : null,
+          decoration: const InputDecoration(
+            hintText: 'Select company',
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          isExpanded: true,
+          items: _availableCompanies.map((company) {
+            return DropdownMenuItem<String>(
+              value: company['id'],
+              child: Text(
+                company['name'] ?? company['id'],
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedCompany = value ?? 'none';
             });
           },
         ),
