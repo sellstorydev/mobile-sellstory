@@ -118,15 +118,6 @@ class JobCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Debug logging to track card data
-    print('🔄 JobCardTile.build - Card data:');
-    print('  - ID: ${card.id}');
-    print('  - Title: ${card.title}');
-    print('  - Custom ID: ${card.customId} (length: ${card.customId.length})');
-    print('  - Status: ${card.status}');
-    print('  - Assignee: ${card.assignedTo}');
-    print('  - Customer: ${card.customer}');
-    
     // Compute totals once - use proper data structure based on the example provided
     final cardData = rawCardData ?? card.toMap();
     

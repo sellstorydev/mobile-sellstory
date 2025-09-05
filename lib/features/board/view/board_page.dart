@@ -62,7 +62,9 @@ class _BoardPageState extends State<BoardPage> {
       setState(() {
         _userNameCache = { for (final u in workspaceUsers) if (u['id']!=null) u['id']: (u['name']??'') };
       });
-    } catch (e) { debugPrint('User name cache build error: $e'); }
+    } catch (e) { 
+      debugPrint('User name cache build error: $e'); 
+    }
   }
 
   @override
@@ -74,6 +76,7 @@ class _BoardPageState extends State<BoardPage> {
     _initializeWithCurrentUser();
     // Load field config & user names asynchronously
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🚀 Post frame callback - loading field config and user cache');
       _loadPerBoardFieldConfig();
       _buildUserNameCache();
     });
@@ -148,6 +151,7 @@ class _BoardPageState extends State<BoardPage> {
         break;
       case 'refresh':
         _initializeWithCurrentUser();
+        _buildUserNameCache();
         break;
       case 'calendar':
         Get.toNamed('/calendar');
@@ -202,6 +206,13 @@ class _BoardPageState extends State<BoardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Force build user cache if empty
+    if (_userNameCache.isEmpty && _controller.currentWorkspaceId.value.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _buildUserNameCache();
+      });
+    }
+    
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
