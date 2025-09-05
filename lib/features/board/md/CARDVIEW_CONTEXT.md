@@ -1,7 +1,14 @@
 ผมมีอยากให้ทำการแก้ไข card view โดยที่ card view จะสามารถเปิดปิดค่าที่ใช้แสดงได้และ sort ค่าที่ใช้แสดงได้โดยจะมีค่าที่ใช้แสดงดัวนี่ (เปลียนแค่การแสดงผลเท่านั้นแค่ที่เกียวข่องกับ card view และ card view settings เท่านั้น)
 
-NOTE: ในส่วน Grand Total,Net Total,Total (before discount),Total (after discount),Total (before VAT) ผมได้แนบรูปที่ถูกต้องไปให้ดูครับ 
+## สำคัญ
+NOTE: ในส่วน Grand Total,Net Total,Total (before discount),Total (after discount),Total (before VAT) ผมได้แนบรูปที่ถูกต้องไปให้ดูครับ แล้วถ้าไม่รู้ว่ามีไฟล์อะไรหรือ path อะไรเขียนบอกให้ ai copilot ไปหาไม่ควรสร้างไฟล์ที่ซ่ำกัน
 
+Current file path:
+- lib/features/board/view/card_view_page.dart
+- lib/features/board/view/card_view_setting_page.dart
+- lib/features/board/widgets/job_card_tile.dart
+
+Feature
 - Job ID
 - Status
 - Date Range

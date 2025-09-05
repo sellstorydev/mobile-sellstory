@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../board/view/card_view_page.dart';
 import 'package:get/get.dart';
 import 'dart:async';
 import '../../../core/theme/app_theme.dart';
@@ -1009,145 +1010,135 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   }
   
   Widget _buildJobCardItem(JobCard jobCard) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row with Job ID and Status
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Job ID
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  jobCard.customId.isNotEmpty ? jobCard.customId : jobCard.id,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryOrange,
-                  ),
-                ),
-              ),
-              
-              // Status
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(jobCard.status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  jobCard.status,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: _getStatusColor(jobCard.status),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Job Title
-          Text(
-            jobCard.title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // Job Details
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (jobCard.assignedTo.isNotEmpty) ...[
-                      _buildJobCardDetailRow(
-                        Icons.person_outline, 
-                        'ผู้รับผิดชอบ', 
-                        _getAssigneeName(jobCard.assignedTo),
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                    if (jobCard.customerInterest?.isNotEmpty == true) ...[
-                      _buildJobCardDetailRow(
-                        Icons.favorite_outline, 
-                        'ความสนใจ', 
-                        jobCard.customerInterest!,
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                    if (jobCard.dueDate != null) ...[
-                      _buildJobCardDetailRow(
-                        Icons.calendar_today_outlined, 
-                        'กำหนดส่ง', 
-                        _formatDate(jobCard.dueDate!),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
-          // Hashtags
-          if (jobCard.hashtags.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: jobCard.hashtags.map((hashtag) {
-                final hashtagText = hashtag['text'] as String? ?? hashtag['id'] as String? ?? '';
-                final hashtagColor = hashtag['color'] as String? ?? '';
-                
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _parseColor(hashtagColor).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _parseColor(hashtagColor).withOpacity(0.3),
-                    ),
-                  ),
-                  child: Text(
-                    '#$hashtagText',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: _parseColor(hashtagColor),
-                    ),
-                  ),
-                );
-              }).toList(),
+    return InkWell(
+      onTap: () => Get.to(() => CardViewPage(card: jobCard)),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.backgroundWhite,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
-        ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    jobCard.customId.isNotEmpty ? jobCard.customId : jobCard.id,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(jobCard.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    jobCard.status,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: _getStatusColor(jobCard.status),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              jobCard.title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (jobCard.assignedTo.isNotEmpty) ...[
+                        _buildJobCardDetailRow(
+                          Icons.person_outline,
+                          'ผู้รับผิดชอบ',
+                          _getAssigneeName(jobCard.assignedTo),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      if (jobCard.customerInterest?.isNotEmpty == true) ...[
+                        _buildJobCardDetailRow(
+                          Icons.favorite_outline,
+                          'ความสนใจ',
+                          jobCard.customerInterest!,
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      if (jobCard.dueDate != null) ...[
+                        _buildJobCardDetailRow(
+                          Icons.calendar_today_outlined,
+                          'กำหนดส่ง',
+                          _formatDate(jobCard.dueDate!),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (jobCard.hashtags.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: jobCard.hashtags.map((hashtag) {
+                  final hashtagText = hashtag['text'] as String? ?? hashtag['id'] as String? ?? '';
+                  final hashtagColor = hashtag['color'] as String? ?? '';
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _parseColor(hashtagColor).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _parseColor(hashtagColor).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      '#$hashtagText',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: _parseColor(hashtagColor),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
