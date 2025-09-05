@@ -50,6 +50,9 @@ class _EditCardPageState extends State<EditCardPage> {
   List<String> _selectedCollaborators = [];
   List<String> _selectedWatchers = [];
   
+  // Notes data
+  List<Map<String, dynamic>> _notes = [];
+  
   // Available options
   List<Map<String, dynamic>> _availableLanes = [];
   List<Map<String, dynamic>> _availableAssignees = [];
@@ -107,6 +110,9 @@ class _EditCardPageState extends State<EditCardPage> {
     // Initialize collaborators and watchers
     _selectedCollaborators = List<String>.from(widget.card.collaborators);
     _selectedWatchers = List<String>.from(widget.card.watchers);
+    
+    // Initialize notes
+    _notes = List<Map<String, dynamic>>.from(widget.card.notes);
     
     // Load available options
     await _loadAvailableOptions();
@@ -416,6 +422,10 @@ class _EditCardPageState extends State<EditCardPage> {
                 _buildStatusChipsSection(),
               ],
             ),
+            const SizedBox(height: 24),
+
+            // History & Comments Section
+            _buildHistoryCommentSection(),
             const SizedBox(height: 100), // Space for bottom buttons
           ],
         ),
@@ -430,8 +440,8 @@ class _EditCardPageState extends State<EditCardPage> {
       children: [
         Row(
           children: [
-            Icon(Icons.date_range, size: 18, color: Colors.teal[700]),
-            const SizedBox(width: 6),
+            Icon(Icons.calendar_today, size: 18, color: Colors.teal[700]),
+            const SizedBox(width: 8),
             const Text(
               'Expected Closing Date',
               style: TextStyle(
@@ -442,115 +452,118 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.grey[50],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () => _selectStartDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: _startDate != null ? Colors.teal[300]! : Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(6),
-                      color: _startDate != null ? Colors.teal[50] : Colors.white,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.today,
-                              size: 16,
-                              color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Start Date',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _startDate != null
-                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                              : 'Select start date',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: _startDate != null ? Colors.black87 : Colors.grey[500],
-                            fontWeight: _startDate != null ? FontWeight.w600 : FontWeight.normal,
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => _selectStartDate(context),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.teal[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.teal[50],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.today,
+                            size: 16,
+                            color: Colors.teal[700],
                           ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Start Date',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.teal[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _startDate != null
+                            ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                            : 'Select start date',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.arrow_forward, size: 18, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InkWell(
-                  onTap: () => _selectEndDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: _endDate != null ? Colors.teal[300]! : Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(6),
-                      color: _endDate != null ? Colors.teal[50] : Colors.white,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.event,
-                              size: 16,
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_forward,
+                size: 16,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: InkWell(
+                onTap: () => _selectEndDate(context),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: _endDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                    color: _endDate != null ? Colors.teal[50] : Colors.grey[50],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.event,
+                            size: 16,
+                            color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'End Date',
+                            style: TextStyle(
+                              fontSize: 12,
                               color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                              fontWeight: FontWeight.w500,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'End Date',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _endDate != null
-                              ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                              : 'Select end date',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: _endDate != null ? Colors.black87 : Colors.grey[500],
-                            fontWeight: _endDate != null ? FontWeight.w600 : FontWeight.normal,
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _endDate != null
+                            ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                            : 'Select end date',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: _endDate != null ? Colors.black87 : Colors.grey[500],
+                          fontWeight: _endDate != null ? FontWeight.w600 : FontWeight.normal,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );
@@ -563,44 +576,81 @@ class _EditCardPageState extends State<EditCardPage> {
         Row(
           children: [
             Icon(Icons.flag, size: 18, color: Colors.orange[700]),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             const Text(
               'Status',
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 12,
+          runSpacing: 12,
           children: _statusOptions.map((status) {
             final isSelected = _selectedStatus == status['value'];
-            return ElevatedButton.icon(
-              onPressed: () {
+            Color chipColor;
+            Color textColor;
+            
+            // Set colors based on status
+            switch (status['value']) {
+              case 'Pending':
+                chipColor = isSelected ? Colors.grey[400]! : Colors.grey[100]!;
+                textColor = isSelected ? Colors.white : Colors.grey[700]!;
+                break;
+              case 'In Progress':
+                chipColor = isSelected ? Colors.orange : Colors.orange[100]!;
+                textColor = isSelected ? Colors.white : Colors.orange[800]!;
+                break;
+              case 'Done':
+                chipColor = isSelected ? Colors.green : Colors.green[100]!;
+                textColor = isSelected ? Colors.white : Colors.green[800]!;
+                break;
+              case 'Cancelled':
+                chipColor = isSelected ? Colors.red : Colors.red[100]!;
+                textColor = isSelected ? Colors.white : Colors.red[800]!;
+                break;
+              default:
+                chipColor = Colors.grey[100]!;
+                textColor = Colors.grey[700]!;
+            }
+            
+            return GestureDetector(
+              onTap: () {
                 setState(() {
                   _selectedStatus = status['value'];
                 });
               },
-              icon: Icon(status['icon'], size: 16),
-              label: Text(
-                status['label'],
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isSelected ? AppTheme.primaryOrange : Colors.white,
-                foregroundColor: isSelected ? Colors.white : Colors.black87,
+              child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                decoration: BoxDecoration(
+                  color: chipColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: isSelected ? null : Border.all(color: Colors.grey[300]!),
                 ),
-                elevation: isSelected ? 3 : 1,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      status['icon'],
+                      size: 16,
+                      color: textColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      status['label'],
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }).toList(),
@@ -1006,20 +1056,28 @@ class _EditCardPageState extends State<EditCardPage> {
   // Build History/Comment toggle section
   Widget _buildHistoryCommentSection() {
     return Container(
-      margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         children: [
           // Toggle buttons
           Container(
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Colors.grey[50],
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
               ),
             ),
             child: Row(
@@ -1032,19 +1090,20 @@ class _EditCardPageState extends State<EditCardPage> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                       decoration: BoxDecoration(
-                        color: _showHistory ? Colors.blue : Colors.transparent,
+                        color: _showHistory ? Colors.grey[300] : Colors.transparent,
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
+                          topLeft: Radius.circular(12),
                         ),
                       ),
                       child: Text(
                         'History',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: _showHistory ? Colors.white : Colors.black54,
-                          fontWeight: _showHistory ? FontWeight.bold : FontWeight.normal,
+                          color: _showHistory ? Colors.black87 : Colors.grey[600],
+                          fontWeight: _showHistory ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -1058,19 +1117,20 @@ class _EditCardPageState extends State<EditCardPage> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                       decoration: BoxDecoration(
                         color: !_showHistory ? Colors.blue : Colors.transparent,
                         borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(8),
+                          topRight: Radius.circular(12),
                         ),
                       ),
                       child: Text(
                         'Comment',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: !_showHistory ? Colors.white : Colors.black54,
-                          fontWeight: !_showHistory ? FontWeight.bold : FontWeight.normal,
+                          color: !_showHistory ? Colors.white : Colors.grey[600],
+                          fontWeight: !_showHistory ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -1081,7 +1141,7 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
           // Content area
           Container(
-            height: 200,
+            height: 300,
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             child: _showHistory ? _buildHistoryContent() : _buildCommentContent(),
@@ -1092,61 +1152,352 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Widget _buildHistoryContent() {
-    return Column(
-      children: [
-        const Icon(
-          Icons.history,
-          size: 48,
-          color: Colors.grey,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'History',
-          style: TextStyle(
-            fontSize: 16,
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.history,
+            size: 48,
             color: Colors.grey,
           ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'การเปลี่ยนแปลงจะแสดงที่นี่',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
+          SizedBox(height: 16),
+          Text(
+            'bew kiw created card Job Card Title in lane In Progress',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+          SizedBox(height: 4),
+          Text(
+            '1 day ago',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildCommentContent() {
     return Column(
       children: [
-        const Icon(
-          Icons.comment,
-          size: 48,
-          color: Colors.grey,
+        // Display existing comments
+        Expanded(
+          child: _notes.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.comment,
+                        size: 48,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'No comments yet',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _notes.length,
+                  itemBuilder: (context, index) {
+                    final note = _notes[index];
+                    final isReply = note['parentId'] != null;
+                    
+                    return Container(
+                      margin: EdgeInsets.only(
+                        bottom: 16,
+                        left: isReply ? 40 : 0,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Avatar
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.blue,
+                            child: Text(
+                              (note['userDisplayName'] ?? 'U')[0].toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Content
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      note['userDisplayName'] ?? 'Unknown',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      _formatTimestamp(note['timestamp']),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _stripHtmlTags(note['text'] ?? ''),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                if (!isReply) ...[
+                                  const SizedBox(height: 8),
+                                  GestureDetector(
+                                    onTap: () => _showReplyDialog(note['id']),
+                                    child: const Text(
+                                      'Reply',
+                                      style: TextStyle(
+                                        color: Colors.blue,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Comment',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey,
+        // Add comment input at bottom
+        Container(
+          padding: const EdgeInsets.only(top: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _commentController,
+                  decoration: InputDecoration(
+                    hintText: 'Add a comment',
+                    hintStyle: TextStyle(color: Colors.grey[500]),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.blue),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    fillColor: Colors.grey[50],
+                    filled: true,
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                  maxLines: 2,
+                  minLines: 1,
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _addComment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Post',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'ความคิดเห็นจะแสดงที่นี่',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
+  }
+
+  // Helper methods for comments
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return '';
+    
+    DateTime dateTime;
+    if (timestamp is int) {
+      dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    } else {
+      return '';
+    }
+    
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
+  String _stripHtmlTags(String htmlString) {
+    RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: true);
+    return htmlString.replaceAll(exp, '');
+  }
+
+  void _showReplyDialog(String parentId) {
+    final TextEditingController replyController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Reply to Comment',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: TextField(
+          controller: replyController,
+          decoration: InputDecoration(
+            hintText: 'Type your reply...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.blue),
+            ),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+          maxLines: 3,
+          minLines: 3,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (replyController.text.trim().isNotEmpty) {
+                _addReply(parentId, replyController.text.trim());
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Reply',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addComment() {
+    if (_commentController.text.trim().isEmpty) return;
+    
+    final newComment = {
+      'id': 'note-${DateTime.now().millisecondsSinceEpoch}',
+      'userId': 'current-user-id', // Replace with actual current user ID
+      'userDisplayName': 'Current User', // Replace with actual user name
+      'userPhotoURL': null,
+      'text': '<p>${_commentController.text.trim()}</p>',
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'mentions': [],
+      'cardId': widget.card.id,
+      'cardTitle': widget.card.title,
+      'type': 'text',
+    };
+    
+    setState(() {
+      _notes.add(newComment);
+      _commentController.clear();
+    });
+    
+    // TODO: Save to Firestore
+  }
+
+  void _addReply(String parentId, String replyText) {
+    final newReply = {
+      'id': 'note-${DateTime.now().millisecondsSinceEpoch}',
+      'userId': 'current-user-id', // Replace with actual current user ID
+      'userDisplayName': 'Current User', // Replace with actual user name
+      'userPhotoURL': null,
+      'text': '<p>$replyText</p>',
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'mentions': [],
+      'parentId': parentId,
+      'cardId': widget.card.id,
+      'cardTitle': widget.card.title,
+      'type': 'text',
+    };
+    
+    setState(() {
+      _notes.add(newReply);
+    });
+    
+    // TODO: Save to Firestore
   }
 
   Widget _buildBottomButtons() {
