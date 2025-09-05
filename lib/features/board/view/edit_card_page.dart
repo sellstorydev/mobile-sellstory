@@ -1621,7 +1621,7 @@ class _EditCardPageState extends State<EditCardPage> {
         'id': 'todo-${todo['id']}',
         'title': '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>${todo['text'] ?? ''}</em></strong></span></p>',
         'completed': todo['isCompleted'] ?? false,
-        'dueDate': todo['dueDate']?.millisecondsSinceEpoch,
+        'dueDate': _normalizeEpoch(todo['dueDate']),
         'mentions': [],
       }).toList();
 
@@ -1679,6 +1679,13 @@ class _EditCardPageState extends State<EditCardPage> {
         _isLoading = false;
       });
     }
+  }
+
+  int? _normalizeEpoch(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value; // already epoch
+    if (value is DateTime) return value.millisecondsSinceEpoch;
+    return null;
   }
 
   // Hashtag section methods (copied from create page)
