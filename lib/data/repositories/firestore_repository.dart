@@ -777,7 +777,7 @@ class FirestoreRepository {
             .where('assignedTo', isEqualTo: userId),
     ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
-          final cardData = doc.data();
+          final cardData = Map<String, dynamic>.from(doc.data());
           print('📋 User assigned card hashtags data: ${cardData['hashtags']}');
           
           // Use fromMap to ensure all fields including hashtags are properly mapped

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../data/services/firebase_auth_service.dart';
+import 'package:sellstory/core/services/card_view_settings_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
@@ -27,6 +26,7 @@ class BoardPage extends StatefulWidget {
 
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
+  final CardViewSettingsService _settingsService = CardViewSettingsService.to;
   Worker? _wsWorker;
   Map<String, dynamic> _fieldConfigCache = {};
   Map<String, String> _userNameCache = {};
@@ -44,16 +44,46 @@ class _BoardPageState extends State<BoardPage> {
 
   Future<void> _loadPerBoardFieldConfig() async {
     try {
-      final uid = Get.find<FirebaseAuthService>().currentUser?.uid;
-      if (uid == null) return;
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final viewSettings = (userDoc.data()?['viewSettings'] ?? {}) as Map<String,dynamic>;
-      final key = 'kanbanCardDisplayFieldsConfig_${_controller.currentBoardId.value}';
-      final cfg = (viewSettings[key] ?? {}) as Map<String,dynamic>;
-      if (cfg.isNotEmpty) {
-        setState(()=>_fieldConfigCache = cfg);
+      // Load from CardViewSettingsService instead of Firestore
+      final fields = _settingsService.cardFields;
+      
+      // Convert CardFieldSetting list to the expected format
+      final config = <String, dynamic>{};
+      for (final field in fields) {
+        // Map service field IDs to our field keys
+        String mappedKey = _mapServiceFieldToKey(field.id);
+        config[mappedKey] = {
+          'order': field.order,
+          'isVisible': field.isVisible,
+          'style': {},
+        };
       }
-    } catch (e) { debugPrint('Field config load error: $e'); }
+      
+      setState(() {
+        _fieldConfigCache = config;
+      });
+      
+      print('🔧 Field config loaded from CardViewSettingsService: ${config.keys.length} fields');
+    } catch (e) {
+      print('❌ Error loading field config: $e');
+      setState(() {
+        _fieldConfigCache = _defaultFieldConfig();
+      });
+    }
+  }
+
+  // Map service field IDs to our internal field keys
+  String _mapServiceFieldToKey(String serviceFieldId) {
+    const Map<String, String> fieldMapping = {
+      'jobId': 'customId',
+      'createdDate': 'createdAt',
+      'totalBeforeDiscount': 'totalAmountBeforeDiscount',
+      'totalAfterDiscount': 'totalAmountAfterDiscount',
+      'totalBeforeVAT': 'totalAmountBeforeVat',
+      'todoList': 'todos',
+    };
+    
+    return fieldMapping[serviceFieldId] ?? serviceFieldId;
   }
 
   Future<void> _buildUserNameCache() async {
@@ -144,7 +174,7 @@ class _BoardPageState extends State<BoardPage> {
     }
   }
 
-  void _handleMenuAction(String value) {
+  void _handleMenuAction(String value) async {
     switch (value) {
       case 'board_management':
         Get.toNamed('/board-management');
@@ -160,7 +190,13 @@ class _BoardPageState extends State<BoardPage> {
         _navigateToEditWorkspace();
         break;
       case 'card_view_settings':
-        Get.toNamed('/card-view-settings');
+        final result = await Get.toNamed('/card-view-settings', arguments: {'boardId': _controller.currentBoardId.value});
+        if (result == true) {
+          // Reload field config when returning from settings
+          print('🔄 Reloading field config after settings change');
+          _loadPerBoardFieldConfig();
+          setState(() {}); // Force rebuild
+        }
         break;
       default:
         if (value.startsWith('board_')) {

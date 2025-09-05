@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sellstory/core/theme/app_theme.dart';
-import '../../../data/services/firebase_auth_service.dart';
+import '../../../core/services/card_view_settings_service.dart';
 
 class CardViewSettingPage extends StatefulWidget {
   final String boardId;
@@ -13,19 +12,33 @@ class CardViewSettingPage extends StatefulWidget {
 }
 
 class _CardViewSettingPageState extends State<CardViewSettingPage> {
-  // Keys definition must align with display side
-  static const List<String> _allKeys = [
-    'customId', 'status', 'dateRange', 'createdAt', 'assignee', 'customerInterest', 'collaborators',
-    'customer', 'company', 'hashtags', 'grandTotal', 'netTotal', 'totalAmountBeforeDiscount',
-    'totalAmountAfterDiscount', 'totalAmountBeforeVat', 'description', 'todos'
-  ];
+  final CardViewSettingsService _settingsService = CardViewSettingsService.to;
+  
+  // Field mapping from service to display names
+  static const Map<String, String> _fieldDisplayNames = {
+    'jobId': 'Job ID',
+    'status': 'Status', 
+    'dateRange': 'Date Range',
+    'createdDate': 'Created Date',
+    'assignee': 'Assignee',
+    'customerInterest': 'Customer Interest', 
+    'collaborators': 'Collaborators',
+    'customer': 'Customer',
+    'company': 'Company',
+    'hashtags': 'Hashtags',
+    'priority': 'Priority',
+    'grandTotal': 'Grand Total',
+    'netTotal': 'Net Total',
+    'totalBeforeDiscount': 'Total (before discount)',
+    'totalAfterDiscount': 'Total (after discount)',
+    'totalBeforeVAT': 'Total (before VAT)',
+    'description': 'Description',
+    'todoList': 'To-Do List',
+  };
 
-  late List<String> _order;
-  late Map<String, bool> _visible;
+  late List<CardFieldSetting> _fields;
   bool _loading = true;
   bool _saving = false;
-
-  String get _uid => (Get.find<FirebaseAuthService>().currentUser?.uid) ?? '';
 
   @override
   void initState() {
@@ -36,52 +49,34 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
   void _loadCurrentSettings() async {
     setState(() { _loading = true; });
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(_uid).get();
-      final data = userDoc.data() ?? {};
-      final viewSettings = (data['viewSettings'] ?? {}) as Map<String, dynamic>;
-      final key = 'kanbanCardDisplayFieldsConfig_${widget.boardId}';
-      final cfg = (viewSettings[key] ?? {}) as Map<String, dynamic>;
-      if (cfg.isEmpty) {
-        // default order = allKeys sequence
-        _order = List.from(_allKeys);
-        _visible = { for (final k in _allKeys) k : true };
-      } else {
-        final entries = <MapEntry<String, int>>[];
-        cfg.forEach((k, v) {
-          if (v is Map && _allKeys.contains(k)) {
-            entries.add(MapEntry(k, (v['order'] ?? 999) as int));
-          }
-        });
-        entries.sort((a,b)=>a.value.compareTo(b.value));
-        _order = entries.map((e)=>e.key).toList();
-        // Ensure all keys present
-        for (final k in _allKeys) { if (!_order.contains(k)) _order.add(k); }
-        _visible = { for (final k in _allKeys) k : (cfg[k]?['isVisible'] ?? true) == true };
-      }
+      // Load current fields from the service (service should already be initialized)
+      _fields = List.from(_settingsService.cardFields);
     } catch (e) {
-      _order = List.from(_allKeys);
-      _visible = { for (final k in _allKeys) k : true };
       debugPrint('Load settings error: $e');
+      _fields = [];
     }
     if (mounted) setState(() { _loading = false; });
   }
 
   void _saveSettings() async {
-    if (_saving) return; setState(() { _saving = true; });
+    if (_saving) return; 
+    setState(() { _saving = true; });
     try {
-      final cfg = <String, dynamic>{};
-      for (var i = 0; i < _order.length; i++) {
-        final k = _order[i];
-        cfg[k] = { 'order': i, 'isVisible': _visible[k] ?? true, 'style': {} };
-      }
-      await FirebaseFirestore.instance.collection('users').doc(_uid).update({
-        'viewSettings.kanbanCardDisplayFieldsConfig_${widget.boardId}': cfg,
-      });
-      if (!mounted) return; Get.back(result: true);
-      Get.snackbar('สำเร็จ', 'บันทึกการตั้งค่าการ์ดแล้ว', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green[100], colorText: Colors.green[800]);
+      // Update the service with new field order and visibility
+      await _settingsService.updateMultipleFields(_fields);
+      
+      if (!mounted) return; 
+      Get.back(result: true);
+      Get.snackbar('สำเร็จ', 'บันทึกการตั้งค่าการ์ดแล้ว', 
+        snackPosition: SnackPosition.BOTTOM, 
+        backgroundColor: Colors.green[100], 
+        colorText: Colors.green[800]);
     } catch (e) {
       if (mounted) {
-        Get.snackbar('ผิดพลาด', 'บันทึกไม่สำเร็จ: $e', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red[100], colorText: Colors.red[800]);
+        Get.snackbar('ผิดพลาด', 'บันทึกไม่สำเร็จ: $e', 
+          snackPosition: SnackPosition.BOTTOM, 
+          backgroundColor: Colors.red[100], 
+          colorText: Colors.red[800]);
       }
     } finally {
       if (mounted) setState(() { _saving = false; });
@@ -89,15 +84,21 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
   }
 
   void _toggleFieldVisibility(int index) {
-    final key = _order[index];
-    setState(() { _visible[key] = !(_visible[key] ?? true); });
+    setState(() { 
+      _fields[index] = _fields[index].copyWith(isVisible: !_fields[index].isVisible);
+    });
   }
 
   void _reorderFields(int oldIndex, int newIndex) {
     setState(() {
       if (newIndex > oldIndex) newIndex -= 1;
-      final item = _order.removeAt(oldIndex);
-      _order.insert(newIndex, item);
+      final item = _fields.removeAt(oldIndex);
+      _fields.insert(newIndex, item);
+      
+      // Update order values
+      for (int i = 0; i < _fields.length; i++) {
+        _fields[i] = _fields[i].copyWith(order: i);
+      }
     });
   }
 
@@ -139,18 +140,16 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
           
           // Fields List
           Expanded(
-            child: Obx(() {
-              if (_loading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return ReorderableListView.builder(
-                itemCount: _order.length,
-                onReorder: _reorderFields,
-                itemBuilder: (context, index) {
-                  final key = _order[index];
-                  final isVisible = _visible[key] ?? true;
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : ReorderableListView.builder(
+                    itemCount: _fields.length,
+                    onReorder: _reorderFields,
+                    itemBuilder: (context, index) {
+                  final field = _fields[index];
+                  final displayName = _fieldDisplayNames[field.id] ?? field.name;
                   return Container(
-                    key: ValueKey(key),
+                    key: ValueKey(field.id),
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -174,7 +173,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
                           const SizedBox(width: 16),
                           // Checkbox
                           Checkbox(
-                            value: isVisible,
+                            value: field.isVisible,
                             onChanged: (value) => _toggleFieldVisibility(index),
                             activeColor: AppTheme.primaryOrange,
                             shape: RoundedRectangleBorder(
@@ -184,11 +183,11 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
                         ],
                       ),
                       title: Text(
-                        key,
+                        displayName,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: isVisible ? Colors.black87 : Colors.grey[600],
+                          color: field.isVisible ? Colors.black87 : Colors.grey[600],
                         ),
                       ),
                       trailing: Icon(
@@ -199,8 +198,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
                     ),
                   );
                 },
-              );
-            }),
+              ),
           ),
           
           // Save Button

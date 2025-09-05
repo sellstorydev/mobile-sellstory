@@ -236,15 +236,18 @@ class JobCardTile extends StatelessWidget {
   Widget _buildDynamicFields(_MoneyTotals totals) {
     // Build list of keys from config
     final entries = <_FieldEntry>[];
+    print('🔧 Field config: $fieldConfig');
     fieldConfig.forEach((key, cfg) {
       if (cfg is Map<String, dynamic>) {
         final isVisible = cfg['isVisible'] ?? true;
+        print('  - Field $key: visible=$isVisible, order=${cfg['order']}');
         if (isVisible == true) {
           entries.add(_FieldEntry(key, cfg['order'] ?? 999));
         }
       }
     });
     entries.sort((a, b) => a.order.compareTo(b.order));
+    print('🔧 Final field order: ${entries.map((e) => e.key).toList()}');
 
     // Build widgets for each supported key
     final children = <Widget>[];
@@ -290,6 +293,7 @@ class JobCardTile extends StatelessWidget {
           }
           break;
         case 'hashtags':
+          print('🏷️ Hashtags check: ${card.hashtags.length} hashtags found: ${card.hashtags}');
           if (card.hashtags.isNotEmpty) {
             children.add(_buildHashtags(card.hashtags));
           }

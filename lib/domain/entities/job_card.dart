@@ -257,8 +257,18 @@ class JobCard {
     // Handle collaborators 
     List<String> collaborators = List<String>.from(map['collaborators'] ?? const []);
     
-    // Handle hashtags
-    List<Map<String, dynamic>> hashtags = List<Map<String, dynamic>>.from(map['hashtags'] ?? const []);
+    // Handle hashtags with type safety
+    List<Map<String, dynamic>> hashtags = [];
+    if (map['hashtags'] != null) {
+      final hashtagsData = map['hashtags'];
+      if (hashtagsData is List) {
+        for (final item in hashtagsData) {
+          if (item is Map) {
+            hashtags.add(Map<String, dynamic>.from(item));
+          }
+        }
+      }
+    }
     
     // Handle board and workspace IDs
     String boardId = _stringFrom(map['boardId']);
