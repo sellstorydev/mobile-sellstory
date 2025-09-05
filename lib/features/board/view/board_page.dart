@@ -639,9 +639,10 @@ class _BoardPageState extends State<BoardPage> {
                   scrollDirection: Axis.horizontal,
                   child: StatusSummaryCards(
                     cards: allCards,
+                    selectedStatuses: _controller.selectedStatuses,
                     onStatusTap: (String status) {
-                      // Filter cards by selected status
-                      _controller.filterByStatus(status);
+                      // Toggle status filter
+                      _controller.toggleStatusFilter(status);
                     },
                   ),
                 ),

@@ -923,10 +923,12 @@ class BoardController extends GetxController implements BoardView {
     _performFilter();
   }
   
-  void filterByStatus(String status) {
-    // Clear other status selections and select only this status
-    selectedStatuses.clear();
-    selectedStatuses.add(status);
+  void toggleStatusFilter(String status) {
+    if (selectedStatuses.contains(status)) {
+      selectedStatuses.remove(status);
+    } else {
+      selectedStatuses.add(status);
+    }
     _performFilter();
   }
   

@@ -5,11 +5,13 @@ class StatusSummaryCards extends StatelessWidget {
   // cards: รายการการ์ดที่ผ่านการกรอง/ค้นหาจาก board แล้ว
   final List<JobCard> cards;
   final Function(String status)? onStatusTap; // Callback เมื่อกดที่ status card
+  final List<String> selectedStatuses; // รายการ status ที่ถูกเลือกอยู่
 
   const StatusSummaryCards({
     super.key, 
     required this.cards,
     this.onStatusTap,
+    this.selectedStatuses = const [],
   });
 
   @override
@@ -31,6 +33,7 @@ class StatusSummaryCards extends StatelessWidget {
               color: const Color(0xFF027F00),
               bgColor: const Color(0xFFE5F2E5),
               width: 110,
+              isSelected: selectedStatuses.contains('Done'),
               onTap: () => onStatusTap?.call('Done'),
             ),
             const SizedBox(width: 12),
@@ -41,6 +44,7 @@ class StatusSummaryCards extends StatelessWidget {
               color: const Color(0xFFFAB73F),
               bgColor: const Color(0xFFFEF7EB),
               width: 110,
+              isSelected: selectedStatuses.contains('In Progress'),
               onTap: () => onStatusTap?.call('In Progress'),
             ),
             const SizedBox(width: 12),
@@ -51,6 +55,7 @@ class StatusSummaryCards extends StatelessWidget {
               color: const Color(0xFF6B7280),
               bgColor: const Color(0xFFF3F4F6),
               width: 110,
+              isSelected: selectedStatuses.contains('Pending'),
               onTap: () => onStatusTap?.call('Pending'),
             ),
             const SizedBox(width: 12),
@@ -61,6 +66,7 @@ class StatusSummaryCards extends StatelessWidget {
               color: const Color(0xFFFF6C0C),
               bgColor: const Color(0xFFFFF0E6),
               width: 110,
+              isSelected: selectedStatuses.contains('Cancelled'),
               onTap: () => onStatusTap?.call('Cancelled'),
             ),
           ],
@@ -76,6 +82,7 @@ class StatusSummaryCards extends StatelessWidget {
     required Color color,
     required Color bgColor,
     required double width,
+    required bool isSelected,
     VoidCallback? onTap,
   }) {
     return GestureDetector(
@@ -85,14 +92,20 @@ class StatusSummaryCards extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         clipBehavior: Clip.antiAlias,
         decoration: ShapeDecoration(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          shadows: const [
+          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(
+              color: isSelected ? color : Colors.transparent,
+              width: isSelected ? 2 : 0,
+            ),
+          ),
+          shadows: [
             BoxShadow(
-              color: Color(0x19000000),
-              blurRadius: 5,
-              offset: Offset(0, 0),
-              spreadRadius: 0,
+              color: isSelected ? color.withOpacity(0.3) : const Color(0x19000000),
+              blurRadius: isSelected ? 8 : 5,
+              offset: const Offset(0, 0),
+              spreadRadius: isSelected ? 1 : 0,
             ),
           ],
         ),
