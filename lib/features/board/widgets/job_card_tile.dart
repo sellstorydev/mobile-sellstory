@@ -11,7 +11,6 @@ import '../../../../app/routes.dart';
 
 // ===== Helpers for money/date & totals (spec-compliant) =====
 final _currencyFmt = NumberFormat.currency(locale: 'th_TH', symbol: '฿');
-String _fmt(num v) => _currencyFmt.format((v * 100).round() / 100);
 String _fmtDate(int? ms) {
   if (ms == null) return '-';
   final d = DateTime.fromMillisecondsSinceEpoch(ms);
@@ -19,7 +18,14 @@ String _fmtDate(int? ms) {
 }
 String _fmtDateRange(int? startMs, int? endMs) {
   if (startMs == null || endMs == null) return '-';
-  return '${_fmtDate(startMs)} - ${_fmtDate(endMs)}';
+  final start = DateTime.fromMillisecondsSinceEpoch(startMs);
+  final end = DateTime.fromMillisecondsSinceEpoch(endMs);
+  
+  // Format: "Sep 4 - Sep 6"
+  final startStr = DateFormat('MMM d').format(start);
+  final endStr = DateFormat('MMM d').format(end);
+  
+  return '$startStr - $endStr';
 }
 
 class _MoneyTotals {
@@ -99,6 +105,7 @@ class JobCardTile extends StatelessWidget {
   final Map<String, dynamic> fieldConfig; // per-board config map
   final Map<String, String> userNameCache; // uid -> displayName
   final VoidCallback? onTap;
+  final Map<String, dynamic>? rawCardData; // Add raw data from Firestore
 
   const JobCardTile({
     super.key,
@@ -106,6 +113,7 @@ class JobCardTile extends StatelessWidget {
     required this.fieldConfig,
     required this.userNameCache,
     this.onTap,
+    this.rawCardData,
   });
 
   @override
@@ -119,12 +127,26 @@ class JobCardTile extends StatelessWidget {
     print('  - Assignee: ${card.assignedTo}');
     print('  - Customer: ${card.customer}');
     
-    // Compute totals once
+    // Compute totals once - use proper data structure based on the example provided
+    final cardData = rawCardData ?? card.toMap();
+    
+    // Based on the example data structure:
+    // isVatEnabled: true, additionalDiscount: {value: 97, type: "percentage"}, withholdingTaxPercentage: 3
+    final isVatEnabled = cardData['isVatEnabled'] == true;
+    final additionalDiscount = cardData['additionalDiscount'] as Map<String, dynamic>?;
+    final withholdingTaxPercentage = (cardData['withholdingTaxPercentage'] ?? 0) as num;
+    
+    print('💰 Financial calculation inputs:');
+    print('  - isVatEnabled: $isVatEnabled');
+    print('  - additionalDiscount: $additionalDiscount');
+    print('  - withholdingTaxPercentage: $withholdingTaxPercentage');
+    print('  - expenses count: ${card.expenses.length}');
+    
     final totals = _computeTotals(
       expenses: card.expenses,
-      isVatEnabled: (card.toMap()['isVatEnabled'] ?? card.toMap()['isVatEnabled']) == true || card.toMap()['isVatEnabled'] == true || (card.toMap()['isVatEnabled'] ?? false),
-      additionalDiscount: card.toMap()['additionalDiscount'] as Map<String, dynamic>?,
-      withholdingTaxPercentage: (card.toMap()['withholdingTaxPercentage'] ?? 0) as num,
+      isVatEnabled: isVatEnabled,
+      additionalDiscount: additionalDiscount,
+      withholdingTaxPercentage: withholdingTaxPercentage,
     );
 
     return GestureDetector(
@@ -282,19 +304,19 @@ class JobCardTile extends StatelessWidget {
           }
           break;
         case 'grandTotal':
-          children.add(_kv('Grand Total', _fmt(totals.grandTotal)));
+          children.add(_kv('Grand Total', _currencyFmt.format(totals.grandTotal)));
           break;
         case 'netTotal':
-          children.add(_kv('Net Total', _fmt(totals.netTotal)));
+          children.add(_kv('Net Total', _currencyFmt.format(totals.netTotal)));
           break;
         case 'totalAmountBeforeDiscount':
-          children.add(_kv('Total (before discount)', _fmt(totals.totalBeforeDiscount)));
+          children.add(_kv('Total (before discount)', _currencyFmt.format(totals.totalBeforeDiscount)));
           break;
         case 'totalAmountAfterDiscount':
-          children.add(_kv('Total (after discount)', _fmt(totals.totalAfterDiscount)));
+          children.add(_kv('Total (after discount)', _currencyFmt.format(totals.totalAfterDiscount)));
           break;
         case 'totalAmountBeforeVat':
-          children.add(_kv('Total (before VAT)', _fmt(totals.totalBeforeVat)));
+          children.add(_kv('Total (before VAT)', _currencyFmt.format(totals.totalBeforeVat)));
           break;
         case 'description':
           if (card.description.isNotEmpty) {
@@ -305,7 +327,7 @@ class JobCardTile extends StatelessWidget {
           break;
         case 'todos':
           final total = card.todos.length;
-            final incomplete = card.todos.where((t) => t['completed'] != true).length;
+          final incomplete = card.todos.where((t) => (t['completed'] ?? false) == false).length;
           children.add(_kv('To-Do', '$incomplete/$total'));
           break;
         default:
@@ -330,7 +352,7 @@ class JobCardTile extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: _hexToColor(color).withOpacity(0.18),
+            color: _hexToColor(color).withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: _hexToColor(color)),
           ),

@@ -196,7 +196,7 @@ class JobCard {
     };
   }
 
-  factory JobCard.fromMap(Map<String, dynamic> map, [String? docId]) {
+  factory JobCard.fromMap(Map<String, dynamic> map) {
     // Handle legacy assignee field
     String assignee = _stringFrom(map['assignedTo']).isNotEmpty 
         ? _stringFrom(map['assignedTo'])
@@ -265,7 +265,7 @@ class JobCard {
     String workspaceId = _stringFrom(map['workspaceId']);
 
     return JobCard(
-      id: docId ?? _stringFrom(map['id']),
+      id: _stringFrom(map['id']),
       title: _stringFrom(map['title']),
       description: _stringFrom(map['description']),
       assignedTo: assignee,
