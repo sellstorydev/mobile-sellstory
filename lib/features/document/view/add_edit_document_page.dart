@@ -1047,14 +1047,12 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           case 'user_input':
             // Determine the controller key for this field
             String controllerKey = fieldId;
-            bool isNumericField = false;
             
             // Handle different field mappings
             if (fieldType == 'product_field' && field['sourceField'] != null) {
               final sourceField = field['sourceField'].toString();
               if (sourceField.startsWith('customFields.')) {
                 controllerKey = sourceField.replaceFirst('customFields.', '');
-                isNumericField = field['inputType'] == 'number';
               } else {
                 controllerKey = sourceField;
               }
@@ -1064,74 +1062,24 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               controllerKey = fieldId;
             }
             
-            // Build appropriate field based on type
-            if (controllerKey == 'name') {
-              fieldWidget = _buildTextField(
-                label: '$fieldLabel *',
-                hint: 'กรอก $fieldLabel',
-                controller: controller.getProductController(index, controllerKey),
-                isRequired: true,
-                isEnabled: isEditable, // Respect isEditable from template
-                onChanged: (value) => controller.update(),
-              );
-            } else if (controllerKey == 'description') {
-              fieldWidget = _buildTextField(
-                label: fieldLabel,
-                hint: 'กรอก $fieldLabel',
-                controller: controller.getProductController(index, controllerKey),
-                maxLines: 2,
-                isEnabled: isEditable, // Respect isEditable from template
-              );
-            } else if (controllerKey == 'quantity') {
-              fieldWidget = _buildTextField(
-                label: '$fieldLabel *',
-                hint: '0',
-                controller: controller.getProductController(index, controllerKey),
-                keyboardType: TextInputType.number,
-                isRequired: true,
-                isEnabled: isEditable, // Respect isEditable from template
-                onChanged: (value) => controller.update(),
-              );
-            } else if (controllerKey == 'unit') {
-              fieldWidget = _buildTextField(
-                label: '$fieldLabel *',
-                hint: 'ชิ้น',
-                controller: controller.getProductController(index, controllerKey),
-                isRequired: true,
-                isEnabled: isEditable, // Respect isEditable from template
-              );
-            } else if (controllerKey == 'pricePerUnit') {
-              fieldWidget = _buildTextField(
-                label: '$fieldLabel *',
-                hint: '0.00',
-                controller: controller.getProductController(index, controllerKey),
-                keyboardType: TextInputType.number,
-                prefix: '฿',
-                isRequired: true,
-                isEnabled: isEditable, // Respect isEditable from template
-                onChanged: (value) => controller.update(),
-              );
-            } else if (controllerKey == 'discount') {
-              fieldWidget = _buildTextField(
-                label: fieldLabel,
-                hint: '0.00',
-                controller: controller.getProductController(index, controllerKey),
-                keyboardType: TextInputType.number,
-                prefix: '฿',
-                isEnabled: isEditable, // Respect isEditable from template
-                onChanged: (value) => controller.update(),
-              );
-            } else {
-              // Generic field - check if it's numeric
-              fieldWidget = _buildTextField(
-                label: fieldLabel,
-                hint: isNumericField ? '0' : 'กรอก $fieldLabel',
-                controller: controller.getProductController(index, controllerKey),
-                keyboardType: isNumericField ? TextInputType.number : TextInputType.text,
-                isEnabled: isEditable, // Respect isEditable from template
-                onChanged: (value) => controller.update(), // Always trigger update for custom fields
-              );
-            }
+            // Determine keyboard type based on inputType and field rules
+            TextInputType keyboardType = _getKeyboardTypeForField(field, controllerKey);
+            bool isRequired = _isFieldRequired(controllerKey);
+            String hint = _getFieldHint(controllerKey, keyboardType);
+            String? prefix = _getFieldPrefix(controllerKey);
+            int maxLines = _getFieldMaxLines(controllerKey);
+            
+            fieldWidget = _buildTextField(
+              label: isRequired ? '$fieldLabel *' : fieldLabel,
+              hint: hint,
+              controller: controller.getProductController(index, controllerKey),
+              keyboardType: keyboardType,
+              prefix: prefix,
+              maxLines: maxLines,
+              isRequired: isRequired,
+              isEnabled: isEditable, // Respect isEditable from template
+              onChanged: (value) => controller.update(),
+            );
             break;
             
           default:
@@ -1157,6 +1105,62 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: fieldWidgets,
     );
+  }
+
+  // Helper method to determine keyboard type based on field configuration
+  TextInputType _getKeyboardTypeForField(Map<String, dynamic> field, String controllerKey) {
+    // Check if field has explicit inputType - this takes priority
+    final inputType = field['inputType']?.toString();
+    if (inputType != null) {
+      return inputType == 'number' ? TextInputType.number : TextInputType.text;
+    }
+    
+    // Apply default rules based on field type and sourceField
+    final fieldType = field['type']?.toString() ?? '';
+    
+    if (fieldType == 'predefined') {
+      // All predefined fields are numeric
+      return TextInputType.number;
+    } else if (fieldType == 'product_field') {
+      // For product_field, only pricePerUnit is numeric, others are text
+      final sourceField = field['sourceField']?.toString() ?? '';
+      return sourceField == 'pricePerUnit' ? TextInputType.number : TextInputType.text;
+    } else if (fieldType == 'user_input') {
+      // Default to text for user_input unless specified otherwise
+      return TextInputType.text;
+    }
+    
+    // Default fallback
+    return TextInputType.text;
+  }
+
+  // Helper method to determine if field is required
+  bool _isFieldRequired(String controllerKey) {
+    return ['name', 'quantity', 'unit', 'pricePerUnit'].contains(controllerKey);
+  }
+
+  // Helper method to get appropriate hint text
+  String _getFieldHint(String controllerKey, TextInputType keyboardType) {
+    switch (controllerKey) {
+      case 'quantity':
+      case 'pricePerUnit':
+      case 'discount':
+        return '0.00';
+      case 'unit':
+        return 'ชิ้น';
+      default:
+        return keyboardType == TextInputType.number ? '0' : 'กรอกข้อมูล';
+    }
+  }
+
+  // Helper method to get field prefix
+  String? _getFieldPrefix(String controllerKey) {
+    return ['pricePerUnit', 'discount'].contains(controllerKey) ? '฿' : null;
+  }
+
+  // Helper method to get max lines
+  int _getFieldMaxLines(String controllerKey) {
+    return controllerKey == 'description' ? 2 : 1;
   }
 
   // Build calculated total field that displays formula result

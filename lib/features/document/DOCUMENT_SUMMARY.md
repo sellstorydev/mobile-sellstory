@@ -1,6 +1,125 @@
 # Document System Summary
 
-## Recent Changes - Enhanced Summary Section with End-of-Bill Discount
+## Recent Changes - Enhanced Input Type Handling for Dynamic Product Fields
+
+### Issue Addressed
+Added proper input type conditions for product section fields based on template configuration, ensuring number-only inputs for numeric fields and text inputs for text fields.
+
+### Changes Made
+
+#### 1. Enhanced Input Type Detection Logic
+
+**Added helper method `_getKeyboardTypeForField`:**
+```dart
+TextInputType _getKeyboardTypeForField(Map<String, dynamic> field, String controllerKey) {
+  // Check if field has explicit inputType - this takes priority
+  final inputType = field['inputType']?.toString();
+  if (inputType != null) {
+    return inputType == 'number' ? TextInputType.number : TextInputType.text;
+  }
+  
+  // Apply default rules based on field type and sourceField
+  final fieldType = field['type']?.toString() ?? '';
+  
+  if (fieldType == 'predefined') {
+    // All predefined fields are numeric
+    return TextInputType.number;
+  } else if (fieldType == 'product_field') {
+    // For product_field, only pricePerUnit is numeric, others are text
+    final sourceField = field['sourceField']?.toString() ?? '';
+    return sourceField == 'pricePerUnit' ? TextInputType.number : TextInputType.text;
+  } else if (fieldType == 'user_input') {
+    // Default to text for user_input unless specified otherwise
+    return TextInputType.text;
+  }
+  
+  // Default fallback
+  return TextInputType.text;
+}
+```
+
+#### 2. Input Type Priority Rules
+
+**Implemented priority system:**
+1. **Highest Priority:** If `inputType` is explicitly defined in template → use that value
+2. **Medium Priority:** If `type = "predefined"` → all fields are numeric
+3. **Medium Priority:** If `type = "product_field"` → only `sourceField = "pricePerUnit"` is numeric, others are text
+4. **Lowest Priority:** If `type = "user_input"` → default to text unless `inputType` specified
+
+#### 3. Additional Helper Methods
+
+**Added field configuration helpers:**
+```dart
+bool _isFieldRequired(String controllerKey) {
+  return ['name', 'quantity', 'unit', 'pricePerUnit'].contains(controllerKey);
+}
+
+String _getFieldHint(String controllerKey, TextInputType keyboardType) {
+  // Returns appropriate hint based on field type
+}
+
+String? _getFieldPrefix(String controllerKey) {
+  return ['pricePerUnit', 'discount'].contains(controllerKey) ? '฿' : null;
+}
+
+int _getFieldMaxLines(String controllerKey) {
+  return controllerKey == 'description' ? 2 : 1;
+}
+```
+
+#### 4. Simplified Field Building Logic
+
+**Refactored `_buildDynamicProductFields`:**
+- Removed individual field type handling (name, description, quantity, etc.)
+- Unified logic using helper methods
+- Consistent application of `isEditable` property from template
+- Automatic keyboard type detection based on rules
+
+#### 5. Template Field Examples
+
+**Example configurations handled:**
+```json
+{
+  "type": "product_field",
+  "sourceField": "customFields.multiply",
+  "inputType": "number",
+  "isEditable": true,
+  "label": "multiply"
+}
+```
+→ Uses `inputType: "number"` (highest priority)
+
+```json
+{
+  "type": "predefined",
+  "predefinedField": "quantity",
+  "isEditable": true,
+  "label": "Qty"
+}
+```
+→ Uses numeric input (predefined rule)
+
+```json
+{
+  "type": "product_field",
+  "sourceField": "description",
+  "isEditable": true,
+  "label": "Description"
+}
+```
+→ Uses text input (product_field with non-pricePerUnit sourceField)
+
+```json
+{
+  "type": "user_input",
+  "id": "UlACu8ZEuQxwVk8fng9sW",
+  "inputType": "number",
+  "label": "Hello"
+}
+```
+→ Uses numeric input (explicit inputType)
+
+### Previous Implementation (Enhanced Summary Section with End-of-Bill Discount)
 
 ### Issue Addressed
 Added "ส่วนลดท้ายบิล" (end-of-bill discount) functionality to the summary section with proper checkbox behavior and updated calculation logic to use dynamic line_total fields from templates.
