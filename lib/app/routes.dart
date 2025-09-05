@@ -126,7 +126,20 @@ class AppRoutes {
     ),
     GetPage(
       name: cardViewSettings,
-      page: () => const CardViewSettingPage(),
+      page: () {
+        // Prefer parameters (?boardId=) then arguments (map with 'boardId'), fallback to empty string.
+        final paramBoardId = Get.parameters['boardId'];
+        String resolvedBoardId = '';
+        if (paramBoardId != null && paramBoardId.isNotEmpty) {
+          resolvedBoardId = paramBoardId;
+        } else {
+          final args = Get.arguments;
+            if (args is Map && args['boardId'] is String) {
+              resolvedBoardId = args['boardId'] as String;
+            }
+        }
+        return CardViewSettingPage(boardId: resolvedBoardId);
+      },
     ),
   ];
 }

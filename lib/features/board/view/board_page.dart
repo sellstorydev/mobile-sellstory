@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../data/services/firebase_auth_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
@@ -26,6 +28,42 @@ class BoardPage extends StatefulWidget {
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
   Worker? _wsWorker;
+  Map<String, dynamic> _fieldConfigCache = {};
+  Map<String, String> _userNameCache = {};
+
+  Map<String, dynamic> _currentFieldConfigForBoard(String boardId) => _fieldConfigCache.isNotEmpty ? _fieldConfigCache : _defaultFieldConfig();
+
+  Map<String, dynamic> _defaultFieldConfig() {
+    final keys = [
+      'customId','status','dateRange','createdAt','assignee','customerInterest','collaborators','customer','company','hashtags','grandTotal','netTotal','totalAmountBeforeDiscount','totalAmountAfterDiscount','totalAmountBeforeVat','description','todos'
+    ];
+    final m = <String,dynamic>{};
+    for (var i=0;i<keys.length;i++){m[keys[i]]={'order':i,'isVisible':true,'style':{}};}
+    return m;
+  }
+
+  Future<void> _loadPerBoardFieldConfig() async {
+    try {
+      final uid = Get.find<FirebaseAuthService>().currentUser?.uid;
+      if (uid == null) return;
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final viewSettings = (userDoc.data()?['viewSettings'] ?? {}) as Map<String,dynamic>;
+      final key = 'kanbanCardDisplayFieldsConfig_${_controller.currentBoardId.value}';
+      final cfg = (viewSettings[key] ?? {}) as Map<String,dynamic>;
+      if (cfg.isNotEmpty) {
+        setState(()=>_fieldConfigCache = cfg);
+      }
+    } catch (e) { debugPrint('Field config load error: $e'); }
+  }
+
+  Future<void> _buildUserNameCache() async {
+    try {
+      final workspaceUsers = await _controller.getWorkspaceUsers(_controller.currentWorkspaceId.value);
+      setState(() {
+        _userNameCache = { for (final u in workspaceUsers) if (u['id']!=null) u['id']: (u['name']??'') };
+      });
+    } catch (e) { debugPrint('User name cache build error: $e'); }
+  }
 
   @override
   void initState() {
@@ -34,6 +72,11 @@ class _BoardPageState extends State<BoardPage> {
     
     // Initialize with current user
     _initializeWithCurrentUser();
+    // Load field config & user names asynchronously
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPerBoardFieldConfig();
+      _buildUserNameCache();
+    });
 
     // React to workspace changes to prefetch permissions
     _wsWorker = ever<String>(_controller.currentWorkspaceId, (wsId) {
@@ -846,8 +889,14 @@ class _BoardPageState extends State<BoardPage> {
               ),
               children: [
                 ...laneData.cards.map((card) {
+                  final fieldCfg = _currentFieldConfigForBoard(_controller.currentBoardId.value);
+                  final userCache = _userNameCache; // built separately
                   return DragAndDropItem(
-                    child: JobCardTile(card: card),
+                    child: JobCardTile(
+                      card: card,
+                      fieldConfig: fieldCfg,
+                      userNameCache: userCache,
+                    ),
                   );
                 }).toList(),
                 // Add card button at the bottom of each lane
