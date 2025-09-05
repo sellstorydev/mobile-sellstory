@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>489911602258-0pt2sm59lvef95pnkmge98bjkkfmg8v6.apps.googleusercontent.com</string>
+	<string>489911602258-iq7uf5kao3roptfff7k8uvi26e22sfjn.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.489911602258-0pt2sm59lvef95pnkmge98bjkkfmg8v6</string>
+	<string>com.googleusercontent.apps.489911602258-iq7uf5kao3roptfff7k8uvi26e22sfjn</string>
 	<key>API_KEY</key>
 	<string>AIzaSyDHbTUAISvJOEAHPdyqQ16slR3oPaSnW0U</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>me.sellstory.app</string>
+	<string>me.sellstory.pro</string>
 	<key>PROJECT_ID</key>
 	<string>kanbanflow-iq93h</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:489911602258:ios:39d449b7f1e8b6e595638b</string>
+	<string>1:489911602258:ios:c11fa7a4d2ce0ad595638b</string>
 </dict>
 </plist>
