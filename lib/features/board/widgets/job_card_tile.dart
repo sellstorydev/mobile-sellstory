@@ -327,8 +327,8 @@ class JobCardTile extends StatelessWidget {
           break;
         case 'todos':
           final total = card.todos.length;
-          final incomplete = card.todos.where((t) => (t['completed'] ?? false) == false).length;
-          children.add(_kv('To-Do', '$incomplete/$total'));
+          final completed = card.todos.where((t) => (t['completed'] ?? false) == true).length;
+          children.add(_kv('To-Do', '$completed/$total'));
           break;
         default:
           // Ignore unknown keys to remain forward compatible
