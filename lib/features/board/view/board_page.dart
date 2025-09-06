@@ -659,16 +659,7 @@ class _BoardPageState extends State<BoardPage> {
             return const SizedBox.shrink();
           }),
           
-          // Debug clear filters button
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ElevatedButton(
-              onPressed: () {
-                _controller.clearAllFilters();
-              },
-              child: const Text('Clear All Filters (Debug)'),
-            ),
-          ),
+          // Debug clear filters button removed
           // Board View
           Expanded(child: _buildBoardView()),
         ],
