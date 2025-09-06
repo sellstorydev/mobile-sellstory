@@ -1791,4 +1791,29 @@ class FirestoreRepository {
       rethrow;
     }
   }
+
+  // Add note to card
+  Future<void> addNoteToCard(String workspaceId, String cardId, Map<String, dynamic> note) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.addNoteToCard', {
+        'workspaceId': workspaceId,
+        'cardId': cardId,
+        'noteId': note['id'],
+      });
+
+      final cardRef = _firestoreService.getWorkspaceCardsCollection(workspaceId).doc(cardId);
+      
+      // Add note to the notes array using arrayUnion
+      await cardRef.update({
+        'notes': FieldValue.arrayUnion([note])
+      });
+
+      print('✅ Note added to card successfully');
+      _logger.methodExit('FirestoreRepository.addNoteToCard');
+    } catch (e) {
+      print('❌ Failed to add note to card: $e');
+      _logger.error('Failed to add note to card', e);
+      rethrow;
+    }
+  }
 }

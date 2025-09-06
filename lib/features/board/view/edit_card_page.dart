@@ -431,6 +431,17 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
             const SizedBox(height: 24),
 
+            // Attached Files Section
+            _buildSectionCard(
+              title: 'Attached Files',
+              icon: Icons.attach_file,
+              color: Colors.teal,
+              children: [
+                _buildAttachedFilesContent(),
+              ],
+            ),
+            const SizedBox(height: 24),
+
             // History & Comments Section
             _buildHistoryCommentSection(),
             const SizedBox(height: 100), // Space for bottom buttons
@@ -912,63 +923,100 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  Widget _buildAttachedFilesSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildAttachedFilesContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Add File Button
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 20),
+          child: ElevatedButton.icon(
+            onPressed: _addFile,
+            icon: const Icon(Icons.attach_file, size: 18),
+            label: const Text('Add File'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+        
+        // Files Table Header
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: const Row(
+            children: [
+              Expanded(flex: 3, child: Text(
+                'File Name',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              )),
+              Expanded(flex: 2, child: Text(
+                'Uploaded By',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              )),
+              Expanded(flex: 2, child: Text(
+                'Uploaded At',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              )),
+              Expanded(flex: 1, child: Text(
+                'Actions',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                textAlign: TextAlign.center,
+              )),
+            ],
+          ),
+        ),
+        
+        // Files Content
+        Container(
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+          ),
+          child: Center(
+            child: Column(
               children: [
-                const Text(
-                  'Attached Files',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryOrange,
-                  ),
+                Icon(
+                  Icons.folder_open_outlined,
+                  size: 48,
+                  color: Colors.grey[400],
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Add File'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryOrange,
-                    foregroundColor: Colors.white,
+                const SizedBox(height: 12),
+                Text(
+                  'No attachments uploaded yet',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            
-            // Table Header
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Row(
-                children: [
-                  Expanded(flex: 3, child: Text('File Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Uploaded At', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                'No attachments uploaded yet',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
+    );
+  }
+
+  void _addFile() {
+    // TODO: Implement file picker functionality
+    Get.snackbar(
+      'Feature Coming Soon',
+      'File attachment functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
     );
   }
 
@@ -1482,7 +1530,7 @@ class _EditCardPageState extends State<EditCardPage> {
     }
   }
 
-  void _addComment() {
+  void _addComment() async {
     if (_commentController.text.trim().isEmpty) return;
     
     final newComment = {
@@ -1498,15 +1546,38 @@ class _EditCardPageState extends State<EditCardPage> {
       'type': 'text',
     };
     
+    // Optimistic update - add to local state first
     setState(() {
       _notes.add(newComment);
       _commentController.clear();
     });
     
-    // TODO: Save to Firestore
+    try {
+      // Save to Firestore immediately
+      await _repository.addNoteToCard(
+        _controller.currentWorkspaceId.value,
+        widget.card.id,
+        newComment,
+      );
+      print('✅ Comment saved to Firestore successfully');
+    } catch (e) {
+      print('❌ Failed to save comment to Firestore: $e');
+      // Remove from local state if failed
+      setState(() {
+        _notes.removeWhere((note) => note['id'] == newComment['id']);
+      });
+      
+      Get.snackbar(
+        'Error',
+        'Failed to save comment. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
-  void _addReply(String parentId, String replyText) {
+  void _addReply(String parentId, String replyText) async {
     final newReply = {
       'id': 'note-${DateTime.now().millisecondsSinceEpoch}',
       'userId': _currentUserInfo?['uid'] ?? 'unknown-user',
@@ -1521,11 +1592,34 @@ class _EditCardPageState extends State<EditCardPage> {
       'type': 'text',
     };
     
+    // Optimistic update - add to local state first
     setState(() {
       _notes.add(newReply);
     });
     
-    // TODO: Save to Firestore
+    try {
+      // Save to Firestore immediately
+      await _repository.addNoteToCard(
+        _controller.currentWorkspaceId.value,
+        widget.card.id,
+        newReply,
+      );
+      print('✅ Reply saved to Firestore successfully');
+    } catch (e) {
+      print('❌ Failed to save reply to Firestore: $e');
+      // Remove from local state if failed
+      setState(() {
+        _notes.removeWhere((note) => note['id'] == newReply['id']);
+      });
+      
+      Get.snackbar(
+        'Error',
+        'Failed to save reply. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   Widget _buildBottomButtons() {
