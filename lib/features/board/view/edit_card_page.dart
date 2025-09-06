@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../../../data/services/upload_service.dart';
+import '../../../domain/entities/board.dart';
+import '../../../domain/entities/lane.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
@@ -36,14 +38,7 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _onMove() {
-    Get.snackbar(
-      'Move',
-      'Move functionality will be available soon',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 2),
-    );
+    _showMoveCardDialog();
   }
 
   void _onArchive() {
@@ -1388,6 +1383,59 @@ class _EditCardPageState extends State<EditCardPage> {
         colorText: Colors.white,
         duration: const Duration(seconds: 3),
       );
+    }
+  }
+
+  void _showMoveCardDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _MoveCardDialog(
+        currentBoardId: widget.card.boardId,
+        currentLaneId: widget.card.laneId,
+        cardId: widget.card.id,
+        onMoveCard: _moveCard,
+      ),
+    );
+  }
+
+  Future<void> _moveCard(String targetBoardId, String targetLaneId) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      await _controller.onMoveCard(
+        cardId: widget.card.id,
+        fromLaneId: widget.card.laneId,
+        toLaneId: targetLaneId,
+        toIndex: 0, // Move to top of target lane
+      );
+
+      Get.snackbar(
+        'Success',
+        'Card moved successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+
+      // Close edit page and go back to board
+      Navigator.of(context).pop();
+
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to move card: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -2782,5 +2830,315 @@ class _EditCardPageState extends State<EditCardPage> {
     _detailsController.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+}
+
+class _MoveCardDialog extends StatefulWidget {
+  final String currentBoardId;
+  final String currentLaneId;
+  final String cardId;
+  final Function(String boardId, String laneId) onMoveCard;
+
+  const _MoveCardDialog({
+    required this.currentBoardId,
+    required this.currentLaneId,
+    required this.cardId,
+    required this.onMoveCard,
+  });
+
+  @override
+  State<_MoveCardDialog> createState() => _MoveCardDialogState();
+}
+
+class _MoveCardDialogState extends State<_MoveCardDialog> {
+  final BoardController _controller = Get.find<BoardController>();
+  
+  String _selectedBoardId = '';
+  String _selectedLaneId = '';
+  List<Board> _availableBoards = [];
+  List<Lane> _availableLanes = [];
+  bool _isLoading = true;
+  bool _isLoadingLanes = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedBoardId = widget.currentBoardId;
+    _selectedLaneId = widget.currentLaneId;
+    _loadBoards();
+  }
+
+  Future<void> _loadBoards() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final workspaceId = _controller.currentWorkspaceId.value;
+      final boards = await _controller.getBoardsForWorkspace(workspaceId);
+      
+      setState(() {
+        _availableBoards = boards;
+        _isLoading = false;
+      });
+
+      // Load lanes for current selected board
+      if (_selectedBoardId.isNotEmpty) {
+        await _loadLanesForBoard(_selectedBoardId);
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print('Failed to load boards: $e');
+    }
+  }
+
+  Future<void> _loadLanesForBoard(String boardId) async {
+    try {
+      setState(() {
+        _isLoadingLanes = true;
+        _availableLanes = [];
+        _selectedLaneId = '';
+      });
+
+      // Get lanes for the selected board from repository
+      final boardLanes = await _controller.getLanesByBoardId(boardId);
+      
+      setState(() {
+        _availableLanes = boardLanes;
+        _isLoadingLanes = false;
+        // Reset lane selection if current lane is not available in selected board
+        if (!_availableLanes.any((lane) => lane.id == _selectedLaneId)) {
+          _selectedLaneId = _availableLanes.isNotEmpty ? _availableLanes.first.id : '';
+        }
+      });
+    } catch (e) {
+      print('Failed to load lanes: $e');
+      setState(() {
+        _availableLanes = [];
+        _selectedLaneId = '';
+        _isLoadingLanes = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Move Card',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Select a new board and lane for this card',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            if (_isLoading)
+              const Center(
+                child: CircularProgressIndicator(),
+              )
+            else ...[
+              // Board Selection
+              const Text(
+                'Board',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFFF7F39), width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedBoardId.isNotEmpty ? _selectedBoardId : null,
+                    hint: const Text('Select Board'),
+                    isExpanded: true,
+                    icon: const Icon(Icons.arrow_drop_down),
+                    items: _availableBoards.map((board) {
+                      return DropdownMenuItem<String>(
+                        value: board.id,
+                        child: Text(board.name),
+                      );
+                    }).toList(),
+                    onChanged: (value) async {
+                      if (value != null) {
+                        setState(() {
+                          _selectedBoardId = value;
+                        });
+                        await _loadLanesForBoard(value);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Lane Selection
+              const Text(
+                'Lane',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_isLoadingLanes)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!, width: 1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 12),
+                      Text('Loading lanes...'),
+                    ],
+                  ),
+                )
+              else if (_availableLanes.isEmpty && _selectedBoardId.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.red[300]!, width: 1),
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.red[50],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.red[600], size: 20),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'No lanes available in this board',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!, width: 1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedLaneId.isNotEmpty ? _selectedLaneId : null,
+                      hint: const Text('Select Lane'),
+                      isExpanded: true,
+                      icon: const Icon(Icons.arrow_drop_down),
+                      items: _availableLanes.map((lane) {
+                        return DropdownMenuItem<String>(
+                          value: lane.id,
+                          child: Text(lane.title),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedLaneId = value;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+            ],
+            
+            const SizedBox(height: 32),
+            
+            // Action Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _canMoveCard() ? _performMove : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF7F39),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Move Card'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _canMoveCard() {
+    return _selectedBoardId.isNotEmpty && 
+           _selectedLaneId.isNotEmpty && 
+           _availableLanes.isNotEmpty && // Check if lanes are available
+           !_isLoading &&
+           !_isLoadingLanes && // Check if lanes are still loading
+           !(_selectedBoardId == widget.currentBoardId && _selectedLaneId == widget.currentLaneId);
+  }
+
+  void _performMove() {
+    Navigator.of(context).pop();
+    widget.onMoveCard(_selectedBoardId, _selectedLaneId);
   }
 }
