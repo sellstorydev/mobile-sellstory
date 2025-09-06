@@ -31,7 +31,7 @@ class StatusSummaryCards extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             _buildSummaryCard(
-              title: 'Done',
+              title: 'Completed',
               amount: _calculateAmountByStatus('Done'),
               count: _getCountByStatus('Done'),
               color: const Color(0xFF027F00),

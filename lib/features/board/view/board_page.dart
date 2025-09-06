@@ -800,16 +800,18 @@ class _BoardPageState extends State<BoardPage> {
         );
       }
 
-      final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
+    final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
                          _controller.selectedCustomers.isNotEmpty ||
                          _controller.selectedHashtags.isNotEmpty ||
                          _controller.selectedStatuses.isNotEmpty ||
                          _controller.selectedDateFilterTypes.isNotEmpty;
-      final displayLanes = (_controller.isSearching.value || hasAnyFilter)
-          ? _controller.filteredLanes 
-          : _controller.lanes;
+    final displayLanes = (_controller.isSearching.value || hasAnyFilter)
+      ? _controller.filteredLanes 
+      : _controller.lanes;
+  // Always show all lanes; cards may be empty depending on filters
+  final lanesForView = displayLanes;
 
-      if (displayLanes.isEmpty && _controller.hasWorkspaces) {
+    if (lanesForView.isEmpty && _controller.hasWorkspaces) {
         if (hasAnyFilter) {
           // Show filter no results
           String filterMessage = '';
@@ -929,17 +931,26 @@ class _BoardPageState extends State<BoardPage> {
         }
       }
 
-      return _buildBoard();
+  return _buildBoard();
     });
   }
 
   Widget _buildBoard() {
-    final displayLanes = _controller.isSearching.value 
-        ? _controller.filteredLanes 
-        : _controller.lanes;
+  // Respect both search and active filters (assignee/customer/hashtag/status/date)
+  final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
+    _controller.selectedCustomers.isNotEmpty ||
+    _controller.selectedHashtags.isNotEmpty ||
+    _controller.selectedStatuses.isNotEmpty ||
+    _controller.selectedDateFilterTypes.isNotEmpty;
+
+  final displayLanes = (_controller.isSearching.value || hasAnyFilter)
+    ? _controller.filteredLanes
+    : _controller.lanes;
+  // Always show all lanes; cards may be empty depending on filters
+  final visibleLanes = displayLanes;
     
-    print('🔍 Building board with ${displayLanes.length} lanes');
-    for (final lane in displayLanes) {
+  print('🔍 Building board with ${visibleLanes.length} lanes');
+  for (final lane in visibleLanes) {
       print('  - Lane: ${lane.title} (${lane.cards.length} cards)');
     }
         
@@ -957,7 +968,7 @@ class _BoardPageState extends State<BoardPage> {
         listDragHandle: null, // Disable lane drag handle
 
         children: [
-          ...displayLanes.map((lane) {
+          ...visibleLanes.map((lane) {
             final laneData = lane;
             return DragAndDropList(
               header: _buildLaneHeader(laneData),

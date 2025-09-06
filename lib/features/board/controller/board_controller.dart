@@ -49,6 +49,8 @@ class BoardController extends GetxController implements BoardView {
   final RxList<String> availableCustomers = <String>[].obs;
   final RxList<String> availableHashtags = <String>[].obs;
   final RxList<String> availableInterests = <String>[].obs;
+  // UI behavior: whether to hide lanes with zero cards when filters are active
+  final RxBool hideEmptyLanesWhenFiltering = false.obs;
   
   // Date filter functionality
   final RxList<String> selectedDateFilterTypes = <String>[].obs; // startDate, endDate, createdDate, etc.
@@ -157,8 +159,8 @@ class BoardController extends GetxController implements BoardView {
           print('✅ Using first workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
         }
         
-        currentWorkspaceId.value = selectedWorkspaceId!;
-        currentWorkspaceName.value = selectedWorkspaceName!;
+  currentWorkspaceId.value = selectedWorkspaceId ?? '';
+  currentWorkspaceName.value = selectedWorkspaceName ?? '';
         
         // Prefetch permissions for selected workspace
         try {
@@ -1130,7 +1132,7 @@ class BoardController extends GetxController implements BoardView {
     final List<Lane> filterResults = [];
     int matchingCards = 0;
     
-    for (final lane in sourceLanes) {
+  for (final lane in sourceLanes) {
       print('🔍 Checking lane "${lane.title}" with ${lane.cards.length} cards');
       
       // Filter cards by assignee, customer, hashtag, interest, status, and/or date
@@ -1220,19 +1222,19 @@ class BoardController extends GetxController implements BoardView {
         return matches;
       }).toList();
       
-      // Include lane if it has matching cards
-      if (filteredCards.isNotEmpty) {
+      // Include lane according to setting: include empty lanes when desired
+      final includeLane = filteredCards.isNotEmpty || !hideEmptyLanesWhenFiltering.value;
+      if (includeLane) {
         filterResults.add(Lane(
           id: lane.id,
           title: lane.title,
           order: lane.order,
-          cards: filteredCards,
+          cards: filteredCards, // may be empty if showing empty lanes
           boardId: lane.boardId,
         ));
-        
-        print('🔍 Including lane "${lane.title}" with ${filteredCards.length} cards');
+        print('🔍 Including lane "${lane.title}" with ${filteredCards.length} cards (hideEmpty=${hideEmptyLanesWhenFiltering.value})');
       } else {
-        print('🔍 Skipping lane "${lane.title}" - no matching cards');
+        print('🔍 Skipping lane "${lane.title}" - no matching cards and hideEmpty enabled');
       }
     }
     
