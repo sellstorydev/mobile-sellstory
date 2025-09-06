@@ -37,6 +37,7 @@ class JobCard {
   final bool isVatEnabled; // Add VAT enabled field
   final Map<String, dynamic>? additionalDiscount; // Add additional discount field
   final num withholdingTaxPercentage; // Add withholding tax percentage field
+  final List<Map<String, dynamic>> attachments; // Add attachments field
 
   JobCard({
     required this.id,
@@ -75,6 +76,7 @@ class JobCard {
     this.isVatEnabled = false,
     this.additionalDiscount,
     this.withholdingTaxPercentage = 0,
+    this.attachments = const [],
   });
 
   JobCard copyWith({
@@ -114,6 +116,7 @@ class JobCard {
     bool? isVatEnabled,
     Map<String, dynamic>? additionalDiscount,
     num? withholdingTaxPercentage,
+    List<Map<String, dynamic>>? attachments,
   }) {
     return JobCard(
       id: id ?? this.id,
@@ -152,6 +155,7 @@ class JobCard {
       isVatEnabled: isVatEnabled ?? this.isVatEnabled,
       additionalDiscount: additionalDiscount ?? this.additionalDiscount,
       withholdingTaxPercentage: withholdingTaxPercentage ?? this.withholdingTaxPercentage,
+      attachments: attachments ?? this.attachments,
     );
   }
 
@@ -193,6 +197,7 @@ class JobCard {
       'isVatEnabled': isVatEnabled,
       'additionalDiscount': additionalDiscount,
       'withholdingTaxPercentage': withholdingTaxPercentage,
+      'attachments': attachments,
     };
   }
 
@@ -311,6 +316,7 @@ class JobCard {
       isVatEnabled: map['isVatEnabled'] ?? false,
       additionalDiscount: map['additionalDiscount'] != null ? Map<String, dynamic>.from(map['additionalDiscount'] as Map) : null,
       withholdingTaxPercentage: map['withholdingTaxPercentage'] ?? 0,
+      attachments: List<Map<String, dynamic>>.from(map['attachments'] ?? const []),
     );
   }
 

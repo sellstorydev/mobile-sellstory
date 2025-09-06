@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import '../../../data/services/upload_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
@@ -101,6 +104,9 @@ class _EditCardPageState extends State<EditCardPage> {
   // Notes data
   List<Map<String, dynamic>> _notes = [];
   
+  // Attachments data
+  List<Map<String, dynamic>> _attachments = [];
+  
   // Available options
   List<Map<String, dynamic>> _availableLanes = [];
   List<Map<String, dynamic>> _availableAssignees = [];
@@ -164,6 +170,9 @@ class _EditCardPageState extends State<EditCardPage> {
     
     // Initialize notes
     _notes = List<Map<String, dynamic>>.from(widget.card.notes);
+    
+    // Initialize attachments
+    _attachments = List<Map<String, dynamic>>.from(widget.card.attachments);
     
     // Load available options
     await _loadAvailableOptions();
@@ -1065,46 +1074,321 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
         
         // Files Content
-        Container(
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-          ),
-          child: Center(
+        if (_attachments.isNotEmpty)
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+            ),
             child: Column(
-              children: [
-                Icon(
-                  Icons.folder_open_outlined,
-                  size: 48,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'No attachments uploaded yet',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
+              children: _attachments.map((attachment) {
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 0.5,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getFileIcon(attachment['filename'] ?? ''),
+                        color: Colors.blue[600],
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              attachment['name'] ?? attachment['filename'] ?? 'Unknown file',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              _formatFileSize(attachment['size'] ?? 0),
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.download, size: 18),
+                            onPressed: () => _downloadFile(attachment),
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                            onPressed: () => _deleteAttachment(attachment),
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.folder_open_outlined,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No attachments uploaded yet',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }
 
-  void _addFile() {
-    // TODO: Implement file picker functionality
+  Future<void> _addFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.path != null) {
+          setState(() {
+            _isLoading = true;
+          });
+          
+          await _uploadAndAddAttachment(File(file.path!), file.name, file.size);
+        }
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to pick file: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _uploadAndAddAttachment(File file, String fileName, int? fileSize) async {
+    try {
+      // Import UploadService
+      final uploadService = Get.find<UploadService>();
+      
+      // Get current user info
+      if (_currentUserInfo == null) {
+        await _loadCurrentUserInfo();
+      }
+      
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final workspaceId = _controller.currentWorkspaceId.value;
+      final cardId = widget.card.id;
+      
+      // Upload file to Firebase Storage
+      final downloadUrl = await uploadService.uploadFile(
+        file: file,
+        workspaceId: workspaceId,
+        chatroomId: 'cards/$cardId', // Use cards/cardId as chatroomId for card attachments
+        onProgress: (progress) {
+          // You can add progress indicator here if needed
+        },
+      );
+
+      // Create attachment object with correct id format
+      final attachment = {
+        'id': 'workspaces/$workspaceId/cards/$cardId/$timestamp-$fileName',
+        'name': fileName,
+        'filename': fileName,
+        'url': downloadUrl,
+        'uploadedAt': timestamp,
+        'uploadedBy': _currentUserInfo?['uid'] ?? '',
+        'size': fileSize ?? 0,
+      };
+
+      // Add to local attachments list
+      setState(() {
+        _attachments.add(attachment);
+      });
+
+      // Update card in database immediately
+      await _updateCardAttachments();
+
+      Get.snackbar(
+        'Success',
+        'File uploaded successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to upload file: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  Future<void> _updateCardAttachments() async {
+    try {
+      final updatedCard = widget.card.copyWith(
+        attachments: _attachments,
+        updatedAt: DateTime.now(),
+      );
+
+      await _controller.updateCard(updatedCard);
+    } catch (e) {
+      print('Failed to update card attachments: $e');
+    }
+  }
+
+  IconData _getFileIcon(String filename) {
+    final extension = filename.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      case 'xls':
+      case 'xlsx':
+        return Icons.table_chart;
+      case 'ppt':
+      case 'pptx':
+        return Icons.slideshow;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return Icons.image;
+      case 'mp4':
+      case 'mov':
+      case 'avi':
+        return Icons.video_file;
+      case 'mp3':
+      case 'wav':
+        return Icons.audio_file;
+      case 'zip':
+      case 'rar':
+        return Icons.archive;
+      case 'txt':
+        return Icons.text_snippet;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
+  void _downloadFile(Map<String, dynamic> attachment) {
+    // TODO: Implement download functionality
     Get.snackbar(
-      'Feature Coming Soon',
-      'File attachment functionality will be available soon',
+      'Download',
+      'Download functionality will be available soon',
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
       duration: const Duration(seconds: 2),
     );
+  }
+
+  void _deleteAttachment(Map<String, dynamic> attachment) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Attachment'),
+        content: Text('Are you sure you want to delete "${attachment['name']}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _performDeleteAttachment(attachment);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDeleteAttachment(Map<String, dynamic> attachment) async {
+    try {
+      setState(() {
+        _attachments.removeWhere((item) => item['id'] == attachment['id']);
+      });
+
+      await _updateCardAttachments();
+
+      Get.snackbar(
+        'Success',
+        'Attachment deleted successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to delete attachment: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   Widget _buildHistorySection() {
@@ -1831,6 +2115,7 @@ class _EditCardPageState extends State<EditCardPage> {
         todos: todosData,
         collaborators: _selectedCollaborators,
         watchers: _selectedWatchers,
+        attachments: _attachments,
         updatedAt: DateTime.now(),
         updatedByDisplayName: assigneeDisplayName,
       );
