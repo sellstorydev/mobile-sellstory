@@ -242,6 +242,51 @@ class BoardPresenter {
     LoggerService.to.methodExit('BoardPresenter.onAddCard');
   }
 
+  // Create card with full data (for cloning)
+  Future<void> onCreateFullCard({
+    required String workspaceId,
+    required JobCard card,
+  }) async {
+    print('🏭 ========== PRESENTER: onCreateFullCard START ==========');
+    print('🏭 PRESENTER: WorkspaceId: $workspaceId');
+    print('🏭 PRESENTER: Card Title: ${card.title}');
+    print('🏭 PRESENTER: Card LaneId: ${card.laneId}');
+    print('🏭 PRESENTER: Card AssignedTo: ${card.assignedTo}');
+    print('🏭 PRESENTER: Card BoardId: ${card.boardId}');
+    print('🏭 PRESENTER: Card WorkspaceId: ${card.workspaceId}');
+    
+    LoggerService.to.methodEntry('BoardPresenter.onCreateFullCard', {
+      'workspaceId': workspaceId,
+      'cardTitle': card.title,
+      'laneId': card.laneId,
+    });
+    
+    print('🔄 PRESENTER: Creating full card: ${card.title}');
+    print('📊 PRESENTER: Card data: hashtags=${card.hashtags.length}, expenses=${card.expenses.length}, watchers=${card.watchers.length}');
+    
+    try {
+      print('📞 PRESENTER: Calling repository.createCard...');
+      // Create card in repository with full data
+      final cardId = await _repository.createCard(workspaceId, card);
+      print('✅ PRESENTER: Full card created successfully with ID: $cardId');
+      
+      LoggerService.to.business('Full card created successfully');
+      LoggerService.to.database('Full card created in repository');
+    } catch (e) {
+      print('🏭 ========== PRESENTER: onCreateFullCard ERROR ==========');
+      print('❌ PRESENTER: Failed to create full card: $e');
+      print('📍 PRESENTER: Error details: ${e.toString()}');
+      print('📍 PRESENTER: Error type: ${e.runtimeType}');
+      LoggerService.to.error('Failed to create full card', e);
+      _view?.showError('Failed to create card: ${e.toString()}');
+      print('🏭 ========== PRESENTER: onCreateFullCard END (ERROR) ==========');
+      rethrow;
+    }
+    
+    LoggerService.to.methodExit('BoardPresenter.onCreateFullCard');
+    print('🏭 ========== PRESENTER: onCreateFullCard END (SUCCESS) ==========');
+  }
+
   // Update card
   Future<void> onUpdateCard({
     required String workspaceId,

@@ -401,36 +401,60 @@ class BoardController extends GetxController implements BoardView {
 
   // Clone lane with all its cards
   Future<void> onCloneLane(Lane sourceLane) async {
+    print('🚀 ========== CONTROLLER: onCloneLane START ==========');
+    
     if (currentWorkspaceId.value.isEmpty) {
-      print('⚠️ No workspace selected for cloning lane');
+      print('❌ CONTROLLER: No workspace selected for cloning lane');
+      print('🚀 ========== CONTROLLER: onCloneLane END (WORKSPACE ERROR) ==========');
       return;
     }
     
-    print('🔄 Cloning lane: ${sourceLane.title}');
+    print('🔄 CONTROLLER: Cloning lane: ${sourceLane.title}');
+    print('📊 CONTROLLER: Source lane has ${sourceLane.cards.length} cards to clone');
+    print('🏢 CONTROLLER: Workspace ID: ${currentWorkspaceId.value}');
+    print('📋 CONTROLLER: Board ID: ${currentBoardId.value}');
     
     try {
       // Create cloned lane with new title
       final clonedLaneTitle = '${sourceLane.title} (Copy)';
+      print('🔄 CONTROLLER: Creating new lane: $clonedLaneTitle');
       
       // Create the lane directly using the presenter
+      print('📞 CONTROLLER: Calling presenter.onAddLane...');
       await _presenter.onAddLane(currentWorkspaceId.value, clonedLaneTitle);
+      print('✅ CONTROLLER: Lane created successfully');
       
       // Reload lanes to get the newly created lane
-      await load();
+      print('🔄 CONTROLLER: Reloading lanes to find newly created lane');
+      await _presenter.load(currentWorkspaceId.value, currentBoardId.value);
+      print('✅ CONTROLLER: Lanes reloaded');
       
       // Find the newly created lane
+      print('🔍 CONTROLLER: Searching for cloned lane with title: $clonedLaneTitle');
       final clonedLanes = lanes.where((lane) => lane.title == clonedLaneTitle).toList();
+      print('🔍 CONTROLLER: Found ${clonedLanes.length} lanes with title: $clonedLaneTitle');
+      
       if (clonedLanes.isEmpty) {
+        print('❌ CONTROLLER: Failed to find cloned lane - throwing exception');
         throw Exception('Failed to find cloned lane');
       }
       
       final clonedLane = clonedLanes.last; // Get the most recently created one
+      print('📝 CONTROLLER: Cloning to lane ID: ${clonedLane.id}');
+      print('🎯 CONTROLLER: Starting to clone ${sourceLane.cards.length} cards...');
       
       // Clone all cards from source lane to the new lane
       for (int i = 0; i < sourceLane.cards.length; i++) {
         final sourceCard = sourceLane.cards[i];
+        print('🔄 CONTROLLER: Cloning card ${i + 1}/${sourceLane.cards.length}: ${sourceCard.title}');
+        print('📋 CONTROLLER: Source card ID: ${sourceCard.id}');
+        print('🏷️ CONTROLLER: Source card hashtags: ${sourceCard.hashtags.length} items');
+        print('💰 CONTROLLER: Source card expenses: ${sourceCard.expenses.length} items');
+        print('👥 CONTROLLER: Source card watchers: ${sourceCard.watchers.length} items');
+        print('🤝 CONTROLLER: Source card collaborators: ${sourceCard.collaborators.length} items');
         
         // Create a cloned card with all the necessary properties
+        print('🏗️ CONTROLLER: Creating JobCard object...');
         final clonedCard = JobCard(
           id: '', // Will be auto-generated
           title: '${sourceCard.title} (Copy)',
@@ -444,8 +468,8 @@ class BoardController extends GetxController implements BoardView {
           badges: List<String>.from(sourceCard.badges),
           amount: sourceCard.amount,
           laneId: clonedLane.id,
-          boardId: sourceCard.boardId,
-          workspaceId: sourceCard.workspaceId,
+          boardId: sourceCard.boardId.isNotEmpty ? sourceCard.boardId : currentBoardId.value,
+          workspaceId: sourceCard.workspaceId.isNotEmpty ? sourceCard.workspaceId : currentWorkspaceId.value,
           order: i, // Maintain order
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -470,29 +494,63 @@ class BoardController extends GetxController implements BoardView {
           withholdingTaxPercentage: sourceCard.withholdingTaxPercentage,
         );
         
-        // Create the card using the presenter
-        await _presenter.onAddCard(
-          workspaceId: currentWorkspaceId.value,
-          laneId: clonedLane.id,
-          title: clonedCard.title,
-          assignee: clonedCard.assignedTo,
-        );
+        print('✅ CONTROLLER: JobCard object created successfully');
+        print('📊 CONTROLLER: Cloned card data check:');
+        print('  - Title: ${clonedCard.title}');
+        print('  - AssignedTo: ${clonedCard.assignedTo}');
+        print('  - LaneId: ${clonedCard.laneId}');
+        print('  - BoardId: ${clonedCard.boardId}');
+        print('  - WorkspaceId: ${clonedCard.workspaceId}');
+        print('  - Hashtags: ${clonedCard.hashtags.length}');
+        print('  - Expenses: ${clonedCard.expenses.length}');
+        print('  - Company: ${clonedCard.company}');
+        print('  - CreatedBy: ${clonedCard.createdBy}');
+        print('  - UpdatedBy: ${clonedCard.updatedBy}');
         
-        // Note: The basic onAddCard only creates a simple card.
-        // To fully clone with all properties, we'd need a more comprehensive card creation method
-        // or update the card after creation. For now, we'll just clone the basic properties.
+        // Create the card using the new full card creation method
+        print('� CONTROLLER: Calling presenter.onCreateFullCard...');
+        print('�🔄 CONTROLLER: Creating cloned card with full data preservation...');
+        try {
+          await _presenter.onCreateFullCard(
+            workspaceId: currentWorkspaceId.value,
+            card: clonedCard,
+          );
+          print('✅ CONTROLLER: Card ${i + 1} cloned successfully: ${clonedCard.title}');
+        } catch (cardError) {
+          print('❌ CONTROLLER: Failed to clone card ${i + 1}: $cardError');
+          print('📍 CONTROLLER: Card error details: ${cardError.toString()}');
+          print('📍 CONTROLLER: Card error type: ${cardError.runtimeType}');
+          if (cardError is Exception) {
+            print('📍 CONTROLLER: Exception stack trace: ${StackTrace.current}');
+          }
+          // Continue with other cards instead of failing the entire operation
+          print('⚠️ CONTROLLER: Continuing with next card...');
+          continue;
+        }
       }
       
       // Reload lanes to show the updated data
-      await load();
+      print('🔄 CONTROLLER: Reloading lanes to show updated data...');
+      await _presenter.load(currentWorkspaceId.value, currentBoardId.value);
+      print('✅ CONTROLLER: Final reload completed');
       
-      print('✅ Lane cloned successfully: ${sourceLane.title} -> $clonedLaneTitle');
+      print('🚀 ========== CONTROLLER: onCloneLane SUCCESS ==========');
+      print('✅ CONTROLLER: Lane cloned successfully: ${sourceLane.title} -> $clonedLaneTitle');
       
     } catch (e) {
-      print('❌ Failed to clone lane: $e');
+      print('🚀 ========== CONTROLLER: onCloneLane ERROR ==========');
+      print('❌ CONTROLLER: Failed to clone lane: $e');
+      print('📍 CONTROLLER: Error details: ${e.toString()}');
+      print('📍 CONTROLLER: Error type: ${e.runtimeType}');
+      if (e is Exception) {
+        print('📍 CONTROLLER: Exception stack trace: ${StackTrace.current}');
+      }
       error.value = 'Failed to clone lane: ${e.toString()}';
+      print('🚀 ========== CONTROLLER: onCloneLane END (ERROR) ==========');
       rethrow;
     }
+    
+    print('🚀 ========== CONTROLLER: onCloneLane END (SUCCESS) ==========');
   }
 
   // Add new card

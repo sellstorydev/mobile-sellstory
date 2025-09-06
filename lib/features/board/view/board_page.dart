@@ -1104,9 +1104,22 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   void _cloneLane(Lane lane) async {
+    print('🎯 =================================================');
+    print('🎯 CLONE OPERATION STARTED');
+    print('🎯 Source Lane: ${lane.title}');
+    print('🎯 Source Lane ID: ${lane.id}');
+    print('🎯 Cards count in source lane: ${lane.cards.length}');
+    print('🎯 Current workspace ID: ${_controller.currentWorkspaceId.value}');
+    print('🎯 Current board ID: ${_controller.currentBoardId.value}');
+    print('🎯 =================================================');
+    
     try {
       print('🔄 Cloning lane: ${lane.title}');
       await _controller.onCloneLane(lane);
+      
+      print('🎯 =================================================');
+      print('🎯 CLONE OPERATION COMPLETED SUCCESSFULLY');
+      print('🎯 =================================================');
       
       Get.snackbar(
         'Success',
@@ -1116,7 +1129,13 @@ class _BoardPageState extends State<BoardPage> {
         colorText: Colors.white,
       );
     } catch (e) {
+      print('🎯 =================================================');
+      print('🎯 CLONE OPERATION FAILED');
       print('❌ Error cloning lane: $e');
+      print('📍 Error type: ${e.runtimeType}');
+      print('📍 Stack trace: ${StackTrace.current}');
+      print('🎯 =================================================');
+      
       Get.snackbar(
         'Error',
         'Failed to clone lane: ${e.toString()}',
