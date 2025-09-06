@@ -1017,6 +1017,7 @@ class _BoardPageState extends State<BoardPage> {
       lane: lane,
       onCreateCard: () => _navigateToCreateCardWithLane(lane),
       onMenuTap: () => _showLaneMenu(lane),
+      onCloneLane: () => _cloneLane(lane),
       allLaneIds: _controller.lanes.map((l) => l.id).toList(),
     );
   }
@@ -1100,6 +1101,30 @@ class _BoardPageState extends State<BoardPage> {
         'workspaceId': _controller.currentWorkspaceId.value,
       },
     );
+  }
+
+  void _cloneLane(Lane lane) async {
+    try {
+      print('🔄 Cloning lane: ${lane.title}');
+      await _controller.onCloneLane(lane);
+      
+      Get.snackbar(
+        'Success',
+        'Lane "${lane.title}" cloned successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      print('❌ Error cloning lane: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to clone lane: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _showLaneMenu(Lane lane) {

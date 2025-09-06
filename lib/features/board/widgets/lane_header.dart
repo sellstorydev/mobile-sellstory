@@ -10,6 +10,7 @@ class LaneHeader extends StatelessWidget {
   final Lane lane;
   final VoidCallback? onMenuTap;
   final VoidCallback? onCreateCard;
+  final VoidCallback? onCloneLane; // Add clone lane callback
   final List<String>? allLaneIds; // For "Apply to All Lanes" functionality
 
   const LaneHeader({
@@ -17,6 +18,7 @@ class LaneHeader extends StatelessWidget {
     required this.lane,
     this.onMenuTap,
     this.onCreateCard,
+    this.onCloneLane,
     this.allLaneIds,
   });
 
@@ -305,8 +307,8 @@ class LaneHeader extends StatelessWidget {
                         ),
                         onTap: () {
                           Navigator.of(context).pop();
-                          // Call original onMenuTap for duplication if needed
-                          onMenuTap?.call();
+                          // Call clone lane functionality
+                          onCloneLane?.call();
                         },
                       ),
 
