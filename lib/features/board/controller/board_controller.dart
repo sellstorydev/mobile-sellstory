@@ -11,6 +11,7 @@ import '../presenter/board_presenter.dart';
 import '../contract/board_view.dart';
 import '../state/board_state.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../controllers/lane_display_controller.dart';
 
 class BoardController extends GetxController implements BoardView {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -66,6 +67,12 @@ class BoardController extends GetxController implements BoardView {
     super.onInit();
     _presenter = BoardPresenter(this, _repository);
     searchTextController = TextEditingController();
+    
+    // Initialize display controller if not already available
+    if (!Get.isRegistered<LaneDisplayController>()) {
+      Get.put(LaneDisplayController());
+    }
+    
     print('🔄 BoardController initialized');
   }
   

@@ -1017,6 +1017,7 @@ class _BoardPageState extends State<BoardPage> {
       lane: lane,
       onCreateCard: () => _navigateToCreateCardWithLane(lane),
       onMenuTap: () => _showLaneMenu(lane),
+      allLaneIds: _controller.lanes.map((l) => l.id).toList(),
     );
   }
 
