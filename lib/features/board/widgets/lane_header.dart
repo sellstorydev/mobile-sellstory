@@ -10,7 +10,8 @@ class LaneHeader extends StatelessWidget {
   final Lane lane;
   final VoidCallback? onMenuTap;
   final VoidCallback? onCreateCard;
-  final VoidCallback? onCloneLane; // Add clone lane callback
+  final VoidCallback? onCloneLane; // Clone lane callback
+  final VoidCallback? onDeleteLane; // Delete lane callback
   final List<String>? allLaneIds; // For "Apply to All Lanes" functionality
 
   const LaneHeader({
@@ -19,6 +20,7 @@ class LaneHeader extends StatelessWidget {
     this.onMenuTap,
     this.onCreateCard,
     this.onCloneLane,
+    this.onDeleteLane,
     this.allLaneIds,
   });
 
@@ -187,52 +189,8 @@ class LaneHeader extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       builder: (ctx) {
-        final currentMode = displayController.getDisplayMode(lane.id);
-        LaneDisplayMode selectedMode = currentMode;
-
           return StatefulBuilder(
             builder: (context, setState) {
-              Widget buildRadio(LaneDisplayMode mode) {
-                final bool isSelected = selectedMode == mode;
-                return InkWell(
-                  onTap: () {
-                    // Update the display mode immediately and close modal
-                    displayController.setDisplayMode(lane.id, mode);
-                    Navigator.of(context).pop();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      children: [
-                        // Bullet dot when selected
-                        Container(
-                          width: 18,
-                          alignment: Alignment.centerLeft,
-                          child: Icon(
-                            Icons.circle,
-                            size: 8,
-                            color: isSelected
-                                ? AppTheme.textPrimary
-                                : Colors.transparent,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            mode.label,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: AppTheme.textPrimary,
-                                  height: 1.1,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
               return SafeArea(
                 top: false,
                 child: Padding(
@@ -244,53 +202,36 @@ class LaneHeader extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Header
                       Text(
-                        'Display Summary',
+                        'Lane Options',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: AppTheme.textPrimary,
                             ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
 
-                      // Summary options
-                      buildRadio(LaneDisplayMode.totalBeforeDiscount),
-                      buildRadio(LaneDisplayMode.totalAfterDiscount),
-                      buildRadio(LaneDisplayMode.grandTotal),
-                      buildRadio(LaneDisplayMode.netTotal),
-                      buildRadio(LaneDisplayMode.none),
-
-                      const SizedBox(height: 12),
-                      const Divider(height: 1),
-                      const SizedBox(height: 12),
-
-                      // Apply to all lanes
+                      // Edit Lane
                       ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.edit_outlined,
+                          color: AppTheme.textSecondary,
+                        ),
                         title: Text(
-                          'Apply to All Lanes',
+                          'แก้ไข Lane',
                           style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
-                              ),
+                              ?.copyWith(color: AppTheme.textPrimary),
                         ),
                         onTap: () {
-                          // Apply current lane's mode to all lanes
-                          final currentLaneMode = displayController.getDisplayMode(lane.id);
-                          if (allLaneIds != null && allLaneIds!.isNotEmpty) {
-                            displayController.applyToAllLanes(
-                              allLaneIds!,
-                              currentLaneMode,
-                            );
-                          }
                           Navigator.of(context).pop();
+                          // Call original onMenuTap for editing
+                          onMenuTap?.call();
                         },
                       ),
-
-                      const SizedBox(height: 4),
 
                       // Duplicate lane
                       ListTile(
@@ -301,14 +242,51 @@ class LaneHeader extends StatelessWidget {
                           color: AppTheme.textSecondary,
                         ),
                         title: Text(
-                          'Duplicate Lane',
+                          'คัดลอก Lane',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppTheme.textPrimary),
                         ),
                         onTap: () {
                           Navigator.of(context).pop();
-                          // Call clone lane functionality
                           onCloneLane?.call();
+                        },
+                      ),
+
+                      // Move Lane
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.swap_horiz,
+                          color: AppTheme.textSecondary,
+                        ),
+                        title: Text(
+                          'Move Lane',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.textPrimary),
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          // TODO: Implement move lane functionality
+                        },
+                      ),
+
+                      // Archive Lane
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.archive_outlined,
+                          color: AppTheme.textSecondary,
+                        ),
+                        title: Text(
+                          'Archive Lane',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.textPrimary),
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          // TODO: Implement archive lane functionality
                         },
                       ),
 
@@ -321,13 +299,12 @@ class LaneHeader extends StatelessWidget {
                           color: Colors.red,
                         ),
                         title: const Text(
-                          'Delete Lane',
+                          'ลบ Lane',
                           style: TextStyle(color: Colors.red),
                         ),
                         onTap: () {
                           Navigator.of(context).pop();
-                          // Call original onMenuTap for deletion if needed
-                          onMenuTap?.call();
+                          onDeleteLane?.call();
                         },
                       ),
 

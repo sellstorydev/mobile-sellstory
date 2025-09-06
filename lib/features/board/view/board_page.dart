@@ -1018,6 +1018,7 @@ class _BoardPageState extends State<BoardPage> {
       onCreateCard: () => _navigateToCreateCardWithLane(lane),
       onMenuTap: () => _showLaneMenu(lane),
       onCloneLane: () => _cloneLane(lane),
+      onDeleteLane: () => _deleteLane(lane),
       allLaneIds: _controller.lanes.map((l) => l.id).toList(),
     );
   }
@@ -1143,6 +1144,73 @@ class _BoardPageState extends State<BoardPage> {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  void _deleteLane(Lane lane) async {
+    print('🗑️ Delete lane request for: ${lane.title} (${lane.id})');
+    
+    // Show confirmation dialog
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Lane'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Are you sure you want to delete "${lane.title}"?'),
+              const SizedBox(height: 8),
+              if (lane.cards.isNotEmpty) ...[
+                const Text(
+                  'Warning: This lane contains cards that will also be deleted.',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text('Cards to be deleted: ${lane.cards.length}'),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        print('🗑️ Deleting lane: ${lane.title} (${lane.id})');
+        await _controller.deleteLane(laneId: lane.id);
+        
+        Get.snackbar(
+          'Success',
+          'Lane "${lane.title}" deleted successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      } catch (e) {
+        print('❌ Error deleting lane: $e');
+        Get.snackbar(
+          'Error',
+          'Failed to delete lane: ${e.toString()}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
     }
   }
 
