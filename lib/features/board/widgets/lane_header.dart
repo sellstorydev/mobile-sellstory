@@ -188,9 +188,12 @@ class LaneHeader extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
+      isScrollControlled: true,
       builder: (ctx) {
           return StatefulBuilder(
             builder: (context, setState) {
+              final currentDisplayMode = displayController.getDisplayMode(lane.id);
+              
               return SafeArea(
                 top: false,
                 child: Padding(
@@ -202,38 +205,122 @@ class LaneHeader extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
+                      // Display Summary Section
                       Text(
-                        'Lane Options',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimary,
-                            ),
+                        'Display Summary',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
-                      // Edit Lane
+                      // Total (before discount)
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.totalBeforeDiscount,
+                        groupValue: currentDisplayMode,
+                        title: const Text('Total (before discount)'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      // Total (after discount)
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.totalAfterDiscount,
+                        groupValue: currentDisplayMode,
+                        title: const Text('Total (after discount)'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      // Grand Total (after VAT)
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.grandTotal,
+                        groupValue: currentDisplayMode,
+                        title: const Text('Grand Total (after VAT)'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      // Net Total (after VAT & WHT)
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.netTotal,
+                        groupValue: currentDisplayMode,
+                        title: const Text('Net Total (after VAT & WHT)'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      // None
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.none,
+                        groupValue: currentDisplayMode,
+                        title: const Text('None'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Apply to All Lanes
                       ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(
-                          Icons.edit_outlined,
+                          Icons.select_all,
                           color: AppTheme.textSecondary,
                         ),
                         title: Text(
-                          'แก้ไข Lane',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppTheme.textPrimary),
+                          'Apply to All Lanes',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         onTap: () {
+                          // Apply current display mode to all lanes
+                          if (allLaneIds != null) {
+                            for (String laneId in allLaneIds!) {
+                              displayController.setDisplayMode(laneId, currentDisplayMode);
+                            }
+                          }
                           Navigator.of(context).pop();
-                          // Call original onMenuTap for editing
-                          onMenuTap?.call();
                         },
                       ),
 
-                      // Duplicate lane
+                      const Divider(height: 24),
+
+                      // Duplicate Lane
                       ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
@@ -242,9 +329,10 @@ class LaneHeader extends StatelessWidget {
                           color: AppTheme.textSecondary,
                         ),
                         title: Text(
-                          'คัดลอก Lane',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppTheme.textPrimary),
+                          'Duplicate Lane',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
                         onTap: () {
                           Navigator.of(context).pop();
@@ -252,45 +340,7 @@ class LaneHeader extends StatelessWidget {
                         },
                       ),
 
-                      // Move Lane
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.swap_horiz,
-                          color: AppTheme.textSecondary,
-                        ),
-                        title: Text(
-                          'Move Lane',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppTheme.textPrimary),
-                        ),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          // TODO: Implement move lane functionality
-                        },
-                      ),
-
-                      // Archive Lane
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.archive_outlined,
-                          color: AppTheme.textSecondary,
-                        ),
-                        title: Text(
-                          'Archive Lane',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppTheme.textPrimary),
-                        ),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          // TODO: Implement archive lane functionality
-                        },
-                      ),
-
-                      // Delete lane
+                      // Delete Lane
                       ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
@@ -299,7 +349,7 @@ class LaneHeader extends StatelessWidget {
                           color: Colors.red,
                         ),
                         title: const Text(
-                          'ลบ Lane',
+                          'Delete Lane',
                           style: TextStyle(color: Colors.red),
                         ),
                         onTap: () {
