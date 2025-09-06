@@ -20,6 +20,50 @@ class EditCardPage extends StatefulWidget {
 }
 
 class _EditCardPageState extends State<EditCardPage> {
+  // Popup menu actions
+  void _onCopy() {
+    Get.snackbar(
+      'Copy',
+      'Copy functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _onMove() {
+    Get.snackbar(
+      'Move',
+      'Move functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _onArchive() {
+    Get.snackbar(
+      'Archive',
+      'Archive functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _onDeletePermanently() {
+    Get.snackbar(
+      'Delete Permanently',
+      'Delete functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
   final BoardController _controller = Get.find<BoardController>();
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
   
@@ -338,18 +382,61 @@ class _EditCardPageState extends State<EditCardPage> {
           centerTitle: false,
           actions: [
             PopupMenuButton<String>(
-              icon: const Icon(Icons.visibility_outlined, color: Colors.black54),
+              icon: const Icon(Icons.more_vert, color: Colors.black54),
               onSelected: (value) {
-                // Add watcher functionality will be implemented later
+                switch (value) {
+                  case 'copy':
+                    _onCopy();
+                    break;
+                  case 'move':
+                    _onMove();
+                    break;
+                  case 'archive':
+                    _onArchive();
+                    break;
+                  case 'delete':
+                    _onDeletePermanently();
+                    break;
+                }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'add_watcher',
+                PopupMenuItem(
+                  value: 'copy',
                   child: Row(
-                    children: [
-                      Icon(Icons.visibility_outlined, size: 18),
+                    children: const [
+                      Icon(Icons.copy, size: 18),
                       SizedBox(width: 8),
-                      Text('Add a watcher'),
+                      Text('Copy'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'move',
+                  child: Row(
+                    children: const [
+                      Icon(Icons.open_with, size: 18),
+                      SizedBox(width: 8),
+                      Text('Move'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'archive',
+                  child: Row(
+                    children: const [
+                      Icon(Icons.archive, size: 18),
+                      SizedBox(width: 8),
+                      Text('Archive'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: const [
+                      Icon(Icons.delete_forever, color: Colors.red, size: 18),
+                      SizedBox(width: 8),
+                      Text('Delete Permanently', style: TextStyle(color: Colors.red)),
                     ],
                   ),
                 ),
