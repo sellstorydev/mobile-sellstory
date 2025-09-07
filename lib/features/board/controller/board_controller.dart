@@ -49,6 +49,34 @@ class BoardController extends GetxController implements BoardView {
   final RxList<String> availableAssignees = <String>[].obs;
   final RxList<String> availableCustomers = <String>[].obs;
   final RxList<String> availableHashtags = <String>[].obs;
+  
+  // Computed property to get current hashtags
+  List<String> get currentAvailableHashtags {
+    final Set<String> hashtags = {};
+    
+    for (final lane in _originalLanes) {
+      for (final card in lane.cards) {
+        if (card.hashtags.isNotEmpty) {
+          for (final hashtagObj in card.hashtags) {
+            if (hashtagObj['text'] != null) {
+              final hashtagText = hashtagObj['text'] as String;
+              if (hashtagText.isNotEmpty) {
+                hashtags.add(hashtagText.trim());
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    final result = hashtags.toList();
+    // Update the reactive list too
+    if (availableHashtags.length != result.length || !availableHashtags.every((item) => result.contains(item))) {
+      availableHashtags.value = result;
+    }
+    
+    return result;
+  }
   final RxList<String> availableInterests = <String>[].obs;
   // UI behavior: whether to hide lanes with zero cards when filters are active
   final RxBool hideEmptyLanesWhenFiltering = false.obs;
@@ -912,6 +940,16 @@ class BoardController extends GetxController implements BoardView {
         print('🗄️ Lane "${lane.title}": Filtered out $archivedCount archived cards (${nonArchivedCards.length}/${originalCardCount} remaining)');
       }
       
+      // Debug: Check hashtags in this lane
+      int cardsWithHashtags = 0;
+      for (final card in nonArchivedCards) {
+        if (card.hashtags.isNotEmpty) {
+          cardsWithHashtags++;
+          print('🔍 Lane "${lane.title}" - Card "${card.title}" has ${card.hashtags.length} hashtags: ${card.hashtags}');
+        }
+      }
+      print('🔍 Lane "${lane.title}": $cardsWithHashtags/${nonArchivedCards.length} cards have hashtags');
+      
       return Lane(
         id: lane.id,
         title: lane.title,
@@ -1079,7 +1117,20 @@ class BoardController extends GetxController implements BoardView {
            safeContains(card.status, searchLower) ||
            safeContains(card.updatedByDisplayName, searchLower) ||
            safeContains(card.company?['value'], searchLower) ||
-           safeContains(card.hashtag ?? '', searchLower);
+           _cardHashtagsContain(card, searchLower);
+  }
+
+  // Helper method to check if card hashtags contain search term
+  bool _cardHashtagsContain(JobCard card, String searchLower) {
+    for (final hashtagObj in card.hashtags) {
+      if (hashtagObj['text'] != null) {
+        final hashtagText = hashtagObj['text'] as String;
+        if (hashtagText.toLowerCase().contains(searchLower)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
   
   // Filter Methods
@@ -1561,25 +1612,58 @@ class BoardController extends GetxController implements BoardView {
   
   void _updateAvailableHashtags() {
     final Set<String> hashtags = {};
+    int totalCards = 0;
+    int cardsWithHashtags = 0;
+    
+    print('🔍 _updateAvailableHashtags() started');
+    print('🔍 Processing ${_originalLanes.length} lanes');
     
     for (final lane in _originalLanes) {
+      print('🔍 Lane: ${lane.title} has ${lane.cards.length} cards');
       for (final card in lane.cards) {
-        final cardHashtag = card.hashtag ?? '';
-        if (cardHashtag.isNotEmpty) {
-          // Split hashtags by common delimiters and clean them
-          final cardHashtags = cardHashtag
-              .split(RegExp(r'[,\s]+'))
-              .where((tag) => tag.isNotEmpty)
-              .map((tag) => tag.trim().replaceFirst('#', ''))
-              .where((tag) => tag.isNotEmpty);
-          hashtags.addAll(cardHashtags);
+        totalCards++;
+        // Use hashtags array instead of hashtag string
+        if (card.hashtags.isNotEmpty) {
+          cardsWithHashtags++;
+          print('🔍 Card "${card.title}" has ${card.hashtags.length} hashtags: ${card.hashtags}');
+          for (final hashtagObj in card.hashtags) {
+            print('🔍 Processing hashtag object: $hashtagObj');
+            if (hashtagObj['text'] != null) {
+              final hashtagText = hashtagObj['text'] as String;
+              if (hashtagText.isNotEmpty) {
+                final trimmedText = hashtagText.trim();
+                hashtags.add(trimmedText);
+                print('🔍 Added hashtag: "$trimmedText"');
+              }
+            } else {
+              print('🔍 Invalid hashtag object: $hashtagObj');
+            }
+          }
+        } else {
+          print('🔍 Card "${card.title}" has no hashtags');
         }
       }
     }
     
     availableHashtags.value = hashtags.toList();
-    print('🔍 Available hashtags updated: ${hashtags.length} hashtags');
-    print('🔍 Hashtags: $hashtags');
+    print('🔍 Available hashtags updated: ${hashtags.length} hashtags from $cardsWithHashtags/$totalCards cards');
+    print('🔍 Final hashtags list: $hashtags');
+    print('🔍 availableHashtags after update: ${availableHashtags.toList()}');
+    
+    // Trigger UI update manually
+    availableHashtags.refresh();
+    
+    // Force debug call after a delay to ensure data is ready
+    Future.delayed(Duration(milliseconds: 100), () {
+      debugPrintAvailableHashtags();
+    });
+  }
+  
+  // Debug method to print available hashtags
+  void debugPrintAvailableHashtags() {
+    print('🔍 DEBUG: availableHashtags current state:');
+    print('🔍 DEBUG: length = ${availableHashtags.length}');
+    print('🔍 DEBUG: items = ${availableHashtags.toList()}');
   }
   
   // Helper method to get display name from UID

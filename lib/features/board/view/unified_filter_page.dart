@@ -444,7 +444,13 @@ class UnifiedFilterPage extends StatelessWidget {
               const SizedBox(height: 12),
               
               Obx(() {
-                if (controller.availableHashtags.isEmpty) {
+                // Use computed property instead of reactive list
+                final hashtags = controller.currentAvailableHashtags;
+                
+                print('🔍 UnifiedFilterPage - currentAvailableHashtags: $hashtags');
+                print('🔍 UnifiedFilterPage - hashtags length: ${hashtags.length}');
+                
+                if (hashtags.isEmpty) {
                   return const Text(
                     'ไม่มีแฮชแท็กในระบบ',
                     style: TextStyle(color: Colors.grey),
@@ -452,7 +458,7 @@ class UnifiedFilterPage extends StatelessWidget {
                 }
                 
                 return Column(
-                  children: controller.availableHashtags.map((hashtag) {
+                  children: hashtags.map((hashtag) {
                     final isSelected = controller.selectedHashtags.contains(hashtag);
                     
                     return CheckboxListTile(
@@ -662,7 +668,9 @@ class UnifiedFilterPage extends StatelessWidget {
     int count = 0;
     for (final lane in controller.lanes) {
       count += lane.cards.where((card) => 
-        (card.hashtag ?? '').toLowerCase().contains(hashtag.toLowerCase())
+        card.hashtags.any((hashtagObj) => 
+          (hashtagObj['text'] ?? '').toString().toLowerCase().contains(hashtag.toLowerCase())
+        )
       ).length;
     }
     return '$count งาน';
