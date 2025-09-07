@@ -17,6 +17,7 @@ import '../features/webview/view/webview_page.dart';
 import '../features/more/view/fcm_logs_page.dart';
 import '../features/calendar/view/calendar_page.dart';
 import '../features/board/view/card_view_setting_page.dart';
+import '../features/archive/view/archive_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -37,6 +38,7 @@ class AppRoutes {
   static const String fcmLogs = '/fcm-logs';
   static const String calendar = '/calendar';
   static const String cardViewSettings = '/card-view-settings';
+  static const String archive = '/archive';
 
   static final routes = [
     GetPage(
@@ -134,6 +136,10 @@ class AppRoutes {
         }
         return CardViewSettingPage(boardId: resolvedBoardId);
       },
+    ),
+    GetPage(
+      name: archive,
+      page: () => const ArchivePage(),
     ),
   ];
 }
