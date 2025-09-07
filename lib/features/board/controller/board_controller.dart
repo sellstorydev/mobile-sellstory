@@ -1400,7 +1400,7 @@ class BoardController extends GetxController implements BoardView {
         // Check customer filter (OR logic - match any selected customer)  
         if (hasCustomerFilter) {
           customerMatches = selectedCustomers.any((selectedCustomer) => 
-            (card.customerId ?? '').toLowerCase().contains(selectedCustomer.toLowerCase()));
+            card.customer.toLowerCase().contains(selectedCustomer.toLowerCase()));
         }
         
         // Check hashtag filter (OR logic - match any selected hashtag)
@@ -1460,7 +1460,7 @@ class BoardController extends GetxController implements BoardView {
         if (!matches) {
           print('🔍 ❌ Card "${card.title}" did not match because:');
           if (!assigneeMatches) print('    - Assignee filter failed: "${card.assignedTo}" not in $selectedAssignees');
-          if (!customerMatches) print('    - Customer filter failed: "${card.customerId ?? ''}" not matching $selectedCustomers');
+          if (!customerMatches) print('    - Customer filter failed: "${card.customer}" not matching $selectedCustomers');
           if (!hashtagMatches) print('    - Hashtag filter failed: "${card.hashtags}" not matching $selectedHashtags');
           if (!interestMatches) print('    - Interest filter failed: "${card.customerInterest ?? ''}" not matching $selectedInterests');
           if (!dateMatches) print('    - Date filter failed');
