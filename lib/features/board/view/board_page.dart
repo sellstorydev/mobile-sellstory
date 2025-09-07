@@ -624,17 +624,17 @@ class _BoardPageState extends State<BoardPage> {
             print('🎯 Status Summary Cards Obx called - hasWorkspaces: ${_controller.hasWorkspaces}, lanes count: ${_controller.lanes.length}');
             
             if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
-              final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
+              final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
                                  _controller.selectedCustomers.isNotEmpty ||
                                  _controller.selectedHashtags.isNotEmpty ||
+                                 _controller.selectedInterests.isNotEmpty ||
                                  _controller.selectedStatuses.isNotEmpty ||
                                  _controller.selectedDateFilterTypes.isNotEmpty;
               
               print('🎯 hasAnyFilter: $hasAnyFilter, selectedStatuses: ${_controller.selectedStatuses}');
+              print('🎯 selectedInterests: ${_controller.selectedInterests}');
               
-              final displayLanes = (_controller.isSearching.value || hasAnyFilter)
-                  ? _controller.filteredLanes 
-                  : _controller.lanes;
+              final displayLanes = _controller.displayLanes;
               final allCards = displayLanes
                   .expand((lane) => lane.cards)
                   .toList();
@@ -791,14 +791,13 @@ class _BoardPageState extends State<BoardPage> {
         );
       }
 
-    final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
+    final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
                          _controller.selectedCustomers.isNotEmpty ||
                          _controller.selectedHashtags.isNotEmpty ||
+                         _controller.selectedInterests.isNotEmpty ||
                          _controller.selectedStatuses.isNotEmpty ||
                          _controller.selectedDateFilterTypes.isNotEmpty;
-    final displayLanes = (_controller.isSearching.value || hasAnyFilter)
-      ? _controller.filteredLanes 
-      : _controller.lanes;
+    final displayLanes = _controller.displayLanes;
   // Always show all lanes; cards may be empty depending on filters
   final lanesForView = displayLanes;
 
@@ -931,12 +930,11 @@ class _BoardPageState extends State<BoardPage> {
   final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
     _controller.selectedCustomers.isNotEmpty ||
     _controller.selectedHashtags.isNotEmpty ||
+    _controller.selectedInterests.isNotEmpty ||
     _controller.selectedStatuses.isNotEmpty ||
     _controller.selectedDateFilterTypes.isNotEmpty;
 
-  final displayLanes = (_controller.isSearching.value || hasAnyFilter)
-    ? _controller.filteredLanes
-    : _controller.lanes;
+  final displayLanes = _controller.displayLanes;
   // Always show all lanes; cards may be empty depending on filters
   final visibleLanes = displayLanes;
     

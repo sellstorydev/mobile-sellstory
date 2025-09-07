@@ -533,17 +533,46 @@ class UnifiedFilterPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               
-              // Predefined interest options
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildInterestChip(controller, 'เริ่มต้น', 'เริ่มต้น'),
-                  _buildInterestChip(controller, 'น้อย', 'น้อย (Low)'),
-                  _buildInterestChip(controller, 'กลาง', 'กลาง (Medium)'),
-                  _buildInterestChip(controller, 'มาก', 'มาก (High)'),
-                ],
-              ),
+              Obx(() {
+                final interests = controller.currentAvailableInterests;
+                
+                print('🔍 UnifiedFilterPage - currentAvailableInterests: $interests');
+                
+                if (interests.isEmpty) {
+                  return const Text(
+                    'ไม่มีข้อมูลความสนใจในระบบ',
+                    style: TextStyle(color: Colors.grey),
+                  );
+                }
+                
+                return Column(
+                  children: [
+                    // Debug info
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      margin: EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.yellow[100],
+                        border: Border.all(color: Colors.orange),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Debug: Found ${interests.length} interests: ${interests.join(", ")}',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    
+                    // Interest chips
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: interests.map((interest) =>
+                        _buildInterestChip(controller, interest, interest)
+                      ).toList(),
+                    ),
+                  ],
+                );
+              }),
             ],
           ),
         ),

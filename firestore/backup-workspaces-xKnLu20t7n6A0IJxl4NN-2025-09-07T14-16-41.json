@@ -958,7 +958,6 @@
             "boardId": "Mop2RUYjlM9kRoXGa001",
             "laneId": "nvx4rzpcNcJk8GIw4YsK",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "title": "test filter ",
             "description": "",
             "status": "In Progress",
             "customFields": [],
@@ -973,14 +972,12 @@
             "createdAt": 1757235234470,
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedByDisplayName": "bew kiw",
             "order": 1,
             "quotationTemplateId": "",
             "startDate": 1757178000000,
             "endDate": 1757437200000,
             "customerInterest": "กลาง (Medium)",
             "customId": "JB-250907-0058",
-            "customerId": "IhxyfTOYQ6k1UxmdMTT2",
             "company": {
               "value": "test112345",
               "label": "Main",
@@ -988,7 +985,6 @@
             },
             "id": "RfdPz6jNnTRcoo2RR4nN",
             "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
-            "customer": "testssss",
             "hashtags": [
               {
                 "id": "bew213",
@@ -996,7 +992,19 @@
                 "color": "#f97316"
               }
             ],
-            "updatedAt": 1757235369319
+            "updatedByDisplayName": "BewLnwZa",
+            "isVatEnabled": false,
+            "amount": 0,
+            "withholdingTaxPercentage": 0,
+            "dueDate": null,
+            "title": "test filter",
+            "priority": null,
+            "additionalDiscount": null,
+            "badges": [],
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "hashtag": "#Bew213",
+            "updatedAt": 1757253001763,
+            "customer": "Bew"
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/companies": {

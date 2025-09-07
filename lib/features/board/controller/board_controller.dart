@@ -77,6 +77,31 @@ class BoardController extends GetxController implements BoardView {
     
     return result;
   }
+  
+  // Computed property to get current interests
+  List<String> get currentAvailableInterests {
+    final Set<String> interests = {};
+    
+    print('🔍 currentAvailableInterests getter called');
+    
+    for (final lane in _originalLanes) {
+      for (final card in lane.cards) {
+        if (card.customerInterest != null && card.customerInterest!.isNotEmpty) {
+          interests.add(card.customerInterest!.trim());
+        }
+      }
+    }
+    
+    final result = interests.toList();
+    print('🔍 currentAvailableInterests result: $result');
+    
+    // Update the reactive list too
+    if (availableInterests.length != result.length || !availableInterests.every((item) => result.contains(item))) {
+      availableInterests.value = result;
+    }
+    
+    return result;
+  }
   final RxList<String> availableInterests = <String>[].obs;
   // UI behavior: whether to hide lanes with zero cards when filters are active
   final RxBool hideEmptyLanesWhenFiltering = false.obs;
@@ -968,24 +993,26 @@ class BoardController extends GetxController implements BoardView {
     _updateAvailableAssignees();
     _updateAvailableCustomers();
     _updateAvailableHashtags();
+    _updateAvailableInterests();
     
     // Apply current search and filter if exists
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
+    final hasInterestFilter = selectedInterests.isNotEmpty;
     final hasDateFilter = selectedDateFilterTypes.isNotEmpty;
     final hasStatusFilter = selectedStatuses.isNotEmpty;
     final hasSearchQuery = searchQuery.value.isNotEmpty;
     
-    if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasStatusFilter || hasDateFilter)) {
+    if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasInterestFilter || hasStatusFilter || hasDateFilter)) {
       print('🔍 Reapplying search and filter');
       _performSearch(searchQuery.value);
       _performFilter();
     } else if (hasSearchQuery) {
       print('🔍 Reapplying search filter: "${searchQuery.value}"');
       _performSearch(searchQuery.value);
-    } else if (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasStatusFilter || hasDateFilter) {
-      print('🔍 Reapplying filters - Assignees: ${selectedAssignees.length}, Customers: ${selectedCustomers.length}, Hashtags: ${selectedHashtags.length}, Statuses: ${selectedStatuses.length}, Date: ${hasDateFilter}');
+    } else if (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasInterestFilter || hasStatusFilter || hasDateFilter) {
+      print('🔍 Reapplying filters - Assignees: ${selectedAssignees.length}, Customers: ${selectedCustomers.length}, Hashtags: ${selectedHashtags.length}, Interests: ${selectedInterests.length}, Statuses: ${selectedStatuses.length}, Date: ${hasDateFilter}');
       _performFilter();
     } else {
       filteredLanes.value = state.lanes;
@@ -1162,11 +1189,18 @@ class BoardController extends GetxController implements BoardView {
   }
   
   void toggleInterestFilter(String interest) {
+    print('🔍 toggleInterestFilter called with: "$interest"');
+    print('🔍 selectedInterests before: $selectedInterests');
+    
     if (selectedInterests.contains(interest)) {
       selectedInterests.remove(interest);
+      print('🔍 Removed interest: "$interest"');
     } else {
       selectedInterests.add(interest);
+      print('🔍 Added interest: "$interest"');
     }
+    
+    print('🔍 selectedInterests after: $selectedInterests');
     _performFilter();
   }
   
@@ -1412,8 +1446,13 @@ class BoardController extends GetxController implements BoardView {
         
         // Check interest filter (OR logic - match any selected interest)
         if (hasInterestFilter) {
-          interestMatches = selectedInterests.any((selectedInterest) => 
-            (card.customerInterest ?? '').toLowerCase().contains(selectedInterest.toLowerCase()));
+          interestMatches = selectedInterests.any((selectedInterest) {
+            final cardInterest = card.customerInterest?.toLowerCase() ?? '';
+            final filterInterest = selectedInterest.toLowerCase();
+            final matches = cardInterest == filterInterest;
+            print('🔍 Interest compare: card="$cardInterest" vs filter="$filterInterest" = $matches');
+            return matches;
+          });
         }
         
         // Check status filter (OR logic - match any selected status)
@@ -1470,20 +1509,15 @@ class BoardController extends GetxController implements BoardView {
         return matches;
       }).toList();
       
-      // Include lane according to setting: include empty lanes when desired
-      final includeLane = filteredCards.isNotEmpty || !hideEmptyLanesWhenFiltering.value;
-      if (includeLane) {
-        filterResults.add(Lane(
-          id: lane.id,
-          title: lane.title,
-          order: lane.order,
-          cards: filteredCards, // may be empty if showing empty lanes
-          boardId: lane.boardId,
-        ));
-        print('🔍 Including lane "${lane.title}" with ${filteredCards.length} cards (hideEmpty=${hideEmptyLanesWhenFiltering.value})');
-      } else {
-        print('🔍 Skipping lane "${lane.title}" - no matching cards and hideEmpty enabled');
-      }
+      // Always include all lanes, but filter their cards
+      filterResults.add(Lane(
+        id: lane.id,
+        title: lane.title,
+        order: lane.order,
+        cards: filteredCards, // may be empty if no matching cards
+        boardId: lane.boardId,
+      ));
+      print('🔍 Including lane "${lane.title}" with ${filteredCards.length} cards (always show all lanes)');
     }
     
     filteredLanes.value = filterResults;
@@ -1659,6 +1693,33 @@ class BoardController extends GetxController implements BoardView {
     });
   }
   
+  void _updateAvailableInterests() {
+    final Set<String> interests = {};
+    int totalCards = 0;
+    int cardsWithInterests = 0;
+    
+    print('🔍 _updateAvailableInterests() started');
+    print('🔍 Processing ${_originalLanes.length} lanes');
+    
+    for (final lane in _originalLanes) {
+      print('🔍 Lane: ${lane.title} has ${lane.cards.length} cards');
+      for (final card in lane.cards) {
+        totalCards++;
+        if (card.customerInterest != null && card.customerInterest!.isNotEmpty) {
+          cardsWithInterests++;
+          interests.add(card.customerInterest!.trim());
+          print('🔍 Card "${card.title}" has interest: "${card.customerInterest}"');
+        } else {
+          print('🔍 Card "${card.title}" has no interest');
+        }
+      }
+    }
+    
+    availableInterests.value = interests.toList();
+    print('🔍 Available interests updated: ${interests.length} interests from $cardsWithInterests/$totalCards cards');
+    print('🔍 Interests: $interests');
+  }
+  
   // Debug method to print available hashtags
   void debugPrintAvailableHashtags() {
     print('🔍 DEBUG: availableHashtags current state:');
@@ -1680,9 +1741,24 @@ class BoardController extends GetxController implements BoardView {
   
   // Getter for lanes to use in UI (returns filtered/searched lanes)
   List<Lane> get displayLanes {
-    if (isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedStatuses.isNotEmpty || selectedDateFilterTypes.isNotEmpty) {
-      return filteredLanes;
+    final hasAnyFilter = isSearching.value || selectedAssignees.isNotEmpty || selectedCustomers.isNotEmpty || selectedHashtags.isNotEmpty || selectedInterests.isNotEmpty || selectedStatuses.isNotEmpty || selectedDateFilterTypes.isNotEmpty;
+    print('🔍 displayLanes getter called');
+    print('🔍 hasAnyFilter: $hasAnyFilter');
+    print('🔍 isSearching: ${isSearching.value}');
+    print('🔍 selectedInterests: $selectedInterests');
+    print('🔍 filteredLanes count: ${filteredLanes.length}');
+    print('🔍 lanes count: ${lanes.length}');
+    
+    if (hasAnyFilter) {
+      final result = List<Lane>.from(filteredLanes);
+      print('🔍 Returning filtered lanes: ${result.length} lanes');
+      for (final lane in result) {
+        print('  - Lane "${lane.title}": ${lane.cards.length} cards');
+      }
+      return result;
     }
+    
+    print('🔍 Returning original lanes: ${lanes.length} lanes');
     return lanes;
   }
 
