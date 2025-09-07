@@ -901,7 +901,30 @@ class BoardController extends GetxController implements BoardView {
     }
     
     this.lanes.value = state.lanes;
-    _originalLanes.value = state.lanes; // Store original lanes for search
+    
+    // Filter out archived cards from all lanes before storing
+    final lanesWithoutArchived = state.lanes.map((lane) {
+      final originalCardCount = lane.cards.length;
+      final nonArchivedCards = lane.cards.where((card) => card.status != 'Archived').toList();
+      final archivedCount = originalCardCount - nonArchivedCards.length;
+      
+      if (archivedCount > 0) {
+        print('🗄️ Lane "${lane.title}": Filtered out $archivedCount archived cards (${nonArchivedCards.length}/${originalCardCount} remaining)');
+      }
+      
+      return Lane(
+        id: lane.id,
+        title: lane.title,
+        order: lane.order,
+        cards: nonArchivedCards,
+        boardId: lane.boardId,
+      );
+    }).toList();
+    
+    _originalLanes.value = lanesWithoutArchived; // Store filtered lanes for search
+    
+    // Update display with filtered lanes
+    this.lanes.value = lanesWithoutArchived;
     
     // Update available assignees, customers, and hashtags
     _updateAvailableAssignees();
@@ -995,11 +1018,12 @@ class BoardController extends GetxController implements BoardView {
     int matchingCards = 0;
     
     for (final lane in _originalLanes) {
-      // Filter cards that match the search query
+      // Filter cards that match the search query AND are not archived
       final filteredCards = lane.cards.where((card) {
         final matches = _cardMatchesSearch(card, searchLower);
-        if (matches) matchingCards++;
-        return matches;
+        final notArchived = card.status != 'Archived';
+        if (matches && notArchived) matchingCards++;
+        return matches && notArchived;
       }).toList();
       
       // Check if lane title matches
@@ -1007,8 +1031,10 @@ class BoardController extends GetxController implements BoardView {
       
       // Include lane if it has matching cards or the lane title matches
       if (filteredCards.isNotEmpty || laneTitleMatches) {
-        // If lane title matches, include all cards; otherwise include only filtered cards
-        final cardsToInclude = laneTitleMatches ? lane.cards : filteredCards;
+        // If lane title matches, include all non-archived cards; otherwise include only filtered cards
+        final cardsToInclude = laneTitleMatches 
+            ? lane.cards.where((card) => card.status != 'Archived').toList() 
+            : filteredCards;
             
         searchResults.add(Lane(
           id: lane.id,
@@ -1305,6 +1331,9 @@ class BoardController extends GetxController implements BoardView {
       
       // Filter cards by assignee, customer, hashtag, interest, status, and/or date
       final filteredCards = lane.cards.where((card) {
+        // Skip archived cards
+        if (card.status == 'Archived') return false;
+        
         bool assigneeMatches = true;
         bool customerMatches = true;
         bool hashtagMatches = true;
@@ -1471,13 +1500,17 @@ class BoardController extends GetxController implements BoardView {
     
     for (final lane in _originalLanes) {
       final filteredCards = lane.cards.where((card) {
-        return _cardMatchesSearch(card, searchLower);
+        final matchesSearch = _cardMatchesSearch(card, searchLower);
+        final notArchived = card.status != 'Archived';
+        return matchesSearch && notArchived;
       }).toList();
       
       final laneTitleMatches = lane.title.toLowerCase().contains(searchLower);
       
       if (filteredCards.isNotEmpty || laneTitleMatches) {
-        final cardsToInclude = laneTitleMatches ? lane.cards : filteredCards;
+        final cardsToInclude = laneTitleMatches 
+            ? lane.cards.where((card) => card.status != 'Archived').toList()
+            : filteredCards;
         searchResults.add(Lane(
           id: lane.id,
           title: lane.title,
