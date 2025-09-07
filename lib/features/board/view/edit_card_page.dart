@@ -1404,6 +1404,17 @@ class _EditCardPageState extends State<EditCardPage> {
         _isLoading = true;
       });
 
+      // Update card with new boardId and laneId before moving
+      final updatedCard = widget.card.copyWith(
+        boardId: targetBoardId,
+        laneId: targetLaneId,
+        updatedAt: DateTime.now(),
+      );
+
+      // Update card in repository first
+      await _controller.updateCard(updatedCard);
+
+      // Then perform the move operation
       await _controller.onMoveCard(
         cardId: widget.card.id,
         fromLaneId: widget.card.laneId,
@@ -1420,8 +1431,8 @@ class _EditCardPageState extends State<EditCardPage> {
         duration: const Duration(seconds: 2),
       );
 
-      // Close edit page and go back to board
-      Navigator.of(context).pop();
+      // Close edit page and go back to board with refresh signal
+      Navigator.of(context).pop(true); // true = card was moved, need refresh
 
     } catch (e) {
       Get.snackbar(

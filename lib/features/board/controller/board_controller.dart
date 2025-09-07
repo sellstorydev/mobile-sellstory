@@ -364,6 +364,13 @@ class BoardController extends GetxController implements BoardView {
       toLaneId: toLaneId,
       toIndex: toIndex,
     );
+
+    // Refresh board data after moving card
+    print('🔄 Refreshing board data after card move...');
+    await refresh();
+    
+    // Update UI immediately
+    update();
   }
 
   // Reorder cards within the same lane
