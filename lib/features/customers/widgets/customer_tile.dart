@@ -40,18 +40,7 @@ class CustomerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      margin: const EdgeInsets.only(bottom: 0),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -72,7 +61,6 @@ class CustomerTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
                 // Customer Info
                 Expanded(
                   child: Column(

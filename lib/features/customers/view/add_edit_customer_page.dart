@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../core/services/thai_location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/widgets/assignees_input_field.dart';
@@ -57,7 +58,20 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   String _selectedCustomerType = 'Customer';
   String _selectedSource = 'FB';
   
-  // Location fields
+  // Thai Location dropdowns
+  List<Map<String, dynamic>> _provinces = [];
+  List<Map<String, dynamic>> _districts = [];
+  List<Map<String, dynamic>> _subdistricts = [];
+  List<String> _postalCodes = [];
+
+  String? _selectedProvinceId;
+  String? _selectedDistrictId;
+  String? _selectedSubdistrictId;
+  String? _selectedPostalCode;
+
+  bool _isLoadingLocations = false;
+
+  // Location text controllers (kept for backward compatibility)
   final _districtController = TextEditingController();
   final _provinceController = TextEditingController();
   final _subdistrictController = TextEditingController();
@@ -78,6 +92,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     _initializeForm();
     _loadHashtags();
     _loadMembers();
+    _loadProvinces();
   }
 
   String _getSafeDropdownValue(String value, List<String> options) {
@@ -137,6 +152,71 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       print('Error loading members: $e');
       setState(() {
         _isLoadingMembers = false;
+      });
+    }
+  }
+
+  Future<void> _loadProvinces() async {
+    setState(() {
+      _isLoadingLocations = true;
+    });
+
+    try {
+      final provinces = await ThaiLocationService().getProvinces();
+      setState(() {
+        _provinces = provinces;
+        _isLoadingLocations = false;
+      });
+    } catch (e) {
+      print('Error loading provinces: $e');
+      setState(() {
+        _isLoadingLocations = false;
+      });
+    }
+  }
+
+  Future<void> _loadDistricts(String provinceId) async {
+    setState(() {
+      _isLoadingLocations = true;
+      // Clear dependent selections
+      _selectedDistrictId = null;
+      _selectedSubdistrictId = null;
+      _districts.clear();
+      _subdistricts.clear();
+    });
+
+    try {
+      final districts = await ThaiLocationService().getDistrictsByProvince(provinceId);
+      setState(() {
+        _districts = districts;
+        _isLoadingLocations = false;
+      });
+    } catch (e) {
+      print('Error loading districts: $e');
+      setState(() {
+        _isLoadingLocations = false;
+      });
+    }
+  }
+
+  Future<void> _loadSubdistricts(String districtId) async {
+    setState(() {
+      _isLoadingLocations = true;
+      // Clear dependent selections
+      _selectedSubdistrictId = null;
+      _subdistricts.clear();
+    });
+
+    try {
+      final subdistricts = await ThaiLocationService().getSubdistrictsByDistrict(districtId);
+      setState(() {
+        _subdistricts = subdistricts;
+        _isLoadingLocations = false;
+      });
+    } catch (e) {
+      print('Error loading subdistricts: $e');
+      setState(() {
+        _isLoadingLocations = false;
       });
     }
   }
@@ -468,6 +548,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     Function(String?) onChanged, {
     bool isRequired = false,
   }) {
+    // Ensure the value is valid or set to null if it doesn't exist in options
+    String? validValue;
+    if (value.isNotEmpty && options.contains(value)) {
+      validValue = value;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -502,11 +588,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: value,
+            value: validValue,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
+            hint: Text('เลือก$label'),
             items: options.map((option) {
               return DropdownMenuItem<String>(
                 value: option,
@@ -835,24 +922,49 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           ),
           const SizedBox(height: 16),
           
-          // Subdistrict
-          _buildTextField(
-            'ตำบล/แขวง',
-            _subdistrictController,
+          // Province
+          _buildLocationDropdown(
+            'จังหวัด',
+            _selectedProvinceId ?? '',
+            _provinces,
+            (value) {
+              setState(() {
+                _selectedProvinceId = value;
+                if (value != null) {
+                  _loadDistricts(value);
+                }
+              });
+            },
           ),
+
           const SizedBox(height: 16),
           
           // District
-          _buildTextField(
+          _buildLocationDropdown(
             'อำเภอ/เขต',
-            _districtController,
+            _selectedDistrictId ?? '',
+            _districts,
+            (value) {
+              setState(() {
+                _selectedDistrictId = value;
+                if (value != null) {
+                  _loadSubdistricts(value);
+                }
+              });
+            },
           ),
           const SizedBox(height: 16),
           
-          // Province
-          _buildTextField(
-            'จังหวัด',
-            _provinceController,
+          // Subdistrict
+          _buildLocationDropdown(
+            'ตำบล/แขวง',
+            _selectedSubdistrictId ?? '',
+            _subdistricts,
+            (value) {
+              setState(() {
+                _selectedSubdistrictId = value;
+              });
+            },
           ),
           const SizedBox(height: 16),
           
@@ -873,6 +985,64 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       ),
     );
   }
+
+  Widget _buildLocationDropdown(
+    String label,
+    String selectedId,
+    List<Map<String, dynamic>> options,
+    Function(String?) onChanged,
+  ) {
+    // Find the valid selected value or set to null
+    String? validValue;
+    if (selectedId.isNotEmpty) {
+      final exists = options.any((option) => option['id'] == selectedId);
+      if (exists) {
+        validValue = selectedId;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: validValue,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            hint: Text('เลือก$label'),
+            items: options
+                .where((option) => option['id'] != null && option['name_th'] != null)
+                .map((option) {
+              return DropdownMenuItem<String>(
+                value: option['id'] as String,
+                child: Text(option['name_th'] as String),
+              );
+            }).toList(),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   void _addEmail() {
     setState(() {
@@ -1033,7 +1203,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           SnackBar(
             content: Text(
               widget.customer != null 
-                ? 'อั���เดตข้อมูลลูกค้าเรียบร้อยแล้ว'
+                ? 'อัปเดตข้อมูลลูกค้าเรียบร้อยแล้ว'
                 : 'เพิ่มลูกค้าใหม่เรียบร้อยแล้ว'
             ),
             backgroundColor: Colors.green,

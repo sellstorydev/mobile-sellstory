@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/company_picker.dart';
-import '../../../core/widgets/hashtag_input_field.dart';
-import '../../../core/services/company_service.dart';
-import '../../../core/services/hashtag_service.dart';
-import '../../../core/services/id_generation_service.dart';
-import '../../../data/repositories/firestore_repository.dart';
+import '../../../domain/entities/company.dart';
+import '../controller/companies_controller.dart';
+import '../../../core/services/thai_location_service.dart';
 
 class AddEditCompanyPage extends StatefulWidget {
   final Company? company; // null for add, not null for edit
@@ -25,180 +22,131 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
   final _branchController = TextEditingController();
   final _addressLine1Controller = TextEditingController();
   final _websiteController = TextEditingController();
-
-  // Location fields
-  final _subdistrictController = TextEditingController();
-  final _districtController = TextEditingController();
-  final _provinceController = TextEditingController();
   final _postalCodeController = TextEditingController();
   final _countryController = TextEditingController();
+
+  final CompaniesController _controller = Get.find<CompaniesController>();
+  final ThaiLocationService _locationService = ThaiLocationService();
+
+  // Thai Location dropdowns
+  List<Map<String, dynamic>> _provinces = [];
+  List<Map<String, dynamic>> _districts = [];
+  List<Map<String, dynamic>> _subdistricts = [];
+
+  String? _selectedProvinceId;
+  String? _selectedDistrictId;
+  String? _selectedSubdistrictId;
+
+  bool _isLoadingLocations = false;
+  bool _isSubmitting = false;
 
   // Multiple emails and phones
   List<Map<String, String>> _emails = [];
   List<Map<String, String>> _phones = [];
 
-  // Hashtag related
-  final HashtagService _hashtagService = HashtagService();
-  final FirestoreRepository _repository = Get.find<FirestoreRepository>();
-  final IdGenerationService _idGenerationService = Get.find<IdGenerationService>();
-  List<HashtagOption> _availableHashtags = [];
-  List<String> _selectedHashtags = [];
-  bool _isLoadingHashtags = true;
-  
-  // User and workspace related
-  String _currentUserId = '';
-  String _currentWorkspaceId = '';
+  bool get _isEditMode => widget.company != null;
 
   @override
   void initState() {
     super.initState();
-    _initializeUserAndWorkspace();
-  }
-
-  Future<void> _initializeUserAndWorkspace() async {
-    try {
-      // Get current user ID from Firebase Auth
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        print('❌ No authenticated user found');
-        return;
-      }
-      
-      _currentUserId = currentUser.uid;
-      print('👤 Initializing company page with user: $_currentUserId');
-      
-      // Get user's workspaces
-      print('📋 Fetching user workspaces...');
-      final workspaces = await _repository.getUserWorkspaces(_currentUserId);
-      
-      print('📋 User workspaces loaded: ${workspaces.length} workspaces');
-      
-      if (workspaces.isNotEmpty) {
-        // Use the first workspace as default
-        final firstWorkspace = workspaces.first;
-        _currentWorkspaceId = firstWorkspace['id'] as String;
-        
-        print('✅ Company page initialized with workspace: ${firstWorkspace['name']}');
-        
-        // Initialize form and load hashtags
-        _initializeForm();
-        await _loadHashtags();
-      } else {
-        print('⚠️ No workspaces found for user: $_currentUserId');
-      }
-    } catch (e) {
-      print('❌ Failed to initialize user and workspace: $e');
-    }
-  }
-
-  Future<void> _loadHashtags() async {
-    try {
-      if (_currentWorkspaceId.isEmpty) {
-        print('⚠️ AddEditCompanyPage: No workspace ID available for hashtags');
-        setState(() {
-          _isLoadingHashtags = false;
-        });
-        return;
-      }
-      
-      final hashtags = await _hashtagService.getHashtagsByScope(_currentWorkspaceId, 'company');
-      
-      setState(() {
-        _availableHashtags = hashtags;
-        _isLoadingHashtags = false;
-      });
-    } catch (e) {
-      print('Error loading hashtags: $e');
-      setState(() {
-        _isLoadingHashtags = false;
-      });
-    }
+    _loadProvinces();
+    _initializeForm();
   }
 
   void _initializeForm() {
-    if (widget.company != null) {
-      // Edit mode - populate with existing data
+    if (_isEditMode) {
       final company = widget.company!;
-      _nameController.text = company.displayName;
+      _nameController.text = company.name;
       _taxIdController.text = company.taxId;
       _branchController.text = company.branch;
       _addressLine1Controller.text = company.addressLine1;
       _websiteController.text = company.website;
-      _subdistrictController.text = company.subdistrict;
-      _districtController.text = company.district;
-      _provinceController.text = company.province;
       _postalCodeController.text = company.postalCode;
       _countryController.text = company.country;
 
-      // Parse emails and phones from object format
-      if (company.emails.isNotEmpty) {
-        _emails = company.emails.map((emailObj) {
-          return {
-            'id': emailObj['id'] as String? ?? 'email-initial',
-            'label': emailObj['label'] as String? ?? 'Work',
-            'value': emailObj['value'] as String? ?? '',
-          };
-        }).toList();
-      }
+      // Initialize emails and phones
+      _emails = company.emails.map((e) => {
+        'label': e['label']?.toString() ?? '',
+        'value': e['value']?.toString() ?? '',
+      }).toList();
 
-      if (company.phones.isNotEmpty) {
-        _phones = company.phones.map((phoneObj) {
-          return {
-            'id': phoneObj['id'] as String? ?? 'phone-initial',
-            'label': phoneObj['label'] as String? ?? 'Work',
-            'value': phoneObj['value'] as String? ?? '',
-          };
-        }).toList();
-      }
-
-      // Parse hashtags from object format to IDs
-      if (company.hashtags.isNotEmpty) {
-        _selectedHashtags = company.hashtags.map((hashtagObj) {
-          return hashtagObj['id'] as String;
-        }).toList();
-      }
+      _phones = company.phones.map((p) => {
+        'label': p['label']?.toString() ?? '',
+        'value': p['value']?.toString() ?? '',
+      }).toList();
     } else {
-      // Add mode - initialize with default values
-      _emails = [
-        {'id': 'email-initial', 'label': 'Work', 'value': ''},
-      ];
-      _phones = [
-        {'id': 'phone-initial', 'label': 'Work', 'value': ''},
-      ];
+      // Initialize with default empty entries
+      _emails = [{'label': 'หลัก', 'value': ''}];
+      _phones = [{'label': 'หลัก', 'value': ''}];
+      _countryController.text = 'ไทย';
     }
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _taxIdController.dispose();
-    _branchController.dispose();
-    _addressLine1Controller.dispose();
-    _websiteController.dispose();
-    _subdistrictController.dispose();
-    _districtController.dispose();
-    _provinceController.dispose();
-    _postalCodeController.dispose();
-    _countryController.dispose();
-    super.dispose();
+  Future<void> _loadProvinces() async {
+    setState(() {
+      _isLoadingLocations = true;
+    });
+
+    try {
+      final provinces = await _locationService.getProvinces();
+      setState(() {
+        _provinces = provinces;
+      });
+    } catch (e) {
+      // Handle error silently
+    } finally {
+      setState(() {
+        _isLoadingLocations = false;
+      });
+    }
   }
+
+  Future<void> _loadDistricts(String provinceId) async {
+    try {
+      final districts = await _locationService.getDistrictsByProvince(provinceId);
+      setState(() {
+        _districts = districts;
+        _subdistricts = [];
+        _selectedDistrictId = null;
+        _selectedSubdistrictId = null;
+      });
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  Future<void> _loadSubdistricts(String districtId) async {
+    try {
+      final subdistricts = await _locationService.getSubdistrictsByDistrict(districtId);
+      setState(() {
+        _subdistricts = subdistricts;
+        _selectedSubdistrictId = null;
+      });
+    } catch (e) {
+
+      // Handle error silently
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundGrey,
+      backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
-        title: Text(widget.company != null ? 'แก้ไขบริษัท' : 'เพิ่มบริษัท'),
-        backgroundColor: AppTheme.backgroundWhite,
-        foregroundColor: AppTheme.textPrimary,
         elevation: 0,
+        title: Text(
+          _isEditMode ? 'แก้ไขบริษัท' : 'เพิ่มบริษัท',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         actions: [
           TextButton(
-            onPressed: _saveCompany,
-            child: const Text(
-              'บันทึก',
+            onPressed: _isSubmitting ? null : _submitForm,
+            child: Text(
+              _isEditMode ? 'บันทึก' : 'เพิ่ม',
               style: TextStyle(
-                color: AppTheme.primaryOrange,
+                color: _isSubmitting ? Colors.grey : AppTheme.primaryOrange,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -210,55 +158,13 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Company Name
-              _buildTextField('ชื่อบริษัท', _nameController, isRequired: true),
+              _buildBasicInfoSection(),
               const SizedBox(height: 16),
-
-              // Tax ID
-              _buildTextField('เลขประจำตัวผู้เสียภาษี', _taxIdController),
+              _buildContactSection(),
               const SizedBox(height: 16),
-
-              // Branch
-              _buildTextField('สาขา', _branchController),
-              const SizedBox(height: 16),
-
-              // Website
-              _buildTextField(
-                'เว็บไซต์',
-                _websiteController,
-                keyboardType: TextInputType.url,
-              ),
-              const SizedBox(height: 16),
-
-              // Location Fields
-              _buildLocationSection(),
-              const SizedBox(height: 16),
-
-              // Emails
-              _buildMultipleEmailsSection(),
-              const SizedBox(height: 16),
-
-              // Phones
-              _buildMultiplePhonesSection(),
-              const SizedBox(height: 16),
-
-              // Hashtags
-              if (_isLoadingHashtags)
-                const Center(child: CircularProgressIndicator())
-              else
-                HashtagInputField(
-                  selectedHashtags: _selectedHashtags,
-                  availableHashtags: _availableHashtags,
-                  onHashtagsChanged: (hashtags) {
-                    setState(() {
-                      _selectedHashtags = hashtags;
-                    });
-                  },
-                  label: 'แฮชแท็ก',
-                  hintText: 'เลือกแฮชแท็ก',
-                ),
+              _buildAddressSection(),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -266,500 +172,431 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
     );
   }
 
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller, {
-    bool isRequired = false,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textSecondary,
-                ),
+  Widget _buildBasicInfoSection() {
+    return _buildSection(
+      title: 'ข้อมูลพื้นฐาน',
+      children: [
+        _buildTextField(
+          controller: _nameController,
+          label: 'ชื่อบริษัท *',
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'กรุณากรอกชื่อบริษัท';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildTextField(
+          controller: _branchController,
+          label: 'สาขา',
+          hint: 'เช่น สำนักงานใหญ่, สาขาบางนา',
+        ),
+        const SizedBox(height: 16),
+        _buildTextField(
+          controller: _taxIdController,
+          label: 'เลขประจำตัวผู้เสียภาษี',
+          hint: 'เช่น 0123456789012',
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+        _buildTextField(
+          controller: _websiteController,
+          label: 'เว็บไซต์',
+          hint: 'เช่น www.company.com',
+          keyboardType: TextInputType.url,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContactSection() {
+    return _buildSection(
+      title: 'ข้อมูลติดต่อ',
+      children: [
+        _buildMultipleContactFields(
+          title: 'อีเมล',
+          contacts: _emails,
+          onAdd: () => setState(() => _emails.add({'label': '', 'value': ''})),
+          onRemove: (index) => setState(() => _emails.removeAt(index)),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 16),
+        _buildMultipleContactFields(
+          title: 'เบอร์โทร',
+          contacts: _phones,
+          onAdd: () => setState(() => _phones.add({'label': '', 'value': ''})),
+          onRemove: (index) => setState(() => _phones.removeAt(index)),
+          keyboardType: TextInputType.phone,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddressSection() {
+    return _buildSection(
+      title: 'ที่อยู่',
+      children: [
+        _buildTextField(
+          controller: _addressLine1Controller,
+          label: 'ที่อยู่',
+          hint: 'เลขที่, หมู่, ซอย, ถนน',
+          maxLines: 2,
+        ),
+        const SizedBox(height: 16),
+        _buildLocationDropdowns(),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _postalCodeController,
+                label: 'รหัสไปรษณีย์',
+                keyboardType: TextInputType.number,
               ),
-              if (isRequired) ...[
-                const SizedBox(width: 4),
-                const Text(
-                  '*',
-                  style: TextStyle(color: Colors.red, fontSize: 14),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            maxLines: maxLines,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            validator: isRequired
-                ? (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'กรุณากรอก $label';
-                    }
-                    return null;
-                  }
-                : null,
-          ),
-        ],
-      ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildTextField(
+                controller: _countryController,
+                label: 'ประเทศ',
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildLocationSection() {
+  Widget _buildSection({required String title, required List<Widget> children}) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTextField('ที่อยู่', _addressLine1Controller, maxLines: 3),
-          const SizedBox(height: 16),
-
-          // Subdistrict
-          _buildTextField('ตำบล/แขวง', _subdistrictController),
-          const SizedBox(height: 16),
-
-          // District
-          _buildTextField('อำเภอ/เขต', _districtController),
-          const SizedBox(height: 16),
-
-          // Province
-          _buildTextField('จังหวัด', _provinceController),
-          const SizedBox(height: 16),
-
-          // Postal Code
-          _buildTextField(
-            'รหัสไปรษณีย์',
-            _postalCodeController,
-            keyboardType: TextInputType.number,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(15),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 16),
-
-          // Country
-          _buildTextField('ประเทศ', _countryController),
         ],
       ),
-    );
-  }
-
-  Widget _buildMultipleEmailsSection() {
-    return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'อีเมล',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: _addEmail,
-                icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
-                tooltip: 'เพิ่มอีเมล',
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ..._emails.asMap().entries.map((entry) {
-            final index = entry.key;
-            final email = entry.value;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      initialValue: email['label'],
-                      decoration: const InputDecoration(
-                        labelText: 'ประเภท',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                      ),
-                      onChanged: (value) => email['label'] = value,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 3,
-                    child: TextFormField(
-                      initialValue: email['value'],
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'อีเมล',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                      ),
-                      onChanged: (value) => email['value'] = value,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _emails.length > 1
-                        ? () => _removeEmail(index)
-                        : null,
-                    icon: Icon(
-                      Icons.delete,
-                      color: _emails.length > 1 ? Colors.red : Colors.grey,
-                    ),
-                    tooltip: 'ลบอีเมล',
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMultiplePhonesSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'เบอร์โทรศัพท์',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: _addPhone,
-                icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
-                tooltip: 'เพิ่มเบอร์โทร',
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ..._phones.asMap().entries.map((entry) {
-            final index = entry.key;
-            final phone = entry.value;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      initialValue: phone['label'],
-                      decoration: const InputDecoration(
-                        labelText: 'ประเภท',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                      ),
-                      onChanged: (value) => phone['label'] = value,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 3,
-                    child: TextFormField(
-                      initialValue: phone['value'],
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'เบอร์โทร',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                      ),
-                      onChanged: (value) => phone['value'] = value,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _phones.length > 1
-                        ? () => _removePhone(index)
-                        : null,
-                    icon: Icon(
-                      Icons.delete,
-                      color: _phones.length > 1 ? Colors.red : Colors.grey,
-                    ),
-                    tooltip: 'ลบเบอร์โทร',
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComingSoonField(String label, String fieldName) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            label,
+            title,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.textSecondary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
             ),
           ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.construction,
-                  size: 16,
-                  color: Colors.orange.shade600,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Coming Soon',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.orange.shade600,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 16),
+          ...children,
         ],
       ),
     );
   }
 
-  void _addEmail() {
-    setState(() {
-      _emails.add({
-        'id': 'email-${DateTime.now().millisecondsSinceEpoch}',
-        'label': 'Work',
-        'value': '',
-      });
-    });
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppTheme.primaryOrange),
+        ),
+      ),
+    );
   }
 
-  void _removeEmail(int index) {
-    setState(() {
-      _emails.removeAt(index);
-    });
-  }
-
-  void _addPhone() {
-    setState(() {
-      _phones.add({
-        'id': 'phone-${DateTime.now().millisecondsSinceEpoch}',
-        'label': 'Work',
-        'value': '',
-      });
-    });
-  }
-
-  void _removePhone(int index) {
-    setState(() {
-      _phones.removeAt(index);
-    });
-  }
-
-  Future<String> _generateCustomId() async {
-    try {
-      if (_currentWorkspaceId.isEmpty) {
-        print('⚠️ AddEditCompanyPage: No workspace ID available for ID generation');
-        return 'COM-${DateTime.now().millisecondsSinceEpoch}';
-      }
-      
-      return await _idGenerationService.generateCompanyId(_currentWorkspaceId);
-    } catch (e) {
-      print('Error generating company ID: $e');
-      return 'COM-${DateTime.now().millisecondsSinceEpoch}';
-    }
-  }
-
-  void _saveCompany() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        // Show loading indicator
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) =>
-              const Center(child: CircularProgressIndicator()),
-        );
-
-        // Convert emails and phones to object format for storage
-        final emailsObjects = _emails
-            .where((email) => email['value']?.isNotEmpty == true)
-            .map(
-              (email) => {
-                'id': email['id'] as String? ?? 'email-initial',
-                'label': email['label'] as String? ?? 'Work',
-                'value': email['value'] as String? ?? '',
-              },
-            )
-            .toList();
-
-        final phonesObjects = _phones
-            .where((phone) => phone['value']?.isNotEmpty == true)
-            .map(
-              (phone) => {
-                'id': phone['id'] as String? ?? 'phone-initial',
-                'label': phone['label'] as String? ?? 'Work',
-                'value': phone['value'] as String? ?? '',
-              },
-            )
-            .toList();
-
-        // Get workspace ID and user ID
-        final workspaceId = _currentWorkspaceId;
-        final userId = _currentUserId;
-
-        // Generate custom ID for new companies
-        final customId = widget.company?.customId ?? await _generateCustomId();
-
-        // Create company object
-        final company = Company(
-          id: widget.company?.id ?? '',
-          companyNames: [
-            {
-              'id': widget.company?.id ?? '',
-              'label': 'Main',
-              'value': _nameController.text.trim(),
-            }
-          ],
-          customId: customId,
-          emails: emailsObjects,
-          phones: phonesObjects,
-          taxId: _taxIdController.text.trim(),
-          branch: _branchController.text.trim(),
-          addressLine1: _addressLine1Controller.text.trim(),
-          subdistrict: _subdistrictController.text.trim(),
-          district: _districtController.text.trim(),
-          province: _provinceController.text.trim(),
-          postalCode: _postalCodeController.text.trim(),
-          country: _countryController.text.trim(),
-          hashtags: _selectedHashtags.map((hashtagId) {
-            final hashtag = _availableHashtags.firstWhere(
-              (h) => h.id == hashtagId,
-              orElse: () => HashtagOption(
-                id: hashtagId,
-                name: hashtagId,
-                color: '#ef4444',
-                totalUsage: 0,
-                enabled: true,
-                scopes: {},
+  Widget _buildMultipleContactFields({
+    required String title,
+    required List<Map<String, String>> contacts,
+    required VoidCallback onAdd,
+    required Function(int) onRemove,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF374151),
               ),
+            ),
+            const Spacer(),
+            IconButton(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
+              tooltip: 'เพิ่ม$title',
+            ),
+          ],
+        ),
+        ...contacts.asMap().entries.map((entry) {
+          final index = entry.key;
+          final contact = entry.value;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    initialValue: contact['label'],
+                    onChanged: (value) => contact['label'] = value,
+                    decoration: InputDecoration(
+                      labelText: 'ป้ายกำกับ',
+                      hintText: 'เช่น หลัก, ติดต่อ',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: TextFormField(
+                    initialValue: contact['value'],
+                    onChanged: (value) => contact['value'] = value,
+                    keyboardType: keyboardType,
+                    decoration: InputDecoration(
+                      labelText: title,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: contacts.length > 1 ? () => onRemove(index) : null,
+                  icon: Icon(
+                    Icons.remove_circle,
+                    color: contacts.length > 1 ? Colors.red : Colors.grey,
+                  ),
+                  tooltip: 'ลบ',
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildLocationDropdowns() {
+    return Column(
+      children: [
+        // Province dropdown
+        DropdownButtonFormField<String>(
+          value: _selectedProvinceId,
+          decoration: InputDecoration(
+            labelText: 'จังหวัด',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          items: _provinces.map((province) {
+            return DropdownMenuItem<String>(
+              value: province['id'],
+              child: Text(province['name_th']),
             );
-            return {
-              'color': hashtag.color,
-              'id': hashtag.id,
-              'text': hashtag.name,
-            };
           }).toList(),
-          website: _websiteController.text.trim(),
-          workspaceId: workspaceId,
-          createdAt: widget.company?.createdAt ?? DateTime.now(),
-          updatedAt: DateTime.now(),
-          createdBy: widget.company?.createdBy ?? userId,
-          updatedBy: userId,
-          associatedCustomerIds: widget.company?.associatedCustomerIds ?? [],
+          onChanged: (value) {
+            setState(() {
+              _selectedProvinceId = value;
+            });
+            if (value != null) {
+              _loadDistricts(value);
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        // District dropdown
+        DropdownButtonFormField<String>(
+          value: _selectedDistrictId,
+          decoration: InputDecoration(
+            labelText: 'อำเภอ/เขต',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          items: _districts.map((district) {
+            return DropdownMenuItem<String>(
+              value: district['id'],
+              child: Text(district['name_th']),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedDistrictId = value;
+            });
+            if (value != null) {
+              _loadSubdistricts(value);
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        // Subdistrict dropdown
+        DropdownButtonFormField<String>(
+          value: _selectedSubdistrictId,
+          decoration: InputDecoration(
+            labelText: 'ตำบล/แขวง',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          items: _subdistricts.map((subdistrict) {
+            return DropdownMenuItem<String>(
+              value: subdistrict['id'],
+              child: Text(subdistrict['name_th']),
+            );
+          }).toList(),
+          onChanged: (value) async {
+            setState(() {
+              _selectedSubdistrictId = value;
+            });
+            if (value != null) {
+              final zip = await _locationService.getPostalCodeBySubdistrict(value);
+              if (zip != null && mounted) {
+                setState(() {
+                  _postalCodeController.text = zip;
+                });
+              }
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // Get province, district, subdistrict names
+      String provinceName = '';
+      String districtName = '';
+      String subdistrictName = '';
+
+      if (_selectedProvinceId != null) {
+        final province = _provinces.firstWhere(
+          (p) => p['id'] == _selectedProvinceId,
+          orElse: () => {},
         );
+        provinceName = province['name_th'] ?? '';
+      }
 
-        final companyService = CompanyService();
+      if (_selectedDistrictId != null) {
+        final district = _districts.firstWhere(
+          (d) => d['id'] == _selectedDistrictId,
+          orElse: () => {},
+        );
+        districtName = district['name_th'] ?? '';
+      }
 
-        if (widget.company != null) {
-          // Update existing company
-          await companyService.updateCompany(workspaceId, company);
-        } else {
-          // Add new company
-          await companyService.addCompany(workspaceId, company);
-        }
+      if (_selectedSubdistrictId != null) {
+        final subdistrict = _subdistricts.firstWhere(
+          (s) => s['id'] == _selectedSubdistrictId,
+          orElse: () => {},
+        );
+        subdistrictName = subdistrict['name_th'] ?? '';
+      }
 
-        // Close loading dialog
-        Navigator.pop(context);
+      // Filter out empty contacts
+      final validEmails = _emails
+          .where((e) => e['value']?.isNotEmpty == true)
+          .map((e) => {
+                'label': e['label'] ?? '',
+                'value': e['value'] ?? '',
+              })
+          .toList();
 
-        // Show success message
+      final validPhones = _phones
+          .where((p) => p['value']?.isNotEmpty == true)
+          .map((p) => {
+                'label': p['label'] ?? '',
+                'value': p['value'] ?? '',
+              })
+          .toList();
+
+      final company = Company(
+        id: _isEditMode ? widget.company!.id : '',
+        name: _nameController.text.trim(),
+        branch: _branchController.text.trim(),
+        taxId: _taxIdController.text.trim(),
+        emails: validEmails,
+        phones: validPhones,
+        website: _websiteController.text.trim(),
+        addressLine1: _addressLine1Controller.text.trim(),
+        province: provinceName,
+        district: districtName,
+        subdistrict: subdistrictName,
+        postalCode: _postalCodeController.text.trim(),
+        country: _countryController.text.trim(),
+        workspaceId: _controller.currentWorkspaceId.value,
+        customId: _isEditMode ? widget.company!.customId : '',
+        createdAt: _isEditMode ? widget.company!.createdAt : DateTime.now(),
+        updatedAt: DateTime.now(),
+        createdBy: _isEditMode ? widget.company!.createdBy : '',
+        updatedBy: '',
+        associatedCustomerIds: _isEditMode ? widget.company!.associatedCustomerIds : [],
+      );
+
+      bool success;
+      if (_isEditMode) {
+        success = await _controller.updateCompany(company);
+      } else {
+        success = await _controller.createCompany(company);
+      }
+
+      if (success && mounted) {
+        Navigator.pop(context, true);
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              widget.company != null
-                  ? 'อัปเดตข้อมูลบริษัทเรียบร้อยแล้ว'
-                  : 'เพิ่มบริษัทใหม่เรียบร้อยแล้ว',
-            ),
-            backgroundColor: Colors.green,
+            content: Text(_controller.errorMessage.value),
+            backgroundColor: Colors.red,
           ),
         );
-
-        // Pop with result to trigger refresh
-        Navigator.pop(context, true);
-      } catch (e) {
-        // Close loading dialog
-        Navigator.pop(context);
-
-        // Show error message
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),
@@ -767,6 +604,22 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
           ),
         );
       }
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _taxIdController.dispose();
+    _branchController.dispose();
+    _addressLine1Controller.dispose();
+    _websiteController.dispose();
+    _postalCodeController.dispose();
+    _countryController.dispose();
+    super.dispose();
   }
 }

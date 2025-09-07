@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:device_preview/device_preview.dart';
+import 'package:sellstory/scripts/import_thai_locations.dart';
 import 'firebase_options.dart';
 import 'app/app.dart';
 import 'core/theme/theme_controller.dart';
@@ -25,7 +26,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+
+  // Import จังหวัด
+  // await ThaiLocationDataImporter.importData();
+
+
   // Initialize Logger Service first
   Get.put(LoggerService(), permanent: true);
   //LoggerService.to.info('Application starting...');
