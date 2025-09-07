@@ -83,9 +83,9 @@ class ArchiveController extends GetxController {
         throw Exception('Card not found in archive');
       }
       
-      // Update card status to "To Do" (or first available lane)
+      // Update card status to "Pending" 
       final updatedCard = card.copyWith(
-        status: 'To Do',
+        status: 'Pending',
         updatedAt: DateTime.now(),
       );
       
