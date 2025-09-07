@@ -53,14 +53,65 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _onDeletePermanently() {
-    Get.snackbar(
-      'Delete Permanently',
-      'Delete functionality will be available soon',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 2),
+    // Show confirmation dialog
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Delete Card'),
+        content: Text(
+          'Are you sure you want to permanently delete "${widget.card.title}"?\n\nThis action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back(); // Close dialog first
+              await _deleteCard();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _deleteCard() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      await _controller.deleteCard(widget.card.id);
+
+      Get.snackbar(
+        'Success',
+        'Card deleted successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+
+      // Close edit page and go back to board
+      Navigator.of(context).pop();
+
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to delete card: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
   final BoardController _controller = Get.find<BoardController>();
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
