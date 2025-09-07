@@ -42,14 +42,71 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _onArchive() {
-    Get.snackbar(
-      'Archive',
-      'Archive functionality will be available soon',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 2),
+    // Show confirmation dialog
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Archive Card'),
+        content: Text(
+          'Are you sure you want to archive "${widget.card.title}"?\n\nArchived cards will be hidden from the board but can be restored later.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back(); // Close dialog first
+              await _archiveCard();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.blue),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _archiveCard() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Update card status to "Archived"
+      final updatedCard = widget.card.copyWith(
+        status: 'Archived',
+        updatedAt: DateTime.now(),
+      );
+
+      await _controller.updateCard(updatedCard);
+
+      Get.snackbar(
+        'Success',
+        'Card archived successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+
+      // Close edit page and go back to board
+      Navigator.of(context).pop();
+
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to archive card: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _onDeletePermanently() {
