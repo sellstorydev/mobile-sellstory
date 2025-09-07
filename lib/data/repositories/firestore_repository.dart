@@ -1816,4 +1816,32 @@ class FirestoreRepository {
       rethrow;
     }
   }
+
+  // Get user data by ID
+  Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getUserById', {
+        'userId': userId,
+      });
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (!userDoc.exists) {
+        print('⚠️ User not found: $userId');
+        return null;
+      }
+
+      final userData = userDoc.data()!;
+      print('✅ User data retrieved: ${userData['displayName']}');
+      _logger.methodExit('FirestoreRepository.getUserById');
+      return userData;
+    } catch (e) {
+      print('❌ Failed to get user data: $e');
+      _logger.error('Failed to get user data', e);
+      rethrow;
+    }
+  }
 }

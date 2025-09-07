@@ -1645,4 +1645,20 @@ class BoardController extends GetxController implements BoardView {
       return [];
     }
   }
+
+  // Get user display name from Firestore users collection with caching
+  Future<String> getUserDisplayName(String userId) async {
+    try {
+      final userData = await _repository.getUserById(userId);
+      if (userData != null && userData['displayName'] != null) {
+        final displayName = userData['displayName'] as String;
+        return displayName;
+      }
+      
+      return userId; // Fallback to user ID if display name not found
+    } catch (e) {
+      print('❌ Failed to get user display name for $userId: $e');
+      return userId; // Fallback to user ID on error
+    }
+  }
 }

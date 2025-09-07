@@ -278,31 +278,37 @@ class UnifiedFilterPage extends StatelessWidget {
                 
                 return Column(
                   children: controller.availableAssignees.map((assigneeId) {
-                    final displayName = controller.getDisplayNameFromUid(assigneeId);
                     final isSelected = controller.selectedAssignees.contains(assigneeId);
                     
-                    return CheckboxListTile(
-                      value: isSelected,
-                      onChanged: (bool? value) {
-                        controller.toggleAssigneeFilter(assigneeId);
-                      },
-                      secondary: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.orange[100],
-                        child: Text(
-                          displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                          style: TextStyle(
-                            color: Colors.orange[800],
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                    return FutureBuilder<String>(
+                      future: controller.getUserDisplayName(assigneeId),
+                      builder: (context, snapshot) {
+                        final displayName = snapshot.data ?? assigneeId;
+                        
+                        return CheckboxListTile(
+                          value: isSelected,
+                          onChanged: (bool? value) {
+                            controller.toggleAssigneeFilter(assigneeId);
+                          },
+                          secondary: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.orange[100],
+                            child: Text(
+                              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                color: Colors.orange[800],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      title: Text(displayName),
-                      subtitle: Text(_getAssigneeCardCount(controller, assigneeId)),
-                      activeColor: Colors.orange[600],
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
+                          title: Text(displayName),
+                          subtitle: Text(_getAssigneeCardCount(controller, assigneeId)),
+                          activeColor: Colors.orange[600],
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                        );
+                      },
                     );
                   }).toList(),
                 );
