@@ -32,68 +32,24 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
     Get.toNamed('/create-workspace');
   }
 
-  Future<List<Map<String, dynamic>>> _getBoardsForWorkspace(String workspaceId) async {
-    final ctrl = controller!;
-    try {
-      // หา workspace จาก availableWorkspaces
-      final workspace = ctrl.availableWorkspaces.firstWhereOrNull(
-        (w) => w['id'] == workspaceId,
-      );
-      
-      if (workspace == null) return [];
-      
-      // ใช้ข้อมูลจาก workspace ที่มีอยู่แล้ว หรือโหลดแบบง่าย
-      // สำหรับตอนนี้ให้ return empty list และจะใช้การโหลดจริงภายหลัง
-      await Future.delayed(const Duration(milliseconds: 500)); // simulate loading
-      
-      // ถ้ามี boards ใน workspace นี้ (จำลองข้อมูล)
-      // ในการใช้งานจริงจะต้องเรียก API หรือ method ที่เหมาะสม
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
   void _defaultOnMenuAction(String value, BuildContext context) {
     final ctrl = controller!;
     switch (value) {
-      case 'board_management':
-        Get.toNamed('/board-management');
-        break;
       case 'refresh':
-        // Light refresh for current board/workspace
         ctrl.refresh();
         break;
       case 'calendar':
         Get.toNamed('/calendar');
         break;
-      case 'edit_workspace':
-        final current = ctrl.availableWorkspaces.firstWhereOrNull(
-          (w) => w['id'] == ctrl.currentWorkspaceId.value,
-        );
-        if (current != null) {
-          Get.toNamed(
-            '/edit-workspace',
-            parameters: {
-              'workspaceId': current['id'] as String,
-              'currentName': current['name'] as String,
-            },
-          );
-        }
-        break;
-      case 'card_view_settings':
-        Get.toNamed('/card-view-settings');
-        break;
       default:
+        // Handle board และ workspace switching อย่างง่าย
         if (value.startsWith('board_')) {
           final boardId = value.substring(6);
-          // Check if this board is already selected
           if (boardId != ctrl.currentBoardId.value) {
             ctrl.switchBoard(boardId);
           }
         } else if (value.startsWith('workspace_')) {
           final workspaceId = value.substring(10);
-          // Check if this workspace is already selected
           if (workspaceId != ctrl.currentWorkspaceId.value) {
             ctrl.switchWorkspace(workspaceId);
           }
@@ -282,210 +238,65 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    StatefulBuilder(
-                      builder: (context, setState) {
-                        Map<String, bool> expandedStates = {};
-                        Map<String, bool> hasBoards = {}; // เก็บข้อมูลว่า workspace มี boards หรือไม่
+                    // เปลี่ยน workspace section ให้เรียบง่าย
+                    Column(
+                      children: ctrl.availableWorkspaces.where((workspace) => 
+                        workspace['id'] != ctrl.currentWorkspaceId.value
+                      ).map((workspace) {
+                        final workspaceId = workspace['id'] as String;
                         
-                        return Column(
-                          children: ctrl.availableWorkspaces.where((workspace) => 
-                            workspace['id'] != ctrl.currentWorkspaceId.value
-                          ).map((workspace) {
-                            final workspaceId = workspace['id'] as String;
-                            final isExpanded = expandedStates[workspaceId] ?? false;
-                            final workspaceHasBoards = hasBoards[workspaceId] ?? false;
-                            
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: Column(
-                                children: [
-                                  // Workspace header
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () async {
-                                        // ตรวจสอบว่ามี boards หรือไม่ก่อน
-                                        if (!hasBoards.containsKey(workspaceId)) {
-                                          final boards = await _getBoardsForWorkspace(workspaceId);
-                                          setState(() {
-                                            hasBoards[workspaceId] = boards.isNotEmpty;
-                                          });
-                                        }
-                                        
-                                        final currentHasBoards = hasBoards[workspaceId] ?? false;
-                                        
-                                        if (currentHasBoards) {
-                                          // มี boards → toggle expand/collapse
-                                          setState(() {
-                                            expandedStates[workspaceId] = !isExpanded;
-                                          });
-                                        } else {
-                                          // ไม่มี boards → ไปที่ board management
-                                          Navigator.of(context).pop();
-                                          await ctrl.switchWorkspace(workspaceId);
-                                          Get.toNamed('/board-management');
-                                        }
-                                      },
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[50],
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: Colors.grey[300]!,
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.business,
-                                              color: Colors.grey[600],
-                                              size: 24,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                workspace['name'] as String,
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                            // ไอคอนเปลี่ยนตาม condition
-                                            FutureBuilder<List<Map<String, dynamic>>>(
-                                              future: _getBoardsForWorkspace(workspaceId),
-                                              builder: (context, snapshot) {
-                                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                                  return SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: Colors.grey[400],
-                                                    ),
-                                                  );
-                                                }
-                                                
-                                                final boards = snapshot.data ?? [];
-                                                if (boards.isEmpty) {
-                                                  // ไม่มี boards → แสดงไอคอน +
-                                                  return Icon(
-                                                    Icons.add,
-                                                    color: AppTheme.primaryOrange,
-                                                    size: 20,
-                                                  );
-                                                } else {
-                                                  // มี boards → แสดงไอคอน expand/collapse
-                                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                    if (hasBoards[workspaceId] != true) {
-                                                      setState(() {
-                                                        hasBoards[workspaceId] = true;
-                                                      });
-                                                    }
-                                                  });
-                                                  return Icon(
-                                                    isExpanded ? Icons.expand_less : Icons.expand_more,
-                                                    color: Colors.grey[400],
-                                                    size: 20,
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          ],
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () async {
+                                // ตัวอย่างการทำงานแบบง่าย - ไปที่ board management เสมอ
+                                Navigator.of(context).pop();
+                                await ctrl.switchWorkspace(workspaceId);
+                                Get.toNamed('/board-management');
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.grey[300]!,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.business,
+                                      color: Colors.grey[600],
+                                      size: 24,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        workspace['name'] as String,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black87,
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  // Expanded boards section (แสดงเฉพาะเมื่อมี boards และ expanded)
-                                  if (isExpanded && workspaceHasBoards) ...[
-                                    const SizedBox(height: 8),
-                                    FutureBuilder<List<Map<String, dynamic>>>(
-                                      future: _getBoardsForWorkspace(workspaceId),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState == ConnectionState.waiting) {
-                                          return Container(
-                                            padding: const EdgeInsets.all(16),
-                                            child: const Center(
-                                              child: SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child: CircularProgressIndicator(strokeWidth: 2),
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                        
-                                        final boards = snapshot.data ?? [];
-                                        return Container(
-                                          margin: const EdgeInsets.only(left: 16),
-                                          child: Column(
-                                            children: boards.map((board) {
-                                              return Container(
-                                                margin: const EdgeInsets.only(bottom: 4),
-                                                child: Material(
-                                                  color: Colors.transparent,
-                                                  child: InkWell(
-                                                    onTap: () async {
-                                                      Navigator.of(context).pop();
-                                                      await ctrl.switchWorkspace(workspaceId);
-                                                      await ctrl.switchBoard(board['id'] as String);
-                                                    },
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    child: Container(
-                                                      padding: const EdgeInsets.all(12),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius: BorderRadius.circular(8),
-                                                        border: Border.all(
-                                                          color: Colors.grey[200]!,
-                                                          width: 1,
-                                                        ),
-                                                      ),
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons.dashboard,
-                                                            color: Colors.grey[500],
-                                                            size: 18,
-                                                          ),
-                                                          const SizedBox(width: 8),
-                                                          Expanded(
-                                                            child: Text(
-                                                              board['name'] as String,
-                                                              style: const TextStyle(
-                                                                fontSize: 14,
-                                                                fontWeight: FontWeight.w400,
-                                                                color: Colors.black87,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          Icon(
-                                                            Icons.arrow_forward_ios,
-                                                            color: Colors.grey[300],
-                                                            size: 12,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
-                                          ),
-                                        );
-                                      },
+                                    Icon(
+                                      Icons.add,
+                                      color: AppTheme.primaryOrange,
+                                      size: 20,
                                     ),
                                   ],
-                                ],
+                                ),
                               ),
-                            );
-                          }).toList(),
+                            ),
+                          ),
                         );
-                      },
+                      }).toList(),
                     ),
                     const SizedBox(height: 24),
                   ] else ...[
@@ -733,94 +544,10 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
           return const SizedBox.shrink();
         }),
 
-        // Main Menu Button - combines all actions
+        // ลบ PopupMenuButton ออก - ไม่มี menu แล้ว
         Obx(() {
-          if (ctrl.hasWorkspaces) {
-            final canManageBoard = MobilePermissionsService.to.isOwner ||
-                MobilePermissionsService.to.can('settings:board:manage');
-            return PopupMenuButton<String>(
-              onSelected: (value) => (onMenuAction ?? (v) => _defaultOnMenuAction(v, context))(value),
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Icon(Icons.more_vert),
-              ),
-              itemBuilder: (context) => [
-                // Board Management
-                if (canManageBoard)
-                  PopupMenuItem<String>(
-                    value: 'board_management',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.dashboard, size: 20),
-                        const SizedBox(width: 12),
-                        const Text('Board Management'),
-                      ],
-                    ),
-                  ),
-                // Board Selector
-                if (ctrl.boards.isNotEmpty) ...[
-                  if (canManageBoard) const PopupMenuDivider(),
-                  ...ctrl.boards.map((board) {
-                    return PopupMenuItem<String>(
-                      value: 'board_${board.id}',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.view_column,
-                            size: 20,
-                            color: board.id == ctrl.currentBoardId.value
-                                ? AppTheme.primaryOrange
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(board.name)),
-                          if (board.id == ctrl.currentBoardId.value)
-                            const Icon(Icons.check, color: AppTheme.primaryOrange),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ],
-                // Workspace Selector
-                if (ctrl.availableWorkspaces.isNotEmpty) ...[
-                  const PopupMenuDivider(),
-                  ...ctrl.availableWorkspaces.map((workspace) {
-                    return PopupMenuItem<String>(
-                      value: 'workspace_${workspace['id']}',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.workspace_premium,
-                            size: 20,
-                            color: workspace['id'] == ctrl.currentWorkspaceId.value
-                                ? AppTheme.primaryOrange
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(workspace['name'] as String)),
-                          if (workspace['id'] == ctrl.currentWorkspaceId.value)
-                            const Icon(Icons.check, color: AppTheme.primaryOrange),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  const PopupMenuDivider(),
-                  if (canManageBoard)
-                    PopupMenuItem<String>(
-                      value: 'edit_workspace',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.edit, size: 20),
-                          const SizedBox(width: 12),
-                          const Text('Edit Workspace'),
-                        ],
-                      ),
-                    ),
-                ],
-              ],
-            );
-          } else {
-            // Show only Add Workspace when no workspaces
+          if (!ctrl.hasWorkspaces) {
+            // Show create workspace button when no workspaces
             return Container(
               margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
@@ -857,6 +584,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             );
           }
+          return const SizedBox.shrink();
         }),
       ],
     );

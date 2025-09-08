@@ -30,8 +30,6 @@ class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
   final CardViewSettingsService _settingsService = CardViewSettingsService.to;
   late final LaneDisplayController _laneDisplayController;
-  Worker? _wsWorker;
-  Worker? _settingsWorker;
   Map<String, dynamic> _fieldConfigCache = {};
   Map<String, String> _userNameCache = {};
 
@@ -117,26 +115,37 @@ class _BoardPageState extends State<BoardPage> {
       _laneDisplayController = Get.put(LaneDisplayController());
     }
     
-    // Initialize with current user
-    _initializeWithCurrentUser();
-    // Load field config & user names asynchronously
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('🚀 Post frame callback - loading field config and user cache');
+    // Fast initialization - only essential data
+    _fastInitialize();
+  }
+
+  Future<void> _fastInitialize() async {
+    try {
+      // Get current user ID from Firebase Auth
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        print('❌ No authenticated user found');
+        return;
+      }
+      
+      final String currentUserId = currentUser.uid;
+      print('👤 Fast initializing board with user: $currentUserId');
+      
+      await _controller.initializeWithUser(currentUserId);
+      
+      // Load other data in background (non-blocking)
+      _loadBackgroundData();
+      
+    } catch (e) {
+      print('❌ Error in fast initialize: $e');
+    }
+  }
+
+  void _loadBackgroundData() {
+    // Load these in background without blocking UI
+    Future.microtask(() async {
       _loadPerBoardFieldConfig();
       _buildUserNameCache();
-    });
-
-    // React to workspace changes to prefetch permissions
-    _wsWorker = ever<String>(_controller.currentWorkspaceId, (wsId) {
-      if (wsId.isNotEmpty) {
-        _ensurePermissions(wsId);
-      }
-    });
-
-    // Listen to CardViewSettingsService changes
-    _settingsWorker = ever<List<CardFieldSetting>>(_settingsService.cardFieldsRx, (fields) {
-      print('🔄 Settings changed, reloading field config...');
-      _loadPerBoardFieldConfig();
     });
   }
 
@@ -181,8 +190,6 @@ class _BoardPageState extends State<BoardPage> {
 
   @override
   void dispose() {
-    _wsWorker?.dispose();
-    _settingsWorker?.dispose();
     super.dispose();
   }
 
