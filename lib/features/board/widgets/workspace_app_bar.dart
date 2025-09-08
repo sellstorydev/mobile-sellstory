@@ -285,6 +285,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                     StatefulBuilder(
                       builder: (context, setState) {
                         Map<String, bool> expandedStates = {};
+                        Map<String, bool> hasBoards = {}; // เก็บข้อมูลว่า workspace มี boards หรือไม่
                         
                         return Column(
                           children: ctrl.availableWorkspaces.where((workspace) => 
@@ -292,6 +293,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                           ).map((workspace) {
                             final workspaceId = workspace['id'] as String;
                             final isExpanded = expandedStates[workspaceId] ?? false;
+                            final workspaceHasBoards = hasBoards[workspaceId] ?? false;
                             
                             return Container(
                               margin: const EdgeInsets.only(bottom: 8),
@@ -301,10 +303,28 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                                   Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          expandedStates[workspaceId] = !isExpanded;
-                                        });
+                                      onTap: () async {
+                                        // ตรวจสอบว่ามี boards หรือไม่ก่อน
+                                        if (!hasBoards.containsKey(workspaceId)) {
+                                          final boards = await _getBoardsForWorkspace(workspaceId);
+                                          setState(() {
+                                            hasBoards[workspaceId] = boards.isNotEmpty;
+                                          });
+                                        }
+                                        
+                                        final currentHasBoards = hasBoards[workspaceId] ?? false;
+                                        
+                                        if (currentHasBoards) {
+                                          // มี boards → toggle expand/collapse
+                                          setState(() {
+                                            expandedStates[workspaceId] = !isExpanded;
+                                          });
+                                        } else {
+                                          // ไม่มี boards → ไปที่ board management
+                                          Navigator.of(context).pop();
+                                          await ctrl.switchWorkspace(workspaceId);
+                                          Get.toNamed('/board-management');
+                                        }
                                       },
                                       borderRadius: BorderRadius.circular(12),
                                       child: Container(
@@ -335,18 +355,53 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                                                 ),
                                               ),
                                             ),
-                                            Icon(
-                                              isExpanded ? Icons.expand_less : Icons.expand_more,
-                                              color: Colors.grey[400],
-                                              size: 20,
+                                            // ไอคอนเปลี่ยนตาม condition
+                                            FutureBuilder<List<Map<String, dynamic>>>(
+                                              future: _getBoardsForWorkspace(workspaceId),
+                                              builder: (context, snapshot) {
+                                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                                  return SizedBox(
+                                                    width: 20,
+                                                    height: 20,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Colors.grey[400],
+                                                    ),
+                                                  );
+                                                }
+                                                
+                                                final boards = snapshot.data ?? [];
+                                                if (boards.isEmpty) {
+                                                  // ไม่มี boards → แสดงไอคอน +
+                                                  return Icon(
+                                                    Icons.add,
+                                                    color: AppTheme.primaryOrange,
+                                                    size: 20,
+                                                  );
+                                                } else {
+                                                  // มี boards → แสดงไอคอน expand/collapse
+                                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                    if (hasBoards[workspaceId] != true) {
+                                                      setState(() {
+                                                        hasBoards[workspaceId] = true;
+                                                      });
+                                                    }
+                                                  });
+                                                  return Icon(
+                                                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                                                    color: Colors.grey[400],
+                                                    size: 20,
+                                                  );
+                                                }
+                                              },
                                             ),
                                           ],
                                         ),
                                       ),
                                     ),
                                   ),
-                                  // Expanded boards section
-                                  if (isExpanded) ...[
+                                  // Expanded boards section (แสดงเฉพาะเมื่อมี boards และ expanded)
+                                  if (isExpanded && workspaceHasBoards) ...[
                                     const SizedBox(height: 8),
                                     FutureBuilder<List<Map<String, dynamic>>>(
                                       future: _getBoardsForWorkspace(workspaceId),
@@ -365,54 +420,6 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                                         }
                                         
                                         final boards = snapshot.data ?? [];
-                                        if (boards.isEmpty) {
-                                          // No boards - show add board button
-                                          return Container(
-                                            margin: const EdgeInsets.only(left: 16),
-                                            child: Material(
-                                              color: Colors.transparent,
-                                              child: InkWell(
-                                                onTap: () async {
-                                                  Navigator.of(context).pop();
-                                                  await ctrl.switchWorkspace(workspaceId);
-                                                  Get.toNamed('/board-management');
-                                                },
-                                                borderRadius: BorderRadius.circular(8),
-                                                child: Container(
-                                                  padding: const EdgeInsets.all(12),
-                                                  decoration: BoxDecoration(
-                                                    color: AppTheme.primaryOrange.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    border: Border.all(
-                                                      color: AppTheme.primaryOrange.withOpacity(0.3),
-                                                      width: 1,
-                                                    ),
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.add,
-                                                        color: AppTheme.primaryOrange,
-                                                        size: 20,
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      const Text(
-                                                        'เพิ่ม Board',
-                                                        style: TextStyle(
-                                                          fontSize: 14,
-                                                          fontWeight: FontWeight.w500,
-                                                          color: AppTheme.primaryOrange,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                        
-                                        // Show boards
                                         return Container(
                                           margin: const EdgeInsets.only(left: 16),
                                           child: Column(
