@@ -20,6 +20,18 @@ class ChatroomRepository {
         }, SetOptions(merge: true));
   }
 
+  // Update hashtags on a customer document (array of objects with id/text/color)
+  Future<void> setCustomerHashtags({
+    required String workspaceId,
+    required String customerId,
+    required List<Map<String, dynamic>> hashtags,
+  }) async {
+    await _fs
+        .getWorkspaceCustomersCollection(workspaceId)
+        .doc(customerId)
+        .set({'hashtags': hashtags}, SetOptions(merge: true));
+  }
+
   // Add a user as an assignee on a customer document
   Future<void> addAssigneeToCustomer({
     required String workspaceId,

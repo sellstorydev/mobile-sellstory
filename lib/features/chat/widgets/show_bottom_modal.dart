@@ -142,8 +142,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   final HashtagService _hashtagService = HashtagService();
   List<HashtagOption> _availableHashtags = [];
   List<String> _selectedHashtagIds = [];
+  List<String> _pendingHashtagIds = [];
   bool _loadingHashtags = false;
   bool _creatingHashtag = false;
+
 
   // Helper to get chatroom doc ref
   DocumentReference<Map<String, dynamic>> get _chatroomDoc => FirebaseFirestore.instance
@@ -166,15 +168,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
 
     Get.snackbar(
       isError ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน',
-      margin: const EdgeInsets.all(12),
       message,
+      margin: const EdgeInsets.all(12),
       snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 2),
       icon: Icon(isError ? Icons.error_outline : Icons.check_circle, color: Colors.white),
 
     );
-
-
   }
 
   Future<void> _loadCustomerNameById(String cid) async {
@@ -284,8 +284,16 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   Future<void> _loadCustomerHashtags(String cid) async {
     setState(() { _loadingHashtags = true; });
     try {
-      // Load available hashtags for customer scope
-      _availableHashtags = await _hashtagService.getHashtagsByScope(widget.workspaceId, 'customer');
+      // Load available hashtags from workspace master list, filter by customer scope, sort by totalUsage desc then name
+      final all = await _hashtagService.getWorkspaceHashtags(widget.workspaceId);
+      final filtered = all.where((h) => (h.scopes['customer'] == true) && h.enabled).toList();
+      filtered.sort((a, b) {
+        final byUsage = (b.totalUsage).compareTo(a.totalUsage);
+        if (byUsage != 0) return byUsage;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+      _availableHashtags = filtered;
+
       // Load current customer's hashtag ids
       final snap = await FirebaseFirestore.instance
           .collection('workspaces')
@@ -306,21 +314,34 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       if (!mounted) return;
       setState(() {
         _selectedHashtagIds = ids;
+        _pendingHashtagIds = List<String>.from(ids);
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() { _availableHashtags = []; _selectedHashtagIds = []; });
+      setState(() { _availableHashtags = []; _selectedHashtagIds = []; _pendingHashtagIds = []; });
     } finally {
       if (mounted) setState(() { _loadingHashtags = false; });
     }
   }
 
+  bool get _isHashtagDirty {
+    final a = _selectedHashtagIds.toSet();
+    final b = _pendingHashtagIds.toSet();
+    return a.length != b.length || a.difference(b).isNotEmpty;
+  }
+
   Future<void> _persistCustomerHashtags(List<String> ids) async {
+    // Ensure we have a linked customer to save into
+    final cid = _currentCustomerId?.trim() ?? '';
+    if (cid.isEmpty) {
+      _showTopSnack('โปรดเชื่อมลูกค้าก่อนบันทึกแฮชแท็ก', isError: true);
+      return;
+    }
     try {
       // Map to object format {id,text,color}
       final objects = ids.map((id) {
         final h = _availableHashtags.firstWhere(
-              (x) => x.id == id,
+          (x) => x.id == id,
           orElse: () => HashtagOption(id: id, name: id, color: '#ef4444', totalUsage: 0, enabled: true, scopes: const {}),
         );
         return {
@@ -329,15 +350,39 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           'color': h.color,
         };
       }).toList();
+
+      // Persist to customer document (source of truth)
       await FirebaseFirestore.instance
           .collection('workspaces')
           .doc(widget.workspaceId)
           .collection('customers')
-          .doc(_currentCustomerId)
+          .doc(cid)
           .set({'hashtags': objects}, SetOptions(merge: true));
+
+      // Mirror to chatroom for instant UI reflection in the list (ids + display names with #)
+      final names = objects
+          .map((m) => (m['text']?.toString() ?? ''))
+          .where((s) => s.isNotEmpty)
+          .map((s) => s.startsWith('#') ? s : '#$s')
+          .toList();
+      await _chatroomDoc.set({
+        'hashtagIds': ids,
+        'hashtags': names,
+      }, SetOptions(merge: true));
+      final meta = objects.map((m) => {
+        'name': (m['text'] is String && (m['text'] as String).startsWith('#')) ? m['text'] : '#${m['text']}',
+        'color': m['color'] ?? '#64748B',
+      }).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _selectedHashtagIds = List<String>.from(ids);
+        _pendingHashtagIds = List<String>.from(ids);
+      });
+      _showTopSnack('อัปเดตแฮชแท็กเรียบร้อย');
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('อัปเดตแฮชแท็กไม่สำเร็จ', isError: true);
+      _showTopSnack('อัปเดตแฮชแท็กไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -381,7 +426,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     try {
       final color = () {
         final raw = colorController.text.trim();
-        if (RegExp(r'^#?[0-9a-fA-F]{6}�?$').hasMatch(raw)) {
+        if (RegExp(r'^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$').hasMatch(raw)) {
           return raw.startsWith('#') ? raw : '#$raw';
         }
         return '#f97316';
@@ -397,16 +442,14 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         _showTopSnack('สร้างแฮชแท็กไม่สำเร็จ', isError: true);
         return;
       }
-      // Reload available hashtags and select the new one
+      // Reload available hashtags and keep current selections; then add new tag to pending only
       await _loadCustomerHashtags(_currentCustomerId!);
       final newId = safeName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-      if (!_selectedHashtagIds.contains(newId)) {
-        final updated = [..._selectedHashtagIds, newId];
-        setState(() => _selectedHashtagIds = updated);
-        await _persistCustomerHashtags(updated);
+      if (!_pendingHashtagIds.contains(newId)) {
+        setState(() => _pendingHashtagIds = [..._pendingHashtagIds, newId]);
       }
       if (!mounted) return;
-      _showTopSnack('เพิ่มและเชื่อมแฮชแท็กเรียบร้อย');
+      _showTopSnack('เพิ่มแฮชแท็กใหม่แล้ว (กดยืนยันเพื่อบันทึกกับลูกค้า)');
     } catch (e) {
       if (!mounted) return;
       _showTopSnack('สร้างแฮชแท็กไม่สำเร็จ: $e', isError: true);
@@ -931,18 +974,16 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   tooltip: 'ปักหมุดห้องแชท',
                   onTap: () async {
                     setState(() => _pinned = !_pinned);
-                    // Prefer parent callback
                     if (widget.onPinChanged != null) {
                       widget.onPinChanged!(_pinned);
                     } else {
-                      // Fallback: persist both chat_pin and bot_status directly
                       try {
                         await _chatroomDoc.update({
                           'chat_pin': _pinned ? 'Y' : 'N',
                           'bot_status': _botEnabled ? 'Y' : 'N',
                         });
                         if (mounted) {
-                          _showTopSnack(_pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว');
+                          _showTopSnack(_pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักห���ุดแล้ว');
                         }
                       } catch (e) {
                         if (mounted) {
@@ -955,8 +996,6 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // เมนูรายการ
             const Divider(height: 24),
             ChatMenuTile(
               icon: Icons.sticky_note_2_outlined,
@@ -1046,16 +1085,34 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                           const LinearProgressIndicator(minHeight: 2)
                         else ...[
                           HashtagInputField(
-                            selectedHashtags: _selectedHashtagIds,
+                            selectedHashtags: _pendingHashtagIds,
                             availableHashtags: _availableHashtags,
                             onHashtagsChanged: (ids) {
-                              setState(() => _selectedHashtagIds = ids);
-                              _persistCustomerHashtags(ids);
+                              setState(() => _pendingHashtagIds = ids);
                             },
                             label: 'แฮชแท็ก',
                             hintText: 'เลือกแฮชแท็กของลูกค้า',
                             workspaceId: widget.workspaceId,
                           ),
+                          const SizedBox(height: 8),
+                          if (_isHashtagDirty)
+                            Row(
+                              children: [
+                                OutlinedButton(
+                                  onPressed: () {
+                                    setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
+                                  },
+                                  child: const Text('ยกเลิก'),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => _persistCustomerHashtags(_pendingHashtagIds),
+                                    child: const Text('ยืนยัน'),
+                                  ),
+                                ),
+                              ],
+                            ),
                           const SizedBox(height: 8),
                           Align(
                             alignment: Alignment.centerLeft,

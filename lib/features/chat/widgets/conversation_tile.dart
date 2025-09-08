@@ -361,6 +361,7 @@ class ConversationTile extends StatelessWidget {
                       );
                     }
 
+
                     // Fallback: resolve from chatroom-level assignees (assigneeIds or assignees)
                     final rawIds = conversation['assigneeIds'] ?? conversation['assignees'];
                     final ids = (rawIds is List)
@@ -411,6 +412,82 @@ class ConversationTile extends StatelessWidget {
                           ),
                         );
                       },
+                    );
+                  }),
+
+
+                  // Linked items (Customer, Job Card)
+                  Builder(builder: (_) {
+                    String? customerId = (conversation['customerId'] ?? conversation['customer_id'] ?? conversation['customer']?['id'])?.toString();
+                    String customerName = (conversation['customerName'] ?? conversation['customer']?['name'] ?? '').toString();
+                    if ((customerName).trim().isEmpty) customerName = '';
+
+                    final jobCardId = (conversation['jobCardId'] ?? '').toString();
+                    final jobCardTitle = (conversation['jobCardTitle'] ?? '').toString();
+
+                    final chips = <Widget>[];
+
+                    if ((customerId ?? '').isNotEmpty) {
+                      final text = customerName.isNotEmpty ? customerName : 'ลูกค้า: $customerId';
+                      chips.add(
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.badge_outlined, size: 14, color: Color(0xFF334155)),
+                              const SizedBox(width: 6),
+                              Text(
+                                text,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    if (jobCardId.isNotEmpty || jobCardTitle.isNotEmpty) {
+                      final text = jobCardTitle.isNotEmpty ? jobCardTitle : 'Job Card: $jobCardId';
+                      chips.add(
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: const Color(0xFFDBEAFE)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.assignment_outlined, size: 14, color: Color(0xFF1D4ED8)),
+                              const SizedBox(width: 6),
+                              Text(
+                                text,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1D4ED8)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    if (chips.isEmpty) return const SizedBox.shrink();
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: -6,
+                        children: chips,
+                      ),
                     );
                   }),
                 ],
