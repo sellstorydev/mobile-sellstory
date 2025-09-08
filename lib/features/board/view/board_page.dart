@@ -6,6 +6,8 @@ import 'package:sellstory/core/services/card_view_settings_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
+import '../controllers/lane_display_controller.dart';
+import '../enums/lane_display_mode.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
 import '../widgets/lane_header.dart';
@@ -27,6 +29,7 @@ class BoardPage extends StatefulWidget {
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
   final CardViewSettingsService _settingsService = CardViewSettingsService.to;
+  late final LaneDisplayController _laneDisplayController;
   Worker? _wsWorker;
   Worker? _settingsWorker;
   Map<String, dynamic> _fieldConfigCache = {};
@@ -106,6 +109,13 @@ class _BoardPageState extends State<BoardPage> {
   void initState() {
     super.initState();
     print('🚀 BoardPage initialized');
+    
+    // Initialize LaneDisplayController
+    try {
+      _laneDisplayController = Get.find<LaneDisplayController>();
+    } catch (e) {
+      _laneDisplayController = Get.put(LaneDisplayController());
+    }
     
     // Initialize with current user
     _initializeWithCurrentUser();
@@ -415,14 +425,30 @@ class _BoardPageState extends State<BoardPage> {
                 height: 65,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: StatusSummaryCards(
-                    cards: allCards,
-                    selectedStatuses: _controller.selectedStatuses,
-                    onStatusTap: (String status) {
-                      // Toggle status filter
-                      _controller.toggleStatusFilter(status);
-                    },
-                  ),
+                  child: Obx(() {
+                    // Get display mode from first display lane
+                    final displayLanes = _controller.displayLanes;
+                    final firstLaneId = displayLanes.isNotEmpty ? displayLanes.first.id : '';
+                    
+                    // Access laneDisplayModes to make Obx reactive to lane display changes
+                    final laneDisplayModes = _laneDisplayController.laneDisplayModes;
+                    final displayMode = firstLaneId.isNotEmpty 
+                        ? (laneDisplayModes[firstLaneId] ?? LaneDisplayMode.totalBeforeDiscount)
+                        : LaneDisplayMode.totalBeforeDiscount;
+                    
+                    print('🎯 StatusSummaryCards displayMode: $displayMode for laneId: $firstLaneId');
+                    print('🎯 All laneDisplayModes: $laneDisplayModes');
+                    
+                    return StatusSummaryCards(
+                      cards: allCards,
+                      selectedStatuses: _controller.selectedStatuses,
+                      displayMode: displayMode,
+                      onStatusTap: (String status) {
+                        // Toggle status filter
+                        _controller.toggleStatusFilter(status);
+                      },
+                    );
+                  }),
                 ),
               );
             }

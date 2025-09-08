@@ -1,23 +1,35 @@
 import 'package:flutter/material.dart';
 import '../../../domain/entities/job_card.dart';
+import '../enums/lane_display_mode.dart';
+import '../utils/lane_total_calculator.dart';
 
 class StatusSummaryCards extends StatelessWidget {
   // cards: รายการการ์ดที่ผ่านการกรอง/ค้นหาจาก board แล้ว
   final List<JobCard> cards;
   final Function(String status)? onStatusTap; // Callback เมื่อกดที่ status card
   final List<String> selectedStatuses; // รายการ status ที่ถูกเลือกอยู่
+  final LaneDisplayMode displayMode; // Display mode from lane header
 
   const StatusSummaryCards({
     super.key, 
     required this.cards,
     this.onStatusTap,
     this.selectedStatuses = const [],
+    this.displayMode = LaneDisplayMode.netTotal, // Default to netTotal
   });
 
   @override
   Widget build(BuildContext context) {
     print('🎯 StatusSummaryCards build() called with ${cards.length} cards');
     print('🎯 Selected statuses: $selectedStatuses');
+    print('🎯 Display mode: $displayMode');
+    
+    // Test calculation for debugging
+    final inProgressCards = cards.where((card) => card.status == 'In Progress').toList();
+    if (inProgressCards.isNotEmpty) {
+      final totals = LaneTotalCalculator.calculateTotals(inProgressCards);
+      print('🎯 In Progress totals - before: ${totals.totalBeforeDiscount}, after: ${totals.totalAfterDiscount}, grand: ${totals.grandTotal}, net: ${totals.netTotal}');
+    }
     
     // Show summary cards even if no cards are available
     return Container(
@@ -189,74 +201,36 @@ class StatusSummaryCards extends StatelessWidget {
     }
   }
 
-  // Helper function to round to 2 decimal places
-  double _round2(double value) {
-    return (value * 100).round() / 100;
-  }
-
-  // Calculate amount from expenses instead of using card.amount field
-  double _calculateExpenseTotal(List<Map<String, dynamic>> expenses, bool isVatEnabled, Map<String, dynamic>? additionalDiscount, num withholdingTaxPercentage) {
-    if (expenses.isEmpty) return 0.0;
-    
-    double totalBeforeDiscount = 0;
-    
-    // Calculate base amount from expenses
-    for (final expense in expenses) {
-      final quantity = (expense['quantity'] ?? 0).toDouble();
-      final pricePerUnit = (expense['pricePerUnit'] ?? 0).toDouble();
-      final base = quantity * pricePerUnit;
-      totalBeforeDiscount += base;
-    }
-    
-    // Use totalBeforeDiscount as base for additional discount (matching job_card_tile logic)
-    double baseForAdditional = totalBeforeDiscount;
-    double totalAfterDiscount = baseForAdditional;
-    
-    // Apply additional discount if exists
-    if (additionalDiscount != null && (additionalDiscount['value'] ?? 0) != 0) {
-      final discountValue = (additionalDiscount['value'] ?? 0).toDouble();
-      final discountType = (additionalDiscount['type'] ?? 'amount') as String?;
-      
-      if (discountType == 'percentage') {
-        totalAfterDiscount = baseForAdditional * (1 - (discountValue / 100.0));
-      } else {
-        totalAfterDiscount = baseForAdditional - discountValue;
-      }
-    }
-    
-    totalAfterDiscount = _round2(totalAfterDiscount.clamp(0, double.infinity));
-    final totalBeforeVat = totalAfterDiscount;
-    
-    // Calculate VAT if enabled
-    final vatAmount = isVatEnabled ? _round2(totalBeforeVat * 0.07) : 0.0;
-    final grandTotal = _round2(totalBeforeVat + vatAmount);
-    
-    // Calculate withholding tax
-    final wht = _round2(totalBeforeVat * (withholdingTaxPercentage / 100.0));
-    final netTotal = _round2(grandTotal - wht);
-    
-    return netTotal;
-  }
-
   double _calculateAmountByStatus(String status) {
-    return cards
-        .where((card) => card.status == status)
-        .fold(0.0, (sum, card) {
-          // Get financial settings from card (these might be null)
-          final isVatEnabled = card.isVatEnabled;
-          final additionalDiscount = card.additionalDiscount;
-          final withholdingTaxPercentage = card.withholdingTaxPercentage;
-          
-          // Calculate total from expenses
-          final expenseTotal = _calculateExpenseTotal(
-            card.expenses, 
-            isVatEnabled, 
-            additionalDiscount, 
-            withholdingTaxPercentage
-          );
-          
-          return sum + expenseTotal;
-        });
+    final statusCards = cards.where((card) => card.status == status).toList();
+    
+    if (statusCards.isEmpty || displayMode == LaneDisplayMode.none) {
+      return 0.0;
+    }
+    
+    // Use LaneTotalCalculator to get totals for all cards of this status
+    final totals = LaneTotalCalculator.calculateTotals(statusCards);
+    
+    print('🎯 Calculating amount for status: $status, mode: $displayMode');
+    print('🎯 Totals - before: ${totals.totalBeforeDiscount}, after: ${totals.totalAfterDiscount}, grand: ${totals.grandTotal}, net: ${totals.netTotal}');
+    
+    // Return the amount based on display mode
+    switch (displayMode) {
+      case LaneDisplayMode.totalBeforeDiscount:
+        print('🎯 Returning totalBeforeDiscount: ${totals.totalBeforeDiscount}');
+        return totals.totalBeforeDiscount;
+      case LaneDisplayMode.totalAfterDiscount:
+        print('🎯 Returning totalAfterDiscount: ${totals.totalAfterDiscount}');
+        return totals.totalAfterDiscount;
+      case LaneDisplayMode.grandTotal:
+        print('🎯 Returning grandTotal: ${totals.grandTotal}');
+        return totals.grandTotal;
+      case LaneDisplayMode.netTotal:
+        print('🎯 Returning netTotal: ${totals.netTotal}');
+        return totals.netTotal;
+      case LaneDisplayMode.none:
+        return 0.0;
+    }
   }
 
   int _getCountByStatus(String status) {
