@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/assignees_input_field.dart';
-import '../../../data/repositories/firestore_repository.dart';
-import '../../../domain/entities/customer.dart';
 import '../controller/add_edit_document_controller.dart';
 
 class AddEditDocumentPage extends StatefulWidget {
@@ -33,15 +29,19 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     'summary': false,
   };
 
+  AddEditDocumentController? _controller;
+
   @override
   void initState() {
     super.initState();
+    // Initialize controller once in initState to prevent recreation on rebuilds
+    _controller = AddEditDocumentController(documentId: widget.documentId);
   }
 
     @override
   Widget build(BuildContext context) {
     return GetBuilder<AddEditDocumentController>(
-      init: AddEditDocumentController(documentId: widget.documentId),
+      init: _controller,
       builder: (controller) {
         return Scaffold(
           backgroundColor: AppTheme.backgroundGrey,
@@ -216,25 +216,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<String>(
-                                            value:
-                                                controller.selectedTemplateId,
-                                            items: [
-                                              const DropdownMenuItem<String>(
-                                                value: null,
-                                                child: Text('ไม่มี (None)'),
-                                              ),
-                                              ...controller.availableTemplates
-                                                  .map((template) {
-                                                    return DropdownMenuItem<
-                                                      String
-                                                    >(
-                                                      value: template['id'],
-                                                      child: Text(
-                                                        template['name'],
-                                                      ),
-                                                    );
-                                                  }),
-                                            ],
+                                            value: _getValidTemplateValue(controller),
+                                            items: _buildTemplateDropdownItems(controller),
                                             onChanged:
                                                 controller.onTemplateChanged,
                                             decoration: const InputDecoration(
@@ -348,6 +331,54 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
         );
       },
     );
+  }
+
+  // Helper method to get valid template value for dropdown
+  String? _getValidTemplateValue(AddEditDocumentController controller) {
+    final selectedId = controller.selectedTemplateId;
+    
+    // If no template is selected, return null
+    if (selectedId == null || selectedId.isEmpty) {
+      return null;
+    }
+    
+    // Check if the selected template ID exists in available templates
+    final templateExists = controller.availableTemplates
+        .any((template) => template['id'] == selectedId);
+    
+    // Return the ID only if it exists in available templates
+    return templateExists ? selectedId : null;
+  }
+
+  // Helper method to build template dropdown items without duplicates
+  List<DropdownMenuItem<String>> _buildTemplateDropdownItems(AddEditDocumentController controller) {
+    final items = <DropdownMenuItem<String>>[];
+    
+    // Add "None" option
+    items.add(const DropdownMenuItem<String>(
+      value: null,
+      child: Text('ไม่มี (None)'),
+    ));
+    
+    // Add unique template items
+    final addedIds = <String>{};
+    for (final template in controller.availableTemplates) {
+      final id = template['id']?.toString();
+      final name = template['name']?.toString() ?? 'Unknown Template';
+      
+      // Skip if ID is null or already added
+      if (id == null || addedIds.contains(id)) {
+        continue;
+      }
+      
+      addedIds.add(id);
+      items.add(DropdownMenuItem<String>(
+        value: id,
+        child: Text(name),
+      ));
+    }
+    
+    return items;
   }
 
   Widget _buildSectionHeader(String title, IconData icon, String sectionKey) {
@@ -724,21 +755,31 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
           const SizedBox(height: 16),
 
-          // Phone
-          _buildTextField(
+          // Multiple Phones
+          _buildMultipleContactFields(
+            controller: controller,
             label: 'เบอร์โทรศัพท์',
-            hint: 'กรอกเบอร์โทรศัพท์',
-            controller: controller.customerPhoneController,
+            contactType: 'phone',
+            contacts: controller.customerPhones,
+            addContact: controller.addCustomerPhone,
+            removeContact: controller.removeCustomerPhone,
+            updateContact: controller.updateCustomerPhone,
             keyboardType: TextInputType.phone,
+            hint: 'กรอกเบอร์โทรศัพท์',
           ),
           const SizedBox(height: 16),
 
-          // Email
-          _buildTextField(
+          // Multiple Emails
+          _buildMultipleContactFields(
+            controller: controller,
             label: 'อีเมล',
-            hint: 'กรอกอีเมล',
-            controller: controller.customerEmailController,
+            contactType: 'email',
+            contacts: controller.customerEmails,
+            addContact: controller.addCustomerEmail,
+            removeContact: controller.removeCustomerEmail,
+            updateContact: controller.updateCustomerEmail,
             keyboardType: TextInputType.emailAddress,
+            hint: 'กรอกอีเมล',
           ),
         ],
       ),
@@ -1780,6 +1821,103 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMultipleContactFields({
+    required AddEditDocumentController controller,
+    required String label,
+    required String contactType,
+    required List<Map<String, dynamic>> contacts,
+    required VoidCallback addContact,
+    required Function(int) removeContact,
+    required Function(int, String) updateContact,
+    required TextInputType keyboardType,
+    required String hint,
+  }) {
+    return GetBuilder<AddEditDocumentController>(
+      builder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textDark,
+                ),
+              ),
+              IconButton(
+                onPressed: addContact,
+                icon: const Icon(Icons.add_circle, color: AppTheme.primaryOrange),
+                tooltip: 'เพิ่ม$label',
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (contacts.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppTheme.borderGrey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'ยังไม่มี$label กดปุ่ม + เพื่อเพิ่ม',
+                style: const TextStyle(
+                  color: AppTheme.textGrey,
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ...contacts.asMap().entries.map((entry) {
+            final index = entry.key;
+            final contact = entry.value;
+            final contactController = TextEditingController(text: contact['value'] ?? '');
+            
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: contactController,
+                      keyboardType: keyboardType,
+                      onChanged: (value) => updateContact(index, value),
+                      decoration: InputDecoration(
+                        hintText: hint,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppTheme.borderGrey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppTheme.primaryOrange),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => removeContact(index),
+                    icon: const Icon(Icons.remove_circle, color: Colors.red),
+                    tooltip: 'ลบ$label',
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
     );
   }
 

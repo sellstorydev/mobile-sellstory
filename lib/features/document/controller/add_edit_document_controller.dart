@@ -7,7 +7,6 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/customer.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/id_generation_service.dart';
-import '../view/document_center_page.dart';
 
 class AddEditDocumentController extends GetxController {
   final String? documentId;
@@ -34,6 +33,10 @@ class AddEditDocumentController extends GetxController {
 
   Customer? get selectedCustomer =>
       _customers.firstWhereOrNull((c) => c.id == _selectedCustomerId);
+
+  // Multiple emails and phones getters
+  List<Map<String, dynamic>> get customerEmails => _customerEmails;
+  List<Map<String, dynamic>> get customerPhones => _customerPhones;
 
   // Get customer display name with custom ID
   String getCustomerDisplayName(Customer customer) {
@@ -91,6 +94,11 @@ class AddEditDocumentController extends GetxController {
       TextEditingController();
   final TextEditingController customerPhoneController = TextEditingController();
   final TextEditingController customerEmailController = TextEditingController();
+
+  // Multiple emails and phones management
+  List<Map<String, dynamic>> _customerEmails = [];
+  
+  List<Map<String, dynamic>> _customerPhones = [];
 
   // Seller section
   final TextEditingController sellerNameController = TextEditingController();
@@ -178,6 +186,14 @@ class AddEditDocumentController extends GetxController {
   String _documentStatus = 'DRAFT';
   String get documentStatus => _documentStatus;
 
+  // Document number (for existing documents)
+  String? _currentDocNo;
+  String? get currentDocNo => _currentDocNo;
+
+  // Original creation info (for existing documents)
+  int? _originalCreatedAt;
+  String? _originalCreatedBy;
+
   // Available document statuses
   List<String> get availableStatuses => [
     'DRAFT',
@@ -247,6 +263,9 @@ class AddEditDocumentController extends GetxController {
 
   Future<void> _initializeUserAndWorkspace() async {
     try {
+      // Set initial loading state
+      _setLoading(true);
+      
       // Get current user ID from Firebase Auth
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
@@ -257,6 +276,7 @@ class AddEditDocumentController extends GetxController {
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
+        _setLoading(false);
         return;
       }
 
@@ -278,11 +298,11 @@ class AddEditDocumentController extends GetxController {
           '✅ Document page initialized with workspace: ${firstWorkspace['name']}',
         );
 
-        // Load customers, workspace members, products, and templates, then initialize form
-        await _loadCustomers();
+        // Load all data sequentially but without triggering updates until the end
+        await _loadCustomers(skipUpdates: true);
         await _loadWorkspaceMembers();
         await loadProducts();
-        await loadTemplates();
+        await loadTemplates(skipUpdates: true);
         await loadSignatures();
         await loadCompanySeals();
         
@@ -292,6 +312,9 @@ class AddEditDocumentController extends GetxController {
         } else {
           _initializeForm();
         }
+        
+        // Only set loading to false once at the end
+        _setLoading(false);
       } else {
         print('⚠️ No workspaces found for user: $_currentUserId');
         Get.snackbar(
@@ -300,6 +323,7 @@ class AddEditDocumentController extends GetxController {
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
+        _setLoading(false);
       }
     } catch (e) {
       print('❌ Failed to initialize user and workspace: $e');
@@ -309,13 +333,14 @@ class AddEditDocumentController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      _setLoading(false);
     }
   }
 
-  Future<void> _loadCustomers() async {
+  Future<void> _loadCustomers({bool skipUpdates = false}) async {
     try {
       if (_currentWorkspaceId != null) {
-        _setCustomerLoading(true);
+        _setCustomerLoading(true, skipUpdate: skipUpdates);
 
         // Load customers from Firebase path: workspaces/{WorkspaceId}/customers/{Customer Uids}
         final customersSnapshot = await FirebaseFirestore.instance
@@ -439,7 +464,7 @@ class AddEditDocumentController extends GetxController {
       );
       _customers = [];
     } finally {
-      _setCustomerLoading(false);
+      _setCustomerLoading(false, skipUpdate: skipUpdates);
     }
   }
 
@@ -454,6 +479,16 @@ class AddEditDocumentController extends GetxController {
 
       // No default products - start with empty list
       _products = [];
+      
+      // Initialize multiple emails and phones with default empty entries for new documents
+      if (documentId == null) {
+        _customerEmails = [
+          {'id': 'email-default', 'value': ''}
+        ];
+        _customerPhones = [
+          {'id': 'phone-default', 'value': ''}
+        ];
+      }
       
       // Initialize default product fields
       _resetToDefaultProductFields();
@@ -506,10 +541,12 @@ class AddEditDocumentController extends GetxController {
     }
   }
 
-  void _setCustomerLoading(bool loading) {
+  void _setCustomerLoading(bool loading, {bool skipUpdate = false}) {
     try {
       _isLoadingCustomers = loading;
-      update();
+      if (!skipUpdate) {
+        update();
+      }
     } catch (e) {
       print('❌ Failed to set customer loading state: $e');
     }
@@ -531,18 +568,22 @@ class AddEditDocumentController extends GetxController {
               customer.nationalId; // Using nationalId as postal code for now
           customerNationalIdController.text = customer.nationalId;
 
-          // Get first phone number if available
+          // Load all phone numbers
+          _customerPhones.clear();
           if (customer.phones.isNotEmpty) {
-            final firstPhone = customer.phones.first;
-            customerPhoneController.text = firstPhone['value'] ?? '';
+            _customerPhones.addAll(customer.phones.map((phone) => Map<String, dynamic>.from(phone)));
+            // Set first phone to legacy controller for backward compatibility
+            customerPhoneController.text = customer.phones.first['value'] ?? '';
           } else {
             customerPhoneController.text = '';
           }
 
-          // Get first email if available
+          // Load all emails
+          _customerEmails.clear();
           if (customer.emails.isNotEmpty) {
-            final firstEmail = customer.emails.first;
-            customerEmailController.text = firstEmail['value'] ?? '';
+            _customerEmails.addAll(customer.emails.map((email) => Map<String, dynamic>.from(email)));
+            // Set first email to legacy controller for backward compatibility
+            customerEmailController.text = customer.emails.first['value'] ?? '';
           } else {
             customerEmailController.text = '';
           }
@@ -572,6 +613,10 @@ class AddEditDocumentController extends GetxController {
         customerNationalIdController.clear();
         customerPhoneController.clear();
         customerEmailController.clear();
+        
+        // Clear multiple emails and phones
+        _customerEmails.clear();
+        _customerPhones.clear();
         
         // Clear seller selection
         _selectedSellerIds.clear();
@@ -614,6 +659,50 @@ class AddEditDocumentController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  // Multiple emails management
+  void addCustomerEmail() {
+    _customerEmails.add({
+      'id': 'email-${DateTime.now().millisecondsSinceEpoch}',
+      'value': '',
+    });
+    update();
+  }
+
+  void removeCustomerEmail(int index) {
+    if (index >= 0 && index < _customerEmails.length) {
+      _customerEmails.removeAt(index);
+      update();
+    }
+  }
+
+  void updateCustomerEmail(int index, String value) {
+    if (index >= 0 && index < _customerEmails.length) {
+      _customerEmails[index]['value'] = value;
+    }
+  }
+
+  // Multiple phones management
+  void addCustomerPhone() {
+    _customerPhones.add({
+      'id': 'phone-${DateTime.now().millisecondsSinceEpoch}',
+      'value': '',
+    });
+    update();
+  }
+
+  void removeCustomerPhone(int index) {
+    if (index >= 0 && index < _customerPhones.length) {
+      _customerPhones.removeAt(index);
+      update();
+    }
+  }
+
+  void updateCustomerPhone(int index, String value) {
+    if (index >= 0 && index < _customerPhones.length) {
+      _customerPhones[index]['value'] = value;
     }
   }
 
@@ -748,11 +837,11 @@ class AddEditDocumentController extends GetxController {
   }
 
   // Load templates from database
-  Future<void> loadTemplates() async {
+  Future<void> loadTemplates({bool skipUpdates = false}) async {
     try {
       if (_currentWorkspaceId == null) return;
       
-      _setTemplatesLoading(true);
+      _setTemplatesLoading(true, skipUpdate: skipUpdates);
       
       // Load templates from Firebase path: workspaces/{WorkspaceId}/quotationTemplates/{Template UIDs}
       final templatesSnapshot = await FirebaseFirestore.instance
@@ -780,7 +869,9 @@ class AddEditDocumentController extends GetxController {
         _availableTemplates = [];
       }
       
-      update();
+      if (!skipUpdates) {
+        update();
+      }
     } catch (e) {
       print('❌ Failed to load templates: $e');
       Get.snackbar(
@@ -791,13 +882,15 @@ class AddEditDocumentController extends GetxController {
       );
       _availableTemplates = [];
     } finally {
-      _setTemplatesLoading(false);
+      _setTemplatesLoading(false, skipUpdate: skipUpdates);
     }
   }
   
-  void _setTemplatesLoading(bool loading) {
+  void _setTemplatesLoading(bool loading, {bool skipUpdate = false}) {
     _isLoadingTemplates = loading;
-    update();
+    if (!skipUpdate) {
+      update();
+    }
   }
 
   // Load signatures from company profile
@@ -1042,6 +1135,14 @@ class AddEditDocumentController extends GetxController {
       final status = documentData['status']?.toString() ?? 'DRAFT';
       _documentStatus = status;
       
+      // Document number
+      final docNo = documentData['docNo']?.toString();
+      _currentDocNo = docNo;
+      
+      // Original creation info
+      _originalCreatedAt = documentData['createdAt'];
+      _originalCreatedBy = documentData['createdBy']?.toString();
+      
       // Document dates
       final createdAt = documentData['createdAt'];
       if (createdAt != null) {
@@ -1116,9 +1217,12 @@ class AddEditDocumentController extends GetxController {
           final nationalId = customerData['nationalId']?.toString() ?? '';
           customerNationalIdController.text = nationalId;
           
-          // Load customer emails and phones
+          // Load all customer emails and phones
           final emails = customerData['emails'] as List<dynamic>?;
+          _customerEmails.clear();
           if (emails != null && emails.isNotEmpty) {
+            _customerEmails.addAll(emails.map((email) => Map<String, dynamic>.from(email as Map)));
+            // Set first email to legacy controller for backward compatibility
             final firstEmail = emails.first;
             if (firstEmail is Map<String, dynamic>) {
               final emailValue = firstEmail['value']?.toString() ?? '';
@@ -1127,7 +1231,10 @@ class AddEditDocumentController extends GetxController {
           }
           
           final phones = customerData['phones'] as List<dynamic>?;
+          _customerPhones.clear();
           if (phones != null && phones.isNotEmpty) {
+            _customerPhones.addAll(phones.map((phone) => Map<String, dynamic>.from(phone as Map)));
+            // Set first phone to legacy controller for backward compatibility
             final firstPhone = phones.first;
             if (firstPhone is Map<String, dynamic>) {
               final phoneValue = firstPhone['value']?.toString() ?? '';
@@ -2277,7 +2384,7 @@ class AddEditDocumentController extends GetxController {
         return;
       }
 
-      // Generate document number for new documents
+      // Generate document number for new documents only
       String? docNo;
       if (documentId == null) {
         try {
@@ -2288,6 +2395,7 @@ class AddEditDocumentController extends GetxController {
           print('❌ Failed to generate document number: $e');
         }
       }
+      // For updates, docNo will come from _currentDocNo (loaded from existing document)
 
             // Prepare document data with correct field mapping
       final documentData = {
@@ -2439,20 +2547,8 @@ class AddEditDocumentController extends GetxController {
           'address': customerAddressController.text,
           'postalCode': customerPostalCodeController.text,
           'nationalId': customerNationalIdController.text,
-          'emails': customerEmailController.text.isNotEmpty ? [
-            {
-              'label': 'Work',
-              'value': customerEmailController.text,
-              'id': 'email-initial',
-            }
-          ] : [],
-          'phones': customerPhoneController.text.isNotEmpty ? [
-            {
-              'label': 'Work',
-              'value': customerPhoneController.text,
-              'id': 'phone-initial',
-            }
-          ] : [],
+          'emails': _customerEmails.where((email) => email['value']?.toString().isNotEmpty == true).toList(),
+          'phones': _customerPhones.where((phone) => phone['value']?.toString().isNotEmpty == true).toList(),
           'companyNames': selectedCustomer!.companyNames,
         } : null,
         'jobName': jobNameController.text,
@@ -2467,12 +2563,14 @@ class AddEditDocumentController extends GetxController {
         'vatAmount': vatAmount,
         'netTotal': netTotal,
         'whtAmount': whtAmount,
-        'docNo': docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}',
+        'docNo': documentId != null 
+            ? (_currentDocNo ?? 'EST-ERROR-${DateTime.now().millisecondsSinceEpoch}') 
+            : (docNo ?? 'EST-ERROR-${DateTime.now().millisecondsSinceEpoch}'),
         'type': 'QT',
         'workspaceId': _currentWorkspaceId!,
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'createdAt': documentId != null ? (_originalCreatedAt ?? DateTime.now().millisecondsSinceEpoch) : DateTime.now().millisecondsSinceEpoch,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
-        'createdBy': _currentUserId!,
+        'createdBy': documentId != null ? (_originalCreatedBy ?? _currentUserId!) : _currentUserId!,
         'updatedBy': _currentUserId!,
         'activityLog': [
           {
@@ -2481,8 +2579,8 @@ class AddEditDocumentController extends GetxController {
             'userDisplayName': 'minimark@sellstory.me', // Get from user data
             'action': documentId != null ? 'Updated' : 'Created',
             'details': documentId != null 
-                ? 'Updated quotation ${docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}'}' 
-                : 'Created quotation ${docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}'} directly.',
+                ? 'Updated quotation ${_currentDocNo ?? 'EST-ERROR'}' 
+                : 'Created quotation ${docNo ?? 'EST-ERROR'}',
           },
         ],
       };
@@ -2506,7 +2604,9 @@ class AddEditDocumentController extends GetxController {
       }
 
              // Show success notification with document ID
-       final documentNumber = docNo ?? 'EST-${DateTime.now().millisecondsSinceEpoch}';
+       final documentNumber = documentId != null 
+           ? (_currentDocNo ?? 'EST-ERROR') 
+           : (docNo ?? 'EST-ERROR');
        final successMessage = documentId != null
            ? 'อัปเดตใบเสนอราคาเรียบร้อย - เลขที่: $documentNumber'
            : 'สร้างใบเสนอราคาเรียบร้อย - เลขที่: $documentNumber';

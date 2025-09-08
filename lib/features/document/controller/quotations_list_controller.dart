@@ -321,6 +321,91 @@ class QuotationsListController extends GetxController {
     Get.to(() => AddEditDocumentPage(documentType: 'QT', documentId: quotationId));
   }
 
+  Future<void> reviseQuotationToInvoice(Map<String, dynamic> quotation) async {
+    try {
+      // Show loading
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+
+      if (currentWorkspaceId.value.isEmpty) {
+        Get.back(); // Close loading dialog
+        Get.snackbar('Error', 'No workspace available');
+        return;
+      }
+
+      // Create invoice data by copying quotation data
+      final invoiceData = Map<String, dynamic>.from(quotation);
+      
+      // Remove quotation-specific fields
+      invoiceData.remove('id');
+      invoiceData.remove('validUntil');
+      invoiceData.remove('approval');
+      invoiceData.remove('approvers');
+      
+      // Update fields for invoice
+      invoiceData['type'] = 'INV';
+      invoiceData['status'] = 'DRAFT';
+      invoiceData['relatedQuotationId'] = quotation['id'];
+      invoiceData['paymentStatus'] = 'unpaid';
+      invoiceData['invoiceType'] = 'full';
+      
+      // Set due date (30 days from now)
+      final dueDate = DateTime.now().add(const Duration(days: 30));
+      invoiceData['dueDate'] = dueDate.millisecondsSinceEpoch;
+      
+      // Update timestamps and user info
+      final now = DateTime.now().millisecondsSinceEpoch;
+      invoiceData['createdAt'] = now;
+      invoiceData['updatedAt'] = now;
+      invoiceData['createdBy'] = currentUserId.value;
+      invoiceData['updatedBy'] = currentUserId.value;
+      
+      // Update activity log
+      invoiceData['activityLog'] = [
+        {
+          'timestamp': now,
+          'userId': currentUserId.value,
+          'userDisplayName': invoiceData['seller']?['email'] ?? 'Unknown',
+          'action': 'Created',
+          'details': 'Created invoice from quotation ${quotation['docNo']}',
+        }
+      ];
+
+      // Create invoice in Firestore
+      final invoiceId = await _repository.createDocument(
+        workspaceId: currentWorkspaceId.value,
+        documentData: invoiceData,
+      );
+
+      Get.back(); // Close loading dialog
+      
+      // Show success message and navigate to invoice
+      Get.snackbar(
+        'Success', 
+        'Invoice created from quotation ${quotation['docNo']}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.1),
+        colorText: Colors.green,
+      );
+
+      // Navigate to the new invoice
+      Get.to(() => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId));
+
+    } catch (e) {
+      Get.back(); // Close loading dialog
+      print('❌ Failed to create invoice from quotation: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to create invoice: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    }
+  }
+
   String formatDate(int timestamp) {
     if (timestamp == 0) return '-';
     

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
-import '../../../core/widgets/assignees_input_field.dart';
 import '../controller/quotations_list_controller.dart';
 import 'quotations_filter_page.dart';
 
@@ -292,32 +291,37 @@ class QuotationsListPage extends StatelessWidget {
     // final createdBy = quotation['createdBy']?['displayName'] ?? quotation['createdBy']?['name'] ?? 'ไม่ระบุ';
     final createdAt = quotation['createdAt'] ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppTheme.spacing8),
-        border: Border.all(
-          color: AppTheme.borderGrey.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+    return Builder(
+      builder: (context) => Container(
+        margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
+        decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(AppTheme.spacing8),
-          onTap: () => controller.viewQuotation(quotation),
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacing12),
-            child: Row(
-              children: [
-                // Left side - Document info
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Document number
+          border: Border.all(
+            color: AppTheme.borderGrey.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: GestureDetector(
+            onTap: () => controller.viewQuotation(quotation),
+            onLongPress: () => _showContextMenu(context, quotation, controller),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppTheme.spacing8),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.spacing12),
+                child: Row(
+                  children: [
+                    // Left side - Document info
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Document number
                       Row(
                         children: [
                           Text(
@@ -376,13 +380,13 @@ class QuotationsListPage extends StatelessWidget {
                       //     ),
                       //   ],
                       // ),
-                    ],
-                  ),
-                ),
+                        ],
+                      ),
+                    ),
 
-                const SizedBox(width: AppTheme.spacing12),
+                    const SizedBox(width: AppTheme.spacing12),
 
-                // Center - Amount
+                    // Center - Amount
                 Expanded(
                   flex: 2,
                   child: Column(
@@ -411,7 +415,9 @@ class QuotationsListPage extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -482,86 +488,6 @@ class QuotationsListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(String status) {
-    Color color;
-    String text;
-    IconData icon;
-
-    switch (status) {
-      case 'DRAFT':
-        color = AppTheme.textSecondary;
-        text = 'ร่าง';
-        icon = Icons.edit_outlined;
-        break;
-      case 'SENT':
-        color = const Color(0xFF2196F3);
-        text = 'ส่งแล้ว';
-        icon = Icons.send;
-        break;
-      case 'PENDING_APPROVAL':
-        color = const Color(0xFFFF9800);
-        text = 'รออนุมัติ';
-        icon = Icons.pending;
-        break;
-      case 'APPROVED':
-        color = const Color(0xFF4CAF50);
-        text = 'อนุมัติแล้ว';
-        icon = Icons.check_circle;
-        break;
-      case 'REJECTED':
-        color = const Color(0xFFF44336);
-        text = 'ปฏิเสธ';
-        icon = Icons.cancel;
-        break;
-      case 'VOID':
-        color = AppTheme.textSecondary;
-        text = 'ยกเลิก';
-        icon = Icons.block;
-        break;
-      case 'INVOICED':
-        color = const Color(0xFF9C27B0);
-        text = 'ออกใบแจ้งหนี้แล้ว';
-        icon = Icons.receipt;
-        break;
-      case 'FULLY_PAID':
-        color = const Color(0xFF4CAF50);
-        text = 'ชำระแล้ว';
-        icon = Icons.payment;
-        break;
-      default:
-        color = AppTheme.textSecondary;
-        text = status;
-        icon = Icons.info;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing8,
-        vertical: AppTheme.spacing8,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppTheme.spacing16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: AppTheme.iconSize12, color: color),
-          const SizedBox(width: AppTheme.spacing4),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: AppTheme.fontSize10,
-              fontFamily: AppFont.family,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildEmptyState(QuotationsListController controller) {
     return Center(
       child: Column(
@@ -618,6 +544,100 @@ class QuotationsListPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showContextMenu(
+    BuildContext context,
+    Map<String, dynamic> quotation,
+    QuotationsListController controller,
+  ) {
+    final status = quotation['status'] ?? '';
+    
+    // Only show context menu for SENT quotations
+    if (status != 'SENT') {
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(AppTheme.spacing16),
+            topRight: Radius.circular(AppTheme.spacing16),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: AppTheme.spacing12),
+              decoration: BoxDecoration(
+                color: AppTheme.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing16),
+            
+            // Title
+            Text(
+              'ตัวเลือก',
+              style: TextStyle(
+                fontSize: AppTheme.fontSize18,
+                fontWeight: FontWeight.w600,
+                fontFamily: AppFont.family,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing16),
+            
+            // Revise button
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(AppTheme.spacing8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.spacing8),
+                ),
+                child: const Icon(
+                  Icons.edit_document,
+                  color: AppTheme.primaryOrange,
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                'แก้ไขเป็นใบแจ้งหนี้',
+                style: TextStyle(
+                  fontSize: AppTheme.fontSize16,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: AppFont.family,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              subtitle: Text(
+                'สร้างใบแจ้งหนี้จากใบเสนอราคานี้',
+                style: TextStyle(
+                  fontSize: AppTheme.fontSize14,
+                  fontFamily: AppFont.family,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                controller.reviseQuotationToInvoice(quotation);
+              },
+            ),
+            
+            const SizedBox(height: AppTheme.spacing16),
+          ],
+        ),
       ),
     );
   }
