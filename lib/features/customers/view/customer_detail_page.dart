@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/workspace_members_service.dart';
@@ -11,6 +12,7 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../controller/customers_controller.dart';
 import 'add_edit_customer_page.dart';
 import '../../../core/widgets/permission_guard.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CustomerDetailPage extends StatefulWidget {
   final Customer customer;
@@ -99,6 +101,49 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     _initJobCardsStream();
   }
 
+  bool _isCurrentUserAssigned() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final customer = _currentCustomer ?? widget.customer;
+    if (uid == null) return false;
+    return customer.assignees.contains(uid);
+  }
+
+  bool _canEditCustomer() {
+    final svc = MobilePermissionsService.to;
+    if (svc.isOwner || svc.can('customer:edit:all')) return true;
+    return svc.can('customer:edit:assigned') && _isCurrentUserAssigned();
+  }
+
+  bool _canViewAnyJobcard() {
+    final svc = MobilePermissionsService.to;
+    return svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned');
+  }
+
+  List<JobCard> _visibleJobcards(List<JobCard> all) {
+    final svc = MobilePermissionsService.to;
+    if (svc.isOwner || svc.can('jobcard:view:all')) return all;
+    if (svc.can('jobcard:view:assigned')) {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return const [];
+      return all.where((jc) => jc.assignedTo == uid).toList();
+    }
+    return const [];
+  }
+
+  void _recomputeJobcardCounts(List<JobCard> all) {
+    final visible = _visibleJobcards(all);
+    int todoCount = 0;
+    for (final jobCard in visible) {
+      todoCount += jobCard.todos.length;
+    }
+    setState(() {
+      _jobCards = all; // keep raw; filter in builders
+      _jobCardsLoading = false;
+      _jobCardCount = visible.length;
+      _todoCount = todoCount;
+    });
+  }
+
   void _initJobCardsStream() {
     // Get current workspace ID
     final workspaceId = _controller.currentWorkspaceId.value.isNotEmpty 
@@ -111,17 +156,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     // Listen to job cards stream to update counts
     _jobCardsSub = _jobCardsStream?.listen((jobCards) {
       if (!mounted) return;
-      int todoCount = 0;
-      for (final jobCard in jobCards) {
-        todoCount += jobCard.todos.length;
-      }
-
-      setState(() {
-        _jobCards = jobCards;
-        _jobCardsLoading = false;
-        _jobCardCount = jobCards.length;
-        _todoCount = todoCount;
-      });
+      _recomputeJobcardCounts(jobCards);
     }, onError: (_) {
       if (!mounted) return;
       setState(() {
@@ -841,11 +876,11 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
-          IconButton(
-            tooltip: 'แก้ไข',
-            icon: const Icon(Icons.edit, color: AppTheme.primaryOrange),
-            onPressed: () async {
-              guardAction(context, 'customer:edit:all', () async {
+          if (_canEditCustomer())
+            IconButton(
+              tooltip: 'แก้ไข',
+              icon: const Icon(Icons.edit, color: AppTheme.primaryOrange),
+              onPressed: () async {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -864,101 +899,128 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                     });
                   }
                 }
-              });
-            },
-          ),
+              },
+            )
+          else
+            const SizedBox.shrink(),
         ],
       ),
-      body: SafeArea(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildProfileCard(),
-                        const SizedBox(height: 16),
-                        _buildInfoSection('ข้อมูลลูกค้า', [
-                          _buildInfoRow('รหัสลูกค้า', _currentCustomer!.customId),
-                          _buildInfoRow('ชื่อ', '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
-                          _buildInfoRow('เพศ', _currentCustomer!.gender),
-                          _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
-                          _buildInfoRow('ประเภท', _currentCustomer!.customerType),
-                        ]),
-                        const SizedBox(height: 16),
-                        _buildInfoSection('ข้อมูลติดต่อ', [
-                          _buildEmailsDisplay(),
-                          _buildPhonesDisplay(),
-                        ]),
-                        const SizedBox(height: 16),
-                        if (_hasValidCompanies()) ...[
-                          _buildInfoSection('ข้อมูลบริษัท', [
-                            _buildCompanyNamesDisplay(),
-                          ]),
-                          const SizedBox(height: 16),
-                        ],
-                        _buildInfoSection('ข้อมูลเพิ่มเติม', [
-                          if (_currentCustomer!.nationalId.isNotEmpty)
-                            _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
-                          if (_currentCustomer!.address.isNotEmpty)
-                            _buildInfoRow('ที่อยู่', _currentCustomer!.address),
-                          if (_currentCustomer!.source.isNotEmpty)
-                            _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
-                          _buildHashtagDisplay(),
-                          if (_hasValidAssignees()) _buildAssigneesDisplay(),
-                        ]),
-                        const SizedBox(height: 16),
-                        _buildInfoSection('ข้อมูลระบบ', [
-                          _buildInfoRow('สร้างเมื่อ', _formatDate(_currentCustomer!.createdAt)),
-                          _buildInfoRow('อัปเดตล่าสุด', _formatDate(_currentCustomer!.updatedAt)),
-                        ]),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _TabBarSliverDelegate(
-                TabBar(
-                  controller: _tabController,
-                  indicatorColor: AppTheme.primaryOrange,
-                  labelColor: AppTheme.primaryOrange,
-                  unselectedLabelColor: AppTheme.textSecondary,
-                  labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-                  isScrollable: true,
-                  indicatorWeight: 3,
-                  tabs: [
-                    Tab(text: 'Job card (' '$_jobCardCount' ')'),
-                    Tab(text: 'สิ่งที่ต้องทำ (' '$_todoCount' ')'),
-                    const Tab(text: 'ประวัติ (0)'),
-                    const Tab(text: 'คลังเอกสาร (0)'),
-                    const Tab(text: 'โน๊ต (0)'),
-                    const Tab(text: 'เอกสารการขาย (0)'),
+      body: Builder(
+        builder: (context) {
+          final svc = MobilePermissionsService.to;
+          final canAllView = svc.isOwner || svc.can('customer:view:all');
+          final canAssignedView = svc.can('customer:view:assigned') && _isCurrentUserAssigned();
+          final canView = canAllView || canAssignedView;
+          if (!canView) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.lock_outline, size: 56, color: Colors.grey),
+                    SizedBox(height: 12),
+                    Text('คุณไม่มีสิทธิ์ดูรายละเอียดลูกค้ารายนี้',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Colors.grey)),
                   ],
                 ),
               ),
+            );
+          }
+
+          return SafeArea(
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildProfileCard(),
+                            const SizedBox(height: 16),
+                            _buildInfoSection('ข้อมูลลูกค้า', [
+                              _buildInfoRow('รหัสลูกค้า', _currentCustomer!.customId),
+                              _buildInfoRow('ชื่อ', '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
+                              _buildInfoRow('เพศ', _currentCustomer!.gender),
+                              _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
+                              _buildInfoRow('ประเภท', _currentCustomer!.customerType),
+                            ]),
+                            const SizedBox(height: 16),
+                            _buildInfoSection('ข้อมูลติดต่อ', [
+                              _buildEmailsDisplay(),
+                              _buildPhonesDisplay(),
+                            ]),
+                            const SizedBox(height: 16),
+                            if (_hasValidCompanies()) ...[
+                              _buildInfoSection('ข้อมูลบริษัท', [
+                                _buildCompanyNamesDisplay(),
+                              ]),
+                              const SizedBox(height: 16),
+                            ],
+                            _buildInfoSection('ข้อมูลเพิ่มเติม', [
+                              if (_currentCustomer!.nationalId.isNotEmpty)
+                                _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
+                              if (_currentCustomer!.address.isNotEmpty)
+                                _buildInfoRow('ที่อยู่', _currentCustomer!.address),
+                              if (_currentCustomer!.source.isNotEmpty)
+                                _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
+                              _buildHashtagDisplay(),
+                              if (_hasValidAssignees()) _buildAssigneesDisplay(),
+                            ]),
+                            const SizedBox(height: 16),
+                            _buildInfoSection('ข้อมูลระบบ', [
+                              _buildInfoRow('สร้างเมื่อ', _formatDate(_currentCustomer!.createdAt)),
+                              _buildInfoRow('อัปเดตล่าสุด', _formatDate(_currentCustomer!.updatedAt)),
+                            ]),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _TabBarSliverDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: AppTheme.primaryOrange,
+                      labelColor: AppTheme.primaryOrange,
+                      unselectedLabelColor: AppTheme.textSecondary,
+                      labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                      isScrollable: true,
+                      indicatorWeight: 3,
+                      tabs: [
+                        Tab(text: 'Job card (' '$_jobCardCount' ')'),
+                        Tab(text: 'สิ่งที่ต้องทำ (' '$_todoCount' ')'),
+                        const Tab(text: 'ประวัติ (0)'),
+                        const Tab(text: 'คลังเอกสาร (0)'),
+                        const Tab(text: 'โน๊ต (0)'),
+                        const Tab(text: 'เอกสารการขาย (0)'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              body: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildJobCardTab(),
+                  _buildTodoTab(),
+                  _buildHistoryTab(),
+                  _buildDocumentTab(),
+                  _buildNoteTab(),
+                  _buildSalesDocumentTab(),
+                ],
+              ),
             ),
-          ],
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildJobCardTab(),
-              _buildTodoTab(),
-              _buildHistoryTab(),
-              _buildDocumentTab(),
-              _buildNoteTab(),
-              _buildSalesDocumentTab(),
-            ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -969,7 +1031,27 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_jobCards.isEmpty) {
+    if (!_canViewAnyJobcard()) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.lock_outline, size: 48, color: Colors.grey),
+              SizedBox(height: 12),
+              Text('คุณไม่มีสิทธิ์ดู Job Card ของลูกค้ารายนี้',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final visible = _visibleJobcards(_jobCards);
+
+    if (visible.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -997,9 +1079,9 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView.builder(
-          itemCount: _jobCards.length,
+          itemCount: visible.length,
           itemBuilder: (context, index) {
-            final jobCard = _jobCards[index];
+            final jobCard = visible[index];
             return _buildJobCardItem(jobCard);
           },
         ),
@@ -1009,7 +1091,19 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   
   Widget _buildJobCardItem(JobCard jobCard) {
     return InkWell(
-      onTap: () => Get.toNamed(AppRoutes.editCard, arguments: jobCard),
+      onTap: () {
+        final svc = MobilePermissionsService.to;
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        final canAll = svc.isOwner || svc.can('jobcard:view:all');
+        final canAssigned = svc.can('jobcard:view:assigned') && (uid != null && jobCard.assignedTo == uid);
+        if (canAll || canAssigned) {
+          Get.toNamed(AppRoutes.editCard, arguments: jobCard);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('คุณไม่มีสิทธิ์เข้าถึง Job Card นี้')),
+          );
+        }
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -1206,9 +1300,28 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Collect all todos from cached job cards
+    if (!_canViewAnyJobcard()) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.lock_outline, size: 48, color: Colors.grey),
+              SizedBox(height: 12),
+              Text('คุณไม่มีสิทธิ์ดู To-Do ของลูกค้ารายนี้',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Collect all todos from visible job cards
+    final visible = _visibleJobcards(_jobCards);
     final allTodos = <Map<String, dynamic>>[];
-    for (final jobCard in _jobCards) {
+    for (final jobCard in visible) {
       for (final todo in jobCard.todos) {
         final todoWithContext = Map<String, dynamic>.from(todo);
         todoWithContext['jobCardId'] = jobCard.id;
@@ -1285,7 +1398,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
         // Handle date parsing error
       }
     }
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),

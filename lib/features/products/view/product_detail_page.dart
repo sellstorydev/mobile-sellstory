@@ -44,16 +44,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> _refreshProductData() async {
     try {
-      // Get the updated product from the controller
       final controller = Get.find<ProductsController>();
       final workspaceId = controller.currentWorkspaceId;
-      
       if (workspaceId.isNotEmpty) {
         final updatedProduct = await controller.getProduct(workspaceId, _currentProduct.id);
         if (updatedProduct != null) {
           setState(() {
             _currentProduct = updatedProduct;
-            _currentImageIndex = 0; // Reset to first image
+            _currentImageIndex = 0;
           });
         }
       }
@@ -76,22 +74,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> _deleteProduct() async {
     try {
-      // Show loading indicator
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
       final controller = Get.find<ProductsController>();
       final workspaceId = controller.currentWorkspaceId;
-      
+
       if (workspaceId.isEmpty) {
-        Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(context).pop();
         Get.snackbar(
-          'ข้อผิดพลาด',
+          'ข้อผิดพ��าด',
           'ไม่สามารถลบสินค้าได้: ไม่พบ Workspace',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
@@ -101,19 +96,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       }
 
       final success = await controller.deleteProduct(workspaceId, _currentProduct.id);
-      
-      // Close loading dialog
       Navigator.of(context).pop();
 
       if (success) {
-        // Navigate back to products list and refresh
-        final controller = Get.find<ProductsController>();
-        controller.refreshProducts();
-        
-        // Navigate back to the previous page (products list)
+        Get.find<ProductsController>().refreshProducts();
         Get.back();
-        
-        // Show success message after navigation
         Get.snackbar(
           'สำเร็จ',
           'ลบสินค้าเรียบร้อยแล้ว',
@@ -131,9 +118,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         );
       }
     } catch (e) {
-      // Close loading dialog
       Navigator.of(context).pop();
-      
       Get.snackbar(
         'ข้อผิดพลาด',
         'เกิดข้อผิดพลาดในการลบสินค้า: $e',
@@ -170,9 +155,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       if (loadingProgress == null) return child;
                       return const Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       );
                     },
@@ -195,9 +178,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 400;
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
@@ -212,25 +192,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
-          // Edit button
           PermissionGuard(
-            permission: 'product:edit:all',
+            permission: 'product:edit',
             child: IconButton(
               onPressed: () async {
                 final result = await Get.to(() => AddEditProductPage(product: _currentProduct));
                 if (result == true) {
-                  // Refresh product data from the controller
                   await _refreshProductData();
                 }
               },
               icon: const Icon(Icons.edit, color: AppTheme.primaryBlue),
             ),
           ),
-          // Delete button
           PermissionGuard(
             permission: 'product:delete',
             child: IconButton(
-              onPressed: () => _showDeleteConfirmation(),
+              onPressed: _showDeleteConfirmation,
               icon: const Icon(Icons.delete, color: AppTheme.errorRed),
             ),
           ),
@@ -248,7 +225,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 color: AppTheme.backgroundWhite,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -257,18 +234,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Image Slider
                   if (allImages.isNotEmpty)
                     GestureDetector(
                       onTap: () => _showFullScreenImage(_currentImageIndex),
                       child: PageView.builder(
                         controller: _pageController,
                         itemCount: allImages.length,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentImageIndex = index;
-                          });
-                        },
+                        onPageChanged: (index) => setState(() => _currentImageIndex = index),
                         itemBuilder: (context, index) {
                           return ClipRRect(
                             child: Image.network(
@@ -276,30 +248,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               width: double.infinity,
                               height: 300,
                               fit: BoxFit.contain,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      color: AppTheme.backgroundGrey,
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                AppTheme.primaryOrange,
-                                              ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                    color: AppTheme.backgroundGrey,
-                                    child: const Icon(
-                                      Icons.image_not_supported_outlined,
-                                      color: AppTheme.textGrey,
-                                      size: 64,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  color: AppTheme.backgroundGrey,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
                                     ),
                                   ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: AppTheme.backgroundGrey,
+                                child: const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  color: AppTheme.textGrey,
+                                  size: 64,
+                                ),
+                              ),
                             ),
                           );
                         },
@@ -315,12 +282,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ),
 
-                  // Discontinued Overlay
                   if (_currentProduct.status == 'discontinued')
                     Positioned.fill(
                       child: IgnorePointer(
                         child: Container(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           child: const Center(
                             child: Text(
                               'ยังไม่เปิดขาย',
@@ -335,18 +301,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ),
 
-                  // Image Counter
                   if (allImages.length > 1)
                     Positioned(
                       top: 16,
                       right: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
+                          color: Colors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
@@ -360,9 +322,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ),
 
-                  // Navigation Arrows
                   if (allImages.length > 1) ...[
-                    // Previous Button
                     Positioned(
                       left: 16,
                       top: 0,
@@ -370,30 +330,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       child: Center(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: IconButton(
                             onPressed: _currentImageIndex > 0
-                                ? () {
-                                    _pageController.previousPage(
-                                      duration: const Duration(
-                                        milliseconds: 300,
-                                      ),
+                                ? () => _pageController.previousPage(
+                                      duration: const Duration(milliseconds: 300),
                                       curve: Curves.easeInOut,
-                                    );
-                                  }
+                                    )
                                 : null,
-                            icon: const Icon(
-                              Icons.chevron_left,
-                              color: Colors.white,
-                              size: 24,
-                            ),
+                            icon: const Icon(Icons.chevron_left, color: Colors.white, size: 24),
                           ),
                         ),
                       ),
                     ),
-                    // Next Button
                     Positioned(
                       right: 16,
                       top: 0,
@@ -401,32 +352,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       child: Center(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: IconButton(
                             onPressed: _currentImageIndex < allImages.length - 1
-                                ? () {
-                                    _pageController.nextPage(
-                                      duration: const Duration(
-                                        milliseconds: 300,
-                                      ),
+                                ? () => _pageController.nextPage(
+                                      duration: const Duration(milliseconds: 300),
                                       curve: Curves.easeInOut,
-                                    );
-                                  }
+                                    )
                                 : null,
-                            icon: const Icon(
-                              Icons.chevron_right,
-                              color: Colors.white,
-                              size: 24,
-                            ),
+                            icon: const Icon(Icons.chevron_right, color: Colors.white, size: 24),
                           ),
                         ),
                       ),
                     ),
                   ],
 
-                  // Page Indicator Dots
                   if (allImages.length > 1)
                     Positioned(
                       bottom: 16,
@@ -444,7 +386,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               shape: BoxShape.circle,
                               color: _currentImageIndex == index
                                   ? AppTheme.primaryOrange
-                                  : Colors.white.withOpacity(0.5),
+                                  : Colors.white.withValues(alpha: 0.5),
                             ),
                           ),
                         ),
@@ -463,7 +405,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -472,7 +414,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Product Name
                   Text(
                     _currentProduct.name,
                     style: const TextStyle(
@@ -481,14 +422,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       color: AppTheme.textPrimary,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Price
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Text(
                       '฿${_currentProduct.price.toStringAsFixed(2)}',
                       style: const TextStyle(
@@ -498,10 +434,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
 
-                  // Description
                   if (_currentProduct.description.isNotEmpty) ...[
                     const Text(
                       'รายละเอียด',
@@ -523,7 +457,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     const SizedBox(height: 16),
                   ],
 
-                  // Product Details Grid
                   const Text(
                     'ข้อมูลสินค้า',
                     style: TextStyle(
@@ -534,50 +467,33 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  // SKU
                   _buildDetailRow('SKU', _currentProduct.sku),
                   const SizedBox(height: 8),
 
-                  // Unit
                   if (_currentProduct.unit.isNotEmpty) ...[
                     _buildDetailRow('หน่วย', _currentProduct.unit),
                     const SizedBox(height: 8),
                   ],
 
-                  // Barcode
                   if (_currentProduct.barcode.isNotEmpty) ...[
                     _buildDetailRow('บาร์โค้ด', _currentProduct.barcode),
                     const SizedBox(height: 8),
                   ],
 
-                  // Category
                   if (_currentProduct.category.isNotEmpty) ...[
                     _buildDetailRow('หมวดหมู่', _currentProduct.category),
                     const SizedBox(height: 8),
                   ],
 
-                  // Cost Price
-                  _buildDetailRow(
-                    'ต้นทุน',
-                    '฿${_currentProduct.costPrice.toStringAsFixed(2)}',
-                  ),
+                  _buildDetailRow('ต้นทุน', '฿${_currentProduct.costPrice.toStringAsFixed(2)}'),
                   const SizedBox(height: 8),
 
-                  // Stock Info
-                  _buildDetailRow(
-                    'สต็อกเริ่มต้น',
-                    _currentProduct.initialStock.toString(),
-                  ),
+                  _buildDetailRow('สต็อกเริ่มต้น', _currentProduct.initialStock.toString()),
                   const SizedBox(height: 8),
 
-                  // Status
-                  _buildDetailRow(
-                    'สถานะ',
-                    _getStatusText(_currentProduct.status),
-                  ),
+                  _buildDetailRow('สถานะ', _getStatusText(_currentProduct.status)),
                   const SizedBox(height: 16),
 
-                  // Hashtags
                   if (_currentProduct.hashtags.isNotEmpty) ...[
                     const Text(
                       'แท็ก',
@@ -592,21 +508,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       spacing: 8,
                       runSpacing: 8,
                       children: _currentProduct.hashtags.map((hashtag) {
-                        final color = _parseColor(
-                          hashtag['color'] ?? '#3b82f6',
-                        );
+                        final color = _parseColor(hashtag['color'] ?? '#3b82f6');
                         return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
+                            color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: color.withOpacity(0.3),
-                              width: 1,
-                            ),
+                            border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
                           ),
                           child: Text(
                             hashtag['text'] ?? '',
@@ -625,7 +533,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
 
-            // Bottom spacing
             const SizedBox(height: 32),
           ],
         ),
@@ -678,13 +585,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Color _parseColor(String colorString) {
     try {
       if (colorString.startsWith('#')) {
-        return Color(
-          int.parse(colorString.substring(1), radix: 16) + 0xFF000000,
-        );
+        return Color(int.parse(colorString.substring(1), radix: 16) + 0xFF000000);
       }
-    } catch (e) {
-      // Fallback to default color
-    }
+    } catch (_) {}
     return AppTheme.primaryBlue;
   }
 }

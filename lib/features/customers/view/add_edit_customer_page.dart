@@ -9,10 +9,10 @@ import '../../../core/widgets/company_picker.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/services/id_generation_service.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
-import '../../../core/widgets/permission_guard.dart';
 
 class AddEditCustomerPage extends StatefulWidget {
   final Customer? customer;
@@ -225,112 +225,155 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     super.dispose();
   }
 
+  // Permission helpers
+  bool get _isEditing => widget.customer != null;
+
+  bool _isCurrentUserAssignedInitial() {
+    if (widget.customer == null) return false;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+    try {
+      final assigned = widget.customer!.assignees;
+      return assigned.contains(uid);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _canOpenPage() {
+    final svc = MobilePermissionsService.to;
+    if (_isEditing) {
+      if (svc.isOwner || svc.can('customer:edit:all')) return true;
+      return svc.can('customer:edit:assigned') && _isCurrentUserAssignedInitial();
+    } else {
+      return svc.isOwner || svc.can('customer:create');
+    }
+  }
+
+  bool _canSubmit() {
+    // Same as _canOpenPage for this page
+    return _canOpenPage();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final canOpen = _canOpenPage();
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
-        title: Text(widget.customer != null ? 'แก้ไขรายละเอียดลูกค้า' : 'เพิ่มลูกค้า'),
+        title: Text(_isEditing ? 'แก้ไขรายละเอียดลูกค้า' : 'เพิ่มลูกค้า'),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
           TextButton(
-            onPressed: () {
-              final needed = widget.customer != null ? 'customer:edit:all' : 'customer:create';
-              guardAction(context, needed, _saveCustomer);
-            },
+            onPressed: _canSubmit() ? _saveCustomer : null,
             child: const Text('บันทึก', style: TextStyle(color: AppTheme.primaryOrange, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader('แชร์กับผู้อื่น', isRequired: true, trailing: _addButton(onPressed: () {})),
-              const SizedBox(height: 8),
-              AssigneesInputField(
-                selectedAssignees: _selectedAssignees,
-                availableMembers: _availableMembers,
-                onAssigneesChanged: (v) => setState(() => _selectedAssignees = v),
-                isLoading: _isLoadingMembers,
-              ),
-              const SizedBox(height: 16),
-              _buildSectionDivider(),
-              const SizedBox(height: 16),
-              _buildSectionHeader('ข้อมูลส่วนบุคคล'),
-              const SizedBox(height: 12),
-              _buildAvatarPlaceholder(),
-              const SizedBox(height: 16),
-              _buildCustomerTypeSegmented(),
-              const SizedBox(height: 16),
-              if (_isLoadingHashtags)
-                const Center(child: CircularProgressIndicator())
-              else
-                HashtagInputField(
-                  selectedHashtags: _selectedHashtags,
-                  availableHashtags: _availableHashtags,
-                  onHashtagsChanged: (v) => setState(() => _selectedHashtags = v),
-                  label: 'Hashtag',
-                  hintText: 'กรุณากรอก Hashtag',
+      body: !canOpen
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.lock_outline, size: 56, color: Colors.grey),
+                    SizedBox(height: 12),
+                    Text('คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Colors.grey)),
+                  ],
                 ),
-              const SizedBox(height: 16),
-              _buildDropdownField('แหล่งที่มาลูกค้า', _selectedSource, widget.customerSources, (v) => setState(() => _selectedSource = v ?? '')),
-              const SizedBox(height: 16),
-              _buildTextField('ชื่อ-นามสกุล', _nameController, isRequired: true),
-              const SizedBox(height: 16),
-              _buildDropdownField('เพศ', _selectedGender, _genderOptions, (v) => setState(() => _selectedGender = v ?? _selectedGender)),
-              const SizedBox(height: 16),
-              _buildMultipleEmailsSection(),
-              const SizedBox(height: 16),
-              _buildMultiplePhonesSection(),
-              const SizedBox(height: 16),
-              _buildTextField('ที่อยู่', _addressController, maxLines: 3),
-              const SizedBox(height: 16),
-              _buildLocationSection(),
-              const SizedBox(height: 16),
-              _buildSectionDivider(),
-              const SizedBox(height: 16),
-              _buildSectionHeader('ข้อมูลบริษัท', trailing: _addButton(onPressed: () {})),
-              const SizedBox(height: 12),
-              CompanyPicker(
-                selectedCompanies: _selectedCompanies,
-                onCompaniesChanged: (companies) => setState(() => _selectedCompanies = companies),
-                label: 'บริษัท',
-                hintText: 'เลือกบริษัท',
               ),
-              const SizedBox(height: 16),
-              _buildCustomIdField(),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: () {
-                final needed = widget.customer != null ? 'customer:edit:all' : 'customer:create';
-                guardAction(context, needed, _saveCustomer);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            )
+          : Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader('แชร์กับผู้อื่น', isRequired: true, trailing: _addButton(onPressed: () {})),
+                    const SizedBox(height: 8),
+                    AssigneesInputField(
+                      selectedAssignees: _selectedAssignees,
+                      availableMembers: _availableMembers,
+                      onAssigneesChanged: (v) => setState(() => _selectedAssignees = v),
+                      isLoading: _isLoadingMembers,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSectionDivider(),
+                    const SizedBox(height: 16),
+                    _buildSectionHeader('ข้อมูลส่วนบุคคล'),
+                    const SizedBox(height: 12),
+                    _buildAvatarPlaceholder(),
+                    const SizedBox(height: 16),
+                    _buildCustomerTypeSegmented(),
+                    const SizedBox(height: 16),
+                    if (_isLoadingHashtags)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      HashtagInputField(
+                        selectedHashtags: _selectedHashtags,
+                        availableHashtags: _availableHashtags,
+                        onHashtagsChanged: (v) => setState(() => _selectedHashtags = v),
+                        label: 'Hashtag',
+                        hintText: 'กรุณากรอก Hashtag',
+                      ),
+                    const SizedBox(height: 16),
+                    _buildDropdownField('แหล่งที่มาลูกค้า', _selectedSource, widget.customerSources, (v) => setState(() => _selectedSource = v ?? '')),
+                    const SizedBox(height: 16),
+                    _buildTextField('ชื่อ-นามสกุล', _nameController, isRequired: true),
+                    const SizedBox(height: 16),
+                    _buildDropdownField('เพศ', _selectedGender, _genderOptions, (v) => setState(() => _selectedGender = v ?? _selectedGender)),
+                    const SizedBox(height: 16),
+                    _buildMultipleEmailsSection(),
+                    const SizedBox(height: 16),
+                    _buildMultiplePhonesSection(),
+                    const SizedBox(height: 16),
+                    _buildTextField('ที่อยู่', _addressController, maxLines: 3),
+                    const SizedBox(height: 16),
+                    _buildLocationSection(),
+                    const SizedBox(height: 16),
+                    _buildSectionDivider(),
+                    const SizedBox(height: 16),
+                    _buildSectionHeader('ข้อมูลบริษัท', trailing: _addButton(onPressed: () {})),
+                    const SizedBox(height: 12),
+                    CompanyPicker(
+                      selectedCompanies: _selectedCompanies,
+                      onCompaniesChanged: (companies) => setState(() => _selectedCompanies = companies),
+                      label: 'บริษัท',
+                      hintText: 'เลือกบริษัท',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildCustomIdField(),
+                  ],
+                ),
               ),
-              child: const Text('ถัดไป', style: TextStyle(fontWeight: FontWeight.w600)),
             ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: !canOpen
+          ? null
+          : SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _canSubmit() ? _saveCustomer : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryOrange,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('ถัดไป', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
@@ -639,7 +682,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            hintText: isEdit ? null : 'จะถูกสร้างอัตโนมัติเมื่อบันทึก',
+            hintText: isEdit ? null : 'จะถูก���ร้างอัตโนมัติเมื่อบันทึก',
           ),
         ),
       ]),
@@ -689,7 +732,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (workspaceId.isEmpty) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ Workspace'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม���พบ Workspace'), backgroundColor: Colors.red));
         return;
       }
 

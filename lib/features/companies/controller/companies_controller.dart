@@ -4,6 +4,7 @@ import '../../../domain/entities/company.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/id_generation_service.dart';
 import '../../board/controller/board_controller.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CompaniesController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -103,8 +104,15 @@ class CompaniesController extends GetxController {
     }).toList();
   }
 
+  bool _can(String permission) =>
+      MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can(permission);
+
   /// Create a new company
   Future<bool> createCompany(Company company) async {
+    if (!_can('company:create')) {
+      errorMessage.value = 'Permission denied: company:create';
+      return false;
+    }
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -151,6 +159,10 @@ class CompaniesController extends GetxController {
 
   /// Update an existing company
   Future<bool> updateCompany(Company company) async {
+    if (!_can('company:edit:all')) {
+      errorMessage.value = 'Permission denied: company:edit:all';
+      return false;
+    }
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -192,6 +204,10 @@ class CompaniesController extends GetxController {
 
   /// Delete a company
   Future<bool> deleteCompany(String companyId) async {
+    if (!_can('company:delete')) {
+      errorMessage.value = 'Permission denied: company:delete';
+      return false;
+    }
     try {
       isLoading.value = true;
       errorMessage.value = '';

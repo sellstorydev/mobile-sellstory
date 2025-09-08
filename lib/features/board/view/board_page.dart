@@ -347,7 +347,7 @@ class _BoardPageState extends State<BoardPage> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(width: 12),
                     
                     // Filter Button
@@ -632,14 +632,14 @@ class _BoardPageState extends State<BoardPage> {
           } else if (hasHashtag && hasDate) {
             filterMessage = 'ไม่พบงานสำหรับแฮชแท็กและช่วงวันที่ที่เลือก';
           } else if (hasAssignee) {
-            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบที่เลือก';
+            filterMessage = 'ไม่พบงานสำหรับผู้รั��ผิดชอบที่เลือก';
           } else if (hasCustomer) {
             filterMessage = 'ไม่พบงานสำหรับลูกค้าที่เลือก';
           } else if (hasHashtag) {
             filterMessage = 'ไม่พบงานสำหรับแฮชแท็กที่เลือก';
           } else if (hasStatus) {
             filterMessage = 'ไม่พบงานสำหรับสถานะที่เลือก';
-          } else if (hasDate) {
+            filterMessage = 'ไม่พบงานสำหรับลูกค้าและแฮชท็กที่เลือก';
             filterMessage = 'ไม่พบงานในช่วงวันที่ที่เลือก';
           }
           
@@ -740,12 +740,12 @@ class _BoardPageState extends State<BoardPage> {
   final displayLanes = _controller.displayLanes;
   // Always show all lanes; cards may be empty depending on filters
   final visibleLanes = displayLanes;
-    
+
   print('🔍 Building board with ${visibleLanes.length} lanes');
   for (final lane in visibleLanes) {
       print('  - Lane: ${lane.title} (${lane.cards.length} cards)');
     }
-        
+
     return BoardAutoScrollWrapper(
       child: DragAndDropLists(
         onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
@@ -843,7 +843,7 @@ class _BoardPageState extends State<BoardPage> {
           ),
           const SizedBox(width: 8),
           Text(
-            'เพิ่ม Lane',
+            'เพิ���ม Lane',
             style: TextStyle(
               color: AppTheme.primaryOrange,
               fontSize: 14,
@@ -1484,9 +1484,8 @@ class _BoardPageState extends State<BoardPage> {
 
   void _showSearchDialog() {
     if (_controller.isSearching.value) {
-      // If already searching, clear search
-      _controller.clearSearch();
-      return;
+       _controller.clearSearch();
+       return;
     }
 
     final TextEditingController searchController = TextEditingController(
@@ -1852,7 +1851,7 @@ class _BoardPageState extends State<BoardPage> {
     return GestureDetector(
       onTap: () async {
         Navigator.of(context).pop();
-        
+
         // If workspaceId is provided and different from current workspace, switch workspace first
         if (workspaceId != null && workspaceId != _controller.currentWorkspaceId.value) {
           try {

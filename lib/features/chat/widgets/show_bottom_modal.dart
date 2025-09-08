@@ -16,6 +16,8 @@ import 'package:get/get.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/widgets/dialog_utils.dart';
+import '../../../core/widgets/permission_guard.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 const _accent = Color(0xFFFF7A00); // โทมส้มตามภาพ
 
@@ -716,6 +718,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     if (pickedCustomerId == null || pickedCustomerId.isEmpty) return;
 
     try {
+      // Permission to link customer to chat
+      final svc = MobilePermissionsService.to;
+      if (!(svc.isOwner || svc.can('chat:assign'))) {
+        _showTopSnack('คุณไม่มีสิทธิ์เชื่อมลูกค้ากับแชท', isError: true);
+        return;
+      }
       // Read customer to get display name
       final cDoc = await FirebaseFirestore.instance
           .collection('workspaces')
@@ -791,6 +799,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     if (result == null) return;
 
     try {
+      // Permission to link job card to chat
+      final svc = MobilePermissionsService.to;
+      if (!(svc.isOwner || svc.can('chat:assign'))) {
+        _showTopSnack('คุณไม่มีสิทธิ์เชื่อม Job Card กับแชท', isError: true);
+        return;
+      }
       await _chatroomDoc.set({
         'jobCardId': result.cardId,
         'jobCardTitle': result.title,
@@ -928,21 +942,23 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   selected: _botEnabled,
                   tooltip: 'ตอบกลับอัตโนมัติ: เปิด/ปิดการทำงานของแชตบอท',
                   onTap: () async {
-                    setState(() => _botEnabled = !_botEnabled);
-                    if (widget.onBotStatusChanged != null) {
-                      widget.onBotStatusChanged!(_botEnabled);
-                    } else {
-                      try {
-                        await _chatroomDoc.update({'bot_status': _botEnabled ? 'Y' : 'N'});
-                        if (mounted) {
-                          _showTopSnack(_botEnabled ? 'เปิดบอทตอบกลับอัตโนมัติ' : 'ปิดบอทตอบกลับอัตโนมัติ');
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          _showTopSnack('อัปเดตการตอบกลับอัตโนมัติไม่สำเร็จ: $e', isError: true);
+                    guardAction(context, 'chat:assign', () async {
+                      setState(() => _botEnabled = !_botEnabled);
+                      if (widget.onBotStatusChanged != null) {
+                        widget.onBotStatusChanged!(_botEnabled);
+                      } else {
+                        try {
+                          await _chatroomDoc.update({'bot_status': _botEnabled ? 'Y' : 'N'});
+                          if (mounted) {
+                            _showTopSnack(_botEnabled ? 'เปิดบอทตอบกลับอัตโนมัติ' : 'ปิดบอทตอบกลับอัตโนมัติ');
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            _showTopSnack('อัปเดตการตอบกลับอัตโนมัติไม่สำเร็จ: $e', isError: true);
+                          }
                         }
                       }
-                    }
+                    }, deniedMessage: 'คุณไม่มีสิทธิ์จัดการบอทแชท');
                   },
                 ),
                 ChatStatusButton(
@@ -951,9 +967,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   selected: _status == ChatStatus.inProgress,
                   tooltip: 'ห้องแชทกำลังดำเนินการ',
                   onTap: () async {
-                    setState(() => _status = ChatStatus.inProgress);
-                    // onStatusChange is required; call directly
-                    widget.onStatusChange(_status);
+                    guardAction(context, 'chat:assign', () async {
+                      setState(() => _status = ChatStatus.inProgress);
+                      widget.onStatusChange(_status);
+                    }, deniedMessage: 'คุณไม่มีสิทธิ์เปลี่ยนสถานะห้องแชท');
                   },
                 ),
                 ChatStatusButton(
@@ -962,9 +979,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   selected: _status == ChatStatus.done,
                   tooltip: 'คุยจบแล้ว',
                   onTap: () async {
-                    setState(() => _status = ChatStatus.done);
-                    // onStatusChange is required; call directly
-                    widget.onStatusChange(_status);
+                    guardAction(context, 'chat:assign', () async {
+                      setState(() => _status = ChatStatus.done);
+                      widget.onStatusChange(_status);
+                    }, deniedMessage: 'คุณไม่มีสิทธิ์เปลี่ยนสถานะห้องแชท');
                   },
                 ),
                 ChatStatusButton(
@@ -973,24 +991,26 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   selected: _pinned,
                   tooltip: 'ปักหมุดห้องแชท',
                   onTap: () async {
-                    setState(() => _pinned = !_pinned);
-                    if (widget.onPinChanged != null) {
-                      widget.onPinChanged!(_pinned);
-                    } else {
-                      try {
-                        await _chatroomDoc.update({
-                          'chat_pin': _pinned ? 'Y' : 'N',
-                          'bot_status': _botEnabled ? 'Y' : 'N',
-                        });
-                        if (mounted) {
-                          _showTopSnack(_pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักห���ุดแล้ว');
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          _showTopSnack('อัปเดตปักหมุดไม่สำเร็จ: $e', isError: true);
+                    guardAction(context, 'chat:assign', () async {
+                      setState(() => _pinned = !_pinned);
+                      if (widget.onPinChanged != null) {
+                        widget.onPinChanged!(_pinned);
+                      } else {
+                        try {
+                          await _chatroomDoc.update({
+                            'chat_pin': _pinned ? 'Y' : 'N',
+                            'bot_status': _botEnabled ? 'Y' : 'N',
+                          });
+                          if (mounted) {
+                            _showTopSnack(_pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว');
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            _showTopSnack('อัปเดตปักหมุดไม่สำเร็จ: $e', isError: true);
+                          }
                         }
                       }
-                    }
+                    }, deniedMessage: 'คุณไม่มีสิทธิ์ปักหมุดห้องแชท');
                   },
                 ),
               ],
@@ -1000,14 +1020,28 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             ChatMenuTile(
               icon: Icons.sticky_note_2_outlined,
               text: 'โน้ต',
-              onTap: _openNotes,
+              onTap: () {
+                final svc = MobilePermissionsService.to;
+                if (svc.isOwner || svc.can('customer:edit:all') || svc.can('customer:edit:assigned')) {
+                  _openNotes();
+                } else {
+                  _showTopSnack('คุณไม่มีสิทธิ์แก้ไขข้อมูลลูกค้า/บันทึกโน้ต', isError: true);
+                }
+              },
               closeOnTap: false,
             ),
 
             ChatMenuTile(
               icon: Icons.supervised_user_circle_outlined,
               text: 'เพิ่มลูกค้า',
-              onTap: _openCustomerPicker,
+              onTap: () {
+                final svc = MobilePermissionsService.to;
+                if (svc.isOwner || svc.can('customer:view:all') || svc.can('customer:view:assigned')) {
+                  _openCustomerPicker();
+                } else {
+                  _showTopSnack('คุณไม่มีสิทธิ์ดูรายชื่อลูกค้า', isError: true);
+                }
+              },
               closeOnTap: false,
             ),
             if ((_currentCustomerId ?? '').isNotEmpty) ...[
@@ -1096,30 +1130,38 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                           ),
                           const SizedBox(height: 8),
                           if (_isHashtagDirty)
-                            Row(
-                              children: [
-                                OutlinedButton(
-                                  onPressed: () {
-                                    setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
-                                  },
-                                  child: const Text('ยกเลิก'),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () => _persistCustomerHashtags(_pendingHashtagIds),
-                                    child: const Text('ยืนยัน'),
+                            PermissionGuard(
+                              anyOf: const ['customer:edit:all', 'customer:edit:assigned'],
+                              child: Row(
+                                children: [
+                                  OutlinedButton(
+                                    onPressed: () {
+                                      setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
+                                    },
+                                    child: const Text('ยกเลิก'),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () => _persistCustomerHashtags(_pendingHashtagIds),
+                                      child: const Text('ยืนยัน'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              fallback: const SizedBox.shrink(),
                             ),
                           const SizedBox(height: 8),
                           Align(
                             alignment: Alignment.centerLeft,
-                            child: OutlinedButton.icon(
-                              onPressed: _creatingHashtag ? null : _createNewCustomerHashtag,
-                              icon: const Icon(Icons.add, size: 16),
-                              label: Text(_creatingHashtag ? 'กำลังเพิ่ม...' : 'เพิ่มแฮชแท็กใหม่'),
+                            child: PermissionGuard(
+                              anyOf: const ['customer:edit:all', 'customer:edit:assigned'],
+                              child: OutlinedButton.icon(
+                                onPressed: _creatingHashtag ? null : _createNewCustomerHashtag,
+                                icon: const Icon(Icons.add, size: 16),
+                                label: Text(_creatingHashtag ? 'กำลังเพิ่ม...' : 'เพิ่มแฮชแท็กใหม่'),
+                              ),
+                              fallback: const SizedBox.shrink(),
                             ),
                           ),
                         ],
@@ -1132,14 +1174,28 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             ChatMenuTile(
               icon: Icons.card_travel_outlined,
               text: 'ผูก Job Card',
-              onTap: _openJobCardPicker,
+              onTap: () {
+                final svc = MobilePermissionsService.to;
+                if (svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned')) {
+                  _openJobCardPicker();
+                } else {
+                  _showTopSnack('คุณไม่มีสิทธิ์ดู/เชื่อม Job Card', isError: true);
+                }
+              },
               closeOnTap: false,
             ),
             if ((_jobCardId ?? '').isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: InkWell(
-                  onTap: _openJobCardDetail,
+                  onTap: () {
+                    final svc = MobilePermissionsService.to;
+                    if (svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned')) {
+                      _openJobCardDetail();
+                    } else {
+                      _showTopSnack('คุณไม่มีสิทธิ์ดูรายละเอียด Job Card', isError: true);
+                    }
+                  },
                   borderRadius: BorderRadius.circular(12),
                   child: Card(
                     color: Colors.white,
@@ -1193,7 +1249,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             ChatMenuTile(
               icon: Icons.badge_outlined,
               text: 'เพิ่มเซล',
-              onTap: _openUserPicker,
+              onTap: () => guardAction(context, 'chat:assign', _openUserPicker, deniedMessage: 'คุณไม่มีสิทธิ์มอบหมายห้องแชท'),
               closeOnTap: false,
             ),
             Padding(
@@ -1242,7 +1298,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                       trailing: IconButton(
                         icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
                         tooltip: 'ลบออก',
-                        onPressed: () => _removeAssignee(u),
+                        onPressed: () => guardAction(context, 'chat:assign', () => _removeAssignee(u), deniedMessage: 'คุณไม่มีสิทธิ์ลบผู้ดูแล'),
                       ),
                     );
                   },
@@ -1258,18 +1314,20 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             ChatMenuTile(
               icon: Icons.edit_outlined,
               text: 'เปลี่ยนชื่อแชท',
-              onTap: _renameChat,
+              onTap: () => guardAction(context, 'chat:assign', _renameChat, deniedMessage: 'คุณไม่มีสิทธิ์เปลี่ยนชื่อแชท'),
             ),
             ChatMenuTile(
               icon: Icons.refresh_outlined,
               text: 'รีเซ็ตชื่อแชท',
-              onTap: _resetChatName,
+              onTap: () => guardAction(context, 'chat:assign', _resetChatName, deniedMessage: 'คุณไม่มีสิทธิ์รีเซ็ตชื่อแชท'),
             ),
             ChatMenuTile(
               icon: Icons.delete_outline,
               text: 'ลบแชท',
               danger: true,
-              onTap: widget.onDelete,
+              onTap: () => guardAction(context, 'chat:assign', () {
+                if (widget.onDelete != null) widget.onDelete!();
+              }, deniedMessage: 'คุณไม่มีสิทธิ์ลบแชท'),
             ),
           ],
 

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controller/more_controller.dart';
-import '../../../app/routes.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../core/widgets/permission_guard.dart';
 
@@ -205,46 +204,52 @@ class MorePage extends StatelessWidget {
                     // ),
 
                     _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.business_outlined,
-                      title: 'ตั้งค่าบริษัท',
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openCompanySettings(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            'No workspace selected',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
+                    PermissionGuard(
+                      anyOf: const ['settings:company:manage'],
+                      child: _buildMenuItem(
+                        icon: Icons.business_outlined,
+                        title: 'ตั้งค่าบริษัท',
+                        onTap: () {
+                          final workspaceId =
+                              boardController.currentWorkspaceId.value;
+                          if (workspaceId.isNotEmpty) {
+                            controller.openCompanySettings(workspaceId);
+                          } else {
+                            Get.snackbar(
+                              'Error',
+                              'No workspace selected',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Get.theme.colorScheme.error
+                                  .withValues(alpha: 0.1),
+                              colorText: Get.theme.colorScheme.error,
+                            );
+                          }
+                        },
+                      ),
                     ),
                     _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.dashboard_outlined,
-                      title: 'ตั้งค่า Board',
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openBoardSettings(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            'No workspace selected',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
+                    PermissionGuard(
+                      anyOf: const ['settings:board:manage'],
+                      child: _buildMenuItem(
+                        icon: Icons.dashboard_outlined,
+                        title: 'ตั้งค่า Board',
+                        onTap: () {
+                          final workspaceId =
+                              boardController.currentWorkspaceId.value;
+                          if (workspaceId.isNotEmpty) {
+                            controller.openBoardSettings(workspaceId);
+                          } else {
+                            Get.snackbar(
+                              'Error',
+                              'No workspace selected',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Get.theme.colorScheme.error
+                                  .withValues(alpha: 0.1),
+                              colorText: Get.theme.colorScheme.error,
+                            );
+                          }
+                        },
+                      ),
                     ),
                     _buildDivider(),
                     _buildMenuItem(

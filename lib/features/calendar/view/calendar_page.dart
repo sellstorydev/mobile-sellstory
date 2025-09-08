@@ -730,7 +730,6 @@ class _CalendarPageState extends State<CalendarPage> {
     final date = event['date'] ?? 0;
     final assignee = event['assignee'];
     final parentCardTitle = event['parentCardTitle'];
-    final todos = event['todos'] ?? [];
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacing12),
@@ -882,7 +881,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   ],
                 ),
 
-                                 if (description.isNotEmpty) ...[
+                if (description.isNotEmpty) ...[
                    const SizedBox(height: AppTheme.spacing12),
                    Text(
                      description,
@@ -1000,7 +999,6 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
     );
   }
-
   Widget _buildEmptyState(CalendarController controller) {
     return Container(
       alignment: Alignment.center,
@@ -1103,7 +1101,6 @@ class _CalendarPageState extends State<CalendarPage> {
        // Helper method to build individual todo item
     Widget _buildTodoItem(Map<String, dynamic> todo) {
       final rawTitle = todo['title'] ?? 'Untitled Todo';
-      // Strip HTML tags from title
       final title = rawTitle.toString().replaceAll(RegExp(r'<[^>]*>'), '');
       final status = todo['completed'] == true ? 'COMPLETED' : 'TODO';
       final priority = todo['priority'] ?? 'medium';
@@ -1143,7 +1140,7 @@ class _CalendarPageState extends State<CalendarPage> {
           //        : null,
           //  ),
            const SizedBox(width: AppTheme.spacing8),
-           
+
            // Todo content
            Expanded(
              child: Column(

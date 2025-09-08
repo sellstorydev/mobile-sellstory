@@ -127,7 +127,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
         },
       ),
       body: PermissionGuard(
-        permission: 'company:view:all',
+        permission: 'company:view',
         fallback: const Center(
           child: Text(
             'คุณไม่มีสิทธิ์ดูรายชื่อบริษัท',

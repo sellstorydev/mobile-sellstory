@@ -261,7 +261,8 @@ class JobCard {
     
     // Handle collaborators 
     List<String> collaborators = List<String>.from(map['collaborators'] ?? const []);
-    
+
+
     // Handle hashtags with type safety
     List<Map<String, dynamic>> hashtags = [];
     if (map['hashtags'] != null) {

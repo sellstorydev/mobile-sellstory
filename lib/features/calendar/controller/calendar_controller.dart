@@ -179,7 +179,7 @@ class CalendarController extends GetxController {
         'todos': card['todos'] ?? [],
       });
 
-      print(card['todos']);
+      // print(card['todos']);
       
       // Process todos within job card
       final cardTodos = card['todos'] as List<dynamic>? ?? [];

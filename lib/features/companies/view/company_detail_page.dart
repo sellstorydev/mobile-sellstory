@@ -152,29 +152,32 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
-          IconButton(
-            tooltip: 'แก้ไข',
-            icon: const Icon(Icons.edit, color: AppTheme.primaryOrange),
-            onPressed: () async {
-              guardAction(context, 'company:edit:all', () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddEditCompanyPage(company: company),
-                  ),
-                );
+          PermissionGuard(
+            permission: 'company:edit:all',
+            child: IconButton(
+              tooltip: 'แก้ไข',
+              icon: const Icon(Icons.edit, color: AppTheme.primaryOrange),
+              onPressed: () async {
+                guardAction(context, 'company:edit:all', () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddEditCompanyPage(company: company),
+                    ),
+                  );
 
-                if (result == true) {
-                  // Try to refresh local view with updated company
-                  final updated = _companiesController.getCompanyById(company.id);
-                  if (updated != null && mounted) {
-                    setState(() {
-                      _currentCompany = updated;
-                    });
+                  if (result == true) {
+                    // Try to refresh local view with updated company
+                    final updated = _companiesController.getCompanyById(company.id);
+                    if (updated != null && mounted) {
+                      setState(() {
+                        _currentCompany = updated;
+                      });
+                    }
                   }
-                }
-              });
-            },
+                });
+              },
+            ),
           ),
         ],
       ),
@@ -450,6 +453,7 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
       child: child,
     );
   }
+
 
   Widget _buildCompanyDetailsTile() {
     final company = _currentCompany ?? widget.company;

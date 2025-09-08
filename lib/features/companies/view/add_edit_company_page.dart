@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/company.dart';
 import '../controller/companies_controller.dart';
 import '../../../core/services/thai_location_service.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class AddEditCompanyPage extends StatefulWidget {
   final Company? company; // null for add, not null for edit
@@ -37,7 +37,7 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
   String? _selectedDistrictId;
   String? _selectedSubdistrictId;
 
-  bool _isLoadingLocations = false;
+  // Remove unused loading flag and add submitting state
   bool _isSubmitting = false;
 
   // Multiple emails and phones
@@ -83,22 +83,12 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
   }
 
   Future<void> _loadProvinces() async {
-    setState(() {
-      _isLoadingLocations = true;
-    });
-
     try {
       final provinces = await _locationService.getProvinces();
       setState(() {
         _provinces = provinces;
       });
-    } catch (e) {
-      // Handle error silently
-    } finally {
-      setState(() {
-        _isLoadingLocations = false;
-      });
-    }
+    } catch (_) {}
   }
 
   Future<void> _loadDistricts(String provinceId) async {
@@ -110,9 +100,7 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
         _selectedDistrictId = null;
         _selectedSubdistrictId = null;
       });
-    } catch (e) {
-      // Handle error silently
-    }
+    } catch (_) {}
   }
 
   Future<void> _loadSubdistricts(String districtId) async {
@@ -122,15 +110,8 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
         _subdistricts = subdistricts;
         _selectedSubdistrictId = null;
       });
-    } catch (e) {
-
-      // Handle error silently
-    }
+    } catch (_) {}
   }
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +125,12 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
         ),
         actions: [
           TextButton(
-            onPressed: _isSubmitting ? null : _submitForm,
+            onPressed: _isSubmitting
+                ? null
+                : () {
+                    final needed = _isEditMode ? 'company:edit:all' : 'company:create';
+                    guardAction(context, needed, _submitForm);
+                  },
             child: Text(
               _isEditMode ? 'บันทึก' : 'เพิ่ม',
               style: TextStyle(
