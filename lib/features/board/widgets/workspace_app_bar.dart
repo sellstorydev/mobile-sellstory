@@ -64,9 +64,17 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
         break;
       default:
         if (value.startsWith('board_')) {
-          ctrl.switchBoard(value.substring(6));
+          final boardId = value.substring(6);
+          // Check if this board is already selected
+          if (boardId != ctrl.currentBoardId.value) {
+            ctrl.switchBoard(boardId);
+          }
         } else if (value.startsWith('workspace_')) {
-          ctrl.switchWorkspace(value.substring(10));
+          final workspaceId = value.substring(10);
+          // Check if this workspace is already selected
+          if (workspaceId != ctrl.currentWorkspaceId.value) {
+            ctrl.switchWorkspace(workspaceId);
+          }
         }
         break;
     }
@@ -88,117 +96,293 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
             MobilePermissionsService.to.can('settings:board:manage');
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Current workspace
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD9D9D9),
-                        borderRadius: BorderRadius.circular(6),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                const Text(
+                  'เลือก Workspace และ Board',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Current workspace info
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.business, color: AppTheme.primaryOrange, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Workspace ปัจจุบัน',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            Obx(() => Text(
+                                  ctrl.currentWorkspaceName.value.isNotEmpty
+                                      ? ctrl.currentWorkspaceName.value
+                                      : 'ไม่มีชื่อ',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                )),
+                          ],
+                        ),
                       ),
-                      child: Image.asset('assets/app_icon_original.png', fit: BoxFit.cover),
-                    ),
-                    title: Obx(() => Text(
-                          ctrl.currentWorkspaceName.value.isNotEmpty
-                              ? ctrl.currentWorkspaceName.value
-                              : 'Workspace',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        )),
-                    trailing: canManageBoard
-                        ? IconButton(
-                            icon: const Icon(Icons.settings_outlined),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              final current = ctrl.availableWorkspaces.firstWhereOrNull(
-                                (w) => w['id'] == ctrl.currentWorkspaceId.value,
+                      if (canManageBoard)
+                        IconButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            final current = ctrl.availableWorkspaces.firstWhereOrNull(
+                              (w) => w['id'] == ctrl.currentWorkspaceId.value,
+                            );
+                            if (current != null) {
+                              Get.toNamed(
+                                '/edit-workspace',
+                                parameters: {
+                                  'workspaceId': current['id'] as String,
+                                  'currentName': current['name'] as String,
+                                },
                               );
-                              if (current != null) {
-                                Get.toNamed(
-                                  '/edit-workspace',
-                                  parameters: {
-                                    'workspaceId': current['id'] as String,
-                                    'currentName': current['name'] as String,
-                                  },
-                                );
-                              }
-                            },
-                          )
-                        : null,
+                            }
+                          },
+                          icon: const Icon(Icons.settings, color: AppTheme.primaryOrange),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
+                ),
 
-                  // Boards
-                  if (ctrl.boards.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4, bottom: 6),
-                      child: Text('บอร์ดของคุณ', style: TextStyle(color: Color(0xFFB3B3B3), fontSize: 12)),
-                    ),
-                    ...ctrl.boards.map((b) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          leading: Icon(
-                            Icons.view_column,
-                            color: b.id == ctrl.currentBoardId.value
-                                ? AppTheme.primaryOrange
-                                : Colors.grey[600],
-                          ),
-                          title: Text(b.name),
-                          trailing: b.id == ctrl.currentBoardId.value
-                              ? const Icon(Icons.check, color: AppTheme.primaryOrange)
-                              : null,
-                          onTap: () async {
-                            Navigator.of(context).pop();
-                            await ctrl.switchBoard(b.id);
-                          },
-                        )),
-                    const Divider(),
-                  ],
+                const SizedBox(height: 24),
 
-                  // Workspaces
-                  if (ctrl.availableWorkspaces.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4, bottom: 6),
-                      child: Text('Workspace ของคุณ', style: TextStyle(color: Color(0xFFB3B3B3), fontSize: 12)),
-                    ),
-                    ...ctrl.availableWorkspaces.map((ws) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          leading: Icon(
-                            Icons.workspaces_outline,
-                            color: ws['id'] == ctrl.currentWorkspaceId.value
-                                ? AppTheme.primaryOrange
-                                : Colors.grey[600],
-                          ),
-                          title: Text(ws['name'] as String),
-                          trailing: ws['id'] == ctrl.currentWorkspaceId.value
-                              ? const Icon(Icons.check, color: AppTheme.primaryOrange)
-                              : null,
-                          onTap: () async {
-                            Navigator.of(context).pop();
-                            await ctrl.switchWorkspace(ws['id'] as String);
-                          },
-                        )),
-                  ],
-
+                // Boards section
+                if (ctrl.boards.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'เลือก Board',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          Get.toNamed('/board-management');
+                        },
+                        child: const Text('จัดการ Board'),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: onCreateWorkspace ?? _defaultOnCreateWorkspace,
-                    icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
-                    label: const Text('สร้าง Workspace', style: TextStyle(color: AppTheme.primaryOrange)),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppTheme.primaryOrange),
+                  ...ctrl.boards.map((board) {
+                    final isSelected = board.id == ctrl.currentBoardId.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: isSelected ? null : () async {
+                            Navigator.of(context).pop();
+                            await ctrl.switchBoard(board.id);
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.dashboard,
+                                  color: isSelected ? AppTheme.primaryOrange : Colors.grey[600],
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    board.name,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected ? AppTheme.primaryOrange : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: AppTheme.primaryOrange,
+                                    size: 24,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 24),
+                ],
+
+                // Workspaces section
+                if (ctrl.availableWorkspaces.length > 1) ...[
+                  const Text(
+                    'เปลี่ยน Workspace',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+                  ...ctrl.availableWorkspaces.map((workspace) {
+                    final isSelected = workspace['id'] == ctrl.currentWorkspaceId.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: isSelected ? null : () async {
+                            Navigator.of(context).pop();
+                            await ctrl.switchWorkspace(workspace['id'] as String);
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.business,
+                                  color: isSelected ? AppTheme.primaryOrange : Colors.grey[600],
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    workspace['name'] as String,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected ? AppTheme.primaryOrange : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: AppTheme.primaryOrange,
+                                    size: 24,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 24),
                 ],
-              ),
+
+                // Quick actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          Get.toNamed('/card-view-settings');
+                        },
+                        icon: const Icon(Icons.view_agenda, size: 20),
+                        label: const Text('ตั้งค่าการ์ด'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[100],
+                          foregroundColor: Colors.black87,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          ctrl.refresh();
+                        },
+                        icon: const Icon(Icons.refresh, size: 20),
+                        label: const Text('รีเฟรช'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[100],
+                          foregroundColor: Colors.black87,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Create workspace button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: onCreateWorkspace ?? _defaultOnCreateWorkspace,
+                    icon: const Icon(Icons.add, size: 20),
+                    label: const Text('สร้าง Workspace ใหม่'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryOrange,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+              ],
             ),
           ),
         );
@@ -369,7 +553,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 // Board Selector
                 if (ctrl.boards.isNotEmpty) ...[
-                  const PopupMenuDivider(),
+                  if (canManageBoard) const PopupMenuDivider(),
                   ...ctrl.boards.map((board) {
                     return PopupMenuItem<String>(
                       value: 'board_${board.id}',
@@ -427,38 +611,44 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
                 ],
-                // Card View Settings
-                const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'card_view_settings',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.view_agenda, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Card View Settings'),
-                    ],
-                  ),
-                ),
-                // Refresh
-                const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'refresh',
-                  child: Row(
-                    children: const [
-                      Icon(Icons.refresh, size: 20),
-                      SizedBox(width: 12),
-                      Text('Refresh'),
-                    ],
-                  ),
-                ),
               ],
             );
           } else {
             // Show only Add Workspace when no workspaces
-            return IconButton(
-              onPressed: onCreateWorkspace ?? _defaultOnCreateWorkspace,
-              icon: const Icon(Icons.add),
-              tooltip: 'Add Workspace',
+            return Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primaryOrange, Color(0xFFFF6B35)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryOrange.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                onPressed: onCreateWorkspace ?? _defaultOnCreateWorkspace,
+                icon: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                tooltip: 'สร้าง Workspace',
+                splashRadius: 20,
+              ),
             );
           }
         }),
