@@ -250,69 +250,101 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ],
 
                 // Workspaces section
-                if (ctrl.availableWorkspaces.length > 1) ...[
-                  const Text(
-                    'เปลี่ยน Workspace',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                if (ctrl.availableWorkspaces.isNotEmpty) ...[
+                  if (ctrl.availableWorkspaces.length > 1) ...[
+                    const Text(
+                      'เปลี่ยน Workspace',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  ...ctrl.availableWorkspaces.map((workspace) {
-                    final isSelected = workspace['id'] == ctrl.currentWorkspaceId.value;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: isSelected ? null : () async {
-                            Navigator.of(context).pop();
-                            await ctrl.switchWorkspace(workspace['id'] as String);
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : Colors.grey[50],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
-                                width: isSelected ? 2 : 1,
+                    const SizedBox(height: 12),
+                    ...ctrl.availableWorkspaces.where((workspace) => 
+                      workspace['id'] != ctrl.currentWorkspaceId.value
+                    ).map((workspace) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              await ctrl.switchWorkspace(workspace['id'] as String);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.business,
-                                  color: isSelected ? AppTheme.primaryOrange : Colors.grey[600],
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    workspace['name'] as String,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected ? AppTheme.primaryOrange : Colors.black87,
-                                    ),
-                                  ),
-                                ),
-                                if (isSelected)
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: AppTheme.primaryOrange,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.business,
+                                    color: Colors.grey[600],
                                     size: 24,
                                   ),
-                              ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      workspace['name'] as String,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Colors.grey[400],
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
+                      );
+                    }),
+                    const SizedBox(height: 24),
+                  ] else ...[
+                    // Show message when only one workspace
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue[200]!),
                       ),
-                    );
-                  }),
-                  const SizedBox(height: 24),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.blue[600],
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'คุณมีเพียง Workspace เดียว\nสร้าง Workspace ใหม่เพื่อสลับได้',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ],
 
                 // Quick actions
