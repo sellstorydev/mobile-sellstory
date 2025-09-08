@@ -18,6 +18,8 @@ import '../features/more/view/fcm_logs_page.dart';
 import '../features/calendar/view/calendar_page.dart';
 import '../features/board/view/card_view_setting_page.dart';
 import '../features/archive/view/archive_page.dart';
+import '../features/customers/view/customers_page.dart';
+import '../features/companies/view/company_center_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -39,6 +41,8 @@ class AppRoutes {
   static const String calendar = '/calendar';
   static const String cardViewSettings = '/card-view-settings';
   static const String archive = '/archive';
+  static const String customers = '/customers';
+  static const String companies = '/companies';
 
   static final routes = [
     GetPage(
@@ -140,6 +144,14 @@ class AppRoutes {
     GetPage(
       name: archive,
       page: () => const ArchivePage(),
+    ),
+    GetPage(
+      name: customers,
+      page: () => const CustomersPage(),
+    ),
+    GetPage(
+      name: companies,
+      page: () => const CompanyCenterPage(),
     ),
   ];
 }
