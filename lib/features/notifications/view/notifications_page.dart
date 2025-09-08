@@ -172,7 +172,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       }
 
       if (found != null) {
-        Get.toNamed(AppRoutes.cardDetail, arguments: found);
+        Get.toNamed(AppRoutes.editCard, arguments: found);
       } else {
         // Try searching other boards if boardId was not provided
         if (boardId == null || boardId.isEmpty) {
@@ -182,7 +182,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             for (final lane in ctrl.lanes) {
               final c = lane.cards.firstWhereOrNull((x) => x.id == cardId);
               if (c != null) {
-                Get.toNamed(AppRoutes.cardDetail, arguments: c);
+                Get.toNamed(AppRoutes.editCard, arguments: c);
                 return;
               }
             }

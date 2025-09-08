@@ -4,7 +4,6 @@ import '../features/login/view/login_page.dart';
 import '../features/shell/shell_page.dart';
 import '../features/board/view/board_page.dart';
 import '../features/board/view/user_cards_page.dart';
-import '../features/board/view/card_detail_page.dart';
 import '../features/board/view/card_view_page.dart';
 import '../features/board/view/create_card_page.dart';
 import '../features/board/view/create_workspace_page.dart';
@@ -18,6 +17,9 @@ import '../features/webview/view/webview_page.dart';
 import '../features/more/view/fcm_logs_page.dart';
 import '../features/calendar/view/calendar_page.dart';
 import '../features/board/view/card_view_setting_page.dart';
+import '../features/archive/view/archive_page.dart';
+import '../features/customers/view/customers_page.dart';
+import '../features/companies/view/company_center_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -25,7 +27,6 @@ class AppRoutes {
   static const String shell = '/shell';
   static const String board = '/board';
   static const String userCards = '/user-cards';
-  static const String cardDetail = '/card-detail';
   static const String cardView = '/card-view';
   static const String createCard = '/create-card';
   static const String editCard = '/edit-card';
@@ -39,6 +40,9 @@ class AppRoutes {
   static const String fcmLogs = '/fcm-logs';
   static const String calendar = '/calendar';
   static const String cardViewSettings = '/card-view-settings';
+  static const String archive = '/archive';
+  static const String customers = '/customers';
+  static const String companies = '/companies';
 
   static final routes = [
     GetPage(
@@ -62,10 +66,6 @@ class AppRoutes {
       page: () => const UserCardsPage(),
     ),
     GetPage(
-      name: cardDetail,
-      page: () => CardDetailPage(card: Get.arguments),
-    ),
-    GetPage(
       name: cardView,
       page: () => CardViewPage(card: Get.arguments),
     ),
@@ -79,7 +79,7 @@ class AppRoutes {
     ),
     GetPage(
       name: editCard,
-      page: () => EditCardPage(card: Get.arguments['card']),
+      page: () => EditCardPage(card: Get.arguments),
     ),
     GetPage(
       name: createBoard,
@@ -126,7 +126,32 @@ class AppRoutes {
     ),
     GetPage(
       name: cardViewSettings,
-      page: () => const CardViewSettingPage(),
+      page: () {
+        // Prefer parameters (?boardId=) then arguments (map with 'boardId'), fallback to empty string.
+        final paramBoardId = Get.parameters['boardId'];
+        String resolvedBoardId = '';
+        if (paramBoardId != null && paramBoardId.isNotEmpty) {
+          resolvedBoardId = paramBoardId;
+        } else {
+          final args = Get.arguments;
+            if (args is Map && args['boardId'] is String) {
+              resolvedBoardId = args['boardId'] as String;
+            }
+        }
+        return CardViewSettingPage(boardId: resolvedBoardId);
+      },
+    ),
+    GetPage(
+      name: archive,
+      page: () => const ArchivePage(),
+    ),
+    GetPage(
+      name: customers,
+      page: () => const CustomersPage(),
+    ),
+    GetPage(
+      name: companies,
+      page: () => const CompanyCenterPage(),
     ),
   ];
 }

@@ -8,7 +8,7 @@ import 'add_edit_customer_page.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../board/widgets/workspace_app_bar.dart';
 import '../../board/controller/board_controller.dart';
-
+import '../../shell/shell_controller.dart';
 
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
@@ -29,7 +29,7 @@ class _CustomersPageState extends State<CustomersPage> {
     super.initState();
     // Ensure CustomersController exists
     if (!Get.isRegistered<CustomersController>()) {
-      Get.put<CustomersController>(Get.find());
+      Get.put<CustomersController>(CustomersController(Get.find()));
     }
     _controller = Get.find<CustomersController>();
   }
@@ -56,7 +56,65 @@ class _CustomersPageState extends State<CustomersPage> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
-      appBar: WorkspaceAppBar(controller: boardCtrl),
+      appBar: WorkspaceAppBar(
+        controller: boardCtrl,
+        titleBuilder: (ctx, ctrl) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Image.asset('assets/app_icon_original.png', fit: BoxFit.cover),
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'company') {
+                      if (Get.isRegistered<ShellController>()) {
+                        final shell = Get.find<ShellController>();
+                        shell.setCustomersTabMode(companyMode: true);
+                        shell.onTabTapped(2);
+                      } else {
+                        Get.offNamed('/companies');
+                      }
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<String>(
+                      value: 'individual',
+                      child: Text('บุคคลธรรมดา'),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'company',
+                      child: Text('นิติบุคคล'),
+                    ),
+                  ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text(
+                        'บุคคลธรรมดา',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.black54),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
 
       body: PermissionGuard(
         permission: 'customer:view:all',

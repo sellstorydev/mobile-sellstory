@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:drag_and_drop_lists/drag_and_drop_lists.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sellstory/core/services/card_view_settings_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
@@ -25,7 +26,76 @@ class BoardPage extends StatefulWidget {
 
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
+  final CardViewSettingsService _settingsService = CardViewSettingsService.to;
   Worker? _wsWorker;
+  Map<String, dynamic> _fieldConfigCache = {};
+  Map<String, String> _userNameCache = {};
+
+  Map<String, dynamic> _currentFieldConfigForBoard(String boardId) => _fieldConfigCache.isNotEmpty ? _fieldConfigCache : _defaultFieldConfig();
+
+  Map<String, dynamic> _defaultFieldConfig() {
+    final keys = [
+      'customId','status','dateRange','createdAt','assignee','customerInterest','collaborators','customer','company','hashtags','grandTotal','netTotal','totalAmountBeforeDiscount','totalAmountAfterDiscount','totalAmountBeforeVat','description','todos'
+    ];
+    final m = <String,dynamic>{};
+    for (var i=0;i<keys.length;i++){m[keys[i]]={'order':i,'isVisible':true,'style':{}};}
+    return m;
+  }
+
+  Future<void> _loadPerBoardFieldConfig() async {
+    try {
+      // Load from CardViewSettingsService instead of Firestore
+      final fields = _settingsService.cardFields;
+      
+      // Convert CardFieldSetting list to the expected format
+      final config = <String, dynamic>{};
+      for (final field in fields) {
+        // Map service field IDs to our field keys
+        String mappedKey = _mapServiceFieldToKey(field.id);
+        config[mappedKey] = {
+          'order': field.order,
+          'isVisible': field.isVisible,
+          'style': {},
+        };
+      }
+      
+      setState(() {
+        _fieldConfigCache = config;
+      });
+      
+      print('🔧 Field config loaded from CardViewSettingsService: ${config.keys.length} fields');
+    } catch (e) {
+      print('❌ Error loading field config: $e');
+      setState(() {
+        _fieldConfigCache = _defaultFieldConfig();
+      });
+    }
+  }
+
+  // Map service field IDs to our internal field keys
+  String _mapServiceFieldToKey(String serviceFieldId) {
+    const Map<String, String> fieldMapping = {
+      'jobId': 'customId',
+      'createdDate': 'createdAt',
+      'totalBeforeDiscount': 'totalAmountBeforeDiscount',
+      'totalAfterDiscount': 'totalAmountAfterDiscount',
+      'totalBeforeVAT': 'totalAmountBeforeVat',
+      'todoList': 'todos',
+    };
+    
+    return fieldMapping[serviceFieldId] ?? serviceFieldId;
+  }
+
+  Future<void> _buildUserNameCache() async {
+    try {
+      final workspaceUsers = await _controller.getWorkspaceUsers(_controller.currentWorkspaceId.value);
+      setState(() {
+        _userNameCache = { for (final u in workspaceUsers) if (u['id']!=null) u['id']: (u['name']??'') };
+      });
+    } catch (e) { 
+      debugPrint('User name cache build error: $e'); 
+    }
+  }
 
   @override
   void initState() {
@@ -34,6 +104,12 @@ class _BoardPageState extends State<BoardPage> {
     
     // Initialize with current user
     _initializeWithCurrentUser();
+    // Load field config & user names asynchronously
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🚀 Post frame callback - loading field config and user cache');
+      _loadPerBoardFieldConfig();
+      _buildUserNameCache();
+    });
 
     // React to workspace changes to prefetch permissions
     _wsWorker = ever<String>(_controller.currentWorkspaceId, (wsId) {
@@ -98,13 +174,14 @@ class _BoardPageState extends State<BoardPage> {
     }
   }
 
-  void _handleMenuAction(String value) {
+  void _handleMenuAction(String value) async {
     switch (value) {
       case 'board_management':
         Get.toNamed('/board-management');
         break;
       case 'refresh':
         _initializeWithCurrentUser();
+        _buildUserNameCache();
         break;
       case 'calendar':
         Get.toNamed('/calendar');
@@ -113,7 +190,13 @@ class _BoardPageState extends State<BoardPage> {
         _navigateToEditWorkspace();
         break;
       case 'card_view_settings':
-        Get.toNamed('/card-view-settings');
+        final result = await Get.toNamed('/card-view-settings', arguments: {'boardId': _controller.currentBoardId.value});
+        if (result == true) {
+          // Reload field config when returning from settings
+          print('🔄 Reloading field config after settings change');
+          _loadPerBoardFieldConfig();
+          setState(() {}); // Force rebuild
+        }
         break;
       default:
         if (value.startsWith('board_')) {
@@ -159,6 +242,13 @@ class _BoardPageState extends State<BoardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Force build user cache if empty
+    if (_userNameCache.isEmpty && _controller.currentWorkspaceId.value.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _buildUserNameCache();
+      });
+    }
+    
     return Scaffold(
       appBar: WorkspaceAppBar(
         controller: _controller,
@@ -289,27 +379,45 @@ class _BoardPageState extends State<BoardPage> {
           
           // Status Summary Cards
           Obx(() {
+            print('🎯 Status Summary Cards Obx called - hasWorkspaces: ${_controller.hasWorkspaces}, lanes count: ${_controller.lanes.length}');
+            
             if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
-              final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
+              final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
                                  _controller.selectedCustomers.isNotEmpty ||
                                  _controller.selectedHashtags.isNotEmpty ||
+                                 _controller.selectedInterests.isNotEmpty ||
+                                 _controller.selectedStatuses.isNotEmpty ||
                                  _controller.selectedDateFilterTypes.isNotEmpty;
-              final displayLanes = (_controller.isSearching.value || hasAnyFilter)
-                  ? _controller.filteredLanes 
-                  : _controller.lanes;
+              
+              print('🎯 hasAnyFilter: $hasAnyFilter, selectedStatuses: ${_controller.selectedStatuses}');
+              print('🎯 selectedInterests: ${_controller.selectedInterests}');
+              
+              final displayLanes = _controller.displayLanes;
               final allCards = displayLanes
                   .expand((lane) => lane.cards)
                   .toList();
+                  
+              print('🎯 Display lanes count: ${displayLanes.length}, All cards count: ${allCards.length}');
+              
               return SizedBox(
                 height: 65,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: StatusSummaryCards(cards: allCards),
+                  child: StatusSummaryCards(
+                    cards: allCards,
+                    selectedStatuses: _controller.selectedStatuses,
+                    onStatusTap: (String status) {
+                      // Toggle status filter
+                      _controller.toggleStatusFilter(status);
+                    },
+                  ),
                 ),
               );
             }
             return const SizedBox.shrink();
           }),
+          
+          // Debug clear filters button removed
           // Board View
           Expanded(child: _buildBoardView()),
         ],
@@ -441,25 +549,28 @@ class _BoardPageState extends State<BoardPage> {
         );
       }
 
-      final hasAnyFilter = _controller.selectedAssignees.isNotEmpty || 
+    final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
                          _controller.selectedCustomers.isNotEmpty ||
                          _controller.selectedHashtags.isNotEmpty ||
+                         _controller.selectedInterests.isNotEmpty ||
+                         _controller.selectedStatuses.isNotEmpty ||
                          _controller.selectedDateFilterTypes.isNotEmpty;
-      final displayLanes = (_controller.isSearching.value || hasAnyFilter)
-          ? _controller.filteredLanes 
-          : _controller.lanes;
+    final displayLanes = _controller.displayLanes;
+  // Always show all lanes; cards may be empty depending on filters
+  final lanesForView = displayLanes;
 
-      if (displayLanes.isEmpty && _controller.hasWorkspaces) {
+    if (lanesForView.isEmpty && _controller.hasWorkspaces) {
         if (hasAnyFilter) {
           // Show filter no results
           String filterMessage = '';
           final hasAssignee = _controller.selectedAssignees.isNotEmpty;
           final hasCustomer = _controller.selectedCustomers.isNotEmpty;
           final hasHashtag = _controller.selectedHashtags.isNotEmpty;
+          final hasStatus = _controller.selectedStatuses.isNotEmpty;
           final hasDate = _controller.selectedDateFilterTypes.isNotEmpty;
           
           // Count the number of active filters
-          final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasDate].where((x) => x).length;
+          final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasStatus, hasDate].where((x) => x).length;
           
           if (filterCount >= 3) {
             filterMessage = 'ไม่พบงานสำหรับเงื่อนไขที่เลือกทั้งหมด';
@@ -481,6 +592,8 @@ class _BoardPageState extends State<BoardPage> {
             filterMessage = 'ไม่พบงานสำหรับลูกค้าที่เลือก';
           } else if (hasHashtag) {
             filterMessage = 'ไม่พบงานสำหรับแฮชแท็กที่เลือก';
+          } else if (hasStatus) {
+            filterMessage = 'ไม่พบงานสำหรับสถานะที่เลือก';
           } else if (hasDate) {
             filterMessage = 'ไม่พบงานในช่วงวันที่ที่เลือก';
           }
@@ -566,17 +679,25 @@ class _BoardPageState extends State<BoardPage> {
         }
       }
 
-      return _buildBoard();
+  return _buildBoard();
     });
   }
 
   Widget _buildBoard() {
-    final displayLanes = _controller.isSearching.value 
-        ? _controller.filteredLanes 
-        : _controller.lanes;
+  // Respect both search and active filters (assignee/customer/hashtag/status/date)
+  final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
+    _controller.selectedCustomers.isNotEmpty ||
+    _controller.selectedHashtags.isNotEmpty ||
+    _controller.selectedInterests.isNotEmpty ||
+    _controller.selectedStatuses.isNotEmpty ||
+    _controller.selectedDateFilterTypes.isNotEmpty;
+
+  final displayLanes = _controller.displayLanes;
+  // Always show all lanes; cards may be empty depending on filters
+  final visibleLanes = displayLanes;
     
-    print('🔍 Building board with ${displayLanes.length} lanes');
-    for (final lane in displayLanes) {
+  print('🔍 Building board with ${visibleLanes.length} lanes');
+  for (final lane in visibleLanes) {
       print('  - Lane: ${lane.title} (${lane.cards.length} cards)');
     }
         
@@ -594,7 +715,7 @@ class _BoardPageState extends State<BoardPage> {
         listDragHandle: null, // Disable lane drag handle
 
         children: [
-          ...displayLanes.map((lane) {
+          ...visibleLanes.map((lane) {
             final laneData = lane;
             return DragAndDropList(
               header: _buildLaneHeader(laneData),
@@ -604,8 +725,14 @@ class _BoardPageState extends State<BoardPage> {
               ),
               children: [
                 ...laneData.cards.map((card) {
+                  final fieldCfg = _currentFieldConfigForBoard(_controller.currentBoardId.value);
+                  final userCache = _userNameCache; // built separately
                   return DragAndDropItem(
-                    child: JobCardTile(card: card),
+                    child: JobCardTile(
+                      card: card,
+                      fieldConfig: fieldCfg,
+                      userNameCache: userCache,
+                    ),
                   );
                 }).toList(),
                 // Add card button at the bottom of each lane
@@ -646,6 +773,9 @@ class _BoardPageState extends State<BoardPage> {
       lane: lane,
       onCreateCard: () => _navigateToCreateCardWithLane(lane),
       onMenuTap: () => _showLaneMenu(lane),
+      onCloneLane: () => _cloneLane(lane),
+      onDeleteLane: () => _deleteLane(lane),
+      allLaneIds: _controller.lanes.map((l) => l.id).toList(),
     );
   }
 
@@ -728,6 +858,116 @@ class _BoardPageState extends State<BoardPage> {
         'workspaceId': _controller.currentWorkspaceId.value,
       },
     );
+  }
+
+  void _cloneLane(Lane lane) async {
+    print('🎯 =================================================');
+    print('🎯 CLONE OPERATION STARTED');
+    print('🎯 Source Lane: ${lane.title}');
+    print('🎯 Source Lane ID: ${lane.id}');
+    print('🎯 Cards count in source lane: ${lane.cards.length}');
+    print('🎯 Current workspace ID: ${_controller.currentWorkspaceId.value}');
+    print('🎯 Current board ID: ${_controller.currentBoardId.value}');
+    print('🎯 =================================================');
+    
+    try {
+      print('🔄 Cloning lane: ${lane.title}');
+      await _controller.onCloneLane(lane);
+      
+      print('🎯 =================================================');
+      print('🎯 CLONE OPERATION COMPLETED SUCCESSFULLY');
+      print('🎯 =================================================');
+      
+      Get.snackbar(
+        'Success',
+        'Lane "${lane.title}" cloned successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      print('🎯 =================================================');
+      print('🎯 CLONE OPERATION FAILED');
+      print('❌ Error cloning lane: $e');
+      print('📍 Error type: ${e.runtimeType}');
+      print('📍 Stack trace: ${StackTrace.current}');
+      print('🎯 =================================================');
+      
+      Get.snackbar(
+        'Error',
+        'Failed to clone lane: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void _deleteLane(Lane lane) async {
+    print('🗑️ Delete lane request for: ${lane.title} (${lane.id})');
+    
+    // Show confirmation dialog
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Lane'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Are you sure you want to delete "${lane.title}"?'),
+              const SizedBox(height: 8),
+              if (lane.cards.isNotEmpty) ...[
+                const Text(
+                  'Warning: This lane contains cards that will also be deleted.',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text('Cards to be deleted: ${lane.cards.length}'),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        print('🗑️ Deleting lane: ${lane.title} (${lane.id})');
+        await _controller.deleteLane(laneId: lane.id);
+        
+        Get.snackbar(
+          'Success',
+          'Lane "${lane.title}" deleted successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      } catch (e) {
+        print('❌ Error deleting lane: $e');
+        Get.snackbar(
+          'Error',
+          'Failed to delete lane: ${e.toString()}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    }
   }
 
   void _showLaneMenu(Lane lane) {

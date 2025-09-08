@@ -150,11 +150,7 @@ class MorePage extends StatelessWidget {
                       icon: Icons.archive_outlined,
                       title: 'Archive',
                       onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'Archive coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
+                        Get.toNamed('/archive');
                       },
                     ),
                     _buildDivider(),

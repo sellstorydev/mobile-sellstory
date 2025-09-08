@@ -12,6 +12,8 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onTitleTap;
   final void Function(String value)? onMenuAction;
   final VoidCallback? onCreateWorkspace;
+  // Optional custom title builder for page-specific title UIs
+  final Widget Function(BuildContext context, BoardController ctrl)? titleBuilder;
 
   const WorkspaceAppBar({
     super.key,
@@ -19,6 +21,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onTitleTap,
     this.onMenuAction,
     this.onCreateWorkspace,
+    this.titleBuilder,
   });
 
   @override
@@ -221,88 +224,90 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.white,
       elevation: 0,
       foregroundColor: Colors.black87,
-      title: Obx(() {
-        if (ctrl.hasWorkspaces) {
-          return GestureDetector(
-            onTap: onTitleTap ?? () => _defaultOnTitleTap(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: const BoxDecoration(color: Colors.white),
-              child: Row(
-                children: [
-                  // Icon with app icon
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Image.asset(
-                      'assets/app_icon_original.png',
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Text content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+      title: titleBuilder != null
+          ? titleBuilder!(context, ctrl)
+          : Obx(() {
+              if (ctrl.hasWorkspaces) {
+                return GestureDetector(
+                  onTap: onTitleTap ?? () => _defaultOnTitleTap(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: const BoxDecoration(color: Colors.white),
+                    child: Row(
                       children: [
-                        Text(
-                          ctrl.currentWorkspaceName.value.isNotEmpty
-                              ? ctrl.currentWorkspaceName.value
-                              : 'My Workspace1',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                        // Icon with app icon
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Image.asset(
+                            'assets/app_icon_original.png',
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
                           ),
                         ),
-
-                        if (ctrl.currentBoardName.value.isNotEmpty)
-                          Row(
+                        const SizedBox(width: 12),
+                        // Text content
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFF6B35),
-                                  borderRadius: BorderRadius.circular(2),
+                              Text(
+                                ctrl.currentWorkspaceName.value.isNotEmpty
+                                    ? ctrl.currentWorkspaceName.value
+                                    : 'My Workspace1',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  ctrl.currentBoardName.value,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+
+                              if (ctrl.currentBoardName.value.isNotEmpty)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFF6B35),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        ctrl.currentBoardName.value,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.keyboard_arrow_down,
+                                      color: Colors.grey[600]!,
+                                      size: 16,
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.keyboard_arrow_down,
-                                color: Colors.grey[600]!,
-                                size: 16,
-                              ),
                             ],
                           ),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          );
-        }
-        return const Text('Board');
-      }),
+                );
+              }
+              return const Text('Board');
+            }),
       actions: [
         // Calendar Button
         Obx(() {
@@ -439,10 +444,10 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                 PopupMenuItem<String>(
                   value: 'refresh',
                   child: Row(
-                    children: [
-                      const Icon(Icons.refresh, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Refresh'),
+                    children: const [
+                      Icon(Icons.refresh, size: 20),
+                      SizedBox(width: 12),
+                      Text('Refresh'),
                     ],
                   ),
                 ),
@@ -461,4 +466,3 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
-

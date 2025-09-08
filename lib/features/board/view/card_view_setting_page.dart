@@ -1,20 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sellstory/core/theme/app_theme.dart';
-import 'package:sellstory/core/services/card_view_settings_service.dart';
+import '../../../core/services/card_view_settings_service.dart';
 
 class CardViewSettingPage extends StatefulWidget {
-  const CardViewSettingPage({super.key});
+  final String boardId;
+  const CardViewSettingPage({super.key, required this.boardId});
 
   @override
   State<CardViewSettingPage> createState() => _CardViewSettingPageState();
 }
 
 class _CardViewSettingPageState extends State<CardViewSettingPage> {
-  final CardViewSettingsService _settingsService = Get.find<CardViewSettingsService>();
+  final CardViewSettingsService _settingsService = CardViewSettingsService.to;
   
-  // Get available fields from service
-  List<CardFieldSetting> get _availableFields => _settingsService.cardFields;
+  // Field mapping from service to display names
+  static const Map<String, String> _fieldDisplayNames = {
+    'jobId': 'Job ID',
+    'status': 'Status', 
+    'dateRange': 'Date Range',
+    'createdDate': 'Created Date',
+    'assignee': 'Assignee',
+    'customerInterest': 'Customer Interest', 
+    'collaborators': 'Collaborators',
+    'customer': 'Customer',
+    'company': 'Company',
+    'hashtags': 'Hashtags',
+    'priority': 'Priority',
+    'grandTotal': 'Grand Total',
+    'netTotal': 'Net Total',
+    'totalBeforeDiscount': 'Total (before discount)',
+    'totalAfterDiscount': 'Total (after discount)',
+    'totalBeforeVAT': 'Total (before VAT)',
+    'description': 'Description',
+    'todoList': 'To-Do List',
+  };
+
+  late List<CardFieldSetting> _fields;
+  bool _loading = true;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -22,60 +46,60 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
     _loadCurrentSettings();
   }
 
-  void _loadCurrentSettings() {
-    // Load current settings from user preferences or workspace settings
-    // This would typically come from the user's viewSettings in Firestore
-    // For now, we'll use the default values defined above
+  void _loadCurrentSettings() async {
+    setState(() { _loading = true; });
+    try {
+      // Load current fields from the service (service should already be initialized)
+      _fields = List.from(_settingsService.cardFields);
+    } catch (e) {
+      debugPrint('Load settings error: $e');
+      _fields = [];
+    }
+    if (mounted) setState(() { _loading = false; });
   }
 
   void _saveSettings() async {
+    if (_saving) return; 
+    setState(() { _saving = true; });
     try {
-      // Get current settings from service
-      final currentFields = _settingsService.cardFields;
+      // Update the service with new field order and visibility
+      await _settingsService.updateMultipleFields(_fields);
       
-      // Save settings to local storage via service
-      await _settingsService.saveToStorage();
-      
-      // Go back first
-      Get.back();
-      
-      // Then show success message
-      Get.snackbar(
-        'บันทึกสำเร็จ',
-        'การตั้งค่าการแสดงผลการ์ดถูกบันทึกแล้ว',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green[100],
-        colorText: Colors.green[800],
-        duration: const Duration(seconds: 3),
-      );
-      
+      if (!mounted) return; 
+      Get.back(result: true);
+      Get.snackbar('สำเร็จ', 'บันทึกการตั้งค่าการ์ดแล้ว', 
+        snackPosition: SnackPosition.BOTTOM, 
+        backgroundColor: Colors.green[100], 
+        colorText: Colors.green[800]);
     } catch (e) {
-      print('Error saving settings: $e');
-      Get.snackbar(
-        'เกิดข้อผิดพลาด',
-        'ไม่สามารถบันทึกการตั้งค่าได้: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red[100],
-        colorText: Colors.red[800],
-        duration: const Duration(seconds: 3),
-      );
+      if (mounted) {
+        Get.snackbar('ผิดพลาด', 'บันทึกไม่สำเร็จ: $e', 
+          snackPosition: SnackPosition.BOTTOM, 
+          backgroundColor: Colors.red[100], 
+          colorText: Colors.red[800]);
+      }
+    } finally {
+      if (mounted) setState(() { _saving = false; });
     }
   }
 
   void _toggleFieldVisibility(int index) {
-    final fields = _settingsService.cardFields;
-    if (index < fields.length) {
-      final field = fields[index];
-      _settingsService.updateFieldVisibility(field.id, !field.isVisible);
-    }
+    setState(() { 
+      _fields[index] = _fields[index].copyWith(isVisible: !_fields[index].isVisible);
+    });
   }
 
   void _reorderFields(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-    
-    _settingsService.reorderFields(oldIndex, newIndex);
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      final item = _fields.removeAt(oldIndex);
+      _fields.insert(newIndex, item);
+      
+      // Update order values
+      for (int i = 0; i < _fields.length; i++) {
+        _fields[i] = _fields[i].copyWith(order: i);
+      }
+    });
   }
 
   @override
@@ -116,19 +140,14 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
           
           // Fields List
           Expanded(
-            child: Obx(() {
-              final fields = _settingsService.cardFields;
-              if (fields.isEmpty) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-              
-              return ReorderableListView.builder(
-                itemCount: fields.length,
-                onReorder: _reorderFields,
-                itemBuilder: (context, index) {
-                  final field = fields[index];
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : ReorderableListView.builder(
+                    itemCount: _fields.length,
+                    onReorder: _reorderFields,
+                    itemBuilder: (context, index) {
+                  final field = _fields[index];
+                  final displayName = _fieldDisplayNames[field.id] ?? field.name;
                   return Container(
                     key: ValueKey(field.id),
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -164,7 +183,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
                         ],
                       ),
                       title: Text(
-                        field.name,
+                        displayName,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -179,8 +198,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
                     ),
                   );
                 },
-              );
-            }),
+              ),
           ),
           
           // Save Button
@@ -188,7 +206,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             child: ElevatedButton(
-              onPressed: _saveSettings,
+              onPressed: _saving ? null : _saveSettings,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
@@ -198,13 +216,9 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Save',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+        child: _saving
+          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ),
         ],

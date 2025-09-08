@@ -180,6 +180,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       if (!mounted) return;
       _showTopSnack('อัปเดต Hashtag ไม่สำเร็จ: $e', isError: true);
     }
+
   }
 
   Future<void> _onAssignSale(Map<String, dynamic> conversation) async {
@@ -276,7 +277,6 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -367,7 +367,6 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
               const SizedBox(height: 16),
               Text(
                 errorText,
-                style: const TextStyle(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),

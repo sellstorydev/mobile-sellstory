@@ -8,6 +8,8 @@ class JobCard {
   final String status;
   final String customId;
   final DateTime? dueDate;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final List<String> badges;
   final double amount;
   final String laneId;
@@ -19,7 +21,7 @@ class JobCard {
   final String customer; // Add customer field
   final String updatedByDisplayName; // Add display name field
   final String? customerId; // Add customer ID field
-  final String? company; // Add company field
+  final Map<String, dynamic>? company; // Add company field as object
   final String? hashtag; // Add hashtag field (legacy)
   final List<Map<String, dynamic>> hashtags; // Add hashtags field (new DTB structure)
   final String? customerInterest; // Add customer interest field
@@ -32,6 +34,10 @@ class JobCard {
   final String updatedBy; // Add updated by field
   final List<String> collaborators; // Add collaborators field (array of user_ids)
   final String? priority; // Add priority field
+  final bool isVatEnabled; // Add VAT enabled field
+  final Map<String, dynamic>? additionalDiscount; // Add additional discount field
+  final num withholdingTaxPercentage; // Add withholding tax percentage field
+  final List<Map<String, dynamic>> attachments; // Add attachments field
 
   JobCard({
     required this.id,
@@ -41,6 +47,8 @@ class JobCard {
     this.status = 'To Do',
     this.customId = '',
     this.dueDate,
+    this.startDate,
+    this.endDate,
     required this.badges,
     required this.amount,
     required this.laneId,
@@ -65,6 +73,10 @@ class JobCard {
     this.updatedBy = '',
     this.collaborators = const [],
     this.priority,
+    this.isVatEnabled = false,
+    this.additionalDiscount,
+    this.withholdingTaxPercentage = 0,
+    this.attachments = const [],
   });
 
   JobCard copyWith({
@@ -75,6 +87,8 @@ class JobCard {
     String? status,
     String? customId,
     DateTime? dueDate,
+    DateTime? startDate,
+    DateTime? endDate,
     List<String>? badges,
     double? amount,
     String? laneId,
@@ -86,7 +100,7 @@ class JobCard {
     String? customer,
     String? updatedByDisplayName,
     String? customerId,
-    String? company,
+    Map<String, dynamic>? company,
     String? hashtag,
     List<Map<String, dynamic>>? hashtags,
     String? customerInterest,
@@ -99,6 +113,10 @@ class JobCard {
     String? updatedBy,
     List<String>? collaborators,
     String? priority,
+    bool? isVatEnabled,
+    Map<String, dynamic>? additionalDiscount,
+    num? withholdingTaxPercentage,
+    List<Map<String, dynamic>>? attachments,
   }) {
     return JobCard(
       id: id ?? this.id,
@@ -108,6 +126,8 @@ class JobCard {
       status: status ?? this.status,
       customId: customId ?? this.customId,
       dueDate: dueDate ?? this.dueDate,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
       badges: badges ?? this.badges,
       amount: amount ?? this.amount,
       laneId: laneId ?? this.laneId,
@@ -116,285 +136,159 @@ class JobCard {
       order: order ?? this.order,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-              customer: customer ?? this.customer,
-        updatedByDisplayName: updatedByDisplayName ?? this.updatedByDisplayName,
-        customerId: customerId ?? this.customerId,
-        company: company ?? this.company,
-        hashtag: hashtag ?? this.hashtag,
-        hashtags: hashtags ?? this.hashtags,
-        customerInterest: customerInterest ?? this.customerInterest,
-        expenses: expenses ?? this.expenses,
-        todos: todos ?? this.todos,
-        notes: notes ?? this.notes,
-        watchers: watchers ?? this.watchers,
-        customFields: customFields ?? this.customFields,
-        createdBy: createdBy ?? this.createdBy,
-        updatedBy: updatedBy ?? this.updatedBy,
-        collaborators: collaborators ?? this.collaborators,
-        priority: priority ?? this.priority,
-      );
+      customer: customer ?? this.customer,
+      updatedByDisplayName: updatedByDisplayName ?? this.updatedByDisplayName,
+      customerId: customerId ?? this.customerId,
+      company: company ?? this.company,
+      hashtag: hashtag ?? this.hashtag,
+      hashtags: hashtags ?? this.hashtags,
+      customerInterest: customerInterest ?? this.customerInterest,
+      expenses: expenses ?? this.expenses,
+      todos: todos ?? this.todos,
+      notes: notes ?? this.notes,
+      watchers: watchers ?? this.watchers,
+      customFields: customFields ?? this.customFields,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      collaborators: collaborators ?? this.collaborators,
+      priority: priority ?? this.priority,
+      isVatEnabled: isVatEnabled ?? this.isVatEnabled,
+      additionalDiscount: additionalDiscount ?? this.additionalDiscount,
+      withholdingTaxPercentage: withholdingTaxPercentage ?? this.withholdingTaxPercentage,
+      attachments: attachments ?? this.attachments,
+    );
   }
 
-  // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
-    // Build the map based on DTB.md Card structure
-    final Map<String, dynamic> data = {
+    return <String, dynamic>{
+      'id': id,
+      'title': title,
+      'description': description,
+      'assignedTo': assignedTo,
+      'status': status,
+      'customId': customId,
+      'dueDate': _dateToTimestamp(dueDate),
+      'startDate': _dateToTimestamp(startDate),
+      'endDate': _dateToTimestamp(endDate),
+      'badges': badges,
+      'amount': amount,
+      'laneId': laneId,
+      'boardId': boardId,
       'workspaceId': workspaceId,
-      'name': title, // Card name per DTB.md
-      'title': title, // Also include title field for compatibility
+      'order': order,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+      'updatedAt': updatedAt.millisecondsSinceEpoch,
+      'customer': customer,
+      'updatedByDisplayName': updatedByDisplayName,
+      'customerId': customerId,
+      'company': company,
+      'hashtag': hashtag,
+      'hashtags': hashtags,
+      'customerInterest': customerInterest,
+      'expenses': expenses,
+      'todos': todos,
+      'notes': notes,
+      'watchers': watchers,
+      'customFields': customFields,
+      'createdBy': createdBy,
+      'updatedBy': updatedBy,
+      'collaborators': collaborators,
+      'priority': priority,
+      'isVatEnabled': isVatEnabled,
+      'additionalDiscount': additionalDiscount,
+      'withholdingTaxPercentage': withholdingTaxPercentage,
+      'attachments': attachments,
     };
-
-    // Required fields per DTB.md Card structure
-    if (createdBy.isNotEmpty) data['createdBy'] = createdBy;
-    
-    // DTB.md Card structure requires these arrays
-    data['memberUids'] = watchers.isNotEmpty ? watchers : [createdBy]; // Use watchers or creator
-    data['members'] = []; // Will be populated by backend/system
-    
-    // lanes array per DTB.md (may store lane IDs related to this card)
-    if (laneId.isNotEmpty) {
-      data['lanes'] = [laneId];
-    } else {
-      data['lanes'] = [];
-    }
-    
-    // Optional workspaces array per DTB.md
-    if (workspaceId.isNotEmpty) {
-      data['workspaces'] = [{
-        'id': workspaceId,
-        'name': '', // Will be populated by backend
-        'role': 'member'
-      }];
-    }
-
-    // Job card specific fields (not in DTB.md Card but needed for job cards)
-    if (description.isNotEmpty) data['description'] = description;
-    if (assignedTo.isNotEmpty) data['assignedTo'] = assignedTo;
-    if (status.isNotEmpty) data['status'] = status;
-    if (customId.isNotEmpty) data['customId'] = customId;
-    if (dueDate != null) data['dueDate'] = Timestamp.fromDate(dueDate!);
-    if (badges.isNotEmpty) data['badges'] = badges;
-    if (amount > 0) data['amount'] = amount;
-    if (laneId.isNotEmpty) data['laneId'] = laneId;
-    if (boardId.isNotEmpty) data['boardId'] = boardId;
-    if (order >= 0) data['order'] = order; // Allow 0 order
-    if (customer.isNotEmpty) data['customer'] = customer;
-    if (updatedByDisplayName.isNotEmpty) data['updatedByDisplayName'] = updatedByDisplayName;
-    if (customerId?.isNotEmpty == true) data['customerId'] = customerId;
-    if (company?.isNotEmpty == true) data['company'] = company;
-    if (hashtag?.isNotEmpty == true) data['hashtag'] = hashtag;
-    if (hashtags.isNotEmpty) data['hashtags'] = hashtags;
-    if (customerInterest?.isNotEmpty == true) data['customerInterest'] = customerInterest;
-    if (expenses.isNotEmpty) data['expenses'] = expenses;
-    if (todos.isNotEmpty) data['todos'] = todos;
-    if (notes.isNotEmpty) data['notes'] = notes;
-    if (customFields.isNotEmpty) data['customFields'] = customFields;
-    if (updatedBy.isNotEmpty) data['updatedBy'] = updatedBy;
-    if (collaborators.isNotEmpty) data['collaborators'] = collaborators;
-    if (priority?.isNotEmpty == true) data['priority'] = priority;
-
-    // Always include timestamps (convert to epoch ms per DTB.md conventions)
-    data['createdAt'] = createdAt.millisecondsSinceEpoch;
-    data['updatedAt'] = updatedAt.millisecondsSinceEpoch;
-
-    return data;
   }
 
-  // Create from Map from Firestore
-  factory JobCard.fromMap(Map<String, dynamic> map, String id) {
-    // Helpers to safely extract values that might come in different shapes
-    String _stringFrom(dynamic v) {
-      if (v == null) return '';
-      if (v is String) return v;
-      if (v is Map) {
-        // Prefer common name fields
-        if (v['name'] is String) return v['name'] as String;
-        if (v['displayName'] is String) return v['displayName'] as String;
-        if (v['text'] is String) return v['text'] as String;
-        if (v['id'] is String) return v['id'] as String;
-        return v.toString();
-      }
-      return v.toString();
+  factory JobCard.fromMap(Map<String, dynamic> map, [String? docId]) {
+    // Handle legacy assignee field
+    String assignee = _stringFrom(map['assignedTo']).isNotEmpty 
+        ? _stringFrom(map['assignedTo'])
+        : _stringFrom(map['assignee']);
+    
+    // Handle dates
+    DateTime createdAt = _dateTimeFrom(map['createdAt']) ?? DateTime.now();
+    DateTime updatedAt = _dateTimeFrom(map['updatedAt']) ?? DateTime.now();
+    
+    // Handle badges
+    List<String> badges = List<String>.from(map['badges'] ?? const []);
+    
+    // Handle status conversion
+    String statusStr = _stringFrom(map['status']);
+    
+    // Handle laneId - this might be coming as an object, we need the string ID
+    String laneId;
+    if (map['laneId'] is Map) {
+      laneId = (map['laneId'] as Map)['id']?.toString() ?? '';
+    } else {
+      laneId = _stringFrom(map['laneId']);
     }
-
-    String? _nullableStringFrom(dynamic v) {
-      if (v == null) return null;
-      if (v is String) return v;
-      if (v is Map) {
-        if (v['name'] is String) return v['name'] as String;
-        if (v['displayName'] is String) return v['displayName'] as String;
-        if (v['text'] is String) return v['text'] as String;
-        if (v['id'] is String) return v['id'] as String;
-        return v.toString();
-      }
-      return v.toString();
+    
+    // Handle customer
+    String customer;
+    if (map['customer'] is Map) {
+      final customerMap = map['customer'] as Map<String, dynamic>;
+      customer = customerMap['company_name']?.toString() ?? 
+                 customerMap['name']?.toString() ?? 
+                 customerMap['title']?.toString() ?? '';
+    } else {
+      customer = _stringFrom(map['customer']);
     }
-
-    double _doubleFrom(dynamic v) {
-      if (v == null) return 0.0;
-      if (v is num) return v.toDouble();
-      if (v is String) {
-        final parsed = double.tryParse(v);
-        return parsed ?? 0.0;
-      }
-      return 0.0;
+    
+    // Handle customerId  
+    String? customerId;
+    if (map['customer'] is Map) {
+      final customerMap = map['customer'] as Map<String, dynamic>;
+      customerId = customerMap['id']?.toString();
+    } else {
+      customerId = _nullableStringFrom(map['customerId']);
     }
-
-    DateTime? _dateTimeFrom(dynamic v) {
-      if (v == null) return null;
-      if (v is Timestamp) return v.toDate();
-      if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
-      if (v is double) return DateTime.fromMillisecondsSinceEpoch(v.toInt());
-      return null;
+    
+    // Handle company - keep as object
+    Map<String, dynamic>? company;
+    if (map['customer'] is Map) {
+      company = Map<String, dynamic>.from(map['customer'] as Map);
+    } else {
+      company = map['company'] != null ? Map<String, dynamic>.from(map['company'] as Map) : null;
     }
-
-    // Handle DTB.md structure mapping
-    final String title = _stringFrom(map['title'] ?? map['name'] ?? '');
-
-    // laneId can be string or lanes array with strings/maps
-    String laneId = _stringFrom(map['laneId']);
-    if (laneId.isEmpty && map['lanes'] is List && (map['lanes'] as List).isNotEmpty) {
-      final firstLane = (map['lanes'] as List).first;
-      laneId = _stringFrom(firstLane);
-    }
-
-    // Handle memberUids from DTB.md structure for watchers
-    List<String> watchers = [];
-    if (map['memberUids'] is List) {
-      try {
-        watchers = List<String>.from(map['memberUids']);
-      } catch (_) {
-        watchers = (map['memberUids'] as List).map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
-      }
-    } else if (map['watchers'] is List) {
-      try {
-        watchers = List<String>.from(map['watchers']);
-      } catch (_) {
-        watchers = (map['watchers'] as List).map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
-      }
-    }
-
-    // Handle collaborators from DTB.md structure
-    List<String> collaborators = [];
-    if (map['collaborators'] is List) {
-      try {
-        collaborators = List<String>.from(map['collaborators']);
-      } catch (_) {
-        collaborators = (map['collaborators'] as List).map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
-      }
-    }
-
-    // Handle priority from DTB.md structure
-    final String? priority = _nullableStringFrom(map['priority']);
-
-    // Handle timestamps - DTB.md uses epoch ms (number) but Firestore may use Timestamp
-    DateTime createdAt = DateTime.now();
-    DateTime updatedAt = DateTime.now();
-    final createdAtRaw = map['createdAt'];
-    final updatedAtRaw = map['updatedAt'];
-    if (createdAtRaw is Timestamp) {
-      createdAt = createdAtRaw.toDate();
-    } else if (createdAtRaw is int) {
-      createdAt = DateTime.fromMillisecondsSinceEpoch(createdAtRaw);
-    } else if (createdAtRaw is double) {
-      createdAt = DateTime.fromMillisecondsSinceEpoch(createdAtRaw.toInt());
-    }
-    if (updatedAtRaw is Timestamp) {
-      updatedAt = updatedAtRaw.toDate();
-    } else if (updatedAtRaw is int) {
-      updatedAt = DateTime.fromMillisecondsSinceEpoch(updatedAtRaw);
-    } else if (updatedAtRaw is double) {
-      updatedAt = DateTime.fromMillisecondsSinceEpoch(updatedAtRaw.toInt());
-    }
-
-    // Parse hashtags: support List<Map> and List<String>
+    
+    // Handle priority
+    String? priority = _nullableStringFrom(map['priority']);
+    
+    // Handle watchers
+    List<String> watchers = List<String>.from(map['watchers'] ?? const []);
+    
+    // Handle collaborators 
+    List<String> collaborators = List<String>.from(map['collaborators'] ?? const []);
+    
+    // Handle hashtags with type safety
     List<Map<String, dynamic>> hashtags = [];
-    if (map['hashtags'] is List) {
-      final raw = map['hashtags'] as List;
-      if (raw.isNotEmpty) {
-        if (raw.first is Map) {
-          hashtags = List<Map<String, dynamic>>.from(raw);
-        } else {
-          // Convert strings to {id,text,color}
-          final colors = ['#f97316', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f472b6', '#6b7280'];
-          hashtags = raw.asMap().entries.map((e) {
-            return {
-              'id': 'existing_${e.key}',
-              'text': _stringFrom(e.value),
-              'color': colors[e.key % colors.length],
-            };
-          }).toList();
+    if (map['hashtags'] != null) {
+      final hashtagsData = map['hashtags'];
+      if (hashtagsData is List) {
+        for (final item in hashtagsData) {
+          if (item is Map) {
+            hashtags.add(Map<String, dynamic>.from(item));
+          }
         }
       }
     }
-
-    // Badges: support List<String> or List<Map>
-    List<String> badges = [];
-    if (map['badges'] is List) {
-      final raw = map['badges'] as List;
-      if (raw.isNotEmpty) {
-        if (raw.first is String) {
-          badges = List<String>.from(raw);
-        } else {
-          badges = raw.map((e) => _stringFrom(e)).where((s) => s.isNotEmpty).toList();
-        }
-      }
-    }
-
-    // AssignedTo can be string (uid) or map
-    String assignee = '';
-    if (map['assignedTo'] != null) {
-      final v = map['assignedTo'];
-      if (v is String) {
-        assignee = v;
-      } else if (v is Map) {
-        assignee = _stringFrom(v['id'] ?? v['uid'] ?? v['name'] ?? v);
-      } else {
-        assignee = _stringFrom(v);
-      }
-    } else if (map['assignee'] != null) {
-      assignee = _stringFrom(map['assignee']);
-    }
-
-    // Customer fields can be string or map
-    final customerRaw = map['customer'];
-    final String customer = customerRaw == null
-        ? ''
-        : (customerRaw is String ? customerRaw : _stringFrom(customerRaw['name'] ?? customerRaw));
-    final String? customerId = map['customerId'] is String
-        ? map['customerId'] as String
-        : (customerRaw is Map && customerRaw['id'] is String ? customerRaw['id'] as String : null);
-
-    // Company can be string or map
-    final companyRaw = map['company'];
-    final String? company = companyRaw == null
-        ? null
-        : (companyRaw is String ? companyRaw : _nullableStringFrom(companyRaw['name'] ?? companyRaw));
-
-    // Board/workspace may be direct strings
-    final String boardId = _stringFrom(map['boardId']);
-    final String workspaceId = _stringFrom(map['workspaceId']);
-
-    // Status from string or map
-    final String statusStr = _stringFrom(map['status']);
-
-    // Order as any numeric or string
-    int _orderFrom(dynamic v) {
-      if (v == null) return 0;
-      if (v is int) return v;
-      if (v is double) return v.toInt();
-      if (v is num) return v.toInt();
-      return int.tryParse(v.toString()) ?? 0;
-    }
+    
+    // Handle board and workspace IDs
+    String boardId = _stringFrom(map['boardId']);
+    String workspaceId = _stringFrom(map['workspaceId']);
 
     return JobCard(
-      id: id,
-      title: title,
+      id: docId ?? _stringFrom(map['id']),
+      title: _stringFrom(map['title']),
       description: _stringFrom(map['description']),
       assignedTo: assignee,
       status: statusStr.isNotEmpty ? statusStr : 'To Do',
       customId: _stringFrom(map['customId']),
       dueDate: _dateTimeFrom(map['dueDate']),
+      startDate: _dateTimeFrom(map['startDate']),
+      endDate: _dateTimeFrom(map['endDate']),
       badges: badges,
       amount: _doubleFrom(map['amount']),
       laneId: laneId,
@@ -419,7 +313,54 @@ class JobCard {
       updatedBy: _stringFrom(map['updatedBy']),
       collaborators: collaborators,
       priority: priority,
+      isVatEnabled: map['isVatEnabled'] ?? false,
+      additionalDiscount: map['additionalDiscount'] != null ? Map<String, dynamic>.from(map['additionalDiscount'] as Map) : null,
+      withholdingTaxPercentage: map['withholdingTaxPercentage'] ?? 0,
+      attachments: List<Map<String, dynamic>>.from(map['attachments'] ?? const []),
     );
+  }
+
+  static int? _dateToTimestamp(DateTime? date) {
+    return date?.millisecondsSinceEpoch;
+  }
+
+  static String _stringFrom(dynamic value) {
+    if (value == null) return '';
+    return value.toString();
+  }
+
+  static String? _nullableStringFrom(dynamic value) {
+    if (value == null) return null;
+    return value.toString();
+  }
+
+  static double _doubleFrom(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  static DateTime? _dateTimeFrom(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return parsed;
+      final timestamp = int.tryParse(value);
+      if (timestamp != null) return DateTime.fromMillisecondsSinceEpoch(timestamp);
+    }
+    return null;
+  }
+
+  static int _orderFrom(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 
   @override
@@ -456,7 +397,10 @@ class JobCard {
         other.createdBy == createdBy &&
         other.updatedBy == updatedBy &&
         other.collaborators == collaborators &&
-        other.priority == priority;
+        other.priority == priority &&
+        other.isVatEnabled == isVatEnabled &&
+        other.additionalDiscount == additionalDiscount &&
+        other.withholdingTaxPercentage == withholdingTaxPercentage;
   }
 
   @override
@@ -491,11 +435,14 @@ class JobCard {
         createdBy.hashCode ^
         updatedBy.hashCode ^
         collaborators.hashCode ^
-        priority.hashCode;
+        priority.hashCode ^
+        isVatEnabled.hashCode ^
+        additionalDiscount.hashCode ^
+        withholdingTaxPercentage.hashCode;
   }
 
   @override
   String toString() {
-    return 'JobCard(id: $id, title: $title, description: $description, assignedTo: $assignedTo, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName, customerId: $customerId, company: $company, hashtag: $hashtag, hashtags: $hashtags, customerInterest: $customerInterest, expenses: $expenses, todos: $todos, notes: $notes, watchers: $watchers, customFields: $customFields, createdBy: $createdBy, updatedBy: $updatedBy, collaborators: $collaborators, priority: $priority)';
+    return 'JobCard(id: $id, title: $title, description: $description, assignedTo: $assignedTo, status: $status, customId: $customId, dueDate: $dueDate, badges: $badges, amount: $amount, laneId: $laneId, boardId: $boardId, workspaceId: $workspaceId, order: $order, createdAt: $createdAt, updatedAt: $updatedAt, customer: $customer, updatedByDisplayName: $updatedByDisplayName, customerId: $customerId, company: $company, hashtag: $hashtag, hashtags: $hashtags, customerInterest: $customerInterest, expenses: $expenses, todos: $todos, notes: $notes, watchers: $watchers, customFields: $customFields, createdBy: $createdBy, updatedBy: $updatedBy, collaborators: $collaborators, priority: $priority, isVatEnabled: $isVatEnabled, additionalDiscount: $additionalDiscount, withholdingTaxPercentage: $withholdingTaxPercentage)';
   }
 }

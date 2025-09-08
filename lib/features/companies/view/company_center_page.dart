@@ -8,6 +8,7 @@ import 'add_edit_company_page.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../board/widgets/workspace_app_bar.dart';
 import '../../board/controller/board_controller.dart';
+import '../../shell/shell_controller.dart';
 
 class CompanyCenterPage extends StatefulWidget {
   const CompanyCenterPage({super.key});
@@ -20,6 +21,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
   late CompaniesController _controller;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+
 
   @override
   void initState() {
@@ -52,12 +54,70 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
-      appBar: WorkspaceAppBar(controller: boardCtrl),
+      appBar: WorkspaceAppBar(
+        controller: boardCtrl,
+        titleBuilder: (ctx, ctrl) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Image.asset('assets/app_icon_original.png', fit: BoxFit.cover),
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'individual') {
+                      if (Get.isRegistered<ShellController>()) {
+                        final shell = Get.find<ShellController>();
+                        shell.setCustomersTabMode(companyMode: false);
+                        shell.onTabTapped(2);
+                      } else {
+                        Get.offNamed('/customers');
+                      }
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<String>(
+                      value: 'individual',
+                      child: Text('บุคคลธรรมดา'),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'company',
+                      child: Text('นิติบุคคล'),
+                    ),
+                  ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text(
+                        'นิติบุคคล',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.black54),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
       body: PermissionGuard(
         permission: 'company:view:all',
         fallback: const Center(
           child: Text(
-            'คุณไม่มีสิทธิ์ดูรายชื่อบริษัท',
+            'คุณไม่มีสิทธิ์ดูรายชื่อบ���ิษัท',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
         ),
@@ -157,7 +217,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const TextSpan(text: ' บริษัท'),
+                  const TextSpan(text: ' บ��ิษัท'),
                 ],
               ),
             );

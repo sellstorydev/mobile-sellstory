@@ -1,0 +1,213 @@
+{
+  "workspaces": {
+    "oJpbz6Ry6SJpbi5EeBI2": {
+      "name": "รนว นวเ่'s Workspace",
+      "ownerId": "Kq66uhP5rdTFouVDe3EibriZbSz1",
+      "members": {
+        "Kq66uhP5rdTFouVDe3EibriZbSz1": "owner"
+      },
+      "createdAt": 1757262357409,
+      "subscription": {
+        "planId": "free",
+        "status": "active",
+        "billingCycle": "monthly",
+        "currentPeriodEnd": 4912935957409,
+        "addons": {}
+      },
+      "companyProfile": {
+        "roles": [
+          {
+            "id": "owner",
+            "name": "Owner",
+            "permissions": [
+              "*"
+            ]
+          },
+          {
+            "id": "admin",
+            "name": "Admin",
+            "permissions": [
+              "jobcard:view:all",
+              "jobcard:create",
+              "jobcard:edit:all",
+              "jobcard:delete:all",
+              "jobcard:move",
+              "customer:view:all",
+              "customer:create",
+              "customer:edit:all",
+              "customer:delete",
+              "customer:import",
+              "company:view",
+              "company:create",
+              "company:edit:all",
+              "company:delete",
+              "company:import",
+              "product:view",
+              "product:create",
+              "product:edit:all",
+              "product:delete",
+              "product:import",
+              "user:manage",
+              "settings:board:manage",
+              "settings:company:manage",
+              "settings:id:manage",
+              "settings:catalog:manage",
+              "settings:roles:manage"
+            ]
+          },
+          {
+            "id": "member",
+            "name": "Member",
+            "permissions": [
+              "jobcard:view:assigned",
+              "jobcard:create"
+            ]
+          }
+        ],
+        "idGenerationRules": {
+          "customer": {
+            "prefix": "CUS",
+            "dateFormat": "YYMMDD",
+            "separator": "-",
+            "minLength": 4,
+            "startNumber": 1,
+            "generationMode": "auto-editable"
+          },
+          "company": {
+            "prefix": "COM",
+            "dateFormat": "YYMMDD",
+            "separator": "-",
+            "minLength": 4,
+            "startNumber": 1,
+            "generationMode": "auto-editable"
+          },
+          "product": {
+            "prefix": "P",
+            "dateFormat": "YYMMDD",
+            "separator": "-",
+            "minLength": 4,
+            "startNumber": 1,
+            "generationMode": "auto-editable"
+          },
+          "jobCard": {
+            "prefix": "JB",
+            "dateFormat": "YYMMDD",
+            "separator": "-",
+            "minLength": 4,
+            "startNumber": 1,
+            "generationMode": "auto-editable"
+          },
+          "quotation": {
+            "prefix": "EST",
+            "dateFormat": "YYMMDD",
+            "separator": "-",
+            "minLength": 4,
+            "startNumber": 1,
+            "generationMode": "auto-editable"
+          },
+          "invoice": {
+            "prefix": "INV",
+            "dateFormat": "YYMMDD",
+            "separator": "-",
+            "minLength": 4,
+            "startNumber": 1,
+            "generationMode": "auto-editable"
+          },
+          "receipt": {
+            "prefix": "RE",
+            "dateFormat": "YYMMDD",
+            "separator": "-",
+            "minLength": 4,
+            "startNumber": 1,
+            "generationMode": "auto-editable"
+          }
+        },
+        "lastUsedCounters": {
+          "customer": 0,
+          "company": 0,
+          "product": 0,
+          "jobCard": 0,
+          "quotation": 0,
+          "invoice": 0,
+          "receipt": 0
+        },
+        "customerCustomFieldTemplate": [],
+        "todoTemplates": [],
+        "customerSources": [],
+        "hashtagSettings": {
+          "isEnabled": true,
+          "mode": "global",
+          "masterList": [],
+          "automation": {
+            "autoCreateFromChat": false,
+            "syncFromChatToCustomer": false,
+            "syncFromJobToCustomer": false,
+            "syncFromCustomerToJob": false
+          }
+        },
+        "catalogSettings": {
+          "isPublished": false,
+          "enableAddToCart": true
+        },
+        "docSettings": {
+          "defaultTemplateIds": {
+            "quotation": "",
+            "invoice": "",
+            "receipt": ""
+          }
+        }
+      },
+      "subCollection": {
+        "workspaces/oJpbz6Ry6SJpbi5EeBI2/boards": {
+          "umB1AdawcVf5YTbcgzBw": {
+            "name": "My First Board",
+            "workspaceId": "oJpbz6Ry6SJpbi5EeBI2",
+            "createdBy": "Kq66uhP5rdTFouVDe3EibriZbSz1",
+            "members": [
+              {
+                "uid": "Kq66uhP5rdTFouVDe3EibriZbSz1",
+                "email": "okokikl@test.com",
+                "displayName": "รนว นวเ่",
+                "photoURL": null,
+                "customId": "",
+                "role": "owner",
+                "language": "en",
+                "workspaces": []
+              }
+            ],
+            "memberUids": [
+              "Kq66uhP5rdTFouVDe3EibriZbSz1"
+            ],
+            "lanes": []
+          }
+        },
+        "workspaces/oJpbz6Ry6SJpbi5EeBI2/lanes": {
+          "1vbpIgZUuGlQNl9pTdMi": {
+            "boardId": "umB1AdawcVf5YTbcgzBw",
+            "workspaceId": "oJpbz6Ry6SJpbi5EeBI2",
+            "name": "In Progress",
+            "order": 1,
+            "cards": [],
+            "hasMoreCards": false
+          },
+          "2VQ3zTzTMbyixezY3Mg2": {
+            "boardId": "umB1AdawcVf5YTbcgzBw",
+            "workspaceId": "oJpbz6Ry6SJpbi5EeBI2",
+            "name": "To Do",
+            "order": 0,
+            "cards": [],
+            "hasMoreCards": false
+          },
+          "hLRqtivFxrmOwfpX9wSO": {
+            "boardId": "umB1AdawcVf5YTbcgzBw",
+            "workspaceId": "oJpbz6Ry6SJpbi5EeBI2",
+            "name": "Done",
+            "order": 2,
+            "cards": [],
+            "hasMoreCards": false
+          }
+        }
+      }
+    }
+  }
+}
