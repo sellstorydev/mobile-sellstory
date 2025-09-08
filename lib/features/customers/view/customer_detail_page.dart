@@ -857,7 +857,6 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                 );
 
                 if (result == true) {
-                  // Try to refresh local view with updated customer
                   final updated = _controller.getCustomerById(customer.id);
                   if (updated != null && mounted) {
                     setState(() {
@@ -871,153 +870,94 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
         ],
       ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header section
-            Padding(
-              padding: const EdgeInsets.all(16),
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverToBoxAdapter(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildHeaderSummary(),
-                  const SizedBox(height: 8),
-                  _buildTopInfoSection(),
-                  const SizedBox(height: 16),
-                  _buildActionButtons(),
-                  const SizedBox(height: 16),
-                  _buildSummaryBar(),
-                ],
-              ),
-            ),
-            
-            // Main content with tabs
-            Expanded(
-              child: Column(
-                children: [
-                  // Customer info section (scrollable)
-                  Expanded(
-                    flex: 2,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Profile Card
-                          _buildProfileCard(),
-                          const SizedBox(height: 16),
-                          
-                          // Customer Information
-                          _buildInfoSection('ข้อมูลลูกค้า', [
-                            _buildInfoRow('รหัสลูกค้า', _currentCustomer!.customId),
-                            _buildInfoRow('ชื่อ', '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
-                            _buildInfoRow('เพศ', _currentCustomer!.gender),
-                            _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
-                            _buildInfoRow('ประเภท', _currentCustomer!.customerType),
-                          ]),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // Contact Information
-                          _buildInfoSection('ข้อมูลติดต่อ', [
-                            _buildEmailsDisplay(),
-                            _buildPhonesDisplay(),
-                          ]),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // Company Information
-                          if (_hasValidCompanies()) ...[
-                            _buildInfoSection('ข้อมูลบริษัท', [
-                              _buildCompanyNamesDisplay(),
-                            ]),
-                            const SizedBox(height: 16),
-                          ],
-                          
-                          // Additional Information
-                          _buildInfoSection('ข้อมูลเพิ่มเติม', [
-                            if (_currentCustomer!.nationalId.isNotEmpty)
-                              _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
-                            if (_currentCustomer!.address.isNotEmpty)
-                              _buildInfoRow('ที่อยู่', _currentCustomer!.address),
-                            if (_currentCustomer!.source.isNotEmpty)
-                              _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
-                            _buildHashtagDisplay(), // Always show hashtag section
-                            if (_hasValidAssignees())
-                               _buildAssigneesDisplay(),
-                          ]),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // System Information
-                          _buildInfoSection('ข้อมูลระบบ', [
-                            _buildInfoRow('สร้างเมื่อ', _formatDate(_currentCustomer!.createdAt)),
-                            _buildInfoRow('อัปเดตล่าสุด', _formatDate(_currentCustomer!.updatedAt)),
-                          ]),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  // Tab Bar and TabBarView section
-                  Expanded(
-                    flex: 1,
+                  Container(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Tab Bar
-                        Container(
-                          color: AppTheme.backgroundWhite,
-                          child: TabBar(
-                            controller: _tabController,
-                            indicatorColor: AppTheme.primaryOrange,
-                            labelColor: AppTheme.primaryOrange,
-                            unselectedLabelColor: AppTheme.textSecondary,
-                            labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                            unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-                            isScrollable: true,
-                            indicatorWeight: 3,
-                            tabs: [
-                              Tab(text: 'Job card ($_jobCardCount)'),
-                              Tab(text: 'สิ่งที่ต้องทำ ($_todoCount)'),
-                              Tab(text: 'ประวัติ (0)'),
-                              Tab(text: 'คลังเอกสาร (0)'),
-                              Tab(text: 'โน๊ต (0)'),
-                              Tab(text: 'เอกสารการขาย (0)'),
-                            ],
-                          ),
-                        ),
-                        
-                        // Tab Content
-                        Expanded(
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              // Job Card Tab
-                              _buildJobCardTab(),
-                              
-                              // สิ่งที่ต้องทำ Tab
-                              _buildTodoTab(),
-                              
-                              // ประวัติ Tab
-                              _buildHistoryTab(),
-                              
-                              // คลังเอกสาร Tab
-                              _buildDocumentTab(),
-                              
-                              // โน๊ต Tab
-                              _buildNoteTab(),
-                              
-                              // เอกสารการขาย Tab
-                              _buildSalesDocumentTab(),
-                            ],
-                          ),
-                        ),
+                        _buildProfileCard(),
+                        const SizedBox(height: 16),
+                        _buildInfoSection('ข้อมูลลูกค้า', [
+                          _buildInfoRow('รหัสลูกค้า', _currentCustomer!.customId),
+                          _buildInfoRow('ชื่อ', '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
+                          _buildInfoRow('เพศ', _currentCustomer!.gender),
+                          _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
+                          _buildInfoRow('ประเภท', _currentCustomer!.customerType),
+                        ]),
+                        const SizedBox(height: 16),
+                        _buildInfoSection('ข้อมูลติดต่อ', [
+                          _buildEmailsDisplay(),
+                          _buildPhonesDisplay(),
+                        ]),
+                        const SizedBox(height: 16),
+                        if (_hasValidCompanies()) ...[
+                          _buildInfoSection('ข้อมูลบริษัท', [
+                            _buildCompanyNamesDisplay(),
+                          ]),
+                          const SizedBox(height: 16),
+                        ],
+                        _buildInfoSection('ข้อมูลเพิ่มเติม', [
+                          if (_currentCustomer!.nationalId.isNotEmpty)
+                            _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
+                          if (_currentCustomer!.address.isNotEmpty)
+                            _buildInfoRow('ที่อยู่', _currentCustomer!.address),
+                          if (_currentCustomer!.source.isNotEmpty)
+                            _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
+                          _buildHashtagDisplay(),
+                          if (_hasValidAssignees()) _buildAssigneesDisplay(),
+                        ]),
+                        const SizedBox(height: 16),
+                        _buildInfoSection('ข้อมูลระบบ', [
+                          _buildInfoRow('สร้างเมื่อ', _formatDate(_currentCustomer!.createdAt)),
+                          _buildInfoRow('อัปเดตล่าสุด', _formatDate(_currentCustomer!.updatedAt)),
+                        ]),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _TabBarSliverDelegate(
+                TabBar(
+                  controller: _tabController,
+                  indicatorColor: AppTheme.primaryOrange,
+                  labelColor: AppTheme.primaryOrange,
+                  unselectedLabelColor: AppTheme.textSecondary,
+                  labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                  isScrollable: true,
+                  indicatorWeight: 3,
+                  tabs: [
+                    Tab(text: 'Job card (' '$_jobCardCount' ')'),
+                    Tab(text: 'สิ่งที่ต้องทำ (' '$_todoCount' ')'),
+                    const Tab(text: 'ประวัติ (0)'),
+                    const Tab(text: 'คลังเอกสาร (0)'),
+                    const Tab(text: 'โน๊ต (0)'),
+                    const Tab(text: 'เอกสารการขาย (0)'),
+                  ],
+                ),
+              ),
+            ),
           ],
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildJobCardTab(),
+              _buildTodoTab(),
+              _buildHistoryTab(),
+              _buildDocumentTab(),
+              _buildNoteTab(),
+              _buildSalesDocumentTab(),
+            ],
+          ),
         ),
       ),
     );
@@ -1190,7 +1130,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                         fontWeight: FontWeight.w500,
                         color: _parseColor(hashtagColor),
                       ),
-                    ),
+                    )
                   );
                 }).toList(),
               ),
@@ -1540,4 +1480,25 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       ),
     );
   }
+}
+
+class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  _TabBarSliverDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: AppTheme.backgroundWhite,
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
 }

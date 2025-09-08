@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../domain/entities/company.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/id_generation_service.dart';
+import '../../board/controller/board_controller.dart';
 
 class CompaniesController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -25,6 +26,16 @@ class CompaniesController extends GetxController {
     // Listen to search query changes
     ever(searchQuery, (_) => _filterCompanies());
     ever(companies, (_) => _filterCompanies());
+
+    // Try to initialize workspace from BoardController if available
+    if (Get.isRegistered<BoardController>()) {
+      try {
+        final board = Get.find<BoardController>();
+        if (board.currentWorkspaceId.value.isNotEmpty) {
+          currentWorkspaceId.value = board.currentWorkspaceId.value;
+        }
+      } catch (_) {}
+    }
   }
 
   /// Load companies for a specific workspace
@@ -98,6 +109,17 @@ class CompaniesController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
+      // Ensure workspace id is set
+      if (currentWorkspaceId.value.isEmpty && Get.isRegistered<BoardController>()) {
+        try {
+          final board = Get.find<BoardController>();
+          currentWorkspaceId.value = board.currentWorkspaceId.value;
+        } catch (_) {}
+      }
+      if (currentWorkspaceId.value.isEmpty) {
+        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+      }
+
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('ไม่พบข้อมูลผู้ใช้');
 
@@ -133,6 +155,16 @@ class CompaniesController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
+      if (currentWorkspaceId.value.isEmpty && Get.isRegistered<BoardController>()) {
+        try {
+          final board = Get.find<BoardController>();
+          currentWorkspaceId.value = board.currentWorkspaceId.value;
+        } catch (_) {}
+      }
+      if (currentWorkspaceId.value.isEmpty) {
+        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+      }
+
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('ไม่พบข้อมูลผู้ใช้');
 
@@ -164,6 +196,16 @@ class CompaniesController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
+      if (currentWorkspaceId.value.isEmpty && Get.isRegistered<BoardController>()) {
+        try {
+          final board = Get.find<BoardController>();
+          currentWorkspaceId.value = board.currentWorkspaceId.value;
+        } catch (_) {}
+      }
+      if (currentWorkspaceId.value.isEmpty) {
+        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+      }
+
       await _repository.deleteCompany(currentWorkspaceId.value, companyId);
 
       // Remove from local list
@@ -190,6 +232,16 @@ class CompaniesController extends GetxController {
   /// Link customer to company
   Future<bool> linkCustomerToCompany(String companyId, String customerId) async {
     try {
+      if (currentWorkspaceId.value.isEmpty && Get.isRegistered<BoardController>()) {
+        try {
+          final board = Get.find<BoardController>();
+          currentWorkspaceId.value = board.currentWorkspaceId.value;
+        } catch (_) {}
+      }
+      if (currentWorkspaceId.value.isEmpty) {
+        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+      }
+
       await _repository.linkCustomerToCompany(
         currentWorkspaceId.value,
         companyId,
@@ -208,6 +260,16 @@ class CompaniesController extends GetxController {
   /// Unlink customer from company
   Future<bool> unlinkCustomerFromCompany(String companyId, String customerId) async {
     try {
+      if (currentWorkspaceId.value.isEmpty && Get.isRegistered<BoardController>()) {
+        try {
+          final board = Get.find<BoardController>();
+          currentWorkspaceId.value = board.currentWorkspaceId.value;
+        } catch (_) {}
+      }
+      if (currentWorkspaceId.value.isEmpty) {
+        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+      }
+
       await _repository.unlinkCustomerFromCompany(
         currentWorkspaceId.value,
         companyId,
@@ -218,7 +280,7 @@ class CompaniesController extends GetxController {
       await loadCompanies(currentWorkspaceId.value);
       return true;
     } catch (e) {
-      errorMessage.value = 'ไม่สามารถยกเลิกการเชื่อมโยงลูกค้ากับบริษัทได้: ${e.toString()}';
+      errorMessage.value = 'ไม่สามารถยกเลิกการเชื่อมโยงลูกค้ากับบริษัทได��: ${e.toString()}';
       return false;
     }
   }

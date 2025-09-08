@@ -191,11 +191,11 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
               _buildActionButtons(),
               const SizedBox(height: 16),
               _buildSummaryBar(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 5),
               _buildCompanyDetailsTile(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 0),
               _buildAssociatedCustomersTile(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 10),
             ],
           ),
         ),
@@ -474,6 +474,7 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
               size: 18,
             ),
           ),
+
           title: const Text(
             'ข้อมูลบริษัท',
             style: TextStyle(
