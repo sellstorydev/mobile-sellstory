@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../view/add_edit_document_page.dart';
@@ -10,10 +11,16 @@ class QuotationsListController extends GetxController {
   
   // Observable variables
   final isLoading = false.obs;
+  final isLoadingMore = false.obs;
   final quotations = <Map<String, dynamic>>[].obs;
   final filteredQuotations = <Map<String, dynamic>>[].obs;
   final currentUserId = ''.obs;
   final currentWorkspaceId = ''.obs;
+  
+  // Pagination variables
+  final hasMore = true.obs;
+  DocumentSnapshot? lastDocument;
+  final pageSize = 20;
   
   // Search and filter variables
   final searchController = TextEditingController();
@@ -124,10 +131,19 @@ class QuotationsListController extends GetxController {
         return;
       }
 
-      // Load quotations from Firestore
-      final documents = await _repository.getDocuments(
+      // Reset pagination state
+      lastDocument = null;
+      hasMore.value = true;
+
+      // Load first page of quotations from Firestore
+      final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        limit: pageSize,
       );
+      
+      final documents = result['documents'] as List<Map<String, dynamic>>;
+      lastDocument = result['lastDocument'] as DocumentSnapshot?;
+      hasMore.value = result['hasMore'] as bool;
       
       // Filter only quotations
       final quotations = documents.where((doc) => doc['type'] == 'QT').toList();
@@ -136,7 +152,7 @@ class QuotationsListController extends GetxController {
       this.quotations.value = quotations;
       filteredQuotations.value = quotations;
       
-      print('📄 Loaded ${documents.length} quotations');
+      print('📄 Loaded ${quotations.length} quotations (first page)');
       
     } catch (e) {
       print('❌ Failed to load quotations: $e');
@@ -149,6 +165,56 @@ class QuotationsListController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> loadMoreQuotations() async {
+    if (isLoadingMore.value || !hasMore.value || lastDocument == null) {
+      return;
+    }
+
+    try {
+      isLoadingMore.value = true;
+      
+      if (currentWorkspaceId.value.isEmpty) {
+        print('⚠️ No workspace ID available');
+        return;
+      }
+
+      // Load next page of quotations
+      final result = await _repository.getDocumentsPaginated(
+        workspaceId: currentWorkspaceId.value,
+        limit: pageSize,
+        startAfter: lastDocument,
+      );
+      
+      final documents = result['documents'] as List<Map<String, dynamic>>;
+      lastDocument = result['lastDocument'] as DocumentSnapshot?;
+      hasMore.value = result['hasMore'] as bool;
+      
+      // Filter only quotations
+      final newQuotations = documents.where((doc) => doc['type'] == 'QT').toList();
+      
+      // Add to existing lists
+      allQuotations.addAll(newQuotations);
+      quotations.addAll(newQuotations);
+      
+      // Reapply filters to include new data
+      _applyFilters();
+      
+      print('📄 Loaded ${newQuotations.length} more quotations (page ${(allQuotations.length / pageSize).ceil()})');
+      
+    } catch (e) {
+      print('❌ Failed to load more quotations: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to load more quotations: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 

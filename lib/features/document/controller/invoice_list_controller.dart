@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../view/add_edit_document_page.dart';
@@ -10,10 +11,16 @@ class InvoiceListController extends GetxController {
   
   // Observable variables
   final isLoading = false.obs;
+  final isLoadingMore = false.obs;
   final invoices = <Map<String, dynamic>>[].obs;
   final filteredInvoices = <Map<String, dynamic>>[].obs;
   final currentUserId = ''.obs;
   final currentWorkspaceId = ''.obs;
+  
+  // Pagination variables
+  final hasMore = true.obs;
+  DocumentSnapshot? lastDocument;
+  final pageSize = 20;
   
   // Search and filter variables
   final searchController = TextEditingController();
@@ -124,15 +131,24 @@ class InvoiceListController extends GetxController {
         return;
       }
 
-      // Load invoices from Firestore
-      final documents = await _repository.getDocuments(
+      // Reset pagination state
+      lastDocument = null;
+      hasMore.value = true;
+
+      // Load first page of invoices from Firestore
+      final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        limit: pageSize,
       );
+      
+      final documents = result['documents'] as List<Map<String, dynamic>>;
+      lastDocument = result['lastDocument'] as DocumentSnapshot?;
+      hasMore.value = result['hasMore'] as bool;
       
       // Filter only invoices
       final invoices = documents.where((doc) => doc['type'] == 'INV').toList();
       
-      print('📄 Loaded ${invoices.length} invoices from Firestore');
+      print('📄 Loaded ${invoices.length} invoices from Firestore (first page)');
       
       allInvoices.value = List.from(invoices);
       this.invoices.value = List.from(invoices);
@@ -152,13 +168,67 @@ class InvoiceListController extends GetxController {
     }
   }
 
+  Future<void> loadMoreInvoices() async {
+    if (isLoadingMore.value || !hasMore.value || lastDocument == null) {
+      return;
+    }
+
+    try {
+      isLoadingMore.value = true;
+      
+      if (currentWorkspaceId.value.isEmpty) {
+        print('⚠️ No workspace ID available');
+        return;
+      }
+
+      // Load next page of invoices
+      final result = await _repository.getDocumentsPaginated(
+        workspaceId: currentWorkspaceId.value,
+        limit: pageSize,
+        startAfter: lastDocument,
+      );
+      
+      final documents = result['documents'] as List<Map<String, dynamic>>;
+      lastDocument = result['lastDocument'] as DocumentSnapshot?;
+      hasMore.value = result['hasMore'] as bool;
+      
+      // Filter only invoices
+      final newInvoices = documents.where((doc) => doc['type'] == 'INV').toList();
+      
+      // Add to existing lists
+      allInvoices.addAll(newInvoices);
+      invoices.addAll(newInvoices);
+      
+      // Reapply filters to include new data
+      _applyFilters();
+      
+      print('📄 Loaded ${newInvoices.length} more invoices (page ${(allInvoices.length / pageSize).ceil()})');
+      
+    } catch (e) {
+      print('❌ Failed to load more invoices: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to load more invoices: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    } finally {
+      isLoadingMore.value = false;
+    }
+  }
+
   void onSearchChanged(String query) {
-    applyFilters();
+    _applyFilters();
   }
 
   void applyFilters() {
+    _applyFilters();
+  }
+
+  void _applyFilters() {
     try {
-      var filtered = List<Map<String, dynamic>>.from(allInvoices);
+      List<Map<String, dynamic>> filtered = List.from(allInvoices);
       
       // Apply search filter
       final searchQuery = searchController.text.toLowerCase();
@@ -166,7 +236,11 @@ class InvoiceListController extends GetxController {
         filtered = filtered.where((invoice) {
           final docNo = (invoice['docNo'] ?? '').toString().toLowerCase();
           final customerName = (invoice['customer']?['name'] ?? '').toString().toLowerCase();
-          return docNo.contains(searchQuery) || customerName.contains(searchQuery);
+          final sellerName = (invoice['seller']?['displayName'] ?? '').toString().toLowerCase();
+          
+          return docNo.contains(searchQuery) || 
+                 customerName.contains(searchQuery) ||
+                 sellerName.contains(searchQuery);
         }).toList();
       }
       
@@ -178,7 +252,7 @@ class InvoiceListController extends GetxController {
         }).toList();
       }
       
-      // Apply date filter
+      // Apply date range filter
       if (selectedDateRange.value != null) {
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
@@ -236,10 +310,6 @@ class InvoiceListController extends GetxController {
     searchController.clear();
     invoices.value = List.from(allInvoices);
     filteredInvoices.value = List.from(allInvoices);
-  }
-
-  void createNewInvoice() {
-    Get.to(() => const AddEditDocumentPage(documentType: 'INV'));
   }
 
   void viewInvoice(Map<String, dynamic> invoice) {

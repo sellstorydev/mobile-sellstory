@@ -236,17 +236,49 @@ class QuotationsListPage extends StatelessWidget {
       return _buildEmptyState(controller);
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing16,
-        vertical: AppTheme.spacing8,
-      ),
-      itemCount: controller.quotations.length,
-      itemBuilder: (context, index) {
-        final quotation = controller.quotations[index];
-        return _buildQuotationCard(quotation, controller);
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        // Check if we're near the bottom and should load more
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+          controller.loadMoreQuotations();
+        }
+        return false;
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing8,
+        ),
+        itemCount: controller.quotations.length + (controller.hasMore.value ? 1 : 0),
+        itemBuilder: (context, index) {
+          // Show loading indicator at the bottom when loading more
+          if (index == controller.quotations.length) {
+            return _buildLoadingMoreIndicator(controller);
+          }
+          
+          final quotation = controller.quotations[index];
+          return _buildQuotationCard(quotation, controller);
+        },
+      ),
     );
+  }
+
+  Widget _buildLoadingMoreIndicator(QuotationsListController controller) {
+    return Obx(() {
+      if (!controller.isLoadingMore.value) {
+        return const SizedBox.shrink();
+      }
+      
+      return Container(
+        padding: const EdgeInsets.all(AppTheme.spacing16),
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: AppTheme.primaryOrange,
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildQuotationCard(

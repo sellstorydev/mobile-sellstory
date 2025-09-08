@@ -237,17 +237,49 @@ class InvoiceListPage extends StatelessWidget {
       return _buildEmptyState(controller);
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing16,
-        vertical: AppTheme.spacing8,
-      ),
-      itemCount: controller.invoices.length,
-      itemBuilder: (context, index) {
-        final invoice = controller.invoices[index];
-        return _buildInvoiceCard(invoice, controller);
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        // Check if we're near the bottom and should load more
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+          controller.loadMoreInvoices();
+        }
+        return false;
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing8,
+        ),
+        itemCount: controller.invoices.length + (controller.hasMore.value ? 1 : 0),
+        itemBuilder: (context, index) {
+          // Show loading indicator at the bottom when loading more
+          if (index == controller.invoices.length) {
+            return _buildLoadingMoreIndicator(controller);
+          }
+          
+          final invoice = controller.invoices[index];
+          return _buildInvoiceCard(invoice, controller);
+        },
+      ),
     );
+  }
+
+  Widget _buildLoadingMoreIndicator(InvoiceListController controller) {
+    return Obx(() {
+      if (!controller.isLoadingMore.value) {
+        return const SizedBox.shrink();
+      }
+      
+      return Container(
+        padding: const EdgeInsets.all(AppTheme.spacing16),
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: AppTheme.primaryOrange,
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildInvoiceCard(
