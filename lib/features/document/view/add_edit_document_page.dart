@@ -34,222 +34,226 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     super.initState();
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
+
     return Container();
-    // return GetBuilder<AddEditDocumentController>(
-    //   init: AddEditDocumentController(documentId: widget.documentId, documentType: widget.documentType),
-    //   builder: (controller) {
-    //     return Scaffold(
-    //       backgroundColor: AppTheme.backgroundGrey,
-    //       appBar: AppBar(
-    //         title: Text(
-    //           widget.documentId == null
-    //               ? (widget.documentType == 'QT' ? 'สร้างใบเสนอราคา' : 'สร้างใบแจ้งหนี้')
-    //               : (widget.documentType == 'QT' ? 'แก้ไขใบเสนอราคา' : 'แก้ไขใบแจ้งหนี้'),
-    //           style: const TextStyle(
-    //             color: AppTheme.textPrimary,
-    //             fontSize: 18,
-    //             fontWeight: FontWeight.w600,
-    //           ),
-    //         ),
-    //         backgroundColor: AppTheme.backgroundWhite,
-    //         elevation: 0,
-    //         leading: IconButton(
-    //           icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-    //           onPressed: () => Get.back(),
-    //         ),
-    //         actions: [
-    //           // Expand All Sections Button
-    //           IconButton(
-    //             onPressed: () {
-    //               setState(() {
-    //                 _sectionExpanded.updateAll((key, value) => true);
-    //               });
-    //             },
-    //             icon: const Icon(
-    //               Icons.unfold_more,
-    //               color: AppTheme.primaryOrange,
-    //             ),
-    //             tooltip: 'ขยายทุกส่วน',
-    //           ),
-    //           // Collapse All Sections Button
-    //           IconButton(
-    //             onPressed: () {
-    //               setState(() {
-    //                 _sectionExpanded.updateAll((key, value) => false);
-    //               });
-    //             },
-    //             icon: const Icon(
-    //               Icons.unfold_less,
-    //               color: AppTheme.primaryOrange,
-    //             ),
-    //             tooltip: 'ย่อทุกส่วน',
-    //           ),
-    //                          GetBuilder<AddEditDocumentController>(
-    //              builder: (controller) {
-    //                return TextButton(
-    //                  onPressed:
-    //                      (controller.isLoading || !_areRequiredFieldsComplete())
-    //                      ? null
-    //                      : controller.saveDocument,
-    //                 child: controller.isLoading
-    //                     ? const SizedBox(
-    //                         width: 16,
-    //                         height: 16,
-    //                         child: CircularProgressIndicator(
-    //                           strokeWidth: 2,
-    //                           valueColor: AlwaysStoppedAnimation<Color>(
-    //                             AppTheme.primaryOrange,
-    //                           ),
-    //                         ),
-    //                       )
-    //                     : Text(
-    //                         'บันทึก',
-    //                         style: TextStyle(
-    //                           color: _areRequiredFieldsComplete()
-    //                               ? AppTheme.primaryOrange
-    //                               : AppTheme.textGrey,
-    //                           fontSize: 16,
-    //                           fontWeight: FontWeight.w600,
-    //                         ),
-    //                       ),
-    //               );
-    //             },
-    //           ),
-    //         ],
-    //       ),
-    //       body: controller.isLoading
-    //           ? const Center(
-    //               child: CircularProgressIndicator(
-    //                 valueColor: AlwaysStoppedAnimation<Color>(
-    //                   AppTheme.primaryOrange,
-    //                 ),
-    //               ),
-    //             )
-    //           : SingleChildScrollView(
-    //               padding: const EdgeInsets.all(16),
-    //                                  child: Column(
-    //                  crossAxisAlignment: CrossAxisAlignment.start,
-    //                  children: [
-    //                                                                   // Document Status Section
-    //                     GetBuilder<AddEditDocumentController>(
-    //                       builder: (controller) {
-    //                         return Column(
-    //                           children: [
-    //                             _buildSectionHeader(
-    //                               'สถานะเอกสาร: ${_getStatusDisplayName(controller.documentStatus)}',
-    //                               Icons.description,
-    //                               'status',
-    //                             ),
-    //                             const SizedBox(height: 12),
-    //                             if (_sectionExpanded['status'] ?? false) ...[
-    //                               _buildDocumentStatusSection(controller),
-    //                               const SizedBox(height: 24),
-    //                             ],
-    //                           ],
-    //                         );
-    //                       },
-    //                     ),
-    //
-    //                                            // Customer Section
-    //                     GetBuilder<AddEditDocumentController>(
-    //                      builder: (controller) {
-    //                        return Column(
-    //                          children: [
-    //                            _buildSectionHeader(
-    //                              'ข้อมูลลูกค้า',
-    //                              Icons.person,
-    //                              'customer',
-    //                            ),
-    //                            const SizedBox(height: 12),
-    //                            if (_sectionExpanded['customer'] ?? false) ...[
-    //                              _buildCustomerSection(controller),
-    //                              const SizedBox(height: 24),
-    //                            ],
-    //                          ],
-    //                        );
-    //                      },
-    //                    ),
-    //
-    //                                          // Seller Section
-    //                    GetBuilder<AddEditDocumentController>(
-    //                      builder: (controller) {
-    //                        return Column(
-    //                          children: [
-    //                            _buildSectionHeader(
-    //                              'ข้อมูลผู้ขาย',
-    //                              Icons.business,
-    //                              'seller',
-    //                            ),
-    //                            const SizedBox(height: 12),
-    //                            if (_sectionExpanded['seller'] ?? false) ...[
-    //                              _buildSellerSection(controller),
-    //                              const SizedBox(height: 24),
-    //                            ],
-    //                          ],
-    //                        );
-    //                      },
-    //                    ),
-    //
-    //                                          // Product Section
-    //                    GetBuilder<AddEditDocumentController>(
-    //                      builder: (controller) {
-    //                        return Column(
-    //                          children: [
-    //                            _buildSectionHeader(
-    //                              'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
-    //                              Icons.inventory,
-    //                              'product',
-    //                            ),
-    //                            const SizedBox(height: 12),
-    //                            if (_sectionExpanded['product'] ?? false) ...[
-    //                              _buildProductSection(controller),
-    //                              const SizedBox(height: 24),
-    //                            ],
-    //                          ],
-    //                        );
-    //                      },
-    //                                            ),
-    //
-    //
-    //
-    //                    // More Options Section
-    //                    _buildSectionHeader(
-    //                      'ข้อมูลเพิ่มเติม',
-    //                      Icons.settings,
-    //                      'more',
-    //                    ),
-    //                   const SizedBox(height: 12),
-    //                   if (_sectionExpanded['more'] ?? false) ...[
-    //                     _buildMoreOptionsSection(controller),
-    //                     const SizedBox(height: 24),
-    //                   ],
-    //
-    //                   // Summary Section
-    //                   _buildSectionHeader(
-    //                     'สรุปยอด',
-    //                     Icons.calculate,
-    //                     'summary',
-    //                   ),
-    //                   const SizedBox(height: 12),
-    //                   if (_sectionExpanded['summary'] ?? false) ...[
-    //                     _buildSummarySection(controller),
-    //                   ],
-    //                   const SizedBox(height: 32),
-    //                 ],
-    //               ),
-    //             ),
-    //     );
-    //   },
-    // );
   }
-  //
+
+  // @override
+  // Widget build(BuildContext context) {
+  //   return GetBuilder<AddEditDocumentController>(
+  //     init: AddEditDocumentController(documentId: widget.documentId, documentType: widget.documentType),
+  //     builder: (controller) {
+  //       return Scaffold(
+  //         backgroundColor: AppTheme.backgroundGrey,
+  //         appBar: AppBar(
+  //           title: Text(
+  //             widget.documentId == null
+  //                 ? (widget.documentType == 'QT' ? 'สร้างใบเสนอราคา' : 'สร้างใบแจ้งหนี้')
+  //                 : (widget.documentType == 'QT' ? 'แก้ไขใบเสนอราคา' : 'แก้ไขใบแจ้งหนี้'),
+  //             style: const TextStyle(
+  //               color: AppTheme.textPrimary,
+  //               fontSize: 18,
+  //               fontWeight: FontWeight.w600,
+  //             ),
+  //           ),
+  //           backgroundColor: AppTheme.backgroundWhite,
+  //           elevation: 0,
+  //           leading: IconButton(
+  //             icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+  //             onPressed: () => Get.back(),
+  //           ),
+  //           actions: [
+  //             // Expand All Sections Button
+  //             IconButton(
+  //               onPressed: () {
+  //                 setState(() {
+  //                   _sectionExpanded.updateAll((key, value) => true);
+  //                 });
+  //               },
+  //               icon: const Icon(
+  //                 Icons.unfold_more,
+  //                 color: AppTheme.primaryOrange,
+  //               ),
+  //               tooltip: 'ขยายทุกส่วน',
+  //             ),
+  //             // Collapse All Sections Button
+  //             IconButton(
+  //               onPressed: () {
+  //                 setState(() {
+  //                   _sectionExpanded.updateAll((key, value) => false);
+  //                 });
+  //               },
+  //               icon: const Icon(
+  //                 Icons.unfold_less,
+  //                 color: AppTheme.primaryOrange,
+  //               ),
+  //               tooltip: 'ย่อทุกส่วน',
+  //             ),
+  //                            GetBuilder<AddEditDocumentController>(
+  //                builder: (controller) {
+  //                  return TextButton(
+  //                    onPressed:
+  //                        (controller.isLoading || !_areRequiredFieldsComplete())
+  //                        ? null
+  //                        : controller.saveDocument,
+  //                   child: controller.isLoading
+  //                       ? const SizedBox(
+  //                           width: 16,
+  //                           height: 16,
+  //                           child: CircularProgressIndicator(
+  //                             strokeWidth: 2,
+  //                             valueColor: AlwaysStoppedAnimation<Color>(
+  //                               AppTheme.primaryOrange,
+  //                             ),
+  //                           ),
+  //                         )
+  //                       : Text(
+  //                           'บันทึก',
+  //                           style: TextStyle(
+  //                             color: _areRequiredFieldsComplete()
+  //                                 ? AppTheme.primaryOrange
+  //                                 : AppTheme.textGrey,
+  //                             fontSize: 16,
+  //                             fontWeight: FontWeight.w600,
+  //                           ),
+  //                         ),
+  //                 );
+  //               },
+  //             ),
+  //           ],
+  //         ),
+  //         body: controller.isLoading
+  //             ? const Center(
+  //                 child: CircularProgressIndicator(
+  //                   valueColor: AlwaysStoppedAnimation<Color>(
+  //                     AppTheme.primaryOrange,
+  //                   ),
+  //                 ),
+  //               )
+  //             : SingleChildScrollView(
+  //                 padding: const EdgeInsets.all(16),
+  //                                    child: Column(
+  //                    crossAxisAlignment: CrossAxisAlignment.start,
+  //                    children: [
+  //                                                                     // Document Status Section
+  //                       GetBuilder<AddEditDocumentController>(
+  //                         builder: (controller) {
+  //                           return Column(
+  //                             children: [
+  //                               _buildSectionHeader(
+  //                                 'สถานะเอกสาร: ${_getStatusDisplayName(controller.documentStatus)}',
+  //                                 Icons.description,
+  //                                 'status',
+  //                               ),
+  //                               const SizedBox(height: 12),
+  //                               if (_sectionExpanded['status'] ?? false) ...[
+  //                                 _buildDocumentStatusSection(controller),
+  //                                 const SizedBox(height: 24),
+  //                               ],
+  //                             ],
+  //                           );
+  //                         },
+  //                       ),
+
+  //                                              // Customer Section
+  //                       GetBuilder<AddEditDocumentController>(
+  //                        builder: (controller) {
+  //                          return Column(
+  //                            children: [
+  //                              _buildSectionHeader(
+  //                                'ข้อมูลลูกค้า',
+  //                                Icons.person,
+  //                                'customer',
+  //                              ),
+  //                              const SizedBox(height: 12),
+  //                              if (_sectionExpanded['customer'] ?? false) ...[
+  //                                _buildCustomerSection(controller),
+  //                                const SizedBox(height: 24),
+  //                              ],
+  //                            ],
+  //                          );
+  //                        },
+  //                      ),
+
+  //                                            // Seller Section
+  //                      GetBuilder<AddEditDocumentController>(
+  //                        builder: (controller) {
+  //                          return Column(
+  //                            children: [
+  //                              _buildSectionHeader(
+  //                                'ข้อมูลผู้ขาย',
+  //                                Icons.business,
+  //                                'seller',
+  //                              ),
+  //                              const SizedBox(height: 12),
+  //                              if (_sectionExpanded['seller'] ?? false) ...[
+  //                                _buildSellerSection(controller),
+  //                                const SizedBox(height: 24),
+  //                              ],
+  //                            ],
+  //                          );
+  //                        },
+  //                      ),
+
+  //                                            // Product Section
+  //                      GetBuilder<AddEditDocumentController>(
+  //                        builder: (controller) {
+  //                          return Column(
+  //                            children: [
+  //                              _buildSectionHeader(
+  //                                'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
+  //                                Icons.inventory,
+  //                                'product',
+  //                              ),
+  //                              const SizedBox(height: 12),
+  //                              if (_sectionExpanded['product'] ?? false) ...[
+  //                                _buildProductSection(controller),
+  //                                const SizedBox(height: 24),
+  //                              ],
+  //                            ],
+  //                          );
+  //                        },
+  //                                              ),
+
+
+
+  //                      // More Options Section
+  //                      _buildSectionHeader(
+  //                        'ข้อมูลเพิ่มเติม',
+  //                        Icons.settings,
+  //                        'more',
+  //                      ),
+  //                     const SizedBox(height: 12),
+  //                     if (_sectionExpanded['more'] ?? false) ...[
+  //                       _buildMoreOptionsSection(controller),
+  //                       const SizedBox(height: 24),
+  //                     ],
+
+  //                     // Summary Section
+  //                     _buildSectionHeader(
+  //                       'สรุปยอด',
+  //                       Icons.calculate,
+  //                       'summary',
+  //                     ),
+  //                     const SizedBox(height: 12),
+  //                     if (_sectionExpanded['summary'] ?? false) ...[
+  //                       _buildSummarySection(controller),
+  //                     ],
+  //                     const SizedBox(height: 32),
+  //                   ],
+  //                 ),
+  //               ),
+  //       );
+  //     },
+  //   );
+  // }
+
   // Widget _buildSectionHeader(String title, IconData icon, String sectionKey) {
   //   final isExpanded = _sectionExpanded[sectionKey] ?? false;
   //   final isRequired = sectionKey == 'customer' || sectionKey == 'seller' || sectionKey == 'product';
   //   final isComplete = _isSectionComplete(sectionKey);
-  //
   //   return Container(
   //     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
   //     decoration: BoxDecoration(
@@ -335,12 +339,11 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-  //
-  //
+
   //    // Check if section is complete based on required fields
   //  bool _isSectionComplete(String sectionKey) {
   //    final controller = Get.find<AddEditDocumentController>();
-  //
+
   //    switch (sectionKey) {
   //      case 'status':
   //        return controller.documentStatus.isNotEmpty; // Status is always complete if set
@@ -362,7 +365,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //        return true;
   //    }
   //  }
-  //
   // // Check if all required fields are complete
   // bool _areRequiredFieldsComplete() {
   //         final controller = Get.find<AddEditDocumentController>();
@@ -370,15 +372,15 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //         _isSectionComplete('seller') &&
   //         _areAllProductsComplete(controller);
   // }
-  //
+
   // // Check if the last product has all required fields filled
   // bool _isLastProductComplete(AddEditDocumentController controller) {
   //   if (controller.products.isEmpty) return true;
-  //
+
   //   final lastIndex = controller.products.length - 1;
   //   final product = controller.products[lastIndex];
   //   final productId = product['id'];
-  //
+
   //   // Get controllers for the last product
   //   final nameController = controller.getProductController(lastIndex, 'name');
   //   final quantityController = controller.getProductController(
@@ -390,39 +392,38 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     lastIndex,
   //     'pricePerUnit',
   //   );
-  //
   //   // Check if all required fields are filled
   //   final name = nameController.text.trim();
   //   final quantity = quantityController.text.trim();
   //   final unit = unitController.text.trim();
   //   final price = priceController.text.trim();
-  //
+
   //   if (name.isEmpty || quantity.isEmpty || unit.isEmpty || price.isEmpty) {
   //     return false;
   //   }
-  //
+
   //   // Check if quantity and price are valid numbers
   //   final quantityValue = double.tryParse(quantity);
   //   final priceValue = double.tryParse(price);
-  //
+
   //   if (quantityValue == null ||
   //       priceValue == null ||
   //       quantityValue <= 0 ||
   //       priceValue < 0) {
   //     return false;
   //   }
-  //
+
   //   return true;
   // }
-  //
+
   // // Check if all products have required fields filled
   // bool _areAllProductsComplete(AddEditDocumentController controller) {
   //   if (controller.products.isEmpty) return true;
-  //
+
   //   for (int i = 0; i < controller.products.length; i++) {
   //     final product = controller.products[i];
   //     final productId = product['id'];
-  //
+
   //     // Get controllers for this product
   //     final nameController = controller.getProductController(i, 'name');
   //     final quantityController = controller.getProductController(i, 'quantity');
@@ -431,21 +432,20 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //       i,
   //       'pricePerUnit',
   //     );
-  //
   //     // Check if all required fields are filled
   //     final name = nameController.text.trim();
   //     final quantity = quantityController.text.trim();
   //     final unit = unitController.text.trim();
   //     final price = priceController.text.trim();
-  //
+
   //     if (name.isEmpty || quantity.isEmpty || unit.isEmpty || price.isEmpty) {
   //       return false;
   //     }
-  //
+
   //     // Check if quantity and price are valid numbers
   //     final quantityValue = double.tryParse(quantity);
   //     final priceValue = double.tryParse(price);
-  //
+
   //     if (quantityValue == null ||
   //         priceValue == null ||
   //         quantityValue <= 0 ||
@@ -453,10 +453,10 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //       return false;
   //     }
   //   }
-  //
+
   //   return true;
   // }
-  //
+
   // Widget _buildCustomerSection(AddEditDocumentController controller) {
   //   return Container(
   //     padding: const EdgeInsets.all(16),
@@ -563,7 +563,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           ),
   //         ],
   //         const SizedBox(height: 16),
-  //
   //         // Customer Company Selection
   //         if (controller.selectedCustomer != null &&
   //             controller.selectedCustomer!.companyNames.isNotEmpty) ...[
@@ -591,7 +590,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           ),
   //           const SizedBox(height: 16),
   //         ],
-  //
   //         // Customer Address
   //         _buildTextField(
   //           label: 'ที่อยู่ลูกค้า',
@@ -600,7 +598,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           maxLines: 3,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Postal Code
   //         _buildTextField(
   //           label: 'รหัสไปรษณีย์',
@@ -609,7 +606,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           keyboardType: TextInputType.number,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // National ID
   //         _buildTextField(
   //           label: 'เลขประจำตัวประชาชน',
@@ -618,7 +614,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           keyboardType: TextInputType.number,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Phone
   //         _buildTextField(
   //           label: 'เบอร์โทรศัพท์',
@@ -627,7 +622,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           keyboardType: TextInputType.phone,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Email
   //         _buildTextField(
   //           label: 'อีเมล',
@@ -639,7 +633,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-  //
   // Widget _buildSellerSection(AddEditDocumentController controller) {
   //   return Container(
   //     padding: const EdgeInsets.all(16),
@@ -663,7 +656,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           showBorder: false,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Job Name
   //         _buildTextField(
   //           label: 'ชื่องาน',
@@ -671,7 +663,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           controller: controller.jobNameController,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Ref ID
   //         _buildTextField(
   //           label: 'รหัสอ้างอิง',
@@ -679,7 +670,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           controller: controller.refIdController,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Document Date
   //         _buildDateField(
   //           label: 'วันที่ออกเอกสาร',
@@ -688,7 +678,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           onChanged: controller.onDocumentDateChanged,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Valid Until Date
   //         _buildDateField(
   //           label: 'ยืนราคาถึงวันที่',
@@ -700,7 +689,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-  //
   // Widget _buildProductSection(AddEditDocumentController controller) {
   //   return Container(
   //     padding: const EdgeInsets.all(16),
@@ -791,7 +779,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           ],
   //         ),
   //         const SizedBox(height: 8),
-  //
   //         // Product List
   //         if (controller.products.isNotEmpty) ...[
   //           ...controller.products.asMap().entries.map((entry) {
@@ -801,7 +788,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           }).toList(),
   //           const SizedBox(height: 16),
   //         ],
-  //
   //         // Help message for product requirements
   //         if (controller.products.isNotEmpty &&
   //             !_isLastProductComplete(controller))
@@ -830,7 +816,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-  //
   // Widget _buildProductItem(
   //   AddEditDocumentController controller,
   //   int index,
@@ -871,7 +856,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           ],
   //         ),
   //         const SizedBox(height: 12),
-  //
   //         // Product Name
   //         _buildTextField(
   //           label: 'ชื่อสินค้า/บริการ *',
@@ -880,7 +864,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           isRequired: true,
   //         ),
   //         const SizedBox(height: 12),
-  //
   //         // Description
   //         _buildTextField(
   //           label: 'รายละเอียด',
@@ -889,7 +872,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           maxLines: 2,
   //         ),
   //         const SizedBox(height: 12),
-  //
   //         // Quantity and Unit
   //         Row(
   //           children: [
@@ -919,7 +901,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           ],
   //         ),
   //         const SizedBox(height: 12),
-  //
   //         // Price and Discount
   //         Row(
   //           children: [
@@ -957,7 +938,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-  //
   // Widget _buildMoreOptionsSection(AddEditDocumentController controller) {
   //   return Container(
   //     padding: const EdgeInsets.all(16),
@@ -978,7 +958,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           onChanged: controller.onPaymentMethodsChanged,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Notes
   //         _buildTextField(
   //           label: 'หมายเหตุ',
@@ -987,7 +966,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           maxLines: 3,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Signature and Stamp
   //         _buildCheckboxField(
   //           label: 'ลายเซ็นและตรายาง',
@@ -995,7 +973,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           onChanged: controller.onIncludeSignatureChanged,
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // Company Stamp (Coming Soon)
   //         Container(
   //           padding: const EdgeInsets.all(12),
@@ -1029,9 +1006,9 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-  //
-  //
-  //
+
+
+
   // Widget _buildSummarySection(AddEditDocumentController controller) {
   //   return Container(
   //     padding: const EdgeInsets.all(16),
@@ -1050,7 +1027,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           '฿',
   //         ),
   //         const SizedBox(height: 12),
-  //
   //         // Discount
   //         _buildSummaryRow(
   //           'ส่วนลด',
@@ -1058,7 +1034,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           '฿',
   //         ),
   //         const SizedBox(height: 12),
-  //
   //         // After Discount
   //         _buildSummaryRow(
   //           'ยอดรวมหลังหักส่วนลด',
@@ -1066,7 +1041,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           '฿',
   //         ),
   //         const SizedBox(height: 16),
-  //
   //         // VAT Checkbox
   //         _buildCheckboxField(
   //           label: 'ภาษีมูลค่าเพิ่ม (7%)',
@@ -1074,7 +1048,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           onChanged: controller.onVatEnabledChanged,
   //         ),
   //         const SizedBox(height: 12),
-  //
   //         // VAT Amount
   //         if (controller.isVatEnabled) ...[
   //           _buildSummaryRow(
@@ -1084,7 +1057,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           ),
   //           const SizedBox(height: 12),
   //         ],
-  //
   //         // After VAT
   //         if (controller.isVatEnabled) ...[
   //           _buildSummaryRow(
@@ -1094,7 +1066,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           ),
   //           const SizedBox(height: 16),
   //         ],
-  //
   //         // Withholding Tax
   //         _buildCheckboxField(
   //           label: 'หักภาษี ณ ที่จ่าย',
@@ -1102,7 +1073,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           onChanged: controller.onWhtEnabledChanged,
   //         ),
   //         const SizedBox(height: 12),
-  //
   //         // WHT Percentage and Amount
   //         if (controller.isWhtEnabled) ...[
   //           Row(
@@ -1130,7 +1100,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //           ),
   //           const SizedBox(height: 12),
   //         ],
-  //
   //         // Net Total
   //         Container(
   //           padding: const EdgeInsets.all(16),
@@ -1165,7 +1134,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-  //
   // Widget _buildTextField({
   //   required String label,
   //   required String hint,
@@ -1219,7 +1187,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ],
   //   );
   // }
-  //
   // Widget _buildDropdownField({
   //   required String label,
   //   required String hint,
@@ -1267,7 +1234,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ],
   //   );
   // }
-  //
   // Widget _buildDateField({
   //   required String label,
   //   required String hint,
@@ -1332,7 +1298,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ],
   //   );
   // }
-  //
   // Widget _buildCheckboxField({
   //   required String label,
   //   required bool value,
@@ -1354,7 +1319,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ],
   //   );
   // }
-  //
   // Widget _buildRadioButton({
   //   required String label,
   //   required String value,
@@ -1376,7 +1340,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ],
   //   );
   // }
-  //
   // Widget _buildMultiSelectField({
   //   required String label,
   //   required String hint,
@@ -1454,7 +1417,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ],
   //   );
   // }
-  //
   // Widget _buildSummaryRow(String label, String value, String currency) {
   //   return Row(
   //     children: [
@@ -1474,14 +1436,12 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ],
   //   );
   // }
-  //
   // void _showMultiSelectDialog(
   //   List<String> availableItems,
   //   List<String> selectedItems,
   //   Function(List<String>) onChanged,
   // ) {
   //   List<String> tempSelected = List.from(selectedItems);
-  //
   //   Get.dialog(
   //     AlertDialog(
   //       title: const Text('เลือกช่องทางการชำระเงิน'),
@@ -1524,7 +1484,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-  //
   //    // Helper method to get status display name
   //  String _getStatusDisplayName(String status) {
   //    switch (status) {
@@ -1556,7 +1515,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //        return 'ร่าง (Draft)';
   //    }
   //  }
-  //
   //  // Build document status section
   //  Widget _buildDocumentStatusSection(AddEditDocumentController controller) {
   //    return Container(
@@ -1611,11 +1569,11 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //      ),
   //    );
   //  }
-  //
+
   //      void _showProductSelectionDialog(AddEditDocumentController controller) {
   //    // Use real product data from controller
   //    final availableProducts = controller.availableProducts;
-  //
+
   //   if (availableProducts.isEmpty) {
   //     Get.snackbar(
   //       'ข้อมูล',
@@ -1625,10 +1583,10 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     );
   //     return;
   //   }
-  //
+
   //   // Move tempSelected outside StatefulBuilder to persist selections
   //   List<Map<String, dynamic>> tempSelected = [];
-  //
+
   //   Get.dialog(
   //     StatefulBuilder(
   //       builder: (context, setState) {
@@ -1662,7 +1620,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //                       final isSelected = tempSelected.any(
   //                         (p) => p['id'] == product['id'],
   //                       );
-  //
   //                       return Container(
   //                         margin: const EdgeInsets.only(bottom: 8),
   //                         decoration: BoxDecoration(

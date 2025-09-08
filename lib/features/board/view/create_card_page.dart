@@ -6,6 +6,7 @@ import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../data/services/firestore_service.dart';
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -31,7 +32,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _assigneeController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
-  final TextEditingController _commentController = TextEditingController();
+
   
   // Hashtag state
   List<Map<String, dynamic>> _selectedHashtags = [];
@@ -44,8 +45,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
   String _selectedLane = '';
   String _selectedCustomer = '';
   String _selectedCompany = 'none';
+  String _selectedCustomerInterest = 'เริ่มต้น';
   String _selectedStatus = 'Pending';
-  DateTime? _expectedClosingDate;
+  DateTime? _startDate;
+  DateTime? _endDate;
   bool _isLoading = false;
   
   // Multi-select for collaborators and watchers
@@ -67,8 +70,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
     {'value': 'Cancelled', 'label': 'Cancelled', 'icon': Icons.schedule},
   ];
 
-  // Add history/comment toggle state variable
-  bool _showHistory = true; // true = History, false = Comment
+  // Customer Interest options
+  final List<String> _customerInterestOptions = [
+    'เริ่มต้น',
+    'น้อย (Low)',
+    'กลาง (Medium)',
+    'มาก (High)',
+  ];
+
+
 
   @override
   void initState() {
@@ -115,58 +125,44 @@ class _CreateCardPageState extends State<CreateCardPage> {
     // Load users from current workspace
     await _loadWorkspaceUsers();
     
-    // Load customers from Firestore
-    try {
-      print('🔄 Loading customers from Firestore...');
-      final customers = await _controller.getCustomers();
-      
-      // Deduplicate customers by ID to prevent dropdown issues
-      final customerMap = <String, Map<String, dynamic>>{};
-      for (final customer in customers) {
-        if (!customerMap.containsKey(customer.id)) {
-          customerMap[customer.id] = {
-            'id': customer.id,
-            'name': customer.name,
-            'customId': customer.customId,
-          };
+          // Load customers from Firestore
+      try {
+        print('🔄 Loading customers from Firestore...');
+        final customers = await _controller.getCustomers();
+        
+        // Deduplicate customers by ID to prevent dropdown issues and ensure data consistency
+        final customerMap = <String, Map<String, dynamic>>{};
+        for (final customer in customers) {
+          if (customer.id.isNotEmpty && !customerMap.containsKey(customer.id)) {
+            customerMap[customer.id] = {
+              'id': customer.id,
+              'name': customer.name.isNotEmpty ? customer.name : 'Unknown Customer',
+              'customId': customer.customId ?? '',
+            };
+          }
         }
+        _availableCustomers = customerMap.values.toList();
+        
+        // Clear invalid customer if current customer is not in available customers
+        if (_selectedCustomer.isNotEmpty && !_availableCustomers.any((customer) => customer['id'] == _selectedCustomer)) {
+          _selectedCustomer = '';
+          _selectedCompany = 'none';
+        }
+        
+        print('✅ Customers loaded: ${_availableCustomers.length} customers');
+      } catch (e) {
+        print('❌ Failed to load customers: $e');
+        _availableCustomers = [];
+        // Clear customer and company on error
+        _selectedCustomer = '';
+        _selectedCompany = 'none';
       }
-      _availableCustomers = customerMap.values.toList();
-      
-      print('✅ Customers loaded: ${_availableCustomers.length} customers');
-    } catch (e) {
-      print('❌ Failed to load customers: $e');
-      _availableCustomers = [];
-    }
     
-    // Load companies from Firestore
-    try {
-      print('🔄 Loading companies from Firestore...');
-      final companies = await _controller.getCompanies();
-      
-      // Deduplicate companies by ID to prevent dropdown issues
-      final companyMap = <String, Map<String, dynamic>>{};
-      companyMap['none'] = {'id': 'none', 'name': 'None'};
-      
-      for (final company in companies) {
-        if (!companyMap.containsKey(company.id)) {
-          companyMap[company.id] = {
-            'id': company.id,
-            'name': company.name,
-          };
-        }
-      }
-      _availableCompanies = companyMap.values.toList();
-      _selectedCompany = 'none';
-      
-      print('✅ Companies loaded: ${_availableCompanies.length - 1} companies');
-    } catch (e) {
-      print('❌ Failed to load companies: $e');
-      _availableCompanies = [
-        {'id': 'none', 'name': 'None'},
-      ];
-      _selectedCompany = 'none';
-    }
+    // Companies will be loaded when customer is selected
+    _availableCompanies = [
+      {'id': 'none', 'name': 'None'},
+    ];
+    _selectedCompany = 'none';
   }
 
   Future<void> _loadLanesForBoard(String boardId) async {
@@ -218,19 +214,213 @@ class _CreateCardPageState extends State<CreateCardPage> {
       // Get users from the workspace - data is already properly formatted from repository
       final users = await _controller.getWorkspaceUsers(workspaceId);
       
-      // Deduplicate users by ID to prevent dropdown issues
+      // Deduplicate users by ID to prevent dropdown issues and ensure data consistency
       final userMap = <String, Map<String, dynamic>>{};
       for (final user in users) {
-        if (!userMap.containsKey(user['id'])) {
-          userMap[user['id']] = user;
+        final userId = user['id']?.toString();
+        if (userId != null && userId.isNotEmpty && !userMap.containsKey(userId)) {
+          // Ensure user has required fields
+          userMap[userId] = {
+            'id': userId,
+            'name': user['name'] ?? user['displayName'] ?? 'Unknown User',
+            'displayName': user['displayName'] ?? user['name'] ?? 'Unknown User',
+            'email': user['email'] ?? '',
+          };
         }
       }
       _availableUsers = userMap.values.toList();
+      
+      // Clear invalid assignee if current assignee is not in available users
+      if (_assigneeController.text.isNotEmpty && !_availableUsers.any((user) => user['id'] == _assigneeController.text)) {
+        _assigneeController.text = '';
+      }
       
       print('✅ Loaded ${_availableUsers.length} users for workspace');
     } catch (e) {
       print('❌ Failed to load workspace users: $e');
       _availableUsers = [];
+      // Clear assignee on error
+      _assigneeController.text = '';
+    }
+  }
+
+  Future<void> _loadCompaniesForCustomer(String customerId) async {
+    try {
+      print('🔄 Loading companies for customer: $customerId');
+      
+      // Get customer details to access companyNames
+      final customers = await _controller.getCustomers();
+      final customer = customers.firstWhereOrNull((c) => c.id == customerId);
+      
+      if (customer != null && customer.companyNames != null) {
+        final companyMap = <String, Map<String, dynamic>>{};
+        companyMap['none'] = {'id': 'none', 'name': 'None'};
+        
+        for (final company in customer.companyNames!) {
+          companyMap[company['id']] = {
+            'id': company['id'],
+            'name': company['value'], // ใช้ value แทน label เพื่อแสดงชื่อสั้นๆ
+            'value': company['value'],
+          };
+        }
+        
+        setState(() {
+          _availableCompanies = companyMap.values.toList();
+          _selectedCompany = 'none';
+        });
+        
+        print('✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies');
+      } else {
+        setState(() {
+          _availableCompanies = [
+            {'id': 'none', 'name': 'None'},
+          ];
+          _selectedCompany = 'none';
+        });
+        print('⚠️ No companies found for customer');
+      }
+    } catch (e) {
+      print('❌ Failed to load companies for customer: $e');
+      setState(() {
+        _availableCompanies = [
+          {'id': 'none', 'name': 'None'},
+        ];
+        _selectedCompany = 'none';
+      });
+    }
+  }
+
+  String? _getValidAssigneeValue() {
+    if (_assigneeController.text.isEmpty) return null;
+    
+    // Check if the current assignee value exists in available users
+    final isValidAssignee = _availableUsers.any((user) => user['id'] == _assigneeController.text);
+    if (!isValidAssignee) {
+      // Clear invalid assignee
+      _assigneeController.text = '';
+      return null;
+    }
+    
+    return _assigneeController.text;
+  }
+
+  String? _getValidCustomerValue() {
+    if (_selectedCustomer.isEmpty) return null;
+    
+    // Check if the current customer value exists in available customers
+    final isValidCustomer = _availableCustomers.any((customer) => customer['id'] == _selectedCustomer);
+    if (!isValidCustomer) {
+      // Clear invalid customer
+      _selectedCustomer = '';
+      return null;
+    }
+    
+    return _selectedCustomer;
+  }
+
+  String? _getValidCompanyValue() {
+    if (_selectedCompany.isEmpty) return null;
+    
+    // Check if the current company value exists in available companies
+    final isValidCompany = _availableCompanies.any((company) => company['id'] == _selectedCompany);
+    if (!isValidCompany) {
+      // Clear invalid company
+      _selectedCompany = 'none';
+      return null;
+    }
+    
+    return _selectedCompany;
+  }
+
+  Future<void> _showTodoTemplates() async {
+    try {
+      final currentBoardId = _controller.currentBoardId.value;
+      final currentWorkspaceId = _controller.currentWorkspaceId.value;
+      if (currentBoardId.isEmpty || currentWorkspaceId.isEmpty) {
+        _showError('No board or workspace selected');
+        return;
+      }
+
+      // Get todo templates from Firestore directly
+      final firestoreService = Get.find<FirestoreService>();
+      final boardsCollection = firestoreService.getWorkspaceBoardsCollection(currentWorkspaceId);
+      final boardDocRef = boardsCollection.doc(currentBoardId);
+      final boardData = await firestoreService.getDocument(boardDocRef);
+      
+      if (boardData == null || boardData['todoTemplates'] == null || (boardData['todoTemplates'] as List).isEmpty) {
+        _showError('No todo templates available for this board');
+        return;
+      }
+
+      final todoTemplates = boardData['todoTemplates'] as List;
+
+      // Show template selection dialog
+      final selectedTemplate = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select Todo Template'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: todoTemplates.length,
+              itemBuilder: (context, index) {
+                final template = todoTemplates[index];
+                return ListTile(
+                  title: Text(template['name'] ?? 'Unnamed Template'),
+                  onTap: () => Navigator.of(context).pop(template),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+
+      if (selectedTemplate != null && selectedTemplate['todos'] != null) {
+        // Apply the selected template
+        final todos = selectedTemplate['todos'] as List;
+        setState(() {
+          for (final todo in todos) {
+            // Calculate due date from dueInDays
+            DateTime? calculatedDueDate;
+            if (todo['dueInDays'] != null && todo['dueInDays'] is int) {
+              final now = DateTime.now();
+              // Set time to 00:00:00 and add the specified days
+              calculatedDueDate = DateTime(now.year, now.month, now.day).add(
+                Duration(days: todo['dueInDays'] as int),
+              );
+            }
+            
+            _todoItems.add({
+              'id': DateTime.now().millisecondsSinceEpoch.toString(),
+              'text': todo['title'] ?? '',
+              'isCompleted': false,
+              'dueDate': calculatedDueDate,
+              'duration': null,
+              'endTime': null,
+              'controller': TextEditingController(text: todo['title'] ?? ''),
+            });
+          }
+        });
+        
+        Get.snackbar(
+          'Success',
+          'Todo template applied successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      print('❌ Error showing todo templates: $e');
+      _showError('Failed to load todo templates: ${e.toString()}');
     }
   }
 
@@ -252,21 +442,39 @@ class _CreateCardPageState extends State<CreateCardPage> {
     _titleController.dispose();
     _assigneeController.dispose();
     _detailsController.dispose();
-    _commentController.dispose();
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectStartDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _expectedClosingDate ?? DateTime.now(),
+      initialDate: _startDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
     
     if (picked != null) {
       setState(() {
-        _expectedClosingDate = picked;
+        _startDate = picked;
+        // Ensure end date is not before start date
+        if (_endDate != null && _endDate!.isBefore(picked)) {
+          _endDate = null;
+        }
+      });
+    }
+  }
+
+  Future<void> _selectEndDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? _startDate ?? DateTime.now(),
+      firstDate: _startDate ?? DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _endDate = picked;
       });
     }
   }
@@ -333,14 +541,46 @@ class _CreateCardPageState extends State<CreateCardPage> {
         companyName = selectedCompany?['name'];
       }
 
+      // Prepare company data in correct format
+      Map<String, dynamic>? companyData;
+      if (_selectedCompany != 'none') {
+        final selectedCompany = _availableCompanies.firstWhereOrNull(
+          (c) => c['id'] == _selectedCompany
+        );
+        if (selectedCompany != null) {
+          companyData = {
+            'id': selectedCompany['id'],
+            'label': selectedCompany['name'],
+            'value': selectedCompany['value'] ?? selectedCompany['name'],
+          };
+        }
+      }
+
+      // Prepare todos data in correct format
+      final todosData = _todoItems.map((todo) => {
+        'id': 'todo-${todo['id']}', // Add 'todo-' prefix to match correct structure
+        'title': '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>${todo['text'] ?? ''}</em></strong></span></p>', // HTML format
+        'completed': todo['isCompleted'] ?? false,
+        'dueDate': todo['dueDate']?.millisecondsSinceEpoch,
+        'mentions': [],
+      }).toList();
+
+      // Format description as HTML
+      String htmlDescription = '';
+      if (_detailsController.text.trim().isNotEmpty) {
+        htmlDescription = '<p><strong>${_detailsController.text.trim()}</strong></p>';
+      }
+
       final card = JobCard(
         id: '', // Will be generated by Firestore
         title: _titleController.text.trim(),
-        description: _detailsController.text.trim(),
+        description: htmlDescription, // Use HTML formatted description
         assignedTo: assigneeId,
         status: _selectedStatus,
         customId: '', // Will be auto-generated with counter
-        dueDate: _expectedClosingDate,
+        dueDate: null, // Not using dueDate anymore
+        startDate: _startDate,
+        endDate: _endDate,
         badges: _selectedHashtags.map((h) => h['text'] as String).toList(),
         amount: 0.0,
         laneId: _selectedLane.isNotEmpty ? _selectedLane : '',
@@ -352,11 +592,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
         customer: customerName,
         updatedByDisplayName: assigneeDisplayName, // Use assignee display name
         customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
-        company: companyName,
+        company: companyData, // Store company as object with id, label, value
+        customerInterest: _selectedCustomerInterest,
         hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
         hashtags: _selectedHashtags,
         expenses: [],
-        todos: [],
+        todos: todosData,
         notes: [],
         collaborators: _selectedCollaborators,
         watchers: _selectedWatchers.isNotEmpty ? _selectedWatchers : [currentUserId], // Add creator as watcher if none selected
@@ -370,6 +611,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
       print('  - Title: "${card.title}"');
       print('  - Assignee ID: "${card.assignedTo}"');
       print('  - UpdatedByDisplayName: "${card.updatedByDisplayName}"');
+      print('  - Current User ID: "$currentUserId"');
+      print('  - Selected Watchers: $_selectedWatchers');
+      print('  - Card Watchers: ${card.watchers}');
+      print('  - Selected Collaborators: $_selectedCollaborators');
+      print('  - Card Collaborators: ${card.collaborators}');
       print('  - Available Users Count: ${_availableUsers.length}');
       if (_availableUsers.isNotEmpty) {
         print('  - First User Example: ${_availableUsers.first}');
@@ -425,151 +671,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
-  // Build History/Comment toggle section
-  Widget _buildHistoryCommentSection() {
-    return Container(
-      margin: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          // Toggle buttons
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _showHistory = true;
-                      });
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: _showHistory ? Colors.blue : Colors.transparent,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'History',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: _showHistory ? Colors.white : Colors.black54,
-                          fontWeight: _showHistory ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _showHistory = false;
-                      });
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: !_showHistory ? Colors.blue : Colors.transparent,
-                        borderRadius: BorderRadius.only(
-                          topRight: Radius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Comment',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: !_showHistory ? Colors.white : Colors.black54,
-                          fontWeight: !_showHistory ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Content area
-          Container(
-            height: 200,
-            width: double.infinity,
-            padding: EdgeInsets.all(16),
-            child: _showHistory ? _buildHistoryContent() : _buildCommentContent(),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildHistoryContent() {
-    return Column(
-      children: [
-        Icon(
-          Icons.history,
-          size: 48,
-          color: Colors.grey,
-        ),
-        SizedBox(height: 8),
-        Text(
-          'History',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        SizedBox(height: 4),
-        Text(
-          'การเปลี่ยนแปลงจะแสดงที่นี่',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade500,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCommentContent() {
-    return Column(
-      children: [
-        Icon(
-          Icons.comment,
-          size: 48,
-          color: Colors.grey,
-        ),
-        SizedBox(height: 8),
-        Text(
-          'Comment',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        SizedBox(height: 4),
-        Text(
-          'ความคิดเห็นจะแสดงที่นี่',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade500,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
+    
 
   @override
   Widget build(BuildContext context) {
@@ -615,49 +718,152 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
               ),
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          : Column(
                 children: [
-                  _buildJobIdSection(),
-                  const SizedBox(height: 16),
-                  _buildTitleSection(),
-                  const SizedBox(height: 16),
-                                      _buildLaneSection(),
-                  const SizedBox(height: 16),
-                  _buildHashtagSection(),
-                  const SizedBox(height: 16),
-                  _buildAssigneeSection(),
-                  const SizedBox(height: 16),
-                  _buildCustomerSection(),
-                  const SizedBox(height: 16),
-                  _buildCompanySection(),
-                  const SizedBox(height: 16),
-                  _buildExpectedClosingDateSection(),
-                  const SizedBox(height: 16),
-                  _buildStatusSection(),
-                  const SizedBox(height: 16),
-                  _buildCollaboratorsSection(),
-                  const SizedBox(height: 16),
-                  _buildWatchersSection(),
-                  const SizedBox(height: 16),
-                  _buildDetailsSection(),
-                  const SizedBox(height: 16),
-                  _buildExpenseItemsSection(),
-                  const SizedBox(height: 16),
-                  _buildTodoListSection(),
-                  const SizedBox(height: 16),
-                  _buildAttachedFilesSection(),
-                  const SizedBox(height: 16),
-                  _buildHistoryCommentSection(),
-                  const SizedBox(height: 16),
-                  _buildCommentsSection(),
-                  const SizedBox(height: 32),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Basic Information Section
+                          _buildSectionCard(
+                            title: 'Basic Information',
+                            icon: Icons.info_outline,
+                            color: Colors.blue,
+                            children: [
+                              _buildJobIdSection(),
+                              const SizedBox(height: 20),
+                              _buildTitleSection(),
+                              const SizedBox(height: 20),
+                              _buildLaneSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Assignment Section
+                          _buildSectionCard(
+                            title: 'Assignment & Tags',
+                            icon: Icons.assignment_ind,
+                            color: Colors.purple,
+                            children: [
+                              _buildHashtagSection(),
+                              const SizedBox(height: 20),
+                              _buildAssigneeSection(),
+                              const SizedBox(height: 20),
+                              _buildCollaboratorsSection(),
+                              const SizedBox(height: 20),
+                              _buildWatchersSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Customer Information Section
+                          _buildSectionCard(
+                            title: 'Customer Information',
+                            icon: Icons.business,
+                            color: Colors.green,
+                            children: [
+                              _buildCustomerSection(),
+                              const SizedBox(height: 20),
+                              _buildCompanySection(),
+                              const SizedBox(height: 20),
+                              _buildCustomerInterestSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Timeline & Status Section
+                          _buildSectionCard(
+                            title: 'Timeline & Status',
+                            icon: Icons.schedule,
+                            color: Colors.orange,
+                            children: [
+                              _buildExpectedClosingDateSection(),
+                              const SizedBox(height: 20),
+                              _buildStatusSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Content Section
+                          _buildSectionCard(
+                            title: 'Content & Tasks',
+                            icon: Icons.edit_document,
+                            color: Colors.indigo,
+                            children: [
+                              _buildDetailsSection(),
+                              const SizedBox(height: 20),
+                              _buildTodoListSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
                   _buildActionButtons(),
                 ],
               ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
             ),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -759,41 +965,99 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Hashtag',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Icon(Icons.tag, size: 18, color: Colors.purple[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Hashtags',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         InkWell(
           onTap: _openHashtagModal,
           child: Container(
             width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            constraints: const BoxConstraints(minHeight: 56),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[400]!),
-              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey[50],
             ),
             child: _selectedHashtags.isEmpty
-                ? const Text(
-                    'Tap to select hashtags...',
-                    style: TextStyle(color: Colors.grey),
+                ? Row(
+                    children: [
+                      Icon(Icons.add_circle_outline, size: 20, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Tap to select hashtags...',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   )
-                : Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _selectedHashtags.map((hashtag) {
-                      return Chip(
-                        label: Text('#${hashtag['text']}'),
-                        backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
-                        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      );
-                    }).toList(),
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 16, color: Colors.purple[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Selected (${_selectedHashtags.length})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.purple[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _selectedHashtags.map((hashtag) {
+                          return Chip(
+                            label: Text(
+                              '#${hashtag['text']}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.edit, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Tap to edit selection',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
           ),
         ),
@@ -829,9 +1093,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _assigneeController.text.isNotEmpty && _availableUsers.any((user) => user['id'] == _assigneeController.text) 
-                 ? _assigneeController.text 
-                 : null,
+          value: _getValidAssigneeValue(),
           decoration: const InputDecoration(
             hintText: 'Select an assignee',
             border: OutlineInputBorder(),
@@ -842,7 +1104,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
             return DropdownMenuItem<String>(
               value: user['id'],
               child: Text(
-                user['name'],
+                user['name'] ?? user['displayName'] ?? user['id'] ?? 'Unknown User',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 14),
               ),
@@ -875,9 +1137,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
           children: [
             Expanded(
               child: DropdownButtonFormField<String>(
-                value: _selectedCustomer.isNotEmpty && _availableCustomers.any((customer) => customer['id'] == _selectedCustomer) 
-                       ? _selectedCustomer 
-                       : null,
+                value: _getValidCustomerValue(),
                 decoration: const InputDecoration(
                   hintText: 'Select a customer',
                   border: OutlineInputBorder(),
@@ -897,7 +1157,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 onChanged: (value) {
                   setState(() {
                     _selectedCustomer = value!;
+                    _selectedCompany = 'none'; // Reset company selection
                   });
+                  // Load companies for selected customer
+                  if (value != null && value.isNotEmpty) {
+                    _loadCompaniesForCustomer(value);
+                  }
                 },
               ),
             ),
@@ -939,10 +1204,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         Row(
           children: [
             Expanded(
-                             child: DropdownButtonFormField<String>(
-                 value: _selectedCompany.isNotEmpty && _availableCompanies.any((company) => company['id'] == _selectedCompany) 
-                        ? _selectedCompany 
-                        : null,
+                                           child: DropdownButtonFormField<String>(
+                value: _getValidCompanyValue(),
                  decoration: const InputDecoration(
                    border: OutlineInputBorder(),
                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -987,12 +1250,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
-  Widget _buildExpectedClosingDateSection() {
+  Widget _buildCustomerInterestSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Expected Closing Date',
+          'Customer Interest',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -1000,29 +1263,155 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        InkWell(
-          onTap: () => _selectDate(context),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(4),
+        DropdownButtonFormField<String>(
+          value: _selectedCustomerInterest,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          isExpanded: true,
+          items: _customerInterestOptions.map((interest) {
+            return DropdownMenuItem<String>(
+              value: interest,
+              child: Text(interest),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedCustomerInterest = value!;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpectedClosingDateSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.date_range, size: 18, color: Colors.teal[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Expected Closing Date',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _expectedClosingDate != null
-                        ? '${_expectedClosingDate!.day}/${_expectedClosingDate!.month}/${_expectedClosingDate!.year}'
-                        : 'Select a date',
-                    style: TextStyle(
-                      color: _expectedClosingDate != null ? Colors.black : Colors.grey,
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => _selectStartDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _startDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(6),
+                      color: _startDate != null ? Colors.teal[50] : Colors.white,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.today,
+                              size: 16,
+                              color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Start Date',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _startDate != null
+                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                              : 'Select start date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _startDate != null ? Colors.black87 : Colors.grey[500],
+                            fontWeight: _startDate != null ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const Icon(Icons.calendar_today, color: Colors.grey),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward, size: 18, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: () => _selectEndDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _endDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(6),
+                      color: _endDate != null ? Colors.teal[50] : Colors.white,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.event,
+                              size: 16,
+                              color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'End Date',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _endDate != null
+                              ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                              : 'Select end date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _endDate != null ? Colors.black87 : Colors.grey[500],
+                            fontWeight: _endDate != null ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1033,34 +1422,74 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Status',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: _statusOptions.map((status) {
-            final isSelected = _selectedStatus == status['value'];
-            return ElevatedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _selectedStatus = status['value'];
-                });
-              },
-              icon: Icon(status['icon'], size: 16),
-              label: Text(status['label']),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isSelected ? AppTheme.primaryOrange : Colors.grey[300],
-                foregroundColor: isSelected ? Colors.white : Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        Row(
+          children: [
+            Icon(Icons.flag, size: 18, color: Colors.orange[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Status',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
-            );
-          }).toList(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
+          ),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _statusOptions.map((status) {
+              final isSelected = _selectedStatus == status['value'];
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: isSelected ? [
+                    BoxShadow(
+                      color: AppTheme.primaryOrange.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ] : null,
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedStatus = status['value'];
+                    });
+                  },
+                  icon: Icon(status['icon'], size: 16),
+                  label: Text(
+                    status['label'],
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isSelected ? AppTheme.primaryOrange : Colors.white,
+                    foregroundColor: isSelected ? Colors.white : Colors.black87,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: BorderSide(
+                        color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    elevation: isSelected ? 2 : 0,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
@@ -1070,70 +1499,165 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Collaborators',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Icon(Icons.people, size: 18, color: Colors.blue[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Collaborators',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
           ),
           child: Column(
             children: [
-              // Selected collaborators chips
-              if (_selectedCollaborators.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: _selectedCollaborators.map((userId) {
-                      final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
-                      final userName = user?['name'] ?? userId;
-                      return Chip(
-                        label: Text(userName),
-                        onDeleted: () {
-                          setState(() {
-                            _selectedCollaborators.remove(userId);
-                          });
-                        },
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                      );
-                    }).toList(),
+              // Selected collaborators section
+              if (_selectedCollaborators.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 16, color: Colors.blue[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Selected (${_selectedCollaborators.length})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: _selectedCollaborators.map((userId) {
+                          final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
+                          final displayName = user?['displayName'] ?? user?['name'] ?? userId;
+                          return Chip(
+                            label: Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            backgroundColor: Colors.blue[100],
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedCollaborators.remove(userId);
+                              });
+                            },
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
                 ),
-              // Add collaborator button
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                child: DropdownButtonFormField<String>(
-                  value: null,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Add Collaborator',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                  items: _availableUsers
-                      .where((user) => !_selectedCollaborators.contains(user['id']))
-                      .map((user) {
-                    return DropdownMenuItem<String>(
-                      value: user['id'],
-                      child: Text(user['name'] ?? user['id']),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null && !_selectedCollaborators.contains(value)) {
-                      setState(() {
-                        _selectedCollaborators.add(value);
-                      });
-                    }
-                  },
+                Divider(height: 1, color: Colors.grey[300]),
+              ],
+              
+              // Available collaborators section
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.person_add, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Available to Add',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _availableUsers.where((user) => !_selectedCollaborators.contains(user['id'])).isEmpty
+                      ? Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                              SizedBox(width: 8),
+                              Text(
+                                'All users have been selected',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: _availableUsers
+                              .where((user) => !_selectedCollaborators.contains(user['id']))
+                              .map((user) {
+                            final displayName = user['displayName'] ?? user['name'] ?? user['id'];
+                            return FilterChip(
+                              label: Text(
+                                displayName,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              selected: false,
+                              backgroundColor: Colors.white,
+                              selectedColor: Colors.blue[100],
+                              checkmarkColor: Colors.blue[700],
+                              onSelected: (selected) {
+                                if (selected && !_selectedCollaborators.contains(user['id'])) {
+                                  setState(() {
+                                    _selectedCollaborators.add(user['id']);
+                                  });
+                                }
+                              },
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            );
+                          }).toList(),
+                        ),
+                  ],
                 ),
               ),
             ],
@@ -1147,70 +1671,165 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Watchers',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Icon(Icons.visibility, size: 18, color: Colors.green[700]),
+            const SizedBox(width: 6),
+            const Text(
+              'Watchers',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
           ),
           child: Column(
             children: [
-              // Selected watchers chips
-              if (_selectedWatchers.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: _selectedWatchers.map((userId) {
-                      final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
-                      final userName = user?['name'] ?? userId;
-                      return Chip(
-                        label: Text(userName),
-                        onDeleted: () {
-                          setState(() {
-                            _selectedWatchers.remove(userId);
-                          });
-                        },
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                      );
-                    }).toList(),
+              // Selected watchers section
+              if (_selectedWatchers.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Selected (${_selectedWatchers.length})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: _selectedWatchers.map((userId) {
+                          final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
+                          final displayName = user?['displayName'] ?? user?['name'] ?? userId;
+                          return Chip(
+                            label: Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            backgroundColor: Colors.green[100],
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedWatchers.remove(userId);
+                              });
+                            },
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
                 ),
-              // Add watcher button
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                child: DropdownButtonFormField<String>(
-                  value: null,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Add Watcher',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                  items: _availableUsers
-                      .where((user) => !_selectedWatchers.contains(user['id']))
-                      .map((user) {
-                    return DropdownMenuItem<String>(
-                      value: user['id'],
-                      child: Text(user['name'] ?? user['id']),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null && !_selectedWatchers.contains(value)) {
-                      setState(() {
-                        _selectedWatchers.add(value);
-                      });
-                    }
-                  },
+                Divider(height: 1, color: Colors.grey[300]),
+              ],
+              
+              // Available watchers section
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.person_add, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Available to Add',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _availableUsers.where((user) => !_selectedWatchers.contains(user['id'])).isEmpty
+                      ? Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                              SizedBox(width: 8),
+                              Text(
+                                'All users have been selected',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: _availableUsers
+                              .where((user) => !_selectedWatchers.contains(user['id']))
+                              .map((user) {
+                            final displayName = user['displayName'] ?? user['name'] ?? user['id'];
+                            return FilterChip(
+                              label: Text(
+                                displayName,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              selected: false,
+                              backgroundColor: Colors.white,
+                              selectedColor: Colors.green[100],
+                              checkmarkColor: Colors.green[700],
+                              onSelected: (selected) {
+                                if (selected && !_selectedWatchers.contains(user['id'])) {
+                                  setState(() {
+                                    _selectedWatchers.add(user['id']);
+                                  });
+                                }
+                              },
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            );
+                          }).toList(),
+                        ),
+                  ],
                 ),
               ),
             ],
@@ -1283,75 +1902,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
-  Widget _buildExpenseItemsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Expense Items',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            ElevatedButton.icon(
-              onPressed: () {
-                // Add product functionality will be implemented later
-              },
-              icon: const Icon(Icons.shopping_cart, size: 16),
-              label: const Text('Add Product'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
-            // const SizedBox(width: 8),
-            // ElevatedButton.icon(
-            //   onPressed: () {
-            //     // Add custom functionality will be implemented later
-            //   },
-            //   icon: const Icon(Icons.add, size: 16),
-            //   label: const Text('Add Custom'),
-            //   style: ElevatedButton.styleFrom(
-            //     backgroundColor: Colors.grey[300],
-            //     foregroundColor: Colors.black87,
-            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            //     shape: RoundedRectangleBorder(
-            //       borderRadius: BorderRadius.circular(6),
-            //     ),
-            //   ),
-            // ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Row(
-            children: [
-              Expanded(child: Text('Img', style: TextStyle(fontWeight: FontWeight.bold))),
-              Expanded(child: Text('Product/Service', style: TextStyle(fontWeight: FontWeight.bold))),
-              Expanded(child: Text('Qty/Unit', style: TextStyle(fontWeight: FontWeight.bold))),
-              Expanded(child: Text('Price/Unit', style: TextStyle(fontWeight: FontWeight.bold))),
-              Expanded(child: Text('Discount', style: TextStyle(fontWeight: FontWeight.bold))),
-              Expanded(child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold))),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildTodoListSection() {
     return Column(
@@ -1369,9 +1920,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         Row(
           children: [
             ElevatedButton.icon(
-              onPressed: () {
-                // Apply template functionality will be implemented later
-              },
+              onPressed: _showTodoTemplates,
               icon: const Icon(Icons.description, size: 16),
               label: const Text('Apply Template'),
               style: ElevatedButton.styleFrom(
@@ -1429,184 +1978,83 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
-  Widget _buildAttachedFilesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Attached Files',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ElevatedButton.icon(
-          onPressed: () {
-            // Add file functionality will be implemented later
-          },
-          icon: const Icon(Icons.upload_file, size: 16),
-          label: const Text('Add File'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryOrange,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Row(
-            children: [
-              Expanded(child: Text('File Name', style: TextStyle(fontWeight: FontWeight.bold))),
-              Expanded(child: Text('Uploaded At', style: TextStyle(fontWeight: FontWeight.bold))),
-              Expanded(child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Center(
-            child: Text(
-              'No attachments uploaded yet',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildHistorySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'History',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Center(
-            child: Text(
-              'No activity for this card yet.',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildCommentsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Comments',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+
+
+  Widget _buildActionButtons() {
+    final bool canSave = !_isLoading &&
+        (MobilePermissionsService.to.isOwner ||
+         MobilePermissionsService.to.can('jobcard:create'));
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
           children: [
             Expanded(
-              child: TextField(
-                controller: _commentController,
-                decoration: const InputDecoration(
-                  hintText: 'Write a comment...',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  prefixIcon: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.grey,
-                      child: Text('b', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
+              flex: 2,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : () => Get.back(),
+                icon: const Icon(Icons.close, size: 18),
+                label: const Text('Cancel'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  side: BorderSide(color: Colors.grey[300]!),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: () {
-                // Post comment functionality will be implemented later
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 3,
+              child: ElevatedButton.icon(
+                onPressed: canSave ? _saveCard : null,
+                icon: _isLoading 
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.save, size: 18),
+                label: Text(
+                  _isLoading ? 'Saving...' : 'Save Card',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: canSave ? AppTheme.primaryOrange : Colors.grey[400],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: canSave ? 2 : 0,
+                  shadowColor: AppTheme.primaryOrange.withOpacity(0.3),
                 ),
               ),
-              child: const Text('Post'),
             ),
           ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : () => Get.back(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[300],
-              foregroundColor: Colors.black87,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text('Cancel'),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _isLoading ||
-                    !(MobilePermissionsService.to.isOwner ||
-                      MobilePermissionsService.to.can('jobcard:create'))
-                ? null
-                : _saveCard,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryOrange,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text('Save'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -1943,6 +2391,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
         children: [
           Row(
             children: [
+              // Checkbox for todo completion
+              Checkbox(
+                value: todo['isCompleted'] ?? false,
+                onChanged: (bool? value) {
+                  setState(() {
+                    todo['isCompleted'] = value ?? false;
+                  });
+                },
+                activeColor: AppTheme.primaryOrange,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              
               // Input field
               Expanded(
                 child: TextField(
@@ -1955,32 +2415,14 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   onChanged: (value) {
                     todo['text'] = value;
                   },
-                ),
-              ),
-              const SizedBox(width: 8),
-              
-              // Add button (save current todo)
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    // Add button functionality - could save or mark as added
-                    if (controller.text.trim().isNotEmpty) {
-                      // You can add any save logic here
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Todo "${controller.text.trim()}" added!'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                  padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  style: TextStyle(
+                    decoration: (todo['isCompleted'] ?? false) 
+                      ? TextDecoration.lineThrough 
+                      : TextDecoration.none,
+                    color: (todo['isCompleted'] ?? false) 
+                      ? Colors.grey[600] 
+                      : Colors.black87,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),

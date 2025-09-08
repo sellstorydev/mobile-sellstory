@@ -771,14 +771,14 @@ class FirestoreRepository {
         'userId': userId
       });
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      
+    
     return _firestoreService.getDocumentsStream(
         cardsCollection,
       queryBuilder: (query) => query
             .where('assignedTo', isEqualTo: userId),
     ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
-          final cardData = doc.data();
+          final cardData = Map<String, dynamic>.from(doc.data());
           print('📋 User assigned card hashtags data: ${cardData['hashtags']}');
           
           // Use fromMap to ensure all fields including hashtags are properly mapped
@@ -800,8 +800,44 @@ class FirestoreRepository {
       rethrow;
     }
   }
-  
-  // Create a new lane
+
+  // Get cards for a specific customer
+  Stream<List<JobCard>> getCardsForCustomerStream(String workspaceId, String customerId) {
+    try {
+      _logger.methodEntry('FirestoreRepository.getCardsForCustomerStream', {
+        'workspaceId': workspaceId,
+        'customerId': customerId
+      });
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+    
+    return _firestoreService.getDocumentsStream(
+        cardsCollection,
+      queryBuilder: (query) => query
+            .where('customerId', isEqualTo: customerId),
+    ).map((snapshot) {
+        final cards = snapshot.docs.map((doc) {
+          final cardData = doc.data();
+          print('📋 Customer card hashtags data: ${cardData['hashtags']}');
+          
+          // Use fromMap to ensure all fields including hashtags are properly mapped
+          return JobCard.fromMap(cardData, doc.id);
+      }).toList();
+      
+      // Sort cards by order after fetching
+      cards.sort((a, b) => a.order.compareTo(b.order));
+      
+        _logger.systemEvent('Customer cards loaded', {
+          'workspaceId': workspaceId,
+          'customerId': customerId,
+          'cardsCount': cards.length
+        });
+        return cards;
+      });
+    } catch (e) {
+      _logger.error('Failed to get customer cards stream', e);
+      rethrow;
+    }
+  }  // Create a new lane
   Future<String> createLane(String workspaceId, Lane lane) async {
     try {
       _logger.methodEntry('FirestoreRepository.createLane', {
@@ -935,12 +971,24 @@ class FirestoreRepository {
           customId: jobId,
         ).toMap();
 
+        // Convert updatedAt to Firestore Timestamp format to match web structure
+        if (cardData['updatedAt'] != null) {
+          final updatedAtMs = cardData['updatedAt'] as int;
+          cardData['updatedAt'] = {
+            '_seconds': (updatedAtMs / 1000).floor(),
+            '_nanoseconds': ((updatedAtMs % 1000) * 1000000).toInt(),
+          };
+        }
+
         // Debug logging for card data
         print('📝 FirestoreRepository.createCard - Debug Card Data:');
         print('  - Original card title: "${card.title}"');
+        print('  - Original card watchers: ${card.watchers}');
+        print('  - Original card collaborators: ${card.collaborators}');
         print('  - Original card updatedByDisplayName: "${card.updatedByDisplayName}"');
         print('  - Card data title: "${cardData['title']}"');
-        print('  - Card data name: "${cardData['name']}"');
+        print('  - Card data watchers: ${cardData['watchers']}');
+        print('  - Card data collaborators: ${cardData['collaborators']}');
         print('  - Card data updatedByDisplayName: "${cardData['updatedByDisplayName']}"');
         print('  - Card data keys: ${cardData.keys.toList()}');
 
@@ -1891,6 +1939,107 @@ class FirestoreRepository {
       return null;
     } catch (e) {
       _logger.error('Failed to get user view settings', e);
+      rethrow;
+    }
+  }
+
+  // Get current user's information including displayName
+  Future<Map<String, dynamic>?> getCurrentUserInfo(String userId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getCurrentUserInfo', {
+        'userId': userId,
+      });
+
+      final userRef = _firestoreService.firestore.collection('users').doc(userId);
+      final userDoc = await userRef.get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        
+        // Extract display name - prefer displayName, fallback to email
+        String displayName = '';
+        if (userData['displayName'] != null && userData['displayName'].toString().isNotEmpty) {
+          displayName = userData['displayName'].toString();
+        } else if (userData['email'] != null && userData['email'].toString().isNotEmpty) {
+          displayName = userData['email'].toString();
+        } else {
+          displayName = 'Unknown User';
+        }
+
+        final userInfo = {
+          'uid': userData['uid'] ?? userId,
+          'email': userData['email'] ?? '',
+          'displayName': displayName,
+          'photoURL': userData['photoURL'],
+        };
+        
+        _logger.methodExit('FirestoreRepository.getCurrentUserInfo', {
+          'displayName': displayName,
+        });
+        
+        return userInfo;
+      }
+
+      _logger.methodExit('FirestoreRepository.getCurrentUserInfo', {
+        'userNotFound': true,
+      });
+      
+      return null;
+    } catch (e) {
+      _logger.error('Failed to get current user info', e);
+      rethrow;
+    }
+  }
+
+  // Add note to card
+  Future<void> addNoteToCard(String workspaceId, String cardId, Map<String, dynamic> note) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.addNoteToCard', {
+        'workspaceId': workspaceId,
+        'cardId': cardId,
+        'noteId': note['id'],
+      });
+
+      final cardRef = _firestoreService.getWorkspaceCardsCollection(workspaceId).doc(cardId);
+      
+      // Add note to the notes array using arrayUnion
+      await cardRef.update({
+        'notes': FieldValue.arrayUnion([note])
+      });
+
+      print('✅ Note added to card successfully');
+      _logger.methodExit('FirestoreRepository.addNoteToCard');
+    } catch (e) {
+      print('❌ Failed to add note to card: $e');
+      _logger.error('Failed to add note to card', e);
+      rethrow;
+    }
+  }
+
+  // Get user data by ID
+  Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getUserById', {
+        'userId': userId,
+      });
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (!userDoc.exists) {
+        print('⚠️ User not found: $userId');
+        return null;
+      }
+
+      final userData = userDoc.data()!;
+      print('✅ User data retrieved: ${userData['displayName']}');
+      _logger.methodExit('FirestoreRepository.getUserById');
+      return userData;
+    } catch (e) {
+      print('❌ Failed to get user data: $e');
+      _logger.error('Failed to get user data', e);
       rethrow;
     }
   }

@@ -1,130 +1,371 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/lane.dart';
+import '../enums/lane_display_mode.dart';
+import '../controllers/lane_display_controller.dart';
+import '../utils/lane_total_calculator.dart';
 
 class LaneHeader extends StatelessWidget {
   final Lane lane;
   final VoidCallback? onMenuTap;
   final VoidCallback? onCreateCard;
+  final VoidCallback? onCloneLane; // Clone lane callback
+  final VoidCallback? onDeleteLane; // Delete lane callback
+  final List<String>? allLaneIds; // For "Apply to All Lanes" functionality
 
   const LaneHeader({
     super.key,
     required this.lane,
     this.onMenuTap,
     this.onCreateCard,
+    this.onCloneLane,
+    this.onDeleteLane,
+    this.allLaneIds,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing16,
-        vertical: AppTheme.spacing12,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.circular(
-          8,
-        ), // เอา border radius ออกให้ชนขอบจอ
-      ),
-      child: Row(
-        children: [
-          // Lane title
-          Expanded(
-            flex: 2,
-            child: Text(
-              lane.title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+    // Initialize display controller with fallback
+    LaneDisplayController displayController;
+    try {
+      displayController = Get.find<LaneDisplayController>();
+    } catch (e) {
+      // If not found, create and register it
+      displayController = Get.put(LaneDisplayController());
+    }
 
-          Container(width: 4),
+    return Obx(() {
+      final displayMode = displayController.getDisplayMode(lane.id);
+      final displayText = _getDisplayText(displayMode);
 
-          // Card count badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryOrange,
-              borderRadius: BorderRadius.circular(AppTheme.radius12),
-            ),
-            child: Text(
-              '${lane.cardCount}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          Container(width: 6),
-
-          // Total amount (pricePerUnit)
-          Expanded(
-            flex: 1,
-            child: Text(
-              '฿${_calculateTotalPricePerUnit().toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-                fontSize: 13,
-              ),
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.end,
-            ),
-          ),
-
-          Container(width: AppTheme.spacing8),
-
-          // Create card button - REMOVED as per user request
-          // if (onCreateCard != null)
-          //   GestureDetector(
-          //     onTap: onCreateCard,
-          //     child: Container(
-          //       padding: const EdgeInsets.all(AppTheme.spacing4),
-          //       decoration: BoxDecoration(
-          //         color: AppTheme.primaryOrange,
-          //         borderRadius: BorderRadius.circular(AppTheme.radius4),
-          //       ),
-          //       child: const Icon(
-          //         Icons.add,
-          //         color: Colors.white,
-          //         size: AppTheme.iconSize16,
-          //       ),
-          //     ),
-          //   ),
-          Container(width: 4),
-
-          // Menu button
-          if (onMenuTap != null)
-            GestureDetector(
-              onTap: onMenuTap,
-              child: Container(
-                padding: const EdgeInsets.all(AppTheme.spacing4),
-                decoration: BoxDecoration(
-                  color: AppTheme.backgroundGrey,
-                  borderRadius: BorderRadius.circular(AppTheme.radius4),
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing12,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9F9F9),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top row: Lane title, card count, menu
+            Row(
+              children: [
+                // Lane title
+                Expanded(
+                  child: Text(
+                    lane.title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.more_vert,
+
+                Container(width: 4),
+
+                // Card count badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange,
+                    borderRadius: BorderRadius.circular(AppTheme.radius12),
+                  ),
+                  child: Text(
+                    '${lane.cardCount}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                Container(width: AppTheme.spacing8),
+                Container(width: 4),
+
+                // Menu button
+                if (onMenuTap != null)
+                  GestureDetector(
+                    onTap: () {
+                      print('🔥 Lane menu button tapped for lane: ${lane.id}');
+                      try {
+                        _showLaneOptions(context, displayController);
+                      } catch (e) {
+                        print('❌ Error showing lane options: $e');
+                        // Fallback to original behavior if modal fails
+                        onMenuTap?.call();
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(AppTheme.spacing4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundGrey,
+                        borderRadius: BorderRadius.circular(AppTheme.radius4),
+                      ),
+                      child: const Icon(
+                        Icons.more_vert,
+                        color: AppTheme.textSecondary,
+                        size: AppTheme.iconSize16,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            // Total amount below title (if enabled)
+            if (displayMode != LaneDisplayMode.none) ...[
+              const SizedBox(height: 4),
+              Text(
+                displayText,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: AppTheme.textSecondary,
-                  size: AppTheme.iconSize16,
+                  fontSize: 11,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-        ],
-      ),
-    );
+            ],
+          ],
+        ),
+      );
+    });
   }
 
-  double _calculateTotalPricePerUnit() {
-    return lane.cards.fold(0.0, (sum, card) {
-      // Use the amount field which represents the total value
-      return sum + (card.amount);
-    });
+  String _formatCurrency(double amount) {
+    // Format with commas and 2 decimal places for single line display
+    String formatted = amount.toStringAsFixed(2);
+    
+    // Split into integer and decimal parts
+    List<String> parts = formatted.split('.');
+    String integerPart = parts[0];
+    String decimalPart = parts[1];
+    
+    // Add commas to integer part
+    String withCommas = '';
+    for (int i = 0; i < integerPart.length; i++) {
+      if (i > 0 && (integerPart.length - i) % 3 == 0) {
+        withCommas += ',';
+      }
+      withCommas += integerPart[i];
+    }
+    
+    // Return single line format since total is now below title
+    return '฿$withCommas.$decimalPart';
+  }
+
+  String _getDisplayText(LaneDisplayMode mode) {
+    if (mode == LaneDisplayMode.none) return '';
+
+    final totals = LaneTotalCalculator.calculateTotals(lane.cards);
+
+    switch (mode) {
+      case LaneDisplayMode.totalBeforeDiscount:
+        return _formatCurrency(totals.totalBeforeDiscount);
+      case LaneDisplayMode.totalAfterDiscount:
+        return _formatCurrency(totals.totalAfterDiscount);
+      case LaneDisplayMode.grandTotal:
+        return _formatCurrency(totals.grandTotal);
+      case LaneDisplayMode.netTotal:
+        return _formatCurrency(totals.netTotal);
+      case LaneDisplayMode.none:
+        return '';
+    }
+  }
+
+  void _showLaneOptions(
+    BuildContext context,
+    LaneDisplayController displayController,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      isScrollControlled: true,
+      builder: (ctx) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              final currentDisplayMode = displayController.getDisplayMode(lane.id);
+              
+              return SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Display Summary Section
+                      Text(
+                        'Display Summary',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Total (before discount)
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.totalBeforeDiscount,
+                        groupValue: currentDisplayMode,
+                        title: const Text('Total (before discount)'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      // Total (after discount)
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.totalAfterDiscount,
+                        groupValue: currentDisplayMode,
+                        title: const Text('Total (after discount)'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      // Grand Total (after VAT)
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.grandTotal,
+                        groupValue: currentDisplayMode,
+                        title: const Text('Grand Total (after VAT)'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      // Net Total (after VAT & WHT)
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.netTotal,
+                        groupValue: currentDisplayMode,
+                        title: const Text('Net Total (after VAT & WHT)'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      // None
+                      RadioListTile<LaneDisplayMode>(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: LaneDisplayMode.none,
+                        groupValue: currentDisplayMode,
+                        title: const Text('None'),
+                        onChanged: (value) {
+                          if (value != null) {
+                            displayController.setDisplayMode(lane.id, value);
+                            setState(() {});
+                          }
+                        },
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Apply to All Lanes
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.select_all,
+                          color: AppTheme.textSecondary,
+                        ),
+                        title: Text(
+                          'Apply to All Lanes',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        onTap: () {
+                          // Apply current display mode to all lanes
+                          if (allLaneIds != null) {
+                            for (String laneId in allLaneIds!) {
+                              displayController.setDisplayMode(laneId, currentDisplayMode);
+                            }
+                          }
+                          Navigator.of(context).pop();
+                        },
+                      ),
+
+                      const Divider(height: 24),
+
+                      // Duplicate Lane
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.copy_rounded,
+                          color: AppTheme.textSecondary,
+                        ),
+                        title: Text(
+                          'Duplicate Lane',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onCloneLane?.call();
+                        },
+                      ),
+
+                      // Delete Lane
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        title: const Text(
+                          'Delete Lane',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onDeleteLane?.call();
+                        },
+                      ),
+
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
   }
 }

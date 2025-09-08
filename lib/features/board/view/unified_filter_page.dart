@@ -278,31 +278,37 @@ class UnifiedFilterPage extends StatelessWidget {
                 
                 return Column(
                   children: controller.availableAssignees.map((assigneeId) {
-                    final displayName = controller.getDisplayNameFromUid(assigneeId);
                     final isSelected = controller.selectedAssignees.contains(assigneeId);
                     
-                    return CheckboxListTile(
-                      value: isSelected,
-                      onChanged: (bool? value) {
-                        controller.toggleAssigneeFilter(assigneeId);
-                      },
-                      secondary: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.orange[100],
-                        child: Text(
-                          displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                          style: TextStyle(
-                            color: Colors.orange[800],
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                    return FutureBuilder<String>(
+                      future: controller.getUserDisplayName(assigneeId),
+                      builder: (context, snapshot) {
+                        final displayName = snapshot.data ?? assigneeId;
+                        
+                        return CheckboxListTile(
+                          value: isSelected,
+                          onChanged: (bool? value) {
+                            controller.toggleAssigneeFilter(assigneeId);
+                          },
+                          secondary: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.orange[100],
+                            child: Text(
+                              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                color: Colors.orange[800],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      title: Text(displayName),
-                      subtitle: Text(_getAssigneeCardCount(controller, assigneeId)),
-                      activeColor: Colors.orange[600],
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
+                          title: Text(displayName),
+                          subtitle: Text(_getAssigneeCardCount(controller, assigneeId)),
+                          activeColor: Colors.orange[600],
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                        );
+                      },
                     );
                   }).toList(),
                 );
@@ -438,7 +444,13 @@ class UnifiedFilterPage extends StatelessWidget {
               const SizedBox(height: 12),
               
               Obx(() {
-                if (controller.availableHashtags.isEmpty) {
+                // Use computed property instead of reactive list
+                final hashtags = controller.currentAvailableHashtags;
+                
+                print('🔍 UnifiedFilterPage - currentAvailableHashtags: $hashtags');
+                print('🔍 UnifiedFilterPage - hashtags length: ${hashtags.length}');
+                
+                if (hashtags.isEmpty) {
                   return const Text(
                     'ไม่มีแฮชแท็กในระบบ',
                     style: TextStyle(color: Colors.grey),
@@ -446,7 +458,7 @@ class UnifiedFilterPage extends StatelessWidget {
                 }
                 
                 return Column(
-                  children: controller.availableHashtags.map((hashtag) {
+                  children: hashtags.map((hashtag) {
                     final isSelected = controller.selectedHashtags.contains(hashtag);
                     
                     return CheckboxListTile(
@@ -521,17 +533,46 @@ class UnifiedFilterPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               
-              // Predefined interest options
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildInterestChip(controller, 'เริ่มต้น', 'เริ่มต้น'),
-                  _buildInterestChip(controller, 'น้อย', 'น้อย (Low)'),
-                  _buildInterestChip(controller, 'กลาง', 'กลาง (Medium)'),
-                  _buildInterestChip(controller, 'มาก', 'มาก (High)'),
-                ],
-              ),
+              Obx(() {
+                final interests = controller.currentAvailableInterests;
+                
+                print('🔍 UnifiedFilterPage - currentAvailableInterests: $interests');
+                
+                if (interests.isEmpty) {
+                  return const Text(
+                    'ไม่มีข้อมูลความสนใจในระบบ',
+                    style: TextStyle(color: Colors.grey),
+                  );
+                }
+                
+                return Column(
+                  children: [
+                    // Debug info
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      margin: EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.yellow[100],
+                        border: Border.all(color: Colors.orange),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Debug: Found ${interests.length} interests: ${interests.join(", ")}',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    
+                    // Interest chips
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: interests.map((interest) =>
+                        _buildInterestChip(controller, interest, interest)
+                      ).toList(),
+                    ),
+                  ],
+                );
+              }),
             ],
           ),
         ),
@@ -656,7 +697,9 @@ class UnifiedFilterPage extends StatelessWidget {
     int count = 0;
     for (final lane in controller.lanes) {
       count += lane.cards.where((card) => 
-        (card.hashtag ?? '').toLowerCase().contains(hashtag.toLowerCase())
+        card.hashtags.any((hashtagObj) => 
+          (hashtagObj['text'] ?? '').toString().toLowerCase().contains(hashtag.toLowerCase())
+        )
       ).length;
     }
     return '$count งาน';
