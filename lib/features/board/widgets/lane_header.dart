@@ -224,7 +224,14 @@ class LaneHeader extends StatelessWidget {
                         title: const Text('Total (before discount)'),
                         onChanged: (value) {
                           if (value != null) {
-                            displayController.setDisplayMode(lane.id, value);
+                            // Apply to all lanes automatically
+                            if (allLaneIds != null) {
+                              for (String laneId in allLaneIds!) {
+                                displayController.setDisplayMode(laneId, value);
+                              }
+                            } else {
+                              displayController.setDisplayMode(lane.id, value);
+                            }
                             setState(() {});
                           }
                         },
@@ -239,7 +246,14 @@ class LaneHeader extends StatelessWidget {
                         title: const Text('Total (after discount)'),
                         onChanged: (value) {
                           if (value != null) {
-                            displayController.setDisplayMode(lane.id, value);
+                            // Apply to all lanes automatically
+                            if (allLaneIds != null) {
+                              for (String laneId in allLaneIds!) {
+                                displayController.setDisplayMode(laneId, value);
+                              }
+                            } else {
+                              displayController.setDisplayMode(lane.id, value);
+                            }
                             setState(() {});
                           }
                         },
@@ -254,7 +268,14 @@ class LaneHeader extends StatelessWidget {
                         title: const Text('Grand Total (after VAT)'),
                         onChanged: (value) {
                           if (value != null) {
-                            displayController.setDisplayMode(lane.id, value);
+                            // Apply to all lanes automatically
+                            if (allLaneIds != null) {
+                              for (String laneId in allLaneIds!) {
+                                displayController.setDisplayMode(laneId, value);
+                              }
+                            } else {
+                              displayController.setDisplayMode(lane.id, value);
+                            }
                             setState(() {});
                           }
                         },
@@ -269,7 +290,14 @@ class LaneHeader extends StatelessWidget {
                         title: const Text('Net Total (after VAT & WHT)'),
                         onChanged: (value) {
                           if (value != null) {
-                            displayController.setDisplayMode(lane.id, value);
+                            // Apply to all lanes automatically
+                            if (allLaneIds != null) {
+                              for (String laneId in allLaneIds!) {
+                                displayController.setDisplayMode(laneId, value);
+                              }
+                            } else {
+                              displayController.setDisplayMode(lane.id, value);
+                            }
                             setState(() {});
                           }
                         },
@@ -284,37 +312,16 @@ class LaneHeader extends StatelessWidget {
                         title: const Text('None'),
                         onChanged: (value) {
                           if (value != null) {
-                            displayController.setDisplayMode(lane.id, value);
+                            // Apply to all lanes automatically
+                            if (allLaneIds != null) {
+                              for (String laneId in allLaneIds!) {
+                                displayController.setDisplayMode(laneId, value);
+                              }
+                            } else {
+                              displayController.setDisplayMode(lane.id, value);
+                            }
                             setState(() {});
                           }
-                        },
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Apply to All Lanes
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.select_all,
-                          color: AppTheme.textSecondary,
-                        ),
-                        title: Text(
-                          'Apply to All Lanes',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        onTap: () {
-                          // Apply current display mode to all lanes
-                          if (allLaneIds != null) {
-                            for (String laneId in allLaneIds!) {
-                              displayController.setDisplayMode(laneId, currentDisplayMode);
-                            }
-                          }
-                          Navigator.of(context).pop();
                         },
                       ),
 
