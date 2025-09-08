@@ -176,7 +176,7 @@ class StatusSummaryCards extends StatelessWidget {
               ),
             ),
             Text(
-              '฿${_formatAmount(amount)}',
+              displayMode == LaneDisplayMode.none ? '-' : '฿${_formatAmount(amount)}',
               style: TextStyle(
                 color: color,
                 fontSize: 12,
