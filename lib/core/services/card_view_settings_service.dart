@@ -9,6 +9,7 @@ class CardViewSettingsService extends GetxService {
   final RxBool _isInitialized = false.obs;
   
   List<CardFieldSetting> get cardFields => _cardFields;
+  RxList<CardFieldSetting> get cardFieldsRx => _cardFields;
   bool get isInitialized => _isInitialized.value;
   
   // Default card field settings
