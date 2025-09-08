@@ -28,6 +28,7 @@ class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
   final CardViewSettingsService _settingsService = CardViewSettingsService.to;
   Worker? _wsWorker;
+  Worker? _settingsWorker;
   Map<String, dynamic> _fieldConfigCache = {};
   Map<String, String> _userNameCache = {};
 
@@ -44,8 +45,10 @@ class _BoardPageState extends State<BoardPage> {
 
   Future<void> _loadPerBoardFieldConfig() async {
     try {
+      print('🔧 Loading field config from CardViewSettingsService...');
       // Load from CardViewSettingsService instead of Firestore
       final fields = _settingsService.cardFields;
+      print('🔧 Found ${fields.length} fields in service');
       
       // Convert CardFieldSetting list to the expected format
       final config = <String, dynamic>{};
@@ -57,6 +60,7 @@ class _BoardPageState extends State<BoardPage> {
           'isVisible': field.isVisible,
           'style': {},
         };
+        print('🔧 Mapped field: ${field.id} -> $mappedKey (visible: ${field.isVisible}, order: ${field.order})');
       }
       
       setState(() {
@@ -64,6 +68,7 @@ class _BoardPageState extends State<BoardPage> {
       });
       
       print('🔧 Field config loaded from CardViewSettingsService: ${config.keys.length} fields');
+      print('🔧 Field config cache updated, will trigger UI rebuild');
     } catch (e) {
       print('❌ Error loading field config: $e');
       setState(() {
@@ -117,6 +122,12 @@ class _BoardPageState extends State<BoardPage> {
         _ensurePermissions(wsId);
       }
     });
+
+    // Listen to CardViewSettingsService changes
+    _settingsWorker = ever<List<CardFieldSetting>>(_settingsService.cardFieldsRx, (fields) {
+      print('🔄 Settings changed, reloading field config...');
+      _loadPerBoardFieldConfig();
+    });
   }
 
   Future<void> _ensurePermissions(String workspaceId) async {
@@ -161,6 +172,7 @@ class _BoardPageState extends State<BoardPage> {
   @override
   void dispose() {
     _wsWorker?.dispose();
+    _settingsWorker?.dispose();
     super.dispose();
   }
 
@@ -193,7 +205,7 @@ class _BoardPageState extends State<BoardPage> {
         final result = await Get.toNamed('/card-view-settings', arguments: {'boardId': _controller.currentBoardId.value});
         if (result == true) {
           // Reload field config when returning from settings
-          print('🔄 Reloading field config after settings change');
+          print('🔄 Manual reload field config after settings change');
           _loadPerBoardFieldConfig();
           setState(() {}); // Force rebuild
         }
