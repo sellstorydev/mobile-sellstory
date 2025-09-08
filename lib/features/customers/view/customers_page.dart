@@ -8,6 +8,7 @@ import 'add_edit_customer_page.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../board/widgets/workspace_app_bar.dart';
 import '../../board/controller/board_controller.dart';
+import '../../shell/shell_controller.dart';
 
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
@@ -74,7 +75,13 @@ class _CustomersPageState extends State<CustomersPage> {
                 PopupMenuButton<String>(
                   onSelected: (value) async {
                     if (value == 'company') {
-                      Get.offNamed('/companies');
+                      if (Get.isRegistered<ShellController>()) {
+                        final shell = Get.find<ShellController>();
+                        shell.setCustomersTabMode(companyMode: true);
+                        shell.onTabTapped(2);
+                      } else {
+                        Get.offNamed('/companies');
+                      }
                     }
                   },
                   itemBuilder: (context) => const [

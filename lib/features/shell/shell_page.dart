@@ -6,6 +6,7 @@ import '../../../core/constants/app_font.dart';
 import '../board/view/board_page.dart';
 import '../document/view/document_center_page.dart';
 import '../customers/view/customers_page.dart';
+import '../companies/view/company_center_page.dart';
 import '../products/view/products_page.dart';
 import '../more/view/more_page.dart';
 import 'shell_controller.dart';
@@ -20,16 +21,19 @@ class ShellPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       body: Obx(
-        () => IndexedStack(
-          index: controller.currentIndex.value,
-          children: const [
-            BoardPage(),
-            DocumentCenterPage(),
-            CustomersPage(),
-            ProductsPage(),
-            MorePage(),
-          ],
-        ),
+        () {
+          final showCompanies = controller.showCompaniesInCustomersTab.value;
+          return IndexedStack(
+            index: controller.currentIndex.value,
+            children: [
+              const BoardPage(),
+              const DocumentCenterPage(),
+              showCompanies ? const CompanyCenterPage() : const CustomersPage(),
+              const ProductsPage(),
+              const MorePage(),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: Obx(
         () => Container(

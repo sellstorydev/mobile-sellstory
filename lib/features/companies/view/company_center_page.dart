@@ -8,6 +8,7 @@ import 'add_edit_company_page.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../board/widgets/workspace_app_bar.dart';
 import '../../board/controller/board_controller.dart';
+import '../../shell/shell_controller.dart';
 
 class CompanyCenterPage extends StatefulWidget {
   const CompanyCenterPage({super.key});
@@ -72,7 +73,13 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
                 PopupMenuButton<String>(
                   onSelected: (value) async {
                     if (value == 'individual') {
-                      Get.offNamed('/customers');
+                      if (Get.isRegistered<ShellController>()) {
+                        final shell = Get.find<ShellController>();
+                        shell.setCustomersTabMode(companyMode: false);
+                        shell.onTabTapped(2);
+                      } else {
+                        Get.offNamed('/customers');
+                      }
                     }
                   },
                   itemBuilder: (context) => const [
@@ -110,7 +117,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
         permission: 'company:view:all',
         fallback: const Center(
           child: Text(
-            'คุณไม่มีสิทธิ์ดูรายชื่อบริษัท',
+            'คุณไม่มีสิทธิ์ดูรายชื่อบ���ิษัท',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
         ),
@@ -210,7 +217,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const TextSpan(text: ' บริษัท'),
+                  const TextSpan(text: ' บ��ิษัท'),
                 ],
               ),
             );
