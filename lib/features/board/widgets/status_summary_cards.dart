@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../domain/entities/job_card.dart';
 import '../enums/lane_display_mode.dart';
 import '../utils/lane_total_calculator.dart';
@@ -190,15 +191,11 @@ class StatusSummaryCards extends StatelessWidget {
   }
 
   String _formatAmount(double amount) {
-    if (amount >= 1000000000) {
-      return '${(amount / 1000000000).toStringAsFixed(1)}B';
-    } else if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}K';
-    } else {
-      return amount.toStringAsFixed(0);
-    }
+    // Format as full number with commas
+    if (amount == 0) return '0';
+    
+    final formatter = NumberFormat('#,##0', 'en_US');
+    return formatter.format(amount.round());
   }
 
   double _calculateAmountByStatus(String status) {
