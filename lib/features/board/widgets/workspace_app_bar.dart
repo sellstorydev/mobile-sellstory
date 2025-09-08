@@ -32,6 +32,28 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
     Get.toNamed('/create-workspace');
   }
 
+  Future<List<Map<String, dynamic>>> _getBoardsForWorkspace(String workspaceId) async {
+    final ctrl = controller!;
+    try {
+      // หา workspace จาก availableWorkspaces
+      final workspace = ctrl.availableWorkspaces.firstWhereOrNull(
+        (w) => w['id'] == workspaceId,
+      );
+      
+      if (workspace == null) return [];
+      
+      // ใช้ข้อมูลจาก workspace ที่มีอยู่แล้ว หรือโหลดแบบง่าย
+      // สำหรับตอนนี้ให้ return empty list และจะใช้การโหลดจริงภายหลัง
+      await Future.delayed(const Duration(milliseconds: 500)); // simulate loading
+      
+      // ถ้ามี boards ใน workspace นี้ (จำลองข้อมูล)
+      // ในการใช้งานจริงจะต้องเรียก API หรือ method ที่เหมาะสม
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   void _defaultOnMenuAction(String value, BuildContext context) {
     final ctrl = controller!;
     switch (value) {
@@ -260,59 +282,204 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    ...ctrl.availableWorkspaces.where((workspace) => 
-                      workspace['id'] != ctrl.currentWorkspaceId.value
-                    ).map((workspace) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () async {
-                              Navigator.of(context).pop();
-                              await ctrl.switchWorkspace(workspace['id'] as String);
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.grey[300]!,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
+                    StatefulBuilder(
+                      builder: (context, setState) {
+                        Map<String, bool> expandedStates = {};
+                        
+                        return Column(
+                          children: ctrl.availableWorkspaces.where((workspace) => 
+                            workspace['id'] != ctrl.currentWorkspaceId.value
+                          ).map((workspace) {
+                            final workspaceId = workspace['id'] as String;
+                            final isExpanded = expandedStates[workspaceId] ?? false;
+                            
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: Column(
                                 children: [
-                                  Icon(
-                                    Icons.business,
-                                    color: Colors.grey[600],
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      workspace['name'] as String,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.black87,
+                                  // Workspace header
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          expandedStates[workspaceId] = !isExpanded;
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[50],
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Colors.grey[300]!,
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.business,
+                                              color: Colors.grey[600],
+                                              size: 24,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                workspace['name'] as String,
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                            ),
+                                            Icon(
+                                              isExpanded ? Icons.expand_less : Icons.expand_more,
+                                              color: Colors.grey[400],
+                                              size: 20,
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: Colors.grey[400],
-                                    size: 16,
-                                  ),
+                                  // Expanded boards section
+                                  if (isExpanded) ...[
+                                    const SizedBox(height: 8),
+                                    FutureBuilder<List<Map<String, dynamic>>>(
+                                      future: _getBoardsForWorkspace(workspaceId),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState == ConnectionState.waiting) {
+                                          return Container(
+                                            padding: const EdgeInsets.all(16),
+                                            child: const Center(
+                                              child: SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        
+                                        final boards = snapshot.data ?? [];
+                                        if (boards.isEmpty) {
+                                          // No boards - show add board button
+                                          return Container(
+                                            margin: const EdgeInsets.only(left: 16),
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () async {
+                                                  Navigator.of(context).pop();
+                                                  await ctrl.switchWorkspace(workspaceId);
+                                                  Get.toNamed('/board-management');
+                                                },
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(12),
+                                                  decoration: BoxDecoration(
+                                                    color: AppTheme.primaryOrange.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    border: Border.all(
+                                                      color: AppTheme.primaryOrange.withOpacity(0.3),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.add,
+                                                        color: AppTheme.primaryOrange,
+                                                        size: 20,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      const Text(
+                                                        'เพิ่ม Board',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: AppTheme.primaryOrange,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        
+                                        // Show boards
+                                        return Container(
+                                          margin: const EdgeInsets.only(left: 16),
+                                          child: Column(
+                                            children: boards.map((board) {
+                                              return Container(
+                                                margin: const EdgeInsets.only(bottom: 4),
+                                                child: Material(
+                                                  color: Colors.transparent,
+                                                  child: InkWell(
+                                                    onTap: () async {
+                                                      Navigator.of(context).pop();
+                                                      await ctrl.switchWorkspace(workspaceId);
+                                                      await ctrl.switchBoard(board['id'] as String);
+                                                    },
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.all(12),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius: BorderRadius.circular(8),
+                                                        border: Border.all(
+                                                          color: Colors.grey[200]!,
+                                                          width: 1,
+                                                        ),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.dashboard,
+                                                            color: Colors.grey[500],
+                                                            size: 18,
+                                                          ),
+                                                          const SizedBox(width: 8),
+                                                          Expanded(
+                                                            child: Text(
+                                                              board['name'] as String,
+                                                              style: const TextStyle(
+                                                                fontSize: 14,
+                                                                fontWeight: FontWeight.w400,
+                                                                color: Colors.black87,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          Icon(
+                                                            Icons.arrow_forward_ios,
+                                                            color: Colors.grey[300],
+                                                            size: 12,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ],
                               ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 24),
                   ] else ...[
                     // Show message when only one workspace
