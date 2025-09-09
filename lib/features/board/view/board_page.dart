@@ -118,14 +118,19 @@ class _BoardPageState extends State<BoardPage> {
     // Listen to card field settings changes
     _settingsService.cardFieldsRx.listen((fields) {
       print('🔔 Card fields changed in service, reloading field config');
+      print('🔔 Listener triggered with ${fields.length} fields');
       print('🔔 New fields from service:');
       for (var field in fields) {
         print('   ${field.name}: visible=${field.isVisible}, order=${field.order}');
       }
       if (mounted) {
         Future.microtask(() async {
+          print('🔔 Executing field config reload...');
           await _loadPerBoardFieldConfig();
-          if (mounted) setState(() {});
+          if (mounted) {
+            print('🔔 Triggering UI rebuild...');
+            setState(() {});
+          }
         });
       }
     });

@@ -64,6 +64,13 @@ class CardViewSettingsService extends GetxService {
     }
   }
 
+  /// Public method to refresh settings from local storage
+  Future<void> refreshSettings() async {
+    print('🔄 CardViewSettingsService: Manual refresh triggered');
+    await _initializeSettings();
+    print('🔄 CardViewSettingsService: Manual refresh completed');
+  }
+
   Future<void> _loadSettingsFromLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -150,7 +157,8 @@ class CardViewSettingsService extends GetxService {
       print('   Updating: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
     }
     
-    _cardFields.value = List.from(updatedFields);
+    // Use assignAll to properly trigger RxList listeners
+    _cardFields.assignAll(updatedFields);
     await _saveSettingsToLocal();
     
     print('🔄 Updated ${updatedFields.length} card field settings');
@@ -158,6 +166,7 @@ class CardViewSettingsService extends GetxService {
     for (var field in _cardFields) {
       print('   Service field: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
     }
+    print('🔄 RxList listeners should be triggered now');
   }
 
   // Reorder fields

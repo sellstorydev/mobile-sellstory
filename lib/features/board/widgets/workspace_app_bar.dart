@@ -5,6 +5,7 @@ import '../controller/board_controller.dart';
 import '../../notifications/widgets/notifications_bell_button.dart';
 import '../../chat/widgets/chat_unread_button.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/services/card_view_settings_service.dart';
 
 /// Reusable AppBar matching the Board design (logo + workspace/board + actions)
 class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -357,9 +358,23 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.of(context).pop();
+                          print('🔄 Manual refresh triggered from workspace app bar');
+                          
+                          // Force reload field configuration from CardViewSettingsService
+                          try {
+                            final settingsService = Get.find<CardViewSettingsService>();
+                            await settingsService.refreshSettings();
+                            print('🔄 CardViewSettingsService refreshed');
+                          } catch (e) {
+                            print('🔄 Error refreshing CardViewSettingsService: $e');
+                          }
+                          
+                          // Then refresh the board
                           ctrl.refresh();
+                          
+                          print('🔄 Manual refresh completed');
                         },
                         icon: const Icon(Icons.refresh, size: 20),
                         label: const Text('รีเฟรช'),
