@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:sellstory/features/document/view/quotations_list_page.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/customer.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/id_generation_service.dart';
+import 'quotations_list_controller.dart';
+import 'invoice_list_controller.dart';
+import 'receipt_list_controller.dart';
 
 class AddEditDocumentController extends GetxController {
   final String? documentId;
+  final String documentType; // 'QT', 'INV', or 'RT'
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
 
   // Loading state
@@ -226,7 +229,10 @@ class AddEditDocumentController extends GetxController {
   final Map<String, Map<String, TextEditingController>> _productControllers =
       {};
 
-  AddEditDocumentController({this.documentId});
+  AddEditDocumentController({
+    this.documentId,
+    this.documentType = 'QT', // Default to quotation for backward compatibility
+  });
 
   @override
   void onInit() {
@@ -2389,8 +2395,21 @@ class AddEditDocumentController extends GetxController {
       if (documentId == null) {
         try {
           final idService = Get.find<IdGenerationService>();
-          docNo = await idService.generateDocumentDocNo(_currentWorkspaceId!, "quotation");
-          print('📝 Generated quotation document number: $docNo');
+          // Use appropriate document type for ID generation
+          String idType = 'quotation'; // default
+          switch (documentType) {
+            case 'QT':
+              idType = 'quotation';
+              break;
+            case 'INV':
+              idType = 'invoice';
+              break;
+            case 'RT':
+              idType = 'receipt';
+              break;
+          }
+          docNo = await idService.generateDocumentDocNo(_currentWorkspaceId!, idType);
+          print('📝 Generated $idType document number: $docNo');
         } catch (e) {
           print('❌ Failed to generate document number: $e');
         }
@@ -2566,7 +2585,7 @@ class AddEditDocumentController extends GetxController {
         'docNo': documentId != null 
             ? (_currentDocNo ?? 'EST-ERROR-${DateTime.now().millisecondsSinceEpoch}') 
             : (docNo ?? 'EST-ERROR-${DateTime.now().millisecondsSinceEpoch}'),
-        'type': 'QT',
+        'type': documentType,
         'workspaceId': _currentWorkspaceId!,
         'createdAt': documentId != null ? (_originalCreatedAt ?? DateTime.now().millisecondsSinceEpoch) : DateTime.now().millisecondsSinceEpoch,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
@@ -2605,11 +2624,27 @@ class AddEditDocumentController extends GetxController {
 
              // Show success notification with document ID
        final documentNumber = documentId != null 
-           ? (_currentDocNo ?? 'EST-ERROR') 
-           : (docNo ?? 'EST-ERROR');
+           ? (_currentDocNo ?? 'ERROR') 
+           : (docNo ?? 'ERROR');
+       
+       String documentTypeName = '';
+       switch (documentType) {
+         case 'QT':
+           documentTypeName = 'ใบเสนอราคา';
+           break;
+         case 'INV':
+           documentTypeName = 'ใบแจ้งหนี้';
+           break;
+         case 'RT':
+           documentTypeName = 'ใบเสร็จรับเงิน';
+           break;
+         default:
+           documentTypeName = 'เอกสาร';
+       }
+       
        final successMessage = documentId != null
-           ? 'อัปเดตใบเสนอราคาเรียบร้อย - เลขที่: $documentNumber'
-           : 'สร้างใบเสนอราคาเรียบร้อย - เลขที่: $documentNumber';
+           ? 'อัปเดต$documentTypeNameเรียบร้อย - เลขที่: $documentNumber'
+           : 'สร้าง$documentTypeNameเรียบร้อย - เลขที่: $documentNumber';
        
        Get.snackbar(
          'สำเร็จ',
@@ -2620,18 +2655,55 @@ class AddEditDocumentController extends GetxController {
          snackPosition: SnackPosition.TOP,
        );
 
-       // Navigate back to document list page
-       Get.off(() => const QuotationsListPage());
+       // Navigate back and refresh the appropriate list
+       Get.back(); // Go back to previous page
+       
+       // Trigger refresh on the appropriate list controller
+       _refreshListController();
     } catch (e) {
       print('❌ Failed to save document: $e');
       Get.snackbar(
         'ข้อผิดพลาด',
-        'ไม่สามารถบันทึกใบเสนอราคาได้: $e',
+        'ไม่สามารถบันทึก${_getDocumentTypeName()}ได้: $e',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
     } finally {
       _setLoading(false);
+    }
+  }
+  
+  String _getDocumentTypeName() {
+    switch (documentType) {
+      case 'QT':
+        return 'ใบเสนอราคา';
+      case 'INV':
+        return 'ใบแจ้งหนี้';
+      case 'RT':
+        return 'ใบเสร็จรับเงิน';
+      default:
+        return 'เอกสาร';
+    }
+  }
+  
+  void _refreshListController() {
+    try {
+      switch (documentType) {
+        case 'QT':
+          final controller = Get.find<QuotationsListController>();
+          controller.refreshData();
+          break;
+        case 'INV':
+          final controller = Get.find<InvoiceListController>();
+          controller.refreshData();
+          break;
+        case 'RT':
+          final controller = Get.find<ReceiptListController>();
+          controller.refreshData();
+          break;
+      }
+    } catch (e) {
+      print('⚠️ Could not find list controller to refresh: $e');
     }
   }
 }

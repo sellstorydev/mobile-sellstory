@@ -35,7 +35,10 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   void initState() {
     super.initState();
     // Initialize controller once in initState to prevent recreation on rebuilds
-    _controller = AddEditDocumentController(documentId: widget.documentId);
+    _controller = AddEditDocumentController(
+      documentId: widget.documentId,
+      documentType: widget.documentType,
+    );
   }
 
     @override
@@ -1317,7 +1320,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             ),
             const SizedBox(height: 16),
             ...controller.templateSignatureFields.where((signatureField) => 
-              signatureField != null && 
               signatureField['signatureRoleName'] != null
             ).map((signatureField) {
               final roleName = signatureField['signatureRoleName']?.toString() ?? '';
@@ -1345,7 +1347,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                           child: Text('เลือกลายเซ็น'),
                         ),
                         ...controller.availableSignatures.where((signature) => 
-                          signature != null && 
                           signature['id'] != null
                         ).map((signature) {
                           return DropdownMenuItem<String>(
@@ -1506,7 +1507,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                               child: Text('เลือกตรายางบริษัท'),
                             ),
                             ...controller.availableCompanySeals.where((seal) => 
-                              seal != null && 
                               seal['id'] != null
                             ).map((seal) {
                               return DropdownMenuItem<String>(
@@ -2057,28 +2057,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     );
   }
 
-  Widget _buildRadioButton({
-    required String label,
-    required String value,
-    required String? groupValue,
-    required Function(String?) onChanged,
-  }) {
-    return Row(
-      children: [
-        Radio<String>(
-          value: value,
-          groupValue: groupValue,
-          onChanged: onChanged,
-          activeColor: AppTheme.primaryOrange,
-        ),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
-        ),
-      ],
-    );
-  }
-
   Widget _buildMultiSelectField({
     required String label,
     required String hint,
@@ -2226,93 +2204,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
       ),
     );
   }
-
-     // Helper method to get status display name
-   String _getStatusDisplayName(String status) {
-     switch (status) {
-       // Quotation statuses
-       case 'DRAFT':
-         return 'ร่าง (Draft)';
-       case 'SENT':
-         return 'ส่งแล้ว (Sent)';
-       case 'PENDING_APPROVAL':
-         return 'รอการอนุมัติ (Pending Approval)';
-       case 'APPROVED':
-         return 'อนุมัติแล้ว (Approved)';
-       case 'REJECTED':
-         return 'ปฏิเสธ (Rejected)';
-       case 'VOID':
-         return 'ยกเลิก (Void)';
-       case 'INVOICED':
-         return 'ออกใบแจ้งหนี้แล้ว (Invoiced)';
-       case 'FULLY_PAID':
-         return 'ชำระเงินครบแล้ว (Fully Paid)';
-       // Invoice statuses
-       case 'PARTIAL_PAID':
-         return 'ชำระบางส่วน (Partial Paid)';
-       case 'PAID':
-         return 'ชำระแล้ว (Paid)';
-       case 'OVERDUE':
-         return 'เกินกำหนด (Overdue)';
-       default:
-         return 'ร่าง (Draft)';
-     }
-   }
-
-   // Build document status section
-   Widget _buildDocumentStatusSection(AddEditDocumentController controller) {
-     return Container(
-       padding: const EdgeInsets.all(16),
-       decoration: BoxDecoration(
-         color: AppTheme.backgroundWhite,
-         borderRadius: BorderRadius.circular(12),
-         border: Border.all(color: AppTheme.primaryOrange),
-       ),
-       child: Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           Text(
-             'สถานะเอกสาร',
-             style: const TextStyle(
-               fontSize: 16,
-               fontWeight: FontWeight.w600,
-               color: AppTheme.textPrimary,
-             ),
-           ),
-           const SizedBox(height: 12),
-           DropdownButtonFormField<String>(
-             value: controller.documentStatus,
-             items: controller.availableStatuses.map((status) {
-               return DropdownMenuItem(
-                 value: status,
-                 child: Text(_getStatusDisplayName(status)),
-               );
-             }).toList(),
-             onChanged: controller.onDocumentStatusChanged,
-             decoration: InputDecoration(
-               hintText: 'เลือกสถานะเอกสาร',
-               border: OutlineInputBorder(
-                 borderRadius: BorderRadius.circular(8),
-                 borderSide: const BorderSide(color: AppTheme.borderGrey),
-               ),
-               enabledBorder: OutlineInputBorder(
-                 borderRadius: BorderRadius.circular(8),
-                 borderSide: const BorderSide(color: AppTheme.borderGrey),
-               ),
-               focusedBorder: OutlineInputBorder(
-                 borderRadius: BorderRadius.circular(8),
-                 borderSide: const BorderSide(color: AppTheme.primaryOrange),
-               ),
-               contentPadding: const EdgeInsets.symmetric(
-                 horizontal: 12,
-                 vertical: 12,
-               ),
-             ),
-           ),
-         ],
-       ),
-     );
-   }
 
        void _showProductSelectionDialog(AddEditDocumentController controller) {
      // Use real product data from controller

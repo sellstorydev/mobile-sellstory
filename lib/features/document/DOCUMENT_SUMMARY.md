@@ -2,6 +2,27 @@
 
 ## Current Implementation Status
 
+### List Refresh Implementation (Completed - September 8, 2025)
+- **Problem Solved**: Fixed issue where data is updated but list views aren't refreshed
+- **Root Cause**: List pages were using `Get.off()` creating new controller instances without refreshing existing data
+- **Key Changes Made**:
+  - Updated all three list pages (Quotations, Invoices, Receipts) from StatelessWidget to StatefulWidget 
+  - Added WidgetsBindingObserver for app lifecycle management
+  - Implemented pull-to-refresh functionality with RefreshIndicator using AppTheme.primaryOrange
+  - Added automatic refresh when app returns to foreground via didChangeAppLifecycleState
+  - Updated AddEditDocumentController to handle different document types (QT, INV, RT)
+  - Fixed document type handling in ID generation (quotation, invoice, receipt types)
+  - Changed navigation from Get.off() to Get.back() to preserve existing controller instances
+  - Added _refreshListController() method to automatically refresh appropriate list after saving
+  - Updated success messages to display correct document type names in Thai language
+  - Removed unused imports and methods to clean up code
+- **Technical Implementation**:
+  - Each list page now implements didChangeAppLifecycleState(AppLifecycleState.resumed)
+  - RefreshIndicator wraps the NotificationListener for scroll-based pagination
+  - Controller refresh is triggered immediately after successful document save
+  - Document type passed from page to controller for proper handling
+- **User Experience**: Users now see updated data immediately after creating/editing documents, and can pull-to-refresh or get automatic updates when returning to the app
+
 ### Pagination System (Completed - September 8, 2025)
 - Implemented efficient infinite scroll pagination for all document lists
 - Added FirestoreRepository.getDocumentsPaginated() with cursor-based pagination

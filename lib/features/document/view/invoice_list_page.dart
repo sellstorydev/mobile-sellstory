@@ -2,17 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
-import '../../../core/widgets/assignees_input_field.dart';
 import '../controller/invoice_list_controller.dart';
 import 'invoice_filter_page.dart';
 import 'add_edit_document_page.dart';
 
-class InvoiceListPage extends StatelessWidget {
+class InvoiceListPage extends StatefulWidget {
   const InvoiceListPage({super.key});
 
   @override
+  State<InvoiceListPage> createState() => _InvoiceListPageState();
+}
+
+class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingObserver {
+  late InvoiceListController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(InvoiceListController());
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh data when app comes back to foreground
+      controller.refreshData();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(InvoiceListController());
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -237,29 +263,35 @@ class InvoiceListPage extends StatelessWidget {
       return _buildEmptyState(controller);
     }
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (ScrollNotification scrollInfo) {
-        // Check if we're near the bottom and should load more
-        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
-          controller.loadMoreInvoices();
-        }
-        return false;
+    return RefreshIndicator(
+      onRefresh: () async {
+        await controller.refreshData();
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacing16,
-          vertical: AppTheme.spacing8,
-        ),
-        itemCount: controller.invoices.length + (controller.hasMore.value ? 1 : 0),
-        itemBuilder: (context, index) {
-          // Show loading indicator at the bottom when loading more
-          if (index == controller.invoices.length) {
-            return _buildLoadingMoreIndicator(controller);
+      color: AppTheme.primaryOrange,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification scrollInfo) {
+          // Check if we're near the bottom and should load more
+          if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+            controller.loadMoreInvoices();
           }
-          
-          final invoice = controller.invoices[index];
-          return _buildInvoiceCard(invoice, controller);
+          return false;
         },
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing16,
+            vertical: AppTheme.spacing8,
+          ),
+          itemCount: controller.invoices.length + (controller.hasMore.value ? 1 : 0),
+          itemBuilder: (context, index) {
+            // Show loading indicator at the bottom when loading more
+            if (index == controller.invoices.length) {
+              return _buildLoadingMoreIndicator(controller);
+            }
+            
+            final invoice = controller.invoices[index];
+            return _buildInvoiceCard(invoice, controller);
+          },
+        ),
       ),
     );
   }
@@ -446,76 +478,6 @@ class InvoiceListPage extends StatelessWidget {
           fontFamily: AppFont.family,
           fontWeight: FontWeight.w600,
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(String status) {
-    Color color;
-    String text;
-    IconData icon;
-
-    switch (status) {
-      case 'DRAFT':
-        color = AppTheme.textSecondary;
-        text = 'ร่าง';
-        icon = Icons.edit_outlined;
-        break;
-      case 'SENT':
-        color = const Color(0xFF2196F3);
-        text = 'ส่งแล้ว';
-        icon = Icons.send;
-        break;
-      case 'PARTIAL_PAID':
-        color = const Color(0xFFFF9800);
-        text = 'ชำระบางส่วน';
-        icon = Icons.payment;
-        break;
-      case 'PAID':
-        color = const Color(0xFF4CAF50);
-        text = 'ชำระแล้ว';
-        icon = Icons.check_circle;
-        break;
-      case 'OVERDUE':
-        color = const Color(0xFFF44336);
-        text = 'เกินกำหนด';
-        icon = Icons.warning;
-        break;
-      case 'VOID':
-        color = AppTheme.textSecondary;
-        text = 'ยกเลิก';
-        icon = Icons.block;
-        break;
-      default:
-        color = AppTheme.textSecondary;
-        text = status;
-        icon = Icons.info;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing8,
-        vertical: AppTheme.spacing8,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppTheme.spacing16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: AppTheme.iconSize12, color: color),
-          const SizedBox(width: AppTheme.spacing4),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: AppTheme.fontSize10,
-              fontFamily: AppFont.family,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

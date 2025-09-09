@@ -5,12 +5,39 @@ import '../../../core/constants/app_font.dart';
 import '../controller/quotations_list_controller.dart';
 import 'quotations_filter_page.dart';
 
-class QuotationsListPage extends StatelessWidget {
+class QuotationsListPage extends StatefulWidget {
   const QuotationsListPage({super.key});
 
   @override
+  State<QuotationsListPage> createState() => _QuotationsListPageState();
+}
+
+class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBindingObserver {
+  late QuotationsListController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(QuotationsListController());
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh data when app comes back to foreground
+      controller.refreshData();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(QuotationsListController());
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -235,29 +262,35 @@ class QuotationsListPage extends StatelessWidget {
       return _buildEmptyState(controller);
     }
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (ScrollNotification scrollInfo) {
-        // Check if we're near the bottom and should load more
-        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
-          controller.loadMoreQuotations();
-        }
-        return false;
+    return RefreshIndicator(
+      onRefresh: () async {
+        await controller.refreshData();
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacing16,
-          vertical: AppTheme.spacing8,
-        ),
-        itemCount: controller.quotations.length + (controller.hasMore.value ? 1 : 0),
-        itemBuilder: (context, index) {
-          // Show loading indicator at the bottom when loading more
-          if (index == controller.quotations.length) {
-            return _buildLoadingMoreIndicator(controller);
+      color: AppTheme.primaryOrange,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification scrollInfo) {
+          // Check if we're near the bottom and should load more
+          if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+            controller.loadMoreQuotations();
           }
-          
-          final quotation = controller.quotations[index];
-          return _buildQuotationCard(quotation, controller);
+          return false;
         },
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing16,
+            vertical: AppTheme.spacing8,
+          ),
+          itemCount: controller.quotations.length + (controller.hasMore.value ? 1 : 0),
+          itemBuilder: (context, index) {
+            // Show loading indicator at the bottom when loading more
+            if (index == controller.quotations.length) {
+              return _buildLoadingMoreIndicator(controller);
+            }
+            
+            final quotation = controller.quotations[index];
+            return _buildQuotationCard(quotation, controller);
+          },
+        ),
       ),
     );
   }
@@ -556,7 +589,7 @@ class QuotationsListPage extends StatelessWidget {
     final status = quotation['status'] ?? '';
     
     // Only show context menu for SENT quotations
-    if (status != 'SENT') {
+    if (status != 'APPROVED') {
       return;
     }
 
@@ -613,7 +646,7 @@ class QuotationsListPage extends StatelessWidget {
                 ),
               ),
               title: Text(
-                'แก้ไขเป็นใบแจ้งหนี้',
+                'สร้างใบแจ้งหนี้',
                 style: TextStyle(
                   fontSize: AppTheme.fontSize16,
                   fontWeight: FontWeight.w500,
