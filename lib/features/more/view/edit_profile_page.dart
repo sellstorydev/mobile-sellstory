@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/theme/app_theme.dart';
-import '../../../data/services/firebase_auth_service.dart';
+import '../../board/controller/board_controller.dart';
+import '../../../data/repositories/firestore_repository.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -17,25 +18,28 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   final _displayNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _phoneNumberController = TextEditingController();
+  final _documentDisplayNameController = TextEditingController();
+  final _documentPhoneNumberController = TextEditingController();
   
   // final FirebaseAuthService _authService = Get.find<FirebaseAuthService>();
   final ImagePicker _imagePicker = ImagePicker();
   
   bool _isLoading = false;
-  bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-  bool _showPasswordFields = false;
   
   User? _currentUser;
   File? _selectedImageFile;
   String? _currentPhotoURL;
+  
+  // Workspace info
+  String? _currentWorkspaceName;
+  String? _currentWorkspaceRole;
 
   @override
   void initState() {
     super.initState();
     _initializeUserData();
+    _loadWorkspaceInfo();
   }
 
   void _initializeUserData() {
@@ -47,12 +51,49 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  Future<void> _loadWorkspaceInfo() async {
+    try {
+      final boardController = Get.find<BoardController>();
+      final firestoreRepo = Get.find<FirestoreRepository>();
+      
+      // Get current workspace name from BoardController
+      if (boardController.currentWorkspaceId.value.isNotEmpty) {
+        _currentWorkspaceName = boardController.currentWorkspaceName.value;
+        
+        // Get user role from Firestore
+        final userId = _currentUser?.uid;
+        if (userId != null) {
+          final userData = await firestoreRepo.getUserById(userId);
+          if (userData != null) {
+            final workspaces = userData['workspaces'] as List<dynamic>?;
+            
+            if (workspaces != null) {
+              for (final workspace in workspaces) {
+                if (workspace['id'] == boardController.currentWorkspaceId.value) {
+                  _currentWorkspaceRole = workspace['role'];
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print('Error loading workspace info: $e');
+    }
+  }
+
   @override
   void dispose() {
     _displayNameController.dispose();
     _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _phoneNumberController.dispose();
+    _documentDisplayNameController.dispose();
+    _documentPhoneNumberController.dispose();
     super.dispose();
   }
 
@@ -151,14 +192,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         await currentUser.verifyBeforeUpdateEmail(_emailController.text.trim());
       }
 
-      // Update password if provided
-      if (_passwordController.text.isNotEmpty) {
-        if (_passwordController.text != _confirmPasswordController.text) {
-          throw Exception('Passwords do not match');
-        }
-        await currentUser.updatePassword(_passwordController.text);
-      }
-
       // Update photo URL if image selected
       if (_selectedImageFile != null) {
         // TODO: Implement image upload to Firebase Storage
@@ -179,13 +212,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           colorText: Colors.white,
         );
       }
-
-      // Clear password fields
-      _passwordController.clear();
-      _confirmPasswordController.clear();
-      setState(() {
-        _showPasswordFields = false;
-      });
 
       // Navigate back
       Get.back();
@@ -335,20 +361,45 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           const SizedBox(height: 16),
                           
                           // Display Name
-                          TextFormField(
-                            controller: _displayNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'ชื่อที่แสดง',
-                              hintText: 'ใส่ชื่อที่ต้องการแสดง',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.person_outline),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'กรุณาใส่ชื่อที่แสดง';
-                              }
-                              return null;
-                            },
+                          Column(
+                            children: [
+                              TextFormField(
+                                controller: _displayNameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'ชื่อที่แสดง',
+                                  hintText: 'ใส่ชื่อที่ต้องการแสดง',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.person_outline),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'กรุณาใส่ชื่อที่แสดง';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              
+                              const SizedBox(height: 20),
+                              
+                              TextFormField(
+                                controller: _phoneNumberController,
+                                decoration: const InputDecoration(
+                                  labelText: 'เบอร์โทรศัพท์',
+                                  hintText: 'ใส่เบอร์โทรศัพท์',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.phone_outlined),
+                                ),
+                                keyboardType: TextInputType.phone,
+                                validator: (value) {
+                                  if (value != null && value.isNotEmpty) {
+                                    if (!RegExp(r'^[0-9+\-\s()]+$').hasMatch(value)) {
+                                      return 'กรุณาใส่เบอร์โทรที่ถูกต้อง';
+                                    }
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
                           ),
                           
                           const SizedBox(height: 16),
@@ -379,7 +430,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     
                     const SizedBox(height: 24),
                     
-                    // Password Section
+                    // Document Information Section
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -392,98 +443,67 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         children: [
                           Row(
                             children: [
+                              Icon(Icons.description_outlined, color: AppTheme.primaryOrange),
+                              const SizedBox(width: 8),
                               const Text(
-                                'เปลี่ยนรหัสผ่าน',
+                                'ข้อมูลสำหรับเอกสาร',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.textPrimary,
                                 ),
                               ),
-                              const Spacer(),
-                                                             Switch(
-                                 value: _showPasswordFields,
-                                 onChanged: (value) {
-                                   setState(() {
-                                     _showPasswordFields = value;
-                                     if (!value) {
-                                       _passwordController.clear();
-                                       _confirmPasswordController.clear();
-                                     }
-                                   });
-                                 },
-                                 // activeThumbColor: AppTheme.primaryOrange,
-                               ),
                             ],
                           ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'ข้อมูลที่จะแสดงในเอกสารและรายงาน',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           
-                          if (_showPasswordFields) ...[
-                            const SizedBox(height: 16),
-                            
-                            // New Password
-                            TextFormField(
-                              controller: _passwordController,
-                              decoration: InputDecoration(
-                                labelText: 'รหัสผ่านใหม่',
-                                hintText: 'ใส่รหัสผ่านใหม่',
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isPasswordVisible = !_isPasswordVisible;
-                                    });
-                                  },
+                          // Document Display Name and Phone Number
+                          Column(
+                            children: [
+                              TextFormField(
+                                controller: _documentDisplayNameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'ชื่อที่แสดงในเอกสาร',
+                                  hintText: 'เช่น นาย สมชาย ใจดี (แผนกขาย)',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.badge_outlined),
                                 ),
+                                validator: (value) {
+                                  // Optional field
+                                  return null;
+                                },
                               ),
-                              obscureText: !_isPasswordVisible,
-                              validator: (value) {
-                                if (_showPasswordFields && (value == null || value.isEmpty)) {
-                                  return 'กรุณาใส่รหัสผ่านใหม่';
-                                }
-                                if (value != null && value.isNotEmpty && value.length < 6) {
-                                  return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-                                }
-                                return null;
-                              },
-                            ),
-                            
-                            const SizedBox(height: 16),
-                            
-                            // Confirm Password
-                            TextFormField(
-                              controller: _confirmPasswordController,
-                              decoration: InputDecoration(
-                                labelText: 'ยืนยันรหัสผ่านใหม่',
-                                hintText: 'ใส่รหัสผ่านใหม่อีกครั้ง',
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                                    });
-                                  },
+                              
+                              const SizedBox(height: 20),
+                              
+                              TextFormField(
+                                controller: _documentPhoneNumberController,
+                                decoration: const InputDecoration(
+                                  labelText: 'เบอร์โทรในเอกสาร',
+                                  hintText: 'เช่น 081-234-5678',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.phone_in_talk_outlined),
                                 ),
+                                keyboardType: TextInputType.phone,
+                                validator: (value) {
+                                  if (value != null && value.isNotEmpty) {
+                                    if (!RegExp(r'^[0-9+\-\s()]+$').hasMatch(value)) {
+                                      return 'กรุณาใส่เบอร์โทรที่ถูกต้อง';
+                                    }
+                                  }
+                                  return null;
+                                },
                               ),
-                              obscureText: !_isConfirmPasswordVisible,
-                              validator: (value) {
-                                if (_showPasswordFields && (value == null || value.isEmpty)) {
-                                  return 'กรุณายืนยันรหัสผ่านใหม่';
-                                }
-                                if (_showPasswordFields && value != _passwordController.text) {
-                                  return 'รหัสผ่านไม่ตรงกัน';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -545,6 +565,35 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             ),
                             contentPadding: EdgeInsets.zero,
                           ),
+                          
+                          // Current Workspace
+                          if (_currentWorkspaceName != null) ...[
+                            ListTile(
+                              leading: const Icon(Icons.business_outlined, color: AppTheme.textSecondary),
+                              title: const Text('เวิร์กสเปซปัจจุบัน'),
+                              subtitle: Text(_currentWorkspaceName!),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ],
+                          
+                          // User Role in Workspace
+                          if (_currentWorkspaceRole != null) ...[
+                            ListTile(
+                              leading: Icon(
+                                _getRoleIcon(_currentWorkspaceRole!),
+                                color: _getRoleColor(_currentWorkspaceRole!),
+                              ),
+                              title: const Text('role'),
+                              subtitle: Text(
+                                _getRoleDisplayName(_currentWorkspaceRole!),
+                                style: TextStyle(
+                                  color: _getRoleColor(_currentWorkspaceRole!),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -553,5 +602,45 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
             ),
     );
+  }
+
+  // Helper methods for role display
+  IconData _getRoleIcon(String role) {
+    switch (role.toLowerCase()) {
+      case 'owner':
+        return Icons.star_outline;
+      case 'admin':
+        return Icons.admin_panel_settings_outlined;
+      case 'member':
+        return Icons.person_outline;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  Color _getRoleColor(String role) {
+    switch (role.toLowerCase()) {
+      case 'owner':
+        return Colors.amber;
+      case 'admin':
+        return Colors.blue;
+      case 'member':
+        return Colors.green;
+      default:
+        return AppTheme.textSecondary;
+    }
+  }
+
+  String _getRoleDisplayName(String role) {
+    switch (role.toLowerCase()) {
+      case 'owner':
+        return 'owner';
+      case 'admin':
+        return 'admin';
+      case 'member':
+        return 'member';
+      default:
+        return role;
+    }
   }
 }
