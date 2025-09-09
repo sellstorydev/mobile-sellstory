@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../../../data/repositories/firestore_repository.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 import '../controller/board_controller.dart';
 
 class EditWorkspacePage extends StatefulWidget {
@@ -25,6 +26,18 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
   final TextEditingController _workspaceNameController = TextEditingController();
   bool _isLoading = false;
 
+  // Permission helpers
+  bool get _isOwner {
+    try { return MobilePermissionsService.to.isOwner; } catch (_) { return false; }
+  }
+  bool _can(String code) {
+    try { return MobilePermissionsService.to.can(code); } catch (_) { return false; }
+  }
+  // Edit name: require owner or board settings manage
+  bool get _canEditName => _isOwner || _can('settings:board:manage');
+  // Delete workspace: require owner or roles manage (more sensitive)
+  bool get _canDeleteWorkspace => _isOwner || _can('settings:roles:manage');
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +51,11 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
   }
 
   Future<void> _deleteWorkspace() async {
+    if (!_canDeleteWorkspace) {
+      _showError("You don't have permission to delete this workspace");
+      return;
+    }
+
     // Show confirmation dialog
     final shouldDelete = await DialogUtils.showDeleteConfirmDialog(
       context: context,
@@ -95,6 +113,11 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
   }
 
   Future<void> _updateWorkspace() async {
+    if (!_canEditName) {
+      _showError("You don't have permission to update workspace settings");
+      return;
+    }
+
     if (_workspaceNameController.text.trim().isEmpty) {
       _showError('Workspace name is required');
       return;
@@ -194,7 +217,28 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                 color: Colors.black87,
               ),
             ),
-            
+            // Lightweight permission hint
+            if (!_canEditName || !_canDeleteWorkspace) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFFF7E6),
+                  border: Border.all(color: Color(0xFFFFE0B2)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  !_canEditName && !_canDeleteWorkspace
+                      ? 'You have read-only access to workspace settings.'
+                      : !_canEditName
+                          ? 'You can view but cannot edit the workspace name.'
+                          : 'You cannot delete this workspace.',
+                  style: const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 8),
             
             // Description
@@ -222,6 +266,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
             
             TextField(
               controller: _workspaceNameController,
+              enabled: _canEditName,
               decoration: const InputDecoration(
                 hintText: 'Enter workspace name...',
                 border: OutlineInputBorder(
@@ -274,7 +319,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _deleteWorkspace,
+                      onPressed: _isLoading || !_canDeleteWorkspace ? null : _deleteWorkspace,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red[600],
                         foregroundColor: Colors.white,
@@ -285,10 +330,10 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.delete, size: 16),
-                          const SizedBox(width: 8),
-                          const Text(
+                        children: const [
+                          Icon(Icons.delete, size: 16),
+                          SizedBox(width: 8),
+                          Text(
                             'Delete Workspace',
                             style: TextStyle(
                               fontSize: 14,
@@ -311,7 +356,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _updateWorkspace,
+                    onPressed: _isLoading || !_canEditName ? null : _updateWorkspace,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryOrange,
                       foregroundColor: Colors.white,

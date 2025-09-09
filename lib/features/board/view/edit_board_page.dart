@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
 import '../../../domain/entities/board.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class EditBoardPage extends StatefulWidget {
   final Board board;
@@ -19,6 +20,8 @@ class _EditBoardPageState extends State<EditBoardPage> {
   final TextEditingController _nameController = TextEditingController();
   bool _isLoading = false;
 
+  bool get _canManageBoard => MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can('settings:board:manage');
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +35,10 @@ class _EditBoardPageState extends State<EditBoardPage> {
   }
 
   Future<void> _updateBoard() async {
+    if (!_canManageBoard) {
+      _showError('You do not have permission to update this board');
+      return;
+    }
     final name = _nameController.text.trim();
     
     if (name.isEmpty) {
@@ -70,6 +77,10 @@ class _EditBoardPageState extends State<EditBoardPage> {
   }
 
   Future<void> _deleteBoard() async {
+    if (!_canManageBoard) {
+      _showError('You do not have permission to delete this board');
+      return;
+    }
     final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
       title: 'Delete Board',
@@ -117,6 +128,44 @@ class _EditBoardPageState extends State<EditBoardPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_canManageBoard) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Edit Board'),
+          backgroundColor: AppTheme.primaryOrange,
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 12),
+              const Text('คุณไม่มีสิทธิ์แก้ไขบอร์ดนี้', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              const SizedBox(height: 8),
+              const Text('ต้องการสิทธิ์ settings:board:manage หรือเป็นเจ้าของ Workspace', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Get.back(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: const Text('ปิด'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Board'),

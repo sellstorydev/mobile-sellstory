@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sellstory/core/theme/app_theme.dart';
 import '../../../core/services/card_view_settings_service.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CardViewSettingPage extends StatefulWidget {
   final String boardId;
@@ -13,7 +14,8 @@ class CardViewSettingPage extends StatefulWidget {
 
 class _CardViewSettingPageState extends State<CardViewSettingPage> {
   final CardViewSettingsService _settingsService = CardViewSettingsService.to;
-  
+  bool get _canManageSettings => MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can('settings:board:manage');
+
   // Field mapping from service to display names
   static const Map<String, String> _fieldDisplayNames = {
     'jobId': 'Job ID',
@@ -104,6 +106,46 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_canManageSettings) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          foregroundColor: Colors.black87,
+          title: const Text(
+            'Card View Settings',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Get.back(),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 12),
+              const Text('คุณไม่มีสิทธิ์เข้าถึงหน้านี้', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              const SizedBox(height: 8),
+              const Text('ต้องการสิทธิ์ settings:board:manage หรือเจ้าของ Workspace', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Get.back(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('ปิด'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -226,5 +268,3 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
     );
   }
 }
-
-

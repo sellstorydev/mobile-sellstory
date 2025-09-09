@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/widgets/dialog_utils.dart';
@@ -21,6 +22,15 @@ class CardViewPage extends StatefulWidget {
 class _CardViewPageState extends State<CardViewPage> {
   final BoardController _controller = Get.find<BoardController>();
   
+  // Permission helpers
+  String get _currentUserId => FirebaseAuth.instance.currentUser?.uid ?? '';
+  bool get _isOwner => MobilePermissionsService.to.isOwner;
+  bool get _isAssignee => _currentCard.assignedTo == _currentUserId;
+  bool get _canView => _isOwner || MobilePermissionsService.to.can('jobcard:view:all') || (MobilePermissionsService.to.can('jobcard:view:assigned') && _isAssignee);
+  bool get _canEdit => _isOwner || MobilePermissionsService.to.can('jobcard:edit:all') || (MobilePermissionsService.to.can('jobcard:edit:assigned') && _isAssignee);
+  bool get _canDelete => _isOwner || MobilePermissionsService.to.can('jobcard:delete:all') || (MobilePermissionsService.to.can('jobcard:delete:assigned') && _isAssignee);
+  bool get _canDuplicate => _isOwner || MobilePermissionsService.to.can('jobcard:create');
+
   // Current card data (will be updated from controller)
   late JobCard _currentCard;
   bool _isLoading = false;
@@ -214,6 +224,33 @@ class _CardViewPageState extends State<CardViewPage> {
         }
       }
       
+      // View permission gate
+      if (!_canView) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Job Card Details'),
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            elevation: 0,
+            actions: [
+              IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+            ],
+          ),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 12),
+                const Text('You do not have permission to view this card.', style: TextStyle(color: Colors.grey)),
+                const SizedBox(height: 12),
+                ElevatedButton(onPressed: () => Get.back(), child: const Text('Close')),
+              ],
+            ),
+          ),
+        );
+      }
+
       return Scaffold(
         appBar: AppBar(
           title: const Text('Job Card Details'),
@@ -222,11 +259,14 @@ class _CardViewPageState extends State<CardViewPage> {
           elevation: 0,
           actions: [
             // Edit button
-            if (MobilePermissionsService.to.isOwner ||
-                MobilePermissionsService.to.can('jobcard:edit:all'))
+            if (_canEdit)
               IconButton(
                 onPressed: () {
-                  Get.to(() => EditCardPage(card: _currentCard));
+                  if (_canEdit) {
+                    Get.to(() => EditCardPage(card: _currentCard));
+                  } else {
+                    Get.snackbar('Permission', 'You do not have permission to edit this card', snackPosition: SnackPosition.BOTTOM);
+                  }
                 },
                 icon: const Icon(Icons.edit),
                 tooltip: 'Edit Card',
@@ -235,8 +275,7 @@ class _CardViewPageState extends State<CardViewPage> {
             PopupMenuButton<String>(
               onSelected: (value) => _handleAction(value),
               itemBuilder: (context) => [
-                if (MobilePermissionsService.to.isOwner ||
-                    MobilePermissionsService.to.can('jobcard:create'))
+                if (_canDuplicate)
                   PopupMenuItem<String>(
                     value: 'duplicate',
                     child: Row(
@@ -248,8 +287,7 @@ class _CardViewPageState extends State<CardViewPage> {
                     ),
                   ),
                 const PopupMenuDivider(),
-                if (MobilePermissionsService.to.isOwner ||
-                    MobilePermissionsService.to.can('jobcard:delete:all'))
+                if (_canDelete)
                   PopupMenuItem<String>(
                     value: 'delete',
                     child: Row(
@@ -1135,9 +1173,17 @@ class _CardViewPageState extends State<CardViewPage> {
   void _handleAction(String action) {
     switch (action) {
       case 'duplicate':
+        if (!_canDuplicate) {
+          Get.snackbar('Permission', 'You do not have permission to duplicate cards', snackPosition: SnackPosition.BOTTOM);
+          return;
+        }
         _duplicateCard();
         break;
       case 'delete':
+        if (!_canDelete) {
+          Get.snackbar('Permission', 'You do not have permission to delete this card', snackPosition: SnackPosition.BOTTOM);
+          return;
+        }
         _showDeleteConfirmation();
         break;
     }
@@ -1156,6 +1202,10 @@ class _CardViewPageState extends State<CardViewPage> {
   }
 
   Future<void> _deleteCard() async {
+    if (!_canDelete) {
+      Get.snackbar('Permission', 'You do not have permission to delete this card', snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     setState(() {
       _isLoading = true;
     });
@@ -1195,6 +1245,10 @@ class _CardViewPageState extends State<CardViewPage> {
   }
 
   Future<void> _duplicateCard() async {
+    if (!_canDuplicate) {
+      Get.snackbar('Permission', 'You do not have permission to create cards', snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     setState(() {
       _isLoading = true;
     });

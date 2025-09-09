@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controller/board_controller.dart';
 import '../../../../core/services/logger_service.dart';
 import '../../../domain/entities/job_card.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class UserCardsPage extends StatefulWidget {
   const UserCardsPage({Key? key}) : super(key: key);
@@ -15,13 +16,33 @@ class _UserCardsPageState extends State<UserCardsPage> {
   final BoardController _controller = Get.find<BoardController>();
   final LoggerService _logger = Get.find<LoggerService>();
 
+  bool get _canViewAssigned {
+    try {
+      final svc = MobilePermissionsService.to;
+      return svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _showNoPermission() {
+    Get.snackbar(
+      'Permission denied',
+      "You don't have permission to view assigned cards",
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _logger.methodEntry('UserCardsPage.initState');
     
-    // Load user's assigned cards if not already loaded
-    if (_controller.isInitialized.value) {
+    // Load user's assigned cards if not already loaded and has permission
+    if (_controller.isInitialized.value && _canViewAssigned) {
       _controller.loadUserAssignedCards();
     }
     
@@ -37,8 +58,12 @@ class _UserCardsPageState extends State<UserCardsPage> {
           // Refresh button
           IconButton(
             onPressed: () {
-              if (_controller.isInitialized.value) {
+              if (!_controller.isInitialized.value) return;
+              // Re-check permission at action time
+              if (_canViewAssigned) {
                 _controller.loadUserAssignedCards();
+              } else {
+                _showNoPermission();
               }
             },
             icon: const Icon(Icons.refresh),
@@ -46,6 +71,10 @@ class _UserCardsPageState extends State<UserCardsPage> {
         ],
       ),
       body: Obx(() {
+        // Make reactive to permission changes
+        final _ = MobilePermissionsService.to.current.value;
+        final hasPermission = _canViewAssigned;
+
         if (!_controller.isInitialized.value) {
           return const Center(
             child: Column(
@@ -54,6 +83,29 @@ class _UserCardsPageState extends State<UserCardsPage> {
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
                 Text('Initializing...'),
+              ],
+            ),
+          );
+        }
+
+        if (!hasPermission) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                const Text(
+                  'You do not have permission to view assigned cards',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Required: jobcard:view:assigned or jobcard:view:all',
+                  style: TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           );

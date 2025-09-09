@@ -26,7 +26,10 @@ class CreateCardPage extends StatefulWidget {
 
 class _CreateCardPageState extends State<CreateCardPage> {
   final BoardController _controller = Get.find<BoardController>();
-  
+  // Permission helpers
+  bool get _isOwner => MobilePermissionsService.to.isOwner;
+  bool get _canCreateCard => _isOwner || MobilePermissionsService.to.can('jobcard:create');
+
   // Form controllers
   final TextEditingController _jobIdController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
@@ -676,6 +679,42 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Page-level permission gate
+    if (!_canCreateCard) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Create Job Card'),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          actions: [
+            IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+          ],
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 12),
+              const Text('ค��ณไม่มีสิทธิ์สร้าง Job Card', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              const SizedBox(height: 8),
+              const Text('ต้องการสิทธิ์ jobcard:create หรือเป็นเจ้าของ Workspace', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Get.back(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: const Text('ปิด'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Job Card'),
