@@ -89,8 +89,14 @@ class CardViewSettingsService extends GetxService {
       await prefs.setString('card_view_settings', settingsJson);
       
       print('💾 Saved ${_cardFields.length} card field settings to local storage');
+      print('💾 JSON data: $settingsJson');
+      
+      // Verify save by reading back
+      final savedJson = prefs.getString('card_view_settings');
+      print('💾 Verification read back: $savedJson');
     } catch (e) {
       print('❌ Failed to save settings to local storage: $e');
+      rethrow;
     }
   }
 
@@ -139,9 +145,19 @@ class CardViewSettingsService extends GetxService {
 
   // Update multiple fields at once (for reordering)
   Future<void> updateMultipleFields(List<CardFieldSetting> updatedFields) async {
+    print('🔄 CardViewSettingsService: Updating ${updatedFields.length} fields');
+    for (var field in updatedFields) {
+      print('   Updating: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
+    }
+    
     _cardFields.value = List.from(updatedFields);
     await _saveSettingsToLocal();
+    
     print('🔄 Updated ${updatedFields.length} card field settings');
+    print('🔄 Service now has ${_cardFields.length} fields');
+    for (var field in _cardFields) {
+      print('   Service field: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
+    }
   }
 
   // Reorder fields

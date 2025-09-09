@@ -115,6 +115,21 @@ class _BoardPageState extends State<BoardPage> {
       _laneDisplayController = Get.put(LaneDisplayController());
     }
     
+    // Listen to card field settings changes
+    _settingsService.cardFieldsRx.listen((fields) {
+      print('🔔 Card fields changed in service, reloading field config');
+      print('🔔 New fields from service:');
+      for (var field in fields) {
+        print('   ${field.name}: visible=${field.isVisible}, order=${field.order}');
+      }
+      if (mounted) {
+        Future.microtask(() async {
+          await _loadPerBoardFieldConfig();
+          if (mounted) setState(() {});
+        });
+      }
+    });
+    
     // Fast initialization - only essential data
     _fastInitialize();
   }
@@ -222,9 +237,21 @@ class _BoardPageState extends State<BoardPage> {
         final result = await Get.toNamed('/card-view-settings', arguments: {'boardId': _controller.currentBoardId.value});
         if (result == true) {
           // Reload field config when returning from settings
-          print('🔄 Manual reload field config after settings change');
-          _loadPerBoardFieldConfig();
+          print('🔄 Returned from card view settings with save result');
+          print('🔄 Current service fields count: ${_settingsService.cardFields.length}');
+          for (var field in _settingsService.cardFields) {
+            print('   Service field: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
+          }
+          
+          await _loadPerBoardFieldConfig();
           setState(() {}); // Force rebuild
+          
+          print('🔄 Field config cache after reload: ${_fieldConfigCache.keys.length} fields');
+          _fieldConfigCache.forEach((key, value) {
+            print('   Cache field: $key (visible: ${value['isVisible']}, order: ${value['order']})');
+          });
+        } else {
+          print('🔄 Returned from card view settings without saving');
         }
         break;
       default:
