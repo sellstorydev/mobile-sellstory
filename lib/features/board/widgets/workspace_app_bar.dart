@@ -8,7 +8,7 @@ import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/services/card_view_settings_service.dart';
 
 /// Reusable AppBar matching the Board design (logo + workspace/board + actions)
-class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
+class WorkspaceAppBar extends StatefulWidget implements PreferredSizeWidget {
   final BoardController? controller;
   final VoidCallback? onTitleTap;
   final void Function(String value)? onMenuAction;
@@ -28,13 +28,47 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
+  @override
+  State<WorkspaceAppBar> createState() => _WorkspaceAppBarState();
+}
+
+class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
+  // Local expansion state has moved into the modal using StatefulBuilder
+  // Cache boards for non-current workspaces when expanded
+  final Map<String, List<Map<String, dynamic>>> _workspaceBoardsCache = <String, List<Map<String, dynamic>>>{};
+  // Track loading state per workspace during board fetch
+  final Set<String> _loadingWorkspaceBoards = <String>{};
+  // Track which workspaces have attempted load (to show empty state)
+  final Set<String> _loadedWorkspaceBoards = <String>{};
+
+  // Removed unused _workspaceHasBoardsSync helper (we now fetch boards on expand and cache results)
+
+  // Get boards for a specific workspace - make it sync and reactive
+  List<Map<String, dynamic>> _getWorkspaceBoardsSync(String workspaceId) {
+    try {
+      final ctrl = widget.controller!;
+      
+      // If this is the current workspace, return current boards
+      if (workspaceId == ctrl.currentWorkspaceId.value) {
+        return ctrl.boards.map((board) => {
+          'id': board.id,
+          'name': board.name,
+        }).toList();
+      }
+  // For other workspaces, return cached list (may be empty if none)
+  return _workspaceBoardsCache[workspaceId] ?? const [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   // Default handlers so this app bar can be used without passing callbacks
   void _defaultOnCreateWorkspace() {
     Get.toNamed('/create-workspace');
   }
 
   void _defaultOnMenuAction(String value, BuildContext context) {
-    final ctrl = controller!;
+    final ctrl = widget.controller!;
     switch (value) {
       case 'refresh':
         ctrl.refresh();
@@ -60,7 +94,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   void _defaultOnTitleTap(BuildContext context) {
-    final ctrl = controller!;
+    final ctrl = widget.controller!;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -70,9 +104,18 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) {
-        final canManageBoard = MobilePermissionsService.to.isOwner ||
-            MobilePermissionsService.to.can('settings:board:manage');
+    builder: (_) {
+    final canManageBoard = MobilePermissionsService.to.isOwner ||
+      MobilePermissionsService.to.can('settings:board:manage');
+    // One-time initializer flag for this modal build
+    bool modalInitDone = false;
+    // Snapshot other workspaces at open to avoid frequent Obx rebuilds
+    final List<Map<String, dynamic>> otherWorkspacesSnapshot = ctrl.availableWorkspaces
+      .where((w) => w['id'] != ctrl.currentWorkspaceId.value)
+      .map((w) => {'id': w['id'], 'name': w['name']})
+      .cast<Map<String, dynamic>>()
+      .toList();
+
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -239,65 +282,215 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // เปลี่ยน workspace section ให้เรียบง่าย
-                    Column(
-                      children: ctrl.availableWorkspaces.where((workspace) => 
-                        workspace['id'] != ctrl.currentWorkspaceId.value
-                      ).map((workspace) {
-                        final workspaceId = workspace['id'] as String;
-                        
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () async {
-                                // ตัวอย่างการทำงานแบบง่าย - ไปที่ board management เสมอ
-                                Navigator.of(context).pop();
-                                await ctrl.switchWorkspace(workspaceId);
-                                Get.toNamed('/board-management');
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.grey[300]!,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.business,
-                                      color: Colors.grey[600],
-                                      size: 24,
+                    // แสดงรายชื่อบอร์ดของทุก Workspace อื่นแบบโชว์ไว้เลย (ไม่มี expand)
+                    StatefulBuilder(
+                      builder: (context, setModalState) {
+                        // One-time prefetch boards for all other workspaces (sequential)
+                        if (!modalInitDone) {
+                          modalInitDone = true;
+                          final others = otherWorkspacesSnapshot;
+
+                          // Prefetch sequentially to avoid many parallel calls on large lists
+                          Future.microtask(() async {
+                            for (final ws in others) {
+                              final id = ws['id'] as String;
+                              if (_loadedWorkspaceBoards.contains(id) || _loadingWorkspaceBoards.contains(id)) {
+                                continue;
+                              }
+                              _loadingWorkspaceBoards.add(id);
+                              if (mounted) setModalState(() {});
+                              try {
+                                final boards = await ctrl.getBoardsForWorkspace(id);
+                                _workspaceBoardsCache[id] = boards.map((b) => {
+                                  'id': b.id,
+                                  'name': b.name,
+                                }).toList();
+                              } catch (_) {
+                                _workspaceBoardsCache[id] = const [];
+                              } finally {
+                                _loadingWorkspaceBoards.remove(id);
+                                _loadedWorkspaceBoards.add(id);
+                                if (mounted) setModalState(() {});
+                              }
+                            }
+                          });
+                        }
+                        return Column(
+                          children: otherWorkspacesSnapshot.map((workspace) {
+                            final workspaceId = workspace['id'] as String;
+                            final workspaceName = workspace['name'] as String;
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Workspace header (no tap)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey[300]!,
+                                      width: 1,
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        workspace['name'] as String,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.black87,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.business,
+                                        color: Colors.grey[600],
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          workspaceName,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black87,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    Icon(
-                                      Icons.add,
-                                      color: AppTheme.primaryOrange,
-                                      size: 20,
-                                    ),
-                                  ],
+                                      if (_loadingWorkspaceBoards.contains(workspaceId))
+                                        const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppTheme.primaryOrange,
+                                          ),
+                                        )
+                                      else if (_loadedWorkspaceBoards.contains(workspaceId) &&
+                                          (_workspaceBoardsCache[workspaceId]?.isEmpty ?? true))
+                                        const Icon(
+                                          Icons.add,
+                                          color: AppTheme.primaryOrange,
+                                          size: 20,
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
+
+                                // Boards (always shown)
+                                () {
+                                  if (_loadingWorkspaceBoards.contains(workspaceId)) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(left: 16, bottom: 8),
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      child: Row(
+                                        children: const [
+                                          SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryOrange),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text('กำลังโหลดบอร์ด...'),
+                                        ],
+                                      ),
+                                    );
+                                  }
+
+                                  final boards = _getWorkspaceBoardsSync(workspaceId);
+                                  if (boards.isNotEmpty) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(left: 16, bottom: 8),
+                                      child: Column(
+                                        children: boards.map((board) {
+                                          return Container(
+                                            margin: const EdgeInsets.only(bottom: 6),
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () async {
+                                                  Navigator.of(context).pop();
+                                                  await ctrl.switchWorkspace(workspaceId);
+                                                  await ctrl.switchBoard(board['id'] as String);
+                                                },
+                                                splashColor: AppTheme.primaryOrange.withOpacity(0.12),
+                                                highlightColor: AppTheme.primaryOrange.withOpacity(0.06),
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    border: Border.all(color: Colors.grey[300]!, width: 1),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withOpacity(0.04),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.dashboard,
+                                                        color: AppTheme.primaryOrange,
+                                                        size: 20,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          board['name'] as String,
+                                                          style: TextStyle(
+                                                            fontSize: 15,
+                                                            fontWeight: FontWeight.w500,
+                                                            color: Colors.black87,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Icon(Icons.chevron_right, color: AppTheme.primaryOrange, size: 22),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    );
+                                  }
+
+                                  if (_loadedWorkspaceBoards.contains(workspaceId)) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(left: 16, bottom: 8, right: 8),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.grey[200]!),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.info_outline, color: Colors.grey[600], size: 18),
+                                          const SizedBox(width: 8),
+                                          const Expanded(child: Text('ยังไม่มีบอร์ดใน Workspace นี้')),
+                                          TextButton.icon(
+                                            onPressed: () async {
+                                              Navigator.of(context).pop();
+                                              await ctrl.switchWorkspace(workspaceId);
+                                              Get.toNamed('/board-management');
+                                            },
+                                            icon: const Icon(Icons.add, size: 18),
+                                            label: const Text('จัดการบอร์ด'),
+                                          )
+                                        ],
+                                      ),
+                                    );
+                                  }
+
+                                  return const SizedBox.shrink();
+                                }(),
+                              ],
+                            );
+                          }).toList(),
                         );
-                      }).toList(),
+                      },
                     ),
                     const SizedBox(height: 24),
                   ] else ...[
@@ -398,7 +591,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: onCreateWorkspace ?? _defaultOnCreateWorkspace,
+                    onPressed: widget.onCreateWorkspace ?? _defaultOnCreateWorkspace,
                     icon: const Icon(Icons.add, size: 20),
                     label: const Text('สร้าง Workspace ใหม่'),
                     style: ElevatedButton.styleFrom(
@@ -424,7 +617,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (controller == null) {
+    if (widget.controller == null) {
       return AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -433,19 +626,19 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
-    final ctrl = controller!;
+    final ctrl = widget.controller!;
 
     return AppBar
     (
       backgroundColor: Colors.white,
       elevation: 0,
       foregroundColor: Colors.black87,
-      title: titleBuilder != null
-          ? titleBuilder!(context, ctrl)
+      title: widget.titleBuilder != null
+          ? widget.titleBuilder!(context, ctrl)
           : Obx(() {
               if (ctrl.hasWorkspaces) {
                 return GestureDetector(
-                  onTap: onTitleTap ?? () => _defaultOnTitleTap(context),
+                  onTap: widget.onTitleTap ?? () => _defaultOnTitleTap(context),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: const BoxDecoration(color: Colors.white),
@@ -531,7 +724,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
             final wsId = ctrl.currentWorkspaceId.value;
             if (wsId.isEmpty) return const SizedBox.shrink();
             return IconButton(
-              onPressed: () => (onMenuAction ?? (v) => _defaultOnMenuAction(v, context))('calendar'),
+              onPressed: () => (widget.onMenuAction ?? (v) => _defaultOnMenuAction(v, context))('calendar'),
               icon: const Icon(Icons.calendar_month),
               tooltip: 'Calendar',
             );
@@ -581,7 +774,7 @@ class WorkspaceAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
               child: IconButton(
-                onPressed: onCreateWorkspace ?? _defaultOnCreateWorkspace,
+                onPressed: widget.onCreateWorkspace ?? _defaultOnCreateWorkspace,
                 icon: Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
