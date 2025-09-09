@@ -14,6 +14,7 @@ import '../widgets/hashtag_picker_sheet.dart';
 import '../widgets/chat_search_bar.dart';
 import '../widgets/chat_filter_sheet.dart';
 import '../../../data/repositories/chatroom_repository.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 
 class ChatCenterPage extends StatefulWidget {
@@ -316,17 +317,35 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          ChatSearchBar(
-            controller: _searchController,
-            onChanged: (value) => _controller.updateSearchQuery(value),
-            onOpenFilter: () => _openFilterSheet(context),
+      body: PermissionGuard(
+        anyOf: const ['chat:view:all', 'chat:view:assigned', 'chat:view:unassigned'],
+        fallback: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.lock_outline, size: 56, color: Colors.grey),
+                SizedBox(height: 12),
+                Text('คุณไม่มีสิทธิ์เข้าถึง Chat Center',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey)),
+              ],
+            ),
           ),
-          _buildFilterChips(),
-          const SizedBox(height: 8),
-          Expanded(child: _buildConversationsList()),
-        ],
+        ),
+        child: Column(
+          children: [
+            ChatSearchBar(
+              controller: _searchController,
+              onChanged: (value) => _controller.updateSearchQuery(value),
+              onOpenFilter: () => _openFilterSheet(context),
+            ),
+            _buildFilterChips(),
+            const SizedBox(height: 8),
+            Expanded(child: _buildConversationsList()),
+          ],
+        ),
       ),
     );
   }
@@ -417,11 +436,11 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
                   conversation: conversation,
                   currentUserId: _currentUserId ?? '',
                   onTap: () => _onConversationTap(conversation),
-                  onAddHashtag: () => _onAddHashtag(conversation),
-                  onAssignSale: () => _onAssignSale(conversation),
-                  onChangeStatus: () => _onChangeStatus(conversation),
-                  onToggleBot: () => _toggleBot(conversation),
-                  onTogglePin: () => _togglePin(conversation),
+                  onAddHashtag: () => guardAction(context, 'chat:manage', () => _onAddHashtag(conversation)),
+                  onAssignSale: () => guardAction(context, 'chat:assign', () => _onAssignSale(conversation)),
+                  onChangeStatus: () => guardAction(context, 'chat:manage', () => _onChangeStatus(conversation)),
+                  onToggleBot: () => guardAction(context, 'chat:bot:manage', () => _toggleBot(conversation)),
+                  onTogglePin: () => guardAction(context, 'chat:manage', () => _togglePin(conversation)),
                 ),
               );
             },
@@ -506,7 +525,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
 
     try {
       await _chatRepo.setPinned(workspaceId: wsId, chatroomId: chatId, pinned: nextPinned);
-      _showTopSnack(nextPinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว');
+      _showTopSnack(nextPinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล��ว');
     } catch (e) {
       // Revert on failure
       try {

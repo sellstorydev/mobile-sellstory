@@ -22,13 +22,24 @@ const askQuestion = (rl, question) => {
 
 // รายชื่อ collections ที่พบบ่อย (สามารถปรับแต่งได้)
 const commonCollections = [
-  'users',
-  'workspaces', 
+  'acp_settings',
   'boards',
   'cards',
-  'lanes',
+  'companies',
   'customers',
-  'companies'
+  'forceUpdate',
+  'lanes',
+  'mobileNotificationLogs',
+  'packages',
+  'presences',
+  'quotationFonts',
+  'quotationPreviews',
+  'quotationTemplates',
+  'test',
+  'thai_locations',
+  'userFilters',
+  'users',
+  'workspaces'
 ];
 
 // ฟังก์ชันสำหรับกรอง keys ที่ต้องการ

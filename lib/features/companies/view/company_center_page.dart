@@ -31,6 +31,19 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
       Get.put<CompaniesController>(CompaniesController());
     }
     _controller = Get.find<CompaniesController>();
+
+    // After first frame, load companies with current workspace if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        if (Get.isRegistered<BoardController>()) {
+          final board = Get.find<BoardController>();
+          final wsId = board.currentWorkspaceId.value;
+          if (wsId.isNotEmpty) {
+            _controller.loadCompanies(wsId);
+          }
+        }
+      } catch (_) {}
+    });
   }
 
   @override
@@ -114,10 +127,10 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
         },
       ),
       body: PermissionGuard(
-        permission: 'company:view:all',
+        permission: 'company:view',
         fallback: const Center(
           child: Text(
-            'คุณไม่มีสิทธิ์ดูรายชื่อบ���ิษัท',
+            'คุณไม่มีสิทธิ์ดูรายชื่อบริษัท',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
         ),
@@ -217,7 +230,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const TextSpan(text: ' บ��ิษัท'),
+                  const TextSpan(text: ' บริษัท'),
                 ],
               ),
             );
@@ -359,7 +372,6 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-
 class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;

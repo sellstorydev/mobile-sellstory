@@ -13,6 +13,7 @@ import '../widgets/show_bottom_modal.dart';
 import '../../../data/services/firestore_service.dart';
 import '../widgets/user_picker_sheet.dart';
 import '../../../core/widgets/top_snack.dart';
+import '../../../core/widgets/permission_guard.dart';
 class ChatScreen extends StatefulWidget {
   final String conversationId;
   final Map<String, dynamic> conversationData;
@@ -819,21 +820,21 @@ class _ChatScreenState extends State<ChatScreen> {
                   botEnabled: bot,
                   assignOptions: const ['ทีม A', 'ทีม B', 'ทีม C'],
                   selectedAssign: null,
-                  onStatusChange: _updateStatus,
-                  onPinChanged: _updatePinned,
-                  onBotStatusChanged: _updateBotStatus,
+                  onStatusChange: (s) => guardAction(context, 'chat:manage', () => _updateStatus(s)),
+                  onPinChanged: (p) => guardAction(context, 'chat:manage', () => _updatePinned(p)),
+                  onBotStatusChanged: (b) => guardAction(context, 'chat:bot:manage', () => _updateBotStatus(b)),
                   onAssignChanged: (v) {},
                   onNote: () {},
-                  onAddSale: () {},
-                  onRename: () {},
-                  onResetName: _reloadChatroomName,
-                  onDelete: _deleteChatroom,
+                  onAddSale: () => guardAction(context, 'chat:assign', _openAddSales),
+                  onRename: () => guardAction(context, 'chat:manage', _reloadChatroomName),
+                  onResetName: () => guardAction(context, 'chat:manage', _reloadChatroomName),
+                  onDelete: () => guardAction(context, 'chat:delete', _deleteChatroom),
                   workspaceId: widget.workspaceId,
                   chatroomId: widget.conversationId,
                    customerId: (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString(),
                 );
               },
-              onAddSales: _openAddSales,
+              onAddSales: () => guardAction(context, 'chat:assign', _openAddSales),
             );
           },
         ),
@@ -871,15 +872,18 @@ class _ChatScreenState extends State<ChatScreen> {
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
                             ),
                           ),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              foregroundColor: Colors.white,
-                              backgroundColor: const Color(0xFF111827),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                          PermissionGuard(
+                            permission: 'chat:bot:manage',
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                foregroundColor: Colors.white,
+                                backgroundColor: const Color(0xFF111827),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                              ),
+                              onPressed: () => guardAction(context, 'chat:bot:manage', () => _updateBotStatus(false)),
+                              child: const Text('แชทแบบแมนนวล', style: TextStyle(fontWeight: FontWeight.w700)),
                             ),
-                            onPressed: () => _updateBotStatus(false),
-                            child: const Text('แชทแบบแมนนวล', style: TextStyle(fontWeight: FontWeight.w700)),
                           ),
                         ],
                       ),
@@ -1055,7 +1059,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         final isFocused = _searchQuery.isNotEmpty &&
                             _matchedIds.isNotEmpty &&
                             messageId == _matchedIds[_focusedMatchIndex];
-
                         return RepaintBoundary(
                           child: MessageBubble(
                             key: ValueKey(messageId),
@@ -1074,16 +1077,35 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
 
-              // Input area
-              ChatInput(
-                onSendText: _sendMessage,
-                onSendImage: _sendImageMessage,
-                onSendFile: (fileUrl, fileName) => _sendFileMessage(fileUrl, fileName),
-                workspaceId: widget.workspaceId,
-                chatroomId: widget.conversationId,
-                enabled: !_isLoading,
-                replyPreview: _replyPreviewText,
-                onCancelReply: () => setState(() => _replyPreviewText = null),
+              // Input area guarded by permission
+              PermissionGuard(
+                permission: 'chat:send',
+                fallback: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'คุณไม่มีสิทธิ์ส่งข้อความ',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                child: ChatInput(
+                  onSendText: (t) => guardAction(context, 'chat:send', () => _sendMessage(t)),
+                  onSendImage: (u) => guardAction(context, 'chat:send', () => _sendImageMessage(u)),
+                  onSendFile: (fileUrl, fileName) => guardAction(context, 'chat:send', () => _sendFileMessage(fileUrl, fileName)),
+                  workspaceId: widget.workspaceId,
+                  chatroomId: widget.conversationId,
+                  enabled: !_isLoading,
+                  replyPreview: _replyPreviewText,
+                  onCancelReply: () => setState(() => _replyPreviewText = null),
+                ),
               ),
             ],
           ),

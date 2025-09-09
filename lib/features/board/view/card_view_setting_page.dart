@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sellstory/core/theme/app_theme.dart';
 import '../../../core/services/card_view_settings_service.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class CardViewSettingPage extends StatefulWidget {
   final String boardId;
@@ -13,7 +14,8 @@ class CardViewSettingPage extends StatefulWidget {
 
 class _CardViewSettingPageState extends State<CardViewSettingPage> {
   final CardViewSettingsService _settingsService = CardViewSettingsService.to;
-  
+  bool get _canManageSettings => MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can('settings:board:manage');
+
   // Field mapping from service to display names
   static const Map<String, String> _fieldDisplayNames = {
     'jobId': 'Job ID',
@@ -49,8 +51,22 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
   void _loadCurrentSettings() async {
     setState(() { _loading = true; });
     try {
+      print('📱 Loading card view settings...');
+      print('Service initialized: ${_settingsService.isInitialized}');
+      
+      // Wait for service to be initialized if needed
+      if (!_settingsService.isInitialized) {
+        print('⏳ Waiting for service initialization...');
+        // Give service some time to initialize
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+      
       // Load current fields from the service (service should already be initialized)
       _fields = List.from(_settingsService.cardFields);
+      print('📱 Loaded ${_fields.length} fields from service');
+      for (var field in _fields) {
+        print('   ${field.name}: order=${field.order}, visible=${field.isVisible}');
+      }
     } catch (e) {
       debugPrint('Load settings error: $e');
       _fields = [];
@@ -62,8 +78,16 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
     if (_saving) return; 
     setState(() { _saving = true; });
     try {
+      print('💾 Saving card view settings...');
+      print('Fields to save:');
+      for (var field in _fields) {
+        print('   ${field.name}: order=${field.order}, visible=${field.isVisible}');
+      }
+      
       // Update the service with new field order and visibility
       await _settingsService.updateMultipleFields(_fields);
+      
+      print('✅ Settings saved successfully');
       
       if (!mounted) return; 
       Get.back(result: true);
@@ -72,6 +96,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
         backgroundColor: Colors.green[100], 
         colorText: Colors.green[800]);
     } catch (e) {
+      print('❌ Error saving settings: $e');
       if (mounted) {
         Get.snackbar('ผิดพลาด', 'บันทึกไม่สำเร็จ: $e', 
           snackPosition: SnackPosition.BOTTOM, 
@@ -97,13 +122,58 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
       
       // Update order values
       for (int i = 0; i < _fields.length; i++) {
-        _fields[i] = _fields[i].copyWith(order: i);
+        _fields[i] = _fields[i].copyWith(order: i + 1); // Start from 1, not 0
+      }
+      
+      print('🔄 Reordered fields: moved "${item.name}" from $oldIndex to $newIndex');
+      for (var field in _fields) {
+        print('   ${field.name}: order=${field.order}, visible=${field.isVisible}');
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_canManageSettings) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          foregroundColor: Colors.black87,
+          title: const Text(
+            'Card View Settings',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Get.back(),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 12),
+              const Text('คุณไม่มีสิทธิ์เข้าถึงหน้านี้', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              const SizedBox(height: 8),
+              const Text('ต้องการสิทธิ์ settings:board:manage หรือเจ้าของ Workspace', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Get.back(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('ปิด'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -226,5 +296,3 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
     );
   }
 }
-
-

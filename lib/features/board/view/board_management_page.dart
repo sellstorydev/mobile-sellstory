@@ -4,8 +4,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
 import '../../../domain/entities/board.dart';
-import 'create_board_page.dart';
-import 'edit_board_page.dart';
+import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class BoardManagementPage extends StatefulWidget {
   final String? workspaceId;
@@ -19,6 +19,17 @@ class BoardManagementPage extends StatefulWidget {
 class _BoardManagementPageState extends State<BoardManagementPage> {
   final BoardController _controller = Get.find<BoardController>();
   bool _isLoading = false;
+
+  bool get _canManageBoards {
+    final svc = MobilePermissionsService.to;
+    return svc.isOwner || svc.can('settings:board:manage');
+  }
+
+  void _denySnack() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('คุณไม่มีสิทธิ์จัดการบอร์ด')),
+    );
+  }
 
   @override
   void initState() {
@@ -49,14 +60,17 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   }
 
   void _navigateToCreateBoard() {
+    if (!_canManageBoards) return _denySnack();
     Get.toNamed('/create-board');
   }
 
   void _navigateToEditBoard(Board board) {
+    if (!_canManageBoards) return _denySnack();
     Get.toNamed('/edit-board', arguments: {'board': board});
   }
 
   void _showBoardMenu(BuildContext context, Board board) {
+    if (!_canManageBoards) return _denySnack();
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -95,12 +109,11 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   }
 
   void _showDeleteConfirmation(Board board) async {
+    if (!_canManageBoards) return _denySnack();
     final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
       title: 'Delete Board',
-      content: 'Are you sure you want to delete "${board.name}"?\n\n'
-          'This will also delete all lanes and cards in this board. '
-          'This action cannot be undone.',
+      content: 'Are you sure you want to delete "${board.name}"?\n\nThis will also delete all lanes and cards in this board. This action cannot be undone.',
     );
 
     if (confirmed == true) {
@@ -109,6 +122,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   }
 
   Future<void> _deleteBoard(Board board) async {
+    if (!_canManageBoards) return _denySnack();
     try {
       await _controller.deleteBoard(board.id);
       Get.snackbar(
@@ -175,13 +189,17 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _navigateToCreateBoard,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create Board'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryOrange,
-                          foregroundColor: Colors.white,
+                      PermissionGuard(
+                        permission: 'settings:board:manage',
+                        hideIfUnauthorized: true,
+                        child: ElevatedButton.icon(
+                          onPressed: _navigateToCreateBoard,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Create Board'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryOrange,
+                            foregroundColor: Colors.white,
+                          ),
                         ),
                       ),
                     ],
@@ -215,27 +233,34 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Lanes: ${board.lanes.length}'),
-                            Text('Members: ${board.memberUids.length}'),
+                            Text('Lanes: ${board.lanes.length}')
+                            ,Text('Members: ${board.memberUids.length}'),
                             Text('Created: ${_formatDate(board.createdAt)}'),
                           ],
                         ),
-                        trailing: IconButton(
-                          onPressed: () => _showBoardMenu(context, board),
-                          icon: const Icon(Icons.more_vert),
+                        trailing: PermissionGuard(
+                          permission: 'settings:board:manage',
+                          child: IconButton(
+                            onPressed: () => _showBoardMenu(context, board),
+                            icon: const Icon(Icons.more_vert),
+                          ),
                         ),
-                        onTap: () => _navigateToEditBoard(board),
+                        onTap: () => _canManageBoards ? _navigateToEditBoard(board) : _denySnack(),
                       ),
                     );
                   },
                 ),
               );
             }),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToCreateBoard,
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
+      floatingActionButton: PermissionGuard(
+        permission: 'settings:board:manage',
+        hideIfUnauthorized: true,
+        child: FloatingActionButton(
+          onPressed: _navigateToCreateBoard,
+          backgroundColor: AppTheme.primaryOrange,
+          foregroundColor: Colors.white,
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

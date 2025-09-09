@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import '../../../app/routes.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../domain/entities/job_card.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class NotificationsPage extends StatefulWidget {
   final String workspaceId;
@@ -137,8 +138,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
+  bool _canViewCard(JobCard card, String uid) {
+    final svc = MobilePermissionsService.to;
+    if (svc.isOwner || svc.can('jobcard:view:all')) return true;
+    if (svc.can('jobcard:view:assigned')) {
+      if (card.assignedTo == uid) return true;
+      if (card.collaborators.contains(uid)) return true;
+      if (card.watchers.contains(uid)) return true;
+      if (card.createdBy == uid) return true;
+    }
+    return false;
+  }
+
+  Future<bool> _ensureCanOpenBoard() async {
+    final svc = MobilePermissionsService.to;
+    if (svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned')) {
+      return true;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('คุณไม่มีสิทธิ์เปิดบอร์ดงาน')),
+    );
+    return false;
+  }
+
   Future<void> _openBoard(String boardId) async {
     try {
+      if (!await _ensureCanOpenBoard()) return;
       final ctrl = Get.find<BoardController>();
       await _ensureWorkspace(widget.workspaceId);
       await ctrl.switchBoard(boardId);
@@ -152,18 +177,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   Future<void> _openCard({required String cardId, String? boardId}) async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      final uid = user?.uid ?? '';
       final ctrl = Get.find<BoardController>();
       await _ensureWorkspace(widget.workspaceId);
       if (boardId != null && boardId.isNotEmpty) {
+        if (!await _ensureCanOpenBoard()) return;
         await ctrl.switchBoard(boardId);
       } else if (ctrl.currentBoardId.value.isEmpty && ctrl.boards.isNotEmpty) {
+        if (!await _ensureCanOpenBoard()) return;
         await ctrl.switchBoard(ctrl.boards.first.id);
       }
 
-      // Ensure data is loaded
       if (ctrl.lanes.isEmpty) {
         await ctrl.load();
       }
+
 
       JobCard? found;
       for (final lane in ctrl.lanes) {
@@ -172,6 +201,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
       }
 
       if (found != null) {
+        // Permission check for viewing this card
+        if (!_canViewCard(found, uid)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('คุณไม่มีสิทธิ์ดูการ์ดนี้')),
+          );
+          return;
+        }
         Get.toNamed(AppRoutes.editCard, arguments: found);
       } else {
         // Try searching other boards if boardId was not provided
@@ -182,6 +218,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
             for (final lane in ctrl.lanes) {
               final c = lane.cards.firstWhereOrNull((x) => x.id == cardId);
               if (c != null) {
+                if (!_canViewCard(c, uid)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('คุณไม่มีสิทธิ์ดูการ์ดนี้')),
+                  );
+                  return;
+                }
                 Get.toNamed(AppRoutes.editCard, arguments: c);
                 return;
               }

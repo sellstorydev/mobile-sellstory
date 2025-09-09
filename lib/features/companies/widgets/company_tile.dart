@@ -41,6 +41,7 @@ class CompanyTile extends StatelessWidget {
                 // Company name and branch
                 Row(
                   children: [
+                    if(company.name != "")
                     Expanded(
                       child: Text(
                         company.name,
@@ -74,9 +75,23 @@ class CompanyTile extends StatelessWidget {
                   ],
                 ),
 
+
+                if (company.customId.isNotEmpty) ...[
+                  Text(
+                      'รหัส: ${company.customId}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                ],
                 const SizedBox(height: 4),
 
-                // Tax ID and custom ID
+
+                // Tax ID and custom ID (single line, ellipsis as needed)
                 Row(
                   children: [
                     if (company.taxId.isNotEmpty) ...[
@@ -86,25 +101,20 @@ class CompanyTile extends StatelessWidget {
                         color: Colors.grey.shade600,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        'เลขประจำตัวผู้เสียภาษี: ${company.taxId}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
+                      Flexible(
+                        child: Text(
+                          'เลขประจำตัวผู้เสียภาษี: ${company.taxId}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
-                    if (company.taxId.isNotEmpty && company.customId.isNotEmpty)
-                      const Text(' • ', style: TextStyle(color: Colors.grey)),
-                    if (company.customId.isNotEmpty) ...[
-                      Text(
-                        'รหัส: ${company.customId}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
+
+
                   ],
                 ),
 
@@ -115,6 +125,7 @@ class CompanyTile extends StatelessWidget {
               ],
             ),
           ),
+
 
           // Associated customers count
           Column(

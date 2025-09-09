@@ -6,6 +6,8 @@ import 'package:sellstory/core/services/card_view_settings_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
+import '../controllers/lane_display_controller.dart';
+import '../enums/lane_display_mode.dart';
 import '../widgets/job_card_tile.dart';
 import '../widgets/board_auto_scroll_wrapper.dart';
 import '../widgets/lane_header.dart';
@@ -27,7 +29,7 @@ class BoardPage extends StatefulWidget {
 class _BoardPageState extends State<BoardPage> {
   final BoardController _controller = Get.find<BoardController>();
   final CardViewSettingsService _settingsService = CardViewSettingsService.to;
-  Worker? _wsWorker;
+  late final LaneDisplayController _laneDisplayController;
   Map<String, dynamic> _fieldConfigCache = {};
   Map<String, String> _userNameCache = {};
 
@@ -44,8 +46,10 @@ class _BoardPageState extends State<BoardPage> {
 
   Future<void> _loadPerBoardFieldConfig() async {
     try {
+      print('🔧 Loading field config from CardViewSettingsService...');
       // Load from CardViewSettingsService instead of Firestore
       final fields = _settingsService.cardFields;
+      print('🔧 Found ${fields.length} fields in service');
       
       // Convert CardFieldSetting list to the expected format
       final config = <String, dynamic>{};
@@ -57,6 +61,7 @@ class _BoardPageState extends State<BoardPage> {
           'isVisible': field.isVisible,
           'style': {},
         };
+        print('🔧 Mapped field: ${field.id} -> $mappedKey (visible: ${field.isVisible}, order: ${field.order})');
       }
       
       setState(() {
@@ -64,6 +69,7 @@ class _BoardPageState extends State<BoardPage> {
       });
       
       print('🔧 Field config loaded from CardViewSettingsService: ${config.keys.length} fields');
+      print('🔧 Field config cache updated, will trigger UI rebuild');
     } catch (e) {
       print('❌ Error loading field config: $e');
       setState(() {
@@ -102,20 +108,64 @@ class _BoardPageState extends State<BoardPage> {
     super.initState();
     print('🚀 BoardPage initialized');
     
-    // Initialize with current user
-    _initializeWithCurrentUser();
-    // Load field config & user names asynchronously
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('🚀 Post frame callback - loading field config and user cache');
+    // Initialize LaneDisplayController
+    try {
+      _laneDisplayController = Get.find<LaneDisplayController>();
+    } catch (e) {
+      _laneDisplayController = Get.put(LaneDisplayController());
+    }
+    
+    // Listen to card field settings changes
+    _settingsService.cardFieldsRx.listen((fields) {
+      print('🔔 Card fields changed in service, reloading field config');
+      print('🔔 Listener triggered with ${fields.length} fields');
+      print('🔔 New fields from service:');
+      for (var field in fields) {
+        print('   ${field.name}: visible=${field.isVisible}, order=${field.order}');
+      }
+      if (mounted) {
+        Future.microtask(() async {
+          print('🔔 Executing field config reload...');
+          await _loadPerBoardFieldConfig();
+          if (mounted) {
+            print('🔔 Triggering UI rebuild...');
+            setState(() {});
+          }
+        });
+      }
+    });
+    
+    // Fast initialization - only essential data
+    _fastInitialize();
+  }
+
+  Future<void> _fastInitialize() async {
+    try {
+      // Get current user ID from Firebase Auth
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        print('❌ No authenticated user found');
+        return;
+      }
+      
+      final String currentUserId = currentUser.uid;
+      print('👤 Fast initializing board with user: $currentUserId');
+      
+      await _controller.initializeWithUser(currentUserId);
+      
+      // Load other data in background (non-blocking)
+      _loadBackgroundData();
+      
+    } catch (e) {
+      print('❌ Error in fast initialize: $e');
+    }
+  }
+
+  void _loadBackgroundData() {
+    // Load these in background without blocking UI
+    Future.microtask(() async {
       _loadPerBoardFieldConfig();
       _buildUserNameCache();
-    });
-
-    // React to workspace changes to prefetch permissions
-    _wsWorker = ever<String>(_controller.currentWorkspaceId, (wsId) {
-      if (wsId.isNotEmpty) {
-        _ensurePermissions(wsId);
-      }
     });
   }
 
@@ -160,7 +210,6 @@ class _BoardPageState extends State<BoardPage> {
 
   @override
   void dispose() {
-    _wsWorker?.dispose();
     super.dispose();
   }
 
@@ -193,9 +242,21 @@ class _BoardPageState extends State<BoardPage> {
         final result = await Get.toNamed('/card-view-settings', arguments: {'boardId': _controller.currentBoardId.value});
         if (result == true) {
           // Reload field config when returning from settings
-          print('🔄 Reloading field config after settings change');
-          _loadPerBoardFieldConfig();
+          print('🔄 Returned from card view settings with save result');
+          print('🔄 Current service fields count: ${_settingsService.cardFields.length}');
+          for (var field in _settingsService.cardFields) {
+            print('   Service field: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
+          }
+          
+          await _loadPerBoardFieldConfig();
           setState(() {}); // Force rebuild
+          
+          print('🔄 Field config cache after reload: ${_fieldConfigCache.keys.length} fields');
+          _fieldConfigCache.forEach((key, value) {
+            print('   Cache field: $key (visible: ${value['isVisible']}, order: ${value['order']})');
+          });
+        } else {
+          print('🔄 Returned from card view settings without saving');
         }
         break;
       default:
@@ -318,7 +379,7 @@ class _BoardPageState extends State<BoardPage> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(width: 12),
                     
                     // Filter Button
@@ -403,14 +464,30 @@ class _BoardPageState extends State<BoardPage> {
                 height: 65,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: StatusSummaryCards(
-                    cards: allCards,
-                    selectedStatuses: _controller.selectedStatuses,
-                    onStatusTap: (String status) {
-                      // Toggle status filter
-                      _controller.toggleStatusFilter(status);
-                    },
-                  ),
+                  child: Obx(() {
+                    // Get display mode from first display lane
+                    final displayLanes = _controller.displayLanes;
+                    final firstLaneId = displayLanes.isNotEmpty ? displayLanes.first.id : '';
+                    
+                    // Access laneDisplayModes to make Obx reactive to lane display changes
+                    final laneDisplayModes = _laneDisplayController.laneDisplayModes;
+                    final displayMode = firstLaneId.isNotEmpty 
+                        ? (laneDisplayModes[firstLaneId] ?? LaneDisplayMode.totalBeforeDiscount)
+                        : LaneDisplayMode.totalBeforeDiscount;
+                    
+                    print('🎯 StatusSummaryCards displayMode: $displayMode for laneId: $firstLaneId');
+                    print('🎯 All laneDisplayModes: $laneDisplayModes');
+                    
+                    return StatusSummaryCards(
+                      cards: allCards,
+                      selectedStatuses: _controller.selectedStatuses,
+                      displayMode: displayMode,
+                      onStatusTap: (String status) {
+                        // Toggle status filter
+                        _controller.toggleStatusFilter(status);
+                      },
+                    );
+                  }),
                 ),
               );
             }
@@ -587,14 +664,14 @@ class _BoardPageState extends State<BoardPage> {
           } else if (hasHashtag && hasDate) {
             filterMessage = 'ไม่พบงานสำหรับแฮชแท็กและช่วงวันที่ที่เลือก';
           } else if (hasAssignee) {
-            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบที่เลือก';
+            filterMessage = 'ไม่พบงานสำหรับผู้รั��ผิดชอบที่เลือก';
           } else if (hasCustomer) {
             filterMessage = 'ไม่พบงานสำหรับลูกค้าที่เลือก';
           } else if (hasHashtag) {
             filterMessage = 'ไม่พบงานสำหรับแฮชแท็กที่เลือก';
           } else if (hasStatus) {
             filterMessage = 'ไม่พบงานสำหรับสถานะที่เลือก';
-          } else if (hasDate) {
+            filterMessage = 'ไม่พบงานสำหรับลูกค้าและแฮชท็กที่เลือก';
             filterMessage = 'ไม่พบงานในช่วงวันที่ที่เลือก';
           }
           
@@ -695,12 +772,12 @@ class _BoardPageState extends State<BoardPage> {
   final displayLanes = _controller.displayLanes;
   // Always show all lanes; cards may be empty depending on filters
   final visibleLanes = displayLanes;
-    
+
   print('🔍 Building board with ${visibleLanes.length} lanes');
   for (final lane in visibleLanes) {
       print('  - Lane: ${lane.title} (${lane.cards.length} cards)');
     }
-        
+
     return BoardAutoScrollWrapper(
       child: DragAndDropLists(
         onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
@@ -798,7 +875,7 @@ class _BoardPageState extends State<BoardPage> {
           ),
           const SizedBox(width: 8),
           Text(
-            'เพิ่ม Lane',
+            'เพิ���ม Lane',
             style: TextStyle(
               color: AppTheme.primaryOrange,
               fontSize: 14,
@@ -1439,9 +1516,8 @@ class _BoardPageState extends State<BoardPage> {
 
   void _showSearchDialog() {
     if (_controller.isSearching.value) {
-      // If already searching, clear search
-      _controller.clearSearch();
-      return;
+       _controller.clearSearch();
+       return;
     }
 
     final TextEditingController searchController = TextEditingController(
@@ -1807,7 +1883,7 @@ class _BoardPageState extends State<BoardPage> {
     return GestureDetector(
       onTap: () async {
         Navigator.of(context).pop();
-        
+
         // If workspaceId is provided and different from current workspace, switch workspace first
         if (workspaceId != null && workspaceId != _controller.currentWorkspaceId.value) {
           try {

@@ -22,7 +22,7 @@ class MobilePermissionsService extends GetxService {
   bool can(String permission) => current.value?.can(permission) ?? _hasFallbackPermissions;
   
   // Fallback permissions for better UX when API fails
-  bool get _hasFallbackPermissions => true;
+  bool get _hasFallbackPermissions => false;
 
   /// Fetch role and permissions for the signed-in user in the specified workspace
   /// - workspaceId: active workspace ID (required)
@@ -76,11 +76,11 @@ class MobilePermissionsService extends GetxService {
       throw Exception('Failed to fetch permissions. ${message ?? e.toString()}');
     } catch (e) {
       print('❌ Permission fetch failed, using fallback: $e');
-      // Set fallback permissions to ensure UI works
-      current.value = UserPermissions(
+      // Strict fallback: no permissions granted to avoid unintended access
+      current.value = const UserPermissions(
         roleId: 'fallback',
         roleName: 'Fallback User',
-        permissions: ['jobcard:create', 'jobcard:view:all'],
+        permissions: <String>[],
       );
       currentWorkspaceId.value = workspaceId;
       return current.value!;

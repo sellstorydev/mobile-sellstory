@@ -117,7 +117,7 @@ class _CustomersPageState extends State<CustomersPage> {
       ),
 
       body: PermissionGuard(
-        permission: 'customer:view:all',
+        anyOf: const ['customer:view:all', 'customer:view:assigned'],
         fallback: const Center(
           child: Text(
             'คุณไม่มีสิทธิ์ดูรายชื่อลูกค้า',

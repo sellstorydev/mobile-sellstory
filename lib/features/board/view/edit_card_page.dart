@@ -11,6 +11,7 @@ import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/repositories/firestore_repository.dart';
+import '../../../data/services/mobile_permissions_service.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -25,6 +26,41 @@ class EditCardPage extends StatefulWidget {
 }
 
 class _EditCardPageState extends State<EditCardPage> {
+  // Permission helpers
+  bool _can(String code) {
+    try {
+      return MobilePermissionsService.to.can(code);
+    } catch (_) {
+      return false;
+    }
+  }
+  bool get _isAssignee {
+    final uid = _controller.currentUserId.value.isNotEmpty
+        ? _controller.currentUserId.value
+        : (FirebaseAuth.instance.currentUser?.uid ?? '');
+    return uid.isNotEmpty && uid == widget.card.assignedTo;
+  }
+  bool get _canView => _can('jobcard:view:all') || (_can('jobcard:view:assigned') && _isAssignee);
+  bool get _canEditAll => _can('jobcard:edit:all');
+  bool get _canEditAssigned => _can('jobcard:edit:assigned') && _isAssignee;
+  bool get _canEditAny => _canEditAll || _canEditAssigned;
+  bool get _canMove => _can('jobcard:move');
+  bool get _canDelete => _can('jobcard:delete:all') || (_can('jobcard:delete:assigned') && _isAssignee);
+  bool get _canArchive => (_canEditAny && _can('jobcard:edit:field:status'));
+  bool get _canEditAttachments => _canEditAny && _can('jobcard:edit:field:attachments');
+  bool get _canEditNotes => _canEditAny && _can('jobcard:edit:field:notes');
+
+  void _showNoPermission() {
+    Get.snackbar(
+      'Permission denied',
+      "You don't have permission to perform this action",
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
   // Popup menu actions
   void _onCopy() {
     Get.snackbar(
@@ -38,10 +74,18 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _onMove() {
+    if (!_canMove) {
+      _showNoPermission();
+      return;
+    }
     _showMoveCardDialog();
   }
 
   void _onArchive() {
+    if (!_canArchive) {
+      _showNoPermission();
+      return;
+    }
     // Show confirmation dialog
     Get.dialog(
       AlertDialog(
@@ -110,6 +154,10 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _onDeletePermanently() {
+    if (!_canDelete) {
+      _showNoPermission();
+      return;
+    }
     // Show confirmation dialog
     Get.dialog(
       AlertDialog(
@@ -478,7 +526,17 @@ class _EditCardPageState extends State<EditCardPage> {
 
   @override
   Widget build(BuildContext context) {
-          return Scaffold(
+    if (!_canView) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Edit Job Card'),
+        ),
+        body: const Center(
+          child: Text('You do not have permission to view this card.'),
+        ),
+      );
+    }
+    return Scaffold(
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
           title: const Text(
@@ -511,48 +569,64 @@ class _EditCardPageState extends State<EditCardPage> {
                     break;
                 }
               },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'copy',
-                  child: Row(
-                    children: const [
-                      Icon(Icons.copy, size: 18),
-                      SizedBox(width: 8),
-                      Text('Copy'),
-                    ],
+              itemBuilder: (context) {
+                final items = <PopupMenuEntry<String>>[];
+                items.add(
+                  PopupMenuItem(
+                    value: 'copy',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.copy, size: 18),
+                        SizedBox(width: 8),
+                        Text('Copy'),
+                      ],
+                    ),
                   ),
-                ),
-                PopupMenuItem(
-                  value: 'move',
-                  child: Row(
-                    children: const [
-                      Icon(Icons.open_with, size: 18),
-                      SizedBox(width: 8),
-                      Text('Move'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'archive',
-                  child: Row(
-                    children: const [
-                      Icon(Icons.archive, size: 18),
-                      SizedBox(width: 8),
-                      Text('Archive'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: const [
-                      Icon(Icons.delete_forever, color: Colors.red, size: 18),
-                      SizedBox(width: 8),
-                      Text('Delete Permanently', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                ),
-              ],
+                );
+                if (_canMove) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'move',
+                      child: Row(
+                        children: const [
+                          Icon(Icons.open_with, size: 18),
+                          SizedBox(width: 8),
+                          Text('Move'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                if (_canArchive) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'archive',
+                      child: Row(
+                        children: const [
+                          Icon(Icons.archive, size: 18),
+                          SizedBox(width: 8),
+                          Text('Archive'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                if (_canDelete) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: const [
+                          Icon(Icons.delete_forever, color: Colors.red, size: 18),
+                          SizedBox(width: 8),
+                          Text('Delete Permanently', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return items;
+              },
             ),
           ],
         ),
@@ -1131,7 +1205,7 @@ class _EditCardPageState extends State<EditCardPage> {
           width: double.infinity,
           margin: const EdgeInsets.only(bottom: 20),
           child: ElevatedButton.icon(
-            onPressed: _addFile,
+            onPressed: _canEditAttachments ? _addFile : null,
             icon: const Icon(Icons.attach_file, size: 18),
             label: const Text('Add File'),
             style: ElevatedButton.styleFrom(
@@ -1279,6 +1353,10 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Future<void> _addFile() async {
+    if (!_canEditAttachments) {
+      _showNoPermission();
+      return;
+    }
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.any,
@@ -1444,6 +1522,10 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _deleteAttachment(Map<String, dynamic> attachment) {
+    if (!_canEditAttachments) {
+      _showNoPermission();
+      return;
+    }
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1894,6 +1976,7 @@ class _EditCardPageState extends State<EditCardPage> {
               Expanded(
                 child: TextField(
                   controller: _commentController,
+                  enabled: _canEditNotes,
                   decoration: InputDecoration(
                     hintText: 'Add a comment',
                     hintStyle: TextStyle(color: Colors.grey[500]),
@@ -1920,7 +2003,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
               const SizedBox(width: 12),
               ElevatedButton(
-                onPressed: _addComment,
+                onPressed: _canEditNotes ? _addComment : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
@@ -1976,6 +2059,10 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _showReplyDialog(String parentId) {
+    if (!_canEditNotes) {
+      _showNoPermission();
+      return;
+    }
     final TextEditingController replyController = TextEditingController();
     
     showDialog(
@@ -2069,6 +2156,10 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _addComment() async {
+    if (!_canEditNotes) {
+      _showNoPermission();
+      return;
+    }
     if (_commentController.text.trim().isEmpty) return;
     
     final newComment = {
@@ -2116,6 +2207,10 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _addReply(String parentId, String replyText) async {
+    if (!_canEditNotes) {
+      _showNoPermission();
+      return;
+    }
     final newReply = {
       'id': 'note-${DateTime.now().millisecondsSinceEpoch}',
       'userId': _currentUserInfo?['uid'] ?? 'unknown-user',
@@ -2214,6 +2309,10 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Future<void> _saveChanges() async {
+    if (!_canEditAny) {
+      _showNoPermission();
+      return;
+    }
     if (_titleController.text.trim().isEmpty) {
       Get.snackbar(
         'Error',
@@ -2971,7 +3070,7 @@ class _MoveCardDialog extends StatefulWidget {
 
 class _MoveCardDialogState extends State<_MoveCardDialog> {
   final BoardController _controller = Get.find<BoardController>();
-  
+
   String _selectedBoardId = '';
   String _selectedLaneId = '';
   List<Board> _availableBoards = [];
@@ -2995,7 +3094,7 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
 
       final workspaceId = _controller.currentWorkspaceId.value;
       final boards = await _controller.getBoardsForWorkspace(workspaceId);
-      
+
       setState(() {
         _availableBoards = boards;
         _isLoading = false;
@@ -3023,7 +3122,7 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
 
       // Get lanes for the selected board from repository
       final boardLanes = await _controller.getLanesByBoardId(boardId);
-      
+
       setState(() {
         _availableLanes = boardLanes;
         _isLoadingLanes = false;
@@ -3083,7 +3182,7 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             if (_isLoading)
               const Center(
                 child: CircularProgressIndicator(),
@@ -3129,7 +3228,7 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
                 ),
               ),
               const SizedBox(height: 20),
-              
+
               // Lane Selection
               const Text(
                 'Lane',
@@ -3212,9 +3311,9 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
                   ),
                 ),
             ],
-            
+
             const SizedBox(height: 32),
-            
+
             // Action Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.end,

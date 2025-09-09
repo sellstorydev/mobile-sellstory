@@ -50,9 +50,11 @@ class ShellPage extends StatelessWidget {
             ],
           ),
           child: SafeArea(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
                 _buildNavItem(
                   index: 0,
                   currentIndex: controller.currentIndex.value,
@@ -89,6 +91,7 @@ class ShellPage extends StatelessWidget {
                   onTap: () => controller.onTabTapped(4),
                 ),
               ],
+              ),
             ),
           ),
         ),
@@ -108,11 +111,17 @@ class ShellPage extends StatelessWidget {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
+        behavior: HitTestBehavior.opaque, // Make entire area tappable
         child: Container(
-          height: 75,
+          height: 80, // Increased from 75 to 80
+          width: double.infinity, // Ensure full width
+          decoration: BoxDecoration(
+            // Add invisible decoration to ensure full touch area
+            color: Colors.transparent,
+          ),
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacing4,
-            vertical: AppTheme.spacing2,
+            horizontal: AppTheme.spacing8, // Increased from spacing4 to spacing8
+            vertical: AppTheme.spacing8, // Increased from spacing2 to spacing8
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -132,7 +141,7 @@ class ShellPage extends StatelessWidget {
                   child: icon,
                 ),
               ),
-              Container(height: AppTheme.spacing16),
+              Container(height: AppTheme.spacing8), // Reduced from spacing16 to spacing8
               // Label with better styling and responsive
               Text(
                 label,

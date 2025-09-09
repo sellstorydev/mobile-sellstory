@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../../core/widgets/permission_guard.dart';
 
 class ConversationTile extends StatelessWidget {
   final Map<String, dynamic> conversation;
@@ -505,38 +506,44 @@ class ConversationTile extends StatelessWidget {
         motion: const DrawerMotion(),
         extentRatio: 0.48, // 2 actions * 0.24
         children: [
-          CustomSlidableAction(
-            onPressed: (_) => onToggleBot?.call(),
-            backgroundColor: const Color(0xFFFF7A00),
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 22),
-                const SizedBox(height: 4),
-                Text(
-                  isBotEnabled ? 'ปิดบอท' : 'เปิดบอท',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ],
+          PermissionGuard(
+            permission: 'chat:bot:manage',
+            child: CustomSlidableAction(
+              onPressed: (_) => onToggleBot?.call(),
+              backgroundColor: const Color(0xFFFF7A00),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 22),
+                  const SizedBox(height: 4),
+                  Text(
+                    isBotEnabled ? 'ปิดบอท' : 'เปิดบอท',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
             ),
           ),
-          CustomSlidableAction(
-            onPressed: (_) => onTogglePin?.call(),
-            backgroundColor: Colors.amber.shade700,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.push_pin, color: Colors.white, size: 22),
-                const SizedBox(height: 4),
-                Text(
-                  isPinned ? 'ยกเลิก' : 'ปักหมุด',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ],
+          PermissionGuard(
+            permission: 'chat:manage',
+            child: CustomSlidableAction(
+              onPressed: (_) => onTogglePin?.call(),
+              backgroundColor: Colors.amber.shade700,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.push_pin, color: Colors.white, size: 22),
+                  const SizedBox(height: 4),
+                  Text(
+                    isPinned ? 'ยกเลิก' : 'ปักหมุด',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -545,58 +552,65 @@ class ConversationTile extends StatelessWidget {
         motion: const DrawerMotion(),
         extentRatio: 0.72, // 3 actions * 0.24
         children: [
-          CustomSlidableAction(
-            onPressed: (_) => onAddHashtag?.call(),
-            backgroundColor: Colors.indigo,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.tag, color: Colors.white, size: 22),
-                SizedBox(height: 4),
-                Text(
-                  'Hashtag',
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ],
+          PermissionGuard(
+            permission: 'chat:manage',
+            child: CustomSlidableAction(
+              onPressed: (_) => onAddHashtag?.call(),
+              backgroundColor: Colors.indigo,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.tag, color: Colors.white, size: 22),
+                  SizedBox(height: 4),
+                  Text(
+                    'Hashtag',
+                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
             ),
           ),
 
-
-
-          CustomSlidableAction(
-            onPressed: (_) => onAssignSale?.call(),
-            backgroundColor: Colors.teal,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.person_add, color: Colors.white, size: 22),
-                SizedBox(height: 4),
-                Text(
-                  'Assign',
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ],
+          PermissionGuard(
+            permission: 'customer:edit:all',
+            child: CustomSlidableAction(
+              onPressed: (_) => onAssignSale?.call(),
+              backgroundColor: Colors.teal,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.person_add, color: Colors.white, size: 22),
+                  SizedBox(height: 4),
+                  Text(
+                    'Assign',
+                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
             ),
           ),
-          CustomSlidableAction(
-            onPressed: (_) => onChangeStatus?.call(),
-            backgroundColor: Colors.deepOrange,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.flag, color: Colors.white, size: 22),
-                SizedBox(height: 4),
-                Text(
-                  'Status',
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ],
+          PermissionGuard(
+            permission: 'chat:manage',
+            child: CustomSlidableAction(
+              onPressed: (_) => onChangeStatus?.call(),
+              backgroundColor: Colors.deepOrange,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.flag, color: Colors.white, size: 22),
+                  SizedBox(height: 4),
+                  Text(
+                    'Status',
+                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
