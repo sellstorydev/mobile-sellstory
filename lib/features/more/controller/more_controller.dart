@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import '../../../data/services/firebase_auth_service.dart';
@@ -25,26 +26,50 @@ class MoreController extends GetxController {
     });
   }
 
-  // Logout
+  // Logout with confirmation
   Future<void> logout() async {
-    try {
-      isLoading.value = true;
-      await _authService.signOut();
-      
-      // Reset dependencies to prevent issues after logout
-      Locator.resetDependencies();
-      
-      Get.offAllNamed('/login');
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Logout failed: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
-        colorText: Get.theme.colorScheme.error,
-      );
-    } finally {
-      isLoading.value = false;
+    // Show confirmation dialog
+    final bool? confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('ออกจากระบบ'),
+        content: const Text('คุณต้องการออกจากระบบหรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('ออกจากระบบ'),
+          ),
+        ],
+      ),
+    );
+
+    // If user confirmed, proceed with logout
+    if (confirmed == true) {
+      try {
+        isLoading.value = true;
+        await _authService.signOut();
+        
+        // Reset dependencies to prevent issues after logout
+        Locator.resetDependencies();
+        
+        Get.offAllNamed('/login');
+      } catch (e) {
+        Get.snackbar(
+          'Error',
+          'Logout failed: ${e.toString()}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          colorText: Get.theme.colorScheme.error,
+        );
+      } finally {
+        isLoading.value = false;
+      }
     }
   }
 
