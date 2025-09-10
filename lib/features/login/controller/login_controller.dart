@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../../../data/services/firebase_auth_service.dart';
 import '../../../core/di/locator.dart';
 import '../../../core/services/fcm_service.dart';
@@ -80,7 +81,7 @@ class LoginController extends GetxController {
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
     } catch (e) {
-      print(e);
+      debugPrint('signInWithEmail error: $e');
       Get.snackbar(
         'Error',
         'Login failed: ${e.toString()}',
@@ -136,6 +137,68 @@ class LoginController extends GetxController {
       Get.snackbar(
         'Error',
         'Google sign in failed: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Apple Sign-In
+  Future<void> signInWithApple() async {
+    // Safety guard: Apple Sign-In only available on Apple platforms
+    if (!GetPlatform.isIOS) {
+      Get.snackbar(
+        'Unavailable',
+        'Apple sign-in is available only on iOS devices',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+      return;
+    }
+    try {
+      isLoading.value = true;
+      await _authService.signInWithApple();
+
+      // Ensure dependencies are properly setup after login
+      Locator.setup();
+
+      // Register FCM token + device immediately after login
+      if (Get.isRegistered<FcmService>()) {
+        await Get.find<FcmService>().registerDeviceForPush();
+      }
+
+      // GA4
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null && Get.isRegistered<AnalyticsService>()) {
+        await AnalyticsService.to.setUserId(uid);
+        await AnalyticsService.to.logLogin(method: 'apple');
+      }
+
+      // Prefetch permissions
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final chatService = Get.find<ChatService>();
+          String? workspaceId = await chatService.getUserCurrentWorkspaceId(user.uid);
+          workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
+          if (workspaceId != null && workspaceId.isNotEmpty) {
+            await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
+          }
+        }
+      } catch (_) {}
+
+      Get.offAllNamed('/shell');
+    } on FirebaseAuthException catch (e) {
+      _handleAuthError(e);
+    } catch (e) {
+      debugPrint('signInWithApple error: $e');
+      Get.snackbar(
+        'Error',
+        'Apple sign in failed: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,
