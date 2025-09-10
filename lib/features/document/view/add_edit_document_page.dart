@@ -862,7 +862,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Template requirement warning
-          if (controller.selectedTemplateId == null) ...[
+          if (controller.selectedTemplateId == null && widget.documentId == null) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
@@ -886,12 +886,38 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             ),
           ],
 
+          // Warning for edit mode when template is missing
+          if (controller.selectedTemplateId == null && widget.documentId != null) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryOrange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: AppTheme.primaryOrange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'เทมเพลตของเอกสารนี้ไม่สามารถโหลดได้ แต่คุณยังสามารถแก้ไขสินค้าที่มีอยู่ได้',
+                      style: TextStyle(color: AppTheme.primaryOrange, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Product Selection Buttons
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: (controller.isLoadingProducts || controller.selectedTemplateId == null)
+                  onPressed: (controller.isLoadingProducts || 
+                              (controller.selectedTemplateId == null && widget.documentId == null))
                       ? null
                       : () => _showProductSelectionDialog(controller),
                   icon: controller.isLoadingProducts
@@ -909,13 +935,13 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                   label: Text(
                     controller.isLoadingProducts
                         ? 'กำลังโหลด...'
-                        : controller.selectedTemplateId == null
+                        : (controller.selectedTemplateId == null && widget.documentId == null)
                             ? 'เลือกเทมเพลตก่อน'
                         : 'เลือกจากฐานข้อมูล',
                     style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: controller.selectedTemplateId == null 
+                    backgroundColor: (controller.selectedTemplateId == null && widget.documentId == null)
                         ? AppTheme.textGrey 
                         : AppTheme.primaryOrange,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -928,28 +954,28 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: controller.selectedTemplateId == null
+                  onPressed: (controller.selectedTemplateId == null && widget.documentId == null)
                       ? null
                       : controller.addProduct,
                   icon: Icon(
                     Icons.add,
-                    color: controller.selectedTemplateId == null
+                    color: (controller.selectedTemplateId == null && widget.documentId == null)
                         ? AppTheme.textGrey
                         : AppTheme.primaryOrange,
                   ),
                   label: Text(
-                    controller.selectedTemplateId == null
+                    (controller.selectedTemplateId == null && widget.documentId == null)
                         ? 'เลือกเทมเพลตก่อน'
                         : 'เพิ่มใหม่',
                     style: TextStyle(
-                      color: controller.selectedTemplateId == null
+                      color: (controller.selectedTemplateId == null && widget.documentId == null)
                           ? AppTheme.textGrey
                           : AppTheme.primaryOrange,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
-                      color: controller.selectedTemplateId == null
+                      color: (controller.selectedTemplateId == null && widget.documentId == null)
                           ? AppTheme.textGrey
                           : AppTheme.primaryOrange,
                     ),
@@ -1054,6 +1080,10 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   Widget _buildDynamicProductFields(AddEditDocumentController controller, int index) {
     final fields = controller.templateProductFields;
     if (fields.isEmpty) {
+      // In edit mode, show basic product fields even without template
+      if (widget.documentId != null) {
+        return _buildBasicProductFields(controller, index);
+      }
       return const Text('ไม่พบฟิลด์สินค้าในเทมเพลต');
     }
     
@@ -1090,28 +1120,37 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           case 'predefined':
           case 'user_input':
             // Determine the controller key for this field
-            String controllerKey = fieldId;
+            String controllerKey = index.toString();
             
             // Handle different field mappings
             if (fieldType == 'product_field' && field['sourceField'] != null) {
               final sourceField = field['sourceField'].toString();
               if (sourceField.startsWith('customFields.')) {
-                controllerKey = sourceField.replaceFirst('customFields.', '');
+                // Use field index prefix for custom fields to avoid duplication
+                controllerKey = 'field_${i}_${sourceField.replaceFirst('customFields.', '')}';
               } else {
+                // Use standard field names for basic product fields
                 controllerKey = sourceField;
               }
             } else if (fieldType == 'predefined' && field['predefinedField'] != null) {
+              // Use standard field names for predefined fields
               controllerKey = field['predefinedField'].toString();
             } else if (fieldType == 'user_input') {
-              controllerKey = fieldId;
+              // Use field index prefix for user input fields to avoid duplication
+              controllerKey = 'field_${i}_$fieldId';
+            } else {
+              // Use field index prefix for other cases to avoid duplication
+              controllerKey = 'field_${i}_$fieldId';
             }
             
             // Determine keyboard type based on inputType and field rules
             TextInputType keyboardType = _getKeyboardTypeForField(field, controllerKey);
-            bool isRequired = _isFieldRequired(controllerKey);
-            String hint = _getFieldHint(controllerKey, keyboardType);
-            String? prefix = _getFieldPrefix(controllerKey);
-            int maxLines = _getFieldMaxLines(controllerKey);
+            // Extract actual field name for helper methods
+            String actualFieldName = _extractFieldName(controllerKey);
+            bool isRequired = _isFieldRequired(actualFieldName);
+            String hint = _getFieldHint(actualFieldName, keyboardType);
+            String? prefix = _getFieldPrefix(actualFieldName);
+            int maxLines = _getFieldMaxLines(actualFieldName);
             
             fieldWidget = _buildTextField(
               label: isRequired ? '$fieldLabel *' : fieldLabel,
@@ -1127,11 +1166,11 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             break;
             
           default:
-            // Generic field for unknown types
+            // Generic field for unknown types - use field index prefix to avoid duplication
             fieldWidget = _buildTextField(
               label: fieldLabel,
               hint: 'กรอก $fieldLabel',
-              controller: controller.getProductController(index, fieldId),
+              controller: controller.getProductController(index, 'field_${i}_$fieldId'),
               onChanged: (value) => controller.update(),
             );
         }
@@ -1148,6 +1187,81 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: fieldWidgets,
+    );
+  }
+
+  // Build basic product fields when no template is available (edit mode fallback)
+  Widget _buildBasicProductFields(AddEditDocumentController controller, int index) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTextField(
+          label: 'ชื่อสินค้า *',
+          hint: 'ระบุชื่อสินค้า',
+          controller: controller.getProductController(index, 'name'),
+          isRequired: true,
+          onChanged: (value) => controller.update(),
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          label: 'รายละเอียด',
+          hint: 'ระบุรายละเอียดสินค้า',
+          controller: controller.getProductController(index, 'description'),
+          maxLines: 2,
+          onChanged: (value) => controller.update(),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                label: 'จำนวน *',
+                hint: '1',
+                controller: controller.getProductController(index, 'quantity'),
+                keyboardType: TextInputType.number,
+                isRequired: true,
+                onChanged: (value) => controller.update(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTextField(
+                label: 'หน่วย',
+                hint: 'หน่วย',
+                controller: controller.getProductController(index, 'unit'),
+                onChanged: (value) => controller.update(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                label: 'ราคาต่อหน่วย *',
+                hint: '0',
+                controller: controller.getProductController(index, 'pricePerUnit'),
+                keyboardType: TextInputType.number,
+                prefix: '฿',
+                isRequired: true,
+                onChanged: (value) => controller.update(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTextField(
+                label: 'ส่วนลด',
+                hint: '0',
+                controller: controller.getProductController(index, 'discount'),
+                keyboardType: TextInputType.number,
+                prefix: '฿',
+                onChanged: (value) => controller.update(),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1181,6 +1295,18 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   // Helper method to determine if field is required
   bool _isFieldRequired(String controllerKey) {
     return ['name', 'quantity', 'unit', 'pricePerUnit'].contains(controllerKey);
+  }
+
+  // Helper method to extract actual field name from prefixed controller key
+  String _extractFieldName(String controllerKey) {
+    // Remove field index prefix (e.g., 'field_0_name' -> 'name')
+    if (controllerKey.startsWith('field_')) {
+      final parts = controllerKey.split('_');
+      if (parts.length >= 3) {
+        return parts.sublist(2).join('_'); // Join remaining parts in case field name has underscores
+      }
+    }
+    return controllerKey; // Return as-is if no prefix found
   }
 
   // Helper method to get appropriate hint text

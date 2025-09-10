@@ -2,6 +2,195 @@
 
 ## Current Implementation Status
 
+### Discount Input Fix for Item-based Invoices (Bug Fix - September 10, 2025)
+- **CRITICAL BUG FIXED**: Item-based invoice discount input was incorrectly limited by quotation discount amount
+- **Root Cause Analysis**: 
+  - When quotations had no discount (discount = 0 or null), the discount input was limited to 0
+  - Logic was checking quotation['discount'] as maximum allowed discount instead of allowing flexible discount up to subtotal
+  - UI was showing quotation discount limit instead of actual subtotal limit
+- **Key Changes Made**:
+  - Updated `calculateItemBasedDiscount()` method to use `itemBasedSubtotal.value` as maximum discount limit
+  - Removed dependency on quotation discount for validation logic
+  - Updated UI to always show maximum discount as current subtotal amount
+  - Added proper validation for negative discounts and amounts exceeding subtotal
+- **Technical Implementation**:
+  - Maximum discount allowed: current subtotal amount (not quotation discount)
+  - Validation: discountInput >= 0 && discountInput <= itemBasedSubtotal.value
+  - Automatic correction when exceeding limits with user feedback
+  - Real-time maximum discount display updates with subtotal changes
+- **UI Enhancements**:
+  - Removed conditional display of maximum discount based on quotation
+  - Always shows "สูงสุด ฿X.XX" where X.XX is current subtotal
+  - Dynamic updates as user selects/deselects items
+- **User Experience**: Users can now apply discounts to item-based invoices regardless of original quotation discount settings
+- **Business Logic**: Maintains flexibility while preventing discount amounts from exceeding the actual invoice subtotal
+
+### Quotation Status Update on Invoice Creation (Feature Enhancement - September 9, 2025)
+- **NEW FEATURE ADDED**: Automatic quotation status update to "INVOICED" when invoice is successfully created
+- **Feature Description**: 
+  - When any type of invoice is successfully created from a quotation, the original quotation's status is automatically updated to "INVOICED"
+  - This provides clear tracking of which quotations have been converted to invoices
+  - Status update happens for all three invoice types: Full, Installment, and Item-based
+- **Technical Implementation**:
+  - Added `_updateQuotationStatus(String newStatus)` helper method in InvoiceCreationController
+  - Method safely updates quotation status using FirestoreRepository.updateDocument()
+  - Updates quotation fields: status, updatedAt, updatedBy
+  - Non-blocking implementation - if status update fails, invoice creation still succeeds
+  - Added status update call to all three invoice creation methods after successful invoice creation
+- **Error Handling**:
+  - Graceful error handling - status update failures don't affect invoice creation
+  - Console logging for debugging and tracking
+  - Validates workspace ID and quotation ID before attempting update
+- **User Experience**: 
+  - Users can now easily track which quotations have been invoiced
+  - Quotation list will show "INVOICED" status for converted quotations
+  - Clear workflow progression from quotation to invoice
+- **Business Logic**: Maintains data consistency by automatically tracking the quotation-to-invoice conversion process
+
+### Invoice Quantity Validation (Security Enhancement - September 9, 2025)
+- **SECURITY FEATURE ADDED**: Maximum quantity validation for item-based invoice creation
+- **Feature Description**: 
+  - Prevents users from entering quantities exceeding the original quotation amounts
+  - Real-time validation with automatic correction and user feedback
+  - Visual indicators showing maximum available quantities
+- **Key Components**:
+  - Enhanced `updateItemQuantity()` with comprehensive validation logic
+  - Automatic quantity correction when exceeding maximum limits
+  - User-friendly Thai warning messages via Get.snackbar()
+  - Helper text showing maximum quantities in TextField inputs
+- **Validation Rules**:
+  - No negative quantities allowed (auto-corrected to 0)
+  - No quantities exceeding original quotation amounts (auto-corrected to maximum)
+  - Real-time validation as user types in quantity fields
+  - Visual feedback through snackbar warnings
+- **UI Enhancements**:
+  - Added "สูงสุด: X" helper text below each quantity input field
+  - Clear indication of quantity limits for each item
+  - Consistent styling with app theme
+- **Technical Implementation**:
+  - Enhanced `updateItemQuantity()`, `toggleAllItems()`, and `toggleItemSelection()` methods
+  - Proper TextEditingController synchronization with validation
+  - State management updates after validation corrections
+- **User Experience**: Users receive immediate feedback when attempting to exceed quantity limits, with automatic correction and clear visual guidance
+- **Data Integrity**: Ensures invoice quantities never exceed original quotation amounts, maintaining business logic consistency
+
+### Item-based Invoice Discount Feature (Enhancement - September 9, 2025)
+- **NEW FEATURE ADDED**: Added end-of-bill discount input for Item-based Invoice creation (สร้างใบแจ้งหนี้ แบ่งจ่ายแบบรายการ)
+- **Feature Description**: 
+  - Added discount input field "ส่วนลดท้ายบิลสำหรับงวดนี้" in item selection dialog
+  - Real-time calculation showing subtotal, discount amount, and final total
+  - Visual calculation summary with color-coded amounts
+- **Key Components Added**:
+  - `itemBasedDiscountController` - TextEditingController for discount input
+  - `itemBasedSubtotal`, `itemBasedDiscountAmount`, `itemBasedAfterDiscount` - Observable variables for calculations
+  - `calculateItemBasedDiscount()` - Method to calculate discount and final totals
+  - `_calculateItemBasedTotals()` - Method to recalculate all totals when items change
+- **UI Enhancements**:
+  - Added calculation section in item selection dialog showing:
+    - Subtotal from selected items
+    - Discount input field with ฿ prefix
+    - Discount amount display (if applied)
+    - Final total after discount in highlighted color
+  - Real-time updates when items are selected/deselected or quantities change
+- **Technical Implementation**:
+  - Enhanced `createItemBasedInvoice()` to include discount in invoice data
+  - Set `isEndOfBillDiscountEnabled = true` when discount is applied
+  - Proper calculation: grandTotal = subtotal - discount, netTotal = grandTotal
+  - Automatic recalculation when item selection changes
+- **User Experience**: Users can now apply end-of-bill discounts to item-based invoices with real-time calculation preview before creating the invoice
+- **Data Integrity**: Discount is properly saved to invoice document and calculations are accurate
+
+### Invoice Creation Default Settings Fix (Critical Fix - September 9, 2025)
+- **CRITICAL ISSUE RESOLVED**: Fixed invoice creation to start with disabled VAT and discount settings instead of inheriting from quotation
+- **Root Cause Analysis**: 
+  - When creating invoices from quotations, all settings (including VAT and discounts) were being copied directly
+  - This caused new invoices to inherit tax and discount settings from the original quotation
+  - Invoices should start with clean state for user to configure as needed
+- **Key Changes Made**:
+  - Modified `_createBaseInvoiceData()` method to reset tax and discount settings
+  - Set `isVatEnabled = false`, `vatAmount = 0.0` for all new invoices
+  - Set `isWhtEnabled = false`, `whtAmount = 0.0` for withholding tax
+  - Set `isEndOfBillDiscountEnabled = false`, `discount = 0.0` for discounts
+  - Updated total calculations to reflect no tax/discount state
+- **Technical Implementation**:
+  - Full Invoice: Uses base method with proper total recalculation
+  - Installment Invoice: Explicitly sets VAT to 0 and calculates net amounts
+  - Item-based Invoice: Removes VAT inheritance and calculates totals without tax
+  - All invoice types now start with subtotal = grandTotal = netTotal (no tax/discount)
+- **User Experience**: New invoices created from quotations now start with disabled VAT and discount settings, allowing users to configure tax and discounts as needed for the specific invoice
+- **Data Integrity**: Maintains proper totals calculation while ensuring clean starting state for new invoices
+- **CRITICAL ISSUE RESOLVED**: Fixed controller key duplication where multiple template fields with same ID caused controller sharing
+- **Root Cause Analysis**: 
+  - Template fields could have duplicate IDs across different field types
+  - Using fieldId directly as controller key caused multiple fields to share the same TextEditingController
+  - This led to synchronized field updates when editing one product field affected all products
+- **Strategic Solution Implemented**:
+  - **Standard Fields**: Keep using standard names (name, quantity, unit, pricePerUnit, description, discount) for validation compatibility
+  - **Custom Fields**: Use field index prefix 'field_${i}_${fieldName}' for custom fields to ensure uniqueness
+  - **User Input Fields**: Use field index prefix 'field_${i}_${fieldId}' to prevent ID duplication
+  - **Template-specific Fields**: Apply smart prefixing only where duplication risk exists
+- **Technical Implementation**:
+  - Modified controller key generation logic in `_buildDynamicProductFields()`
+  - Added `_extractFieldName()` helper method to parse actual field names from prefixed keys
+  - Maintained backward compatibility with validation methods that expect standard field names
+  - Applied prefixing selectively to avoid breaking existing functionality
+- **Key Benefits**:
+  - Prevents controller sharing between different template fields
+  - Maintains validation method compatibility
+  - Reduces memory overhead by not prefixing all fields unnecessarily
+  - Ensures each product field gets a unique TextEditingController instance
+- **Controller Key Strategy**:
+  - `product_field` with standard sourceField: Use standard names (e.g., 'name', 'pricePerUnit')
+  - `product_field` with customFields: Use prefixed names (e.g., 'field_0_customDescription')
+  - `predefined` fields: Use standard names (e.g., 'quantity', 'unit')
+  - `user_input` fields: Use prefixed names (e.g., 'field_1_userNote')
+  - Unknown field types: Use prefixed names (e.g., 'field_2_unknownField')
+- **User Experience**: Now editing product 17's custom fields won't affect other products' fields, while standard fields remain fully functional
+
+### Edit Quotation Product Loading Fix (Completed - September 9, 2025)
+- **Problem Solved**: Fixed issue where product section data doesn't load when editing quotations
+- **Root Cause Analysis**: 
+  - Template loading race condition where products load before template is fully processed
+  - Controller key mismatch between `_initializeProductControllers` (using index) and `getProductController` (using product ID)
+  - Missing fallback handling when template loading fails in edit mode
+- **Key Changes Made**:
+  - Enhanced `_loadDocumentProducts` method with delayed initialization and fallback to default fields
+  - Improved `_initializeProductControllers` with better field mapping and debug logging
+  - Fixed `getProductController` method with robust fallback mechanisms and auto-creation of missing controllers
+  - Added proper handling for custom fields and template-specific field types
+  - Used product ID as primary key for controller storage to match retrieval logic
+- **Technical Implementation**:
+  - Added 100ms delay in product loading to ensure template processing completion
+  - Enhanced field mapping logic to handle `sourceField`, `predefinedField`, and custom fields properly
+  - Implemented three-tier fallback for controller retrieval: product ID → index → auto-create
+  - Added comprehensive logging for debugging controller initialization
+  - Maintained backward compatibility with existing product data structures
+- **User Experience**: Edit quotation now properly loads and displays all product data including custom fields from templates
+
+### Invoice Creation Options Implementation (Completed - September 9, 2025)
+- **New Feature**: Replaced simple "สร้างใบแจ้งหนี้" with comprehensive options page
+- **Key Changes Made**:
+  - Created `InvoiceCreationOptionsPage` with 3 invoice creation options
+  - Created `InvoiceCreationController` to handle all invoice creation logic
+  - Updated quotations list page to navigate to options instead of direct creation
+- **Three Invoice Creation Options**:
+  1. **Full Invoice (ยืนยันการสร้างใบแจ้งหนี้เต็มจำนวน)**: Creates complete invoice with all quotation data
+  2. **Installment Invoice (แบ่งจ่ายตามงวด)**: 
+     - Radio buttons for percent(%) or amount(บาท) calculation
+     - Real-time calculation showing net amount after 3% withholding tax
+     - Creates single line item "Partial Payment for Quotation {docNo}"
+  3. **Item-based Invoice (แบ่งจ่ายแบบรายการ)**:
+     - Checkbox list of all quotation items
+     - Editable quantity (max = original quantity)
+     - Creates invoice with selected items only
+- **Technical Implementation**:
+  - All options duplicate quotation data and set type='INV', status='DRAFT'
+  - Auto-generates INV document numbers using ID generation service
+  - Sets notes to "Invoice for Quotation {Quotation DocNo}"
+  - Adds relatedDocuments reference linking back to quotation
+  - Creates proper activity logs for audit trail
+- **User Experience**: Clean interface with clear option descriptions and real-time calculations
+
 ### List Refresh Implementation (Completed - September 8, 2025)
 - **Problem Solved**: Fixed issue where data is updated but list views aren't refreshed
 - **Root Cause**: List pages were using `Get.off()` creating new controller instances without refreshing existing data

@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
 import '../controller/quotations_list_controller.dart';
 import 'quotations_filter_page.dart';
+import 'invoice_creation_options_page.dart';
 
 class QuotationsListPage extends StatefulWidget {
   const QuotationsListPage({super.key});
@@ -350,7 +351,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
                   children: [
                     // Left side - Document info
                     Expanded(
-                      flex: 4,
+                      flex: 6,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -664,7 +665,8 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
               ),
               onTap: () {
                 Navigator.pop(context);
-                controller.reviseQuotationToInvoice(quotation);
+                // Navigate to the new invoice creation options page
+                _showInvoiceCreationOptions(quotation);
               },
             ),
             
@@ -673,5 +675,9 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
         ),
       ),
     );
+  }
+
+  void _showInvoiceCreationOptions(Map<String, dynamic> quotation) {
+    Get.to(() => InvoiceCreationOptionsPage(quotation: quotation));
   }
 }

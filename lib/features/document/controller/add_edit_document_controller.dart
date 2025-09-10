@@ -126,7 +126,13 @@ class AddEditDocumentController extends GetxController {
 
   // Product section
   List<Map<String, dynamic>> _products = [];
-  List<Map<String, dynamic>> get products => _products;
+  List<Map<String, dynamic>> get products {
+    print('📋 UI requesting products list. Count: ${_products.length}');
+    if (_products.isNotEmpty) {
+      print('📋 First product data: ${_products.first}');
+    }
+    return _products;
+  }
   
   // Product database data
   List<Map<String, dynamic>> _availableProducts = [];
@@ -476,15 +482,21 @@ class AddEditDocumentController extends GetxController {
 
   void _initializeForm() {
     try {
-      // Set default dates
-      _documentDate = DateTime.now();
-      _validUntilDate = DateTime.now().add(const Duration(days: 30));
+      // Set default dates (only if not editing existing document)
+      if (documentId == null) {
+        _documentDate = DateTime.now();
+        _validUntilDate = DateTime.now().add(const Duration(days: 30));
+      }
 
-      // Set default WHT percentage
-      whtPercentageController.text = '3';
+      // Set default WHT percentage (only if not editing existing document)
+      if (documentId == null) {
+        whtPercentageController.text = '3';
+      }
 
-      // No default products - start with empty list
-      _products = [];
+      // No default products - start with empty list (only for new documents)
+      if (documentId == null) {
+        _products = [];
+      }
       
       // Initialize multiple emails and phones with default empty entries for new documents
       if (documentId == null) {
@@ -496,8 +508,10 @@ class AddEditDocumentController extends GetxController {
         ];
       }
       
-      // Initialize default product fields
-      _resetToDefaultProductFields();
+      // Initialize default product fields (only for new documents)
+      if (documentId == null) {
+        _resetToDefaultProductFields();
+      }
 
       // Add listeners to customer and seller controllers for real-time validation
       _addFormControllerListeners();
@@ -1298,27 +1312,70 @@ class AddEditDocumentController extends GetxController {
       if (items != null && items.isNotEmpty) {
         _products.clear();
         
-        for (final item in items) {
+        for (int itemIndex = 0; itemIndex < items.length; itemIndex++) {
+          final item = items[itemIndex];
           if (item is Map<String, dynamic>) {
-            final product = {
-              'id': item['id']?.toString() ?? '',
+            // Ensure each product has a unique ID
+            String productId = item['id']?.toString() ?? '';
+            if (productId.isEmpty) {
+              productId = 'loaded_product_${DateTime.now().millisecondsSinceEpoch}_$itemIndex';
+            }
+            
+            // Start with basic product fields
+            final product = <String, dynamic>{
+              'id': productId,
               'name': item['name']?.toString() ?? '',
               'description': item['description']?.toString() ?? '',
               'quantity': item['quantity']?.toString() ?? '',
               'unit': item['unit']?.toString() ?? '',
               'pricePerUnit': item['pricePerUnit']?.toString() ?? '',
               'discount': item['discount']?.toString() ?? '',
+              'discountType': item['discountType']?.toString() ?? 'amount',
             };
             
+            // Add any custom fields from the item data
+            // This preserves additional fields that might be in the document
+            final customInputs = item['customInputs'] as Map<String, dynamic>?;
+            if (customInputs != null) {
+              for (final entry in customInputs.entries) {
+                product['custom_${entry.key}'] = entry.value?.toString() ?? '';
+              }
+            }
+            
+            // Also check for any additional fields directly in the item
+            for (final entry in item.entries) {
+              final key = entry.key;
+              if (!product.containsKey(key) && 
+                  key != 'customInputs' && 
+                  entry.value != null) {
+                product[key] = entry.value.toString();
+              }
+            }
+            
             _products.add(product);
+            print('📦 Loaded product $itemIndex: ID="$productId", name="${product['name']}", quantity="${product['quantity']}"');
           }
         }
         
         // Initialize product controllers for loaded products
+        // Use a delayed call to ensure template loading is complete
+        await Future.delayed(const Duration(milliseconds: 100));
         _initializeProductControllers();
         
         print('✅ Products loaded: ${_products.length} items');
+        print('✅ Template fields available: ${_templateProductFields.length} fields');
+        
+        // If template fields are empty, ensure we have at least basic fields
+        if (_templateProductFields.isEmpty) {
+          print('⚠️ No template fields found, using default fields for edit mode');
+          _resetToDefaultProductFields();
+          // Re-initialize controllers with default fields
+          _initializeProductControllers();
+        }
       }
+      
+      // Trigger UI update after products are loaded
+      update();
       
     } catch (e) {
       print('❌ Failed to load products: $e');
@@ -1375,20 +1432,61 @@ class AddEditDocumentController extends GetxController {
         _selectedTemplateId = templateId;
         
         // Find and select the template
-        final template = _availableTemplates.firstWhereOrNull(
+        Map<String, dynamic>? template = _availableTemplates.firstWhereOrNull(
           (t) => t['id'] == templateId,
         );
+        
+        // If template not found in available templates, try to load it directly
+        if (template == null && _currentWorkspaceId != null) {
+          print('⚠️ Template not found in available templates, loading directly...');
+          try {
+            final templateDoc = await FirebaseFirestore.instance
+                .collection('workspaces')
+                .doc(_currentWorkspaceId)
+                .collection('quotationTemplates')
+                .doc(templateId)
+                .get();
+            
+            if (templateDoc.exists) {
+              final data = templateDoc.data()!;
+              template = {
+                'id': templateDoc.id,
+                'name': data['name']?.toString() ?? 'Unknown Template',
+                'description': data['description']?.toString() ?? '',
+                'createdAt': data['createdAt'],
+                'updatedAt': data['updatedAt'],
+                'fullData': data, // Store full template data for field extraction
+              };
+              
+              // Add to available templates if not already there
+              if (!_availableTemplates.any((t) => t['id'] == templateId)) {
+                _availableTemplates.add(template);
+              }
+              
+              print('✅ Template loaded directly: ${template['name']}');
+            }
+          } catch (e) {
+            print('❌ Failed to load template directly: $e');
+          }
+        }
         
         if (template != null) {
           // Extract signature fields and product fields from template
           _extractSignatureFieldsFromTemplate(template);
           _extractProductFieldsFromTemplate(template);
-          print('✅ Template loaded: ${template['name']}');
+          print('✅ Template processed: ${template['name']}');
+          print('✅ Product fields extracted: ${_templateProductFields.length} fields');
+        } else {
+          print('❌ Template not found: $templateId');
+          // Reset to default fields if template not found
+          _resetToDefaultProductFields();
         }
       }
       
     } catch (e) {
       print('❌ Failed to load template: $e');
+      // Reset to default fields on error
+      _resetToDefaultProductFields();
     }
   }
 
@@ -1403,37 +1501,450 @@ class AddEditDocumentController extends GetxController {
       }
       _productControllers.clear();
       
+      print('🔧 Initializing product controllers for ${_products.length} products');
+      print('🔧 Available template fields: ${_templateProductFields.length}');
+      
       // Create controllers for each product
       for (int i = 0; i < _products.length; i++) {
         final product = _products[i];
+        
+        // Ensure each product has a unique ID
+        String productKey;
+        if (product['id'] != null && product['id'].toString().isNotEmpty) {
+          productKey = product['id'].toString();
+        } else {
+          // Generate a unique ID for products without one
+          productKey = 'product_${DateTime.now().millisecondsSinceEpoch}_$i';
+          _products[i]['id'] = productKey;
+        }
+        
+        print('🔧 Initializing controllers for product $i with key: $productKey');
         final controllers = <String, TextEditingController>{};
         
-        // Create controllers for each field
-        controllers['name'] = TextEditingController(text: product['name'] ?? '');
-        controllers['description'] = TextEditingController(text: product['description'] ?? '');
-        controllers['quantity'] = TextEditingController(text: product['quantity'] ?? '');
-        controllers['unit'] = TextEditingController(text: product['unit'] ?? '');
-        controllers['pricePerUnit'] = TextEditingController(text: product['pricePerUnit'] ?? '');
-        controllers['discount'] = TextEditingController(text: product['discount'] ?? '');
+        // Create completely independent controllers for basic fields with product-specific data
+        final productName = product['name']?.toString() ?? '';
+        final productDescription = product['description']?.toString() ?? '';
+        final productQuantity = product['quantity']?.toString() ?? '1';
+        final productUnit = product['unit']?.toString() ?? 'หน่วย';
+        final productPrice = product['pricePerUnit']?.toString() ?? '0';
+        final productDiscount = product['discount']?.toString() ?? '0';
         
-        // Add custom field controllers if template has them
+        // Create new TextEditingController instances for THIS specific product
+        controllers['name'] = TextEditingController(text: productName);
+        controllers['description'] = TextEditingController(text: productDescription);
+        controllers['quantity'] = TextEditingController(text: productQuantity);
+        controllers['unit'] = TextEditingController(text: productUnit);
+        controllers['pricePerUnit'] = TextEditingController(text: productPrice);
+        controllers['discount'] = TextEditingController(text: productDiscount);
+        
+        print('🔧 Basic fields for product $i ($productKey): name="$productName", quantity="$productQuantity", price="$productPrice"');
+        
+        // Add template-specific field controllers
         if (_templateProductFields.isNotEmpty) {
           for (final field in _templateProductFields) {
             final fieldId = field['id']?.toString() ?? '';
-            if (fieldId.isNotEmpty && !controllers.containsKey(fieldId)) {
-              final fieldValue = product[fieldId]?.toString() ?? '';
-              controllers[fieldId] = TextEditingController(text: fieldValue);
+            final fieldType = field['type']?.toString() ?? '';
+            final sourceField = field['sourceField']?.toString() ?? '';
+            final predefinedField = field['predefinedField']?.toString() ?? '';
+            
+            // Determine the controller key based on field type
+            String controllerKey = fieldId;
+            
+            if (fieldType == 'product_field' && sourceField.isNotEmpty) {
+              // Handle nested custom fields like "customFields.multiply"
+              if (sourceField.startsWith('customFields.')) {
+                controllerKey = sourceField.replaceFirst('customFields.', '');
+              } else {
+                controllerKey = sourceField;
+              }
+            } else if (fieldType == 'predefined' && predefinedField.isNotEmpty) {
+              controllerKey = predefinedField;
+            } else if (fieldType == 'user_input') {
+              controllerKey = fieldId;
+            }
+            
+            // Only create controller if it doesn't already exist for THIS specific product
+            if (!controllers.containsKey(controllerKey)) {
+              String fieldValue = '';
+              
+              // Try to get value from THIS product's data using various strategies
+              if (product.containsKey(controllerKey)) {
+                fieldValue = product[controllerKey]?.toString() ?? '';
+              } else if (sourceField.isNotEmpty && product.containsKey(sourceField)) {
+                fieldValue = product[sourceField]?.toString() ?? '';
+              } else if (product.containsKey('custom_$controllerKey')) {
+                fieldValue = product['custom_$controllerKey']?.toString() ?? '';
+              } else if (product.containsKey('custom_$fieldId')) {
+                fieldValue = product['custom_$fieldId']?.toString() ?? '';
+              }
+              
+              // Create a completely new controller instance for THIS specific product
+              controllers[controllerKey] = TextEditingController(text: fieldValue);
+              print('🔧 Created template controller for product $i field: $controllerKey = "$fieldValue"');
             }
           }
         }
         
-        _productControllers[i.toString()] = controllers;
+        // Add controllers for any additional custom fields found in THIS product's data
+        for (final entry in product.entries) {
+          final key = entry.key;
+          if (!controllers.containsKey(key) && 
+              !['id', 'name', 'description', 'quantity', 'unit', 'pricePerUnit', 'discount', 'discountType'].contains(key)) {
+            controllers[key] = TextEditingController(text: entry.value?.toString() ?? '');
+            print('🔧 Created additional controller for product $i field: $key = "${entry.value}"');
+          }
+        }
+        
+        // Store controllers with the unique product key
+        _productControllers[productKey] = controllers;
+        print('🔧 Stored ${controllers.length} controllers for product $i under key: $productKey');
+        
+        // Add listeners to controllers for this specific product
+        _addProductControllerListeners(productKey);
       }
       
-      print('✅ Product controllers initialized for ${_products.length} products');
+      print('✅ Product controllers initialized for ${_products.length} products with ${_templateProductFields.length} template fields');
+      
+      // Validate that each product has its own isolated controllers
+      _validateProductControllerIsolation();
+      
+      // Detect and fix any controller sharing issues
+      _detectAndFixControllerSharing();
+      
+      // Debug controller status for troubleshooting
+      debugControllerStatus();
+      
+      // Trigger UI update after controllers are initialized
+      update();
       
     } catch (e) {
       print('❌ Failed to initialize product controllers: $e');
+    }
+  }
+
+  // Validate that each product has properly isolated controllers
+  void _validateProductControllerIsolation() {
+    try {
+      print('🔍 Validating controller isolation for ${_products.length} products...');
+      
+      for (int i = 0; i < _products.length; i++) {
+        final product = _products[i];
+        final productId = product['id']?.toString();
+        
+        if (productId != null && _productControllers.containsKey(productId)) {
+          final controllers = _productControllers[productId]!;
+          print('✅ Product $i ($productId) has ${controllers.length} isolated controllers');
+          
+          // Check if basic fields are properly set with unique values
+          final nameController = controllers['name'];
+          final quantityController = controllers['quantity'];
+          
+          if (nameController != null) {
+            print('   📝 Name: "${nameController.text}" (Controller: ${nameController.hashCode})');
+          }
+          if (quantityController != null) {
+            print('   📝 Quantity: "${quantityController.text}" (Controller: ${quantityController.hashCode})');
+          }
+          
+          // Verify this controller is not shared with other products
+          bool isShared = false;
+          for (final otherEntry in _productControllers.entries) {
+            if (otherEntry.key != productId) {
+              for (final otherController in otherEntry.value.values) {
+                for (final thisController in controllers.values) {
+                  if (identical(otherController, thisController)) {
+                    print('❌ SHARED CONTROLLER DETECTED between $productId and ${otherEntry.key}!');
+                    isShared = true;
+                    break;
+                  }
+                }
+                if (isShared) break;
+              }
+              if (isShared) break;
+            }
+          }
+          
+          if (!isShared) {
+            print('✅ Product $i controllers are properly isolated');
+          }
+        } else {
+          print('❌ Product $i missing controllers or invalid ID: $productId');
+        }
+      }
+      
+      print('🔍 Controller isolation validation complete');
+      
+      // Additional test: Modify one controller and verify others aren't affected
+      if (_products.length >= 2) {
+        _testControllerIsolation();
+      }
+    } catch (e) {
+      print('❌ Failed to validate product controller isolation: $e');
+    }
+  }
+
+  // Test controller isolation by modifying one and checking others
+  void _testControllerIsolation() {
+    try {
+      if (_products.length < 2) return;
+      
+      print('🧪 Testing controller isolation...');
+      
+      // Get first two products
+      final product1Id = _products[0]['id']?.toString();
+      final product2Id = _products[1]['id']?.toString();
+      
+      if (product1Id != null && product2Id != null) {
+        final controllers1 = _productControllers[product1Id];
+        final controllers2 = _productControllers[product2Id];
+        
+        if (controllers1 != null && controllers2 != null) {
+          final qty1Controller = controllers1['quantity'];
+          final qty2Controller = controllers2['quantity'];
+          
+          if (qty1Controller != null && qty2Controller != null) {
+            // Store original values
+            final originalQty1 = qty1Controller.text;
+            final originalQty2 = qty2Controller.text;
+            
+            print('🧪 Original quantities: Product1="$originalQty1", Product2="$originalQty2"');
+            
+            // Temporarily modify product 1
+            qty1Controller.text = 'TEST_ISOLATION';
+            
+            // Check if product 2 was affected
+            final newQty2 = qty2Controller.text;
+            
+            if (newQty2 == originalQty2) {
+              print('✅ Controller isolation test PASSED - Product 2 not affected');
+            } else {
+              print('❌ Controller isolation test FAILED - Product 2 was affected: "$newQty2"');
+            }
+            
+            // Restore original value
+            qty1Controller.text = originalQty1;
+            
+            print('🧪 Controller isolation test completed');
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ Failed to test controller isolation: $e');
+    }
+  }
+
+  // Initialize controllers for a single product (used for emergency recreation)
+  void _initializeControllersForSingleProduct(int index) {
+    try {
+      if (index < 0 || index >= _products.length) {
+        print('❌ Invalid product index for controller initialization: $index');
+        return;
+      }
+      
+      final product = _products[index];
+      final productId = product['id']?.toString();
+      
+      if (productId == null || productId.isEmpty) {
+        print('❌ Cannot initialize controllers for product without ID at index: $index');
+        return;
+      }
+      
+      print('🔧 Emergency initialization of controllers for product $index ($productId)');
+      
+      // Clear any existing controllers for this product
+      if (_productControllers.containsKey(productId)) {
+        for (final controller in _productControllers[productId]!.values) {
+          controller.dispose();
+        }
+        _productControllers.remove(productId);
+      }
+      
+      final controllers = <String, TextEditingController>{};
+      
+      // Create basic field controllers
+      final productName = product['name']?.toString() ?? '';
+      final productDescription = product['description']?.toString() ?? '';
+      final productQuantity = product['quantity']?.toString() ?? '1';
+      final productUnit = product['unit']?.toString() ?? 'หน่วย';
+      final productPrice = product['pricePerUnit']?.toString() ?? '0';
+      final productDiscount = product['discount']?.toString() ?? '0';
+      
+      controllers['name'] = TextEditingController(text: productName);
+      controllers['description'] = TextEditingController(text: productDescription);
+      controllers['quantity'] = TextEditingController(text: productQuantity);
+      controllers['unit'] = TextEditingController(text: productUnit);
+      controllers['pricePerUnit'] = TextEditingController(text: productPrice);
+      controllers['discount'] = TextEditingController(text: productDiscount);
+      
+      // Add template field controllers if available
+      if (_templateProductFields.isNotEmpty) {
+        for (final field in _templateProductFields) {
+          final fieldId = field['id']?.toString() ?? '';
+          final fieldType = field['type']?.toString() ?? '';
+          final sourceField = field['sourceField']?.toString() ?? '';
+          final predefinedField = field['predefinedField']?.toString() ?? '';
+          
+          String controllerKey = fieldId;
+          
+          if (fieldType == 'product_field' && sourceField.isNotEmpty) {
+            if (sourceField.startsWith('customFields.')) {
+              controllerKey = sourceField.replaceFirst('customFields.', '');
+            } else {
+              controllerKey = sourceField;
+            }
+          } else if (fieldType == 'predefined' && predefinedField.isNotEmpty) {
+            controllerKey = predefinedField;
+          } else if (fieldType == 'user_input') {
+            controllerKey = fieldId;
+          }
+          
+          if (!controllers.containsKey(controllerKey)) {
+            String fieldValue = '';
+            
+            if (product.containsKey(controllerKey)) {
+              fieldValue = product[controllerKey]?.toString() ?? '';
+            } else if (sourceField.isNotEmpty && product.containsKey(sourceField)) {
+              fieldValue = product[sourceField]?.toString() ?? '';
+            } else if (product.containsKey('custom_$controllerKey')) {
+              fieldValue = product['custom_$controllerKey']?.toString() ?? '';
+            } else if (product.containsKey('custom_$fieldId')) {
+              fieldValue = product['custom_$fieldId']?.toString() ?? '';
+            }
+            
+            controllers[controllerKey] = TextEditingController(text: fieldValue);
+          }
+        }
+      }
+      
+      // Store controllers
+      _productControllers[productId] = controllers;
+      
+      // Add listeners
+      _addProductControllerListeners(productId);
+      
+      print('✅ Emergency controller initialization complete for product $index ($productId) with ${controllers.length} controllers');
+      
+    } catch (e) {
+      print('❌ Failed to initialize controllers for single product: $e');
+    }
+  }
+
+  // Add listener to a single controller
+  void _addListenerToSingleController(String productId, String fieldName, TextEditingController controller) {
+    try {
+      // Remove any existing listeners first
+      controller.removeListener(() {});
+      
+      // Add new listener that updates only this specific product
+      controller.addListener(() {
+        final productIndex = _products.indexWhere((p) => p['id']?.toString() == productId);
+        if (productIndex >= 0) {
+          _products[productIndex][fieldName] = controller.text;
+          print('📝 Single controller update: product $productIndex ($productId) field $fieldName: "${controller.text}"');
+          update();
+        } else {
+          print('⚠️ Could not find product with ID: $productId for field update: $fieldName');
+        }
+      });
+      
+      print('👂 Added isolated listener to controller for product $productId field $fieldName');
+    } catch (e) {
+      print('❌ Failed to add listener to single controller: $e');
+    }
+  }
+
+  // Detect and fix any controller sharing issues
+  void _detectAndFixControllerSharing() {
+    try {
+      print('🔍 Scanning for controller sharing issues...');
+      
+      final Map<TextEditingController, List<String>> controllerToProducts = {};
+      final Set<String> problematicProducts = {};
+      
+      // Build map of controllers to product IDs
+      for (final entry in _productControllers.entries) {
+        final productId = entry.key;
+        final controllers = entry.value;
+        
+        for (final controller in controllers.values) {
+          if (!controllerToProducts.containsKey(controller)) {
+            controllerToProducts[controller] = [];
+          }
+          controllerToProducts[controller]!.add(productId);
+        }
+      }
+      
+      // Find shared controllers
+      for (final entry in controllerToProducts.entries) {
+        final controller = entry.key;
+        final productIds = entry.value;
+        
+        if (productIds.length > 1) {
+          print('❌ SHARED CONTROLLER DETECTED! Controller ${controller.hashCode} is shared between products: $productIds');
+          problematicProducts.addAll(productIds);
+        }
+      }
+      
+      // Fix sharing issues by recreating controllers for problematic products
+      if (problematicProducts.isNotEmpty) {
+        print('🔧 Fixing controller sharing for ${problematicProducts.length} products...');
+        
+        for (final productId in problematicProducts) {
+          final productIndex = _products.indexWhere((p) => p['id']?.toString() == productId);
+          if (productIndex >= 0) {
+            print('🔧 Recreating controllers for shared product: $productId (index: $productIndex)');
+            _initializeControllersForSingleProduct(productIndex);
+          }
+        }
+        
+        print('✅ Controller sharing issues fixed');
+      } else {
+        print('✅ No controller sharing detected - all controllers properly isolated');
+      }
+      
+    } catch (e) {
+      print('❌ Failed to detect/fix controller sharing: $e');
+    }
+  }
+
+  // Debug method to check controller status (can be called from UI)
+  void debugControllerStatus() {
+    try {
+      print('🔍 =========================');
+      print('🔍 CONTROLLER STATUS DEBUG');
+      print('🔍 =========================');
+      print('🔍 Total products: ${_products.length}');
+      print('🔍 Total controller groups: ${_productControllers.length}');
+      
+      for (int i = 0; i < _products.length; i++) {
+        final product = _products[i];
+        final productId = product['id']?.toString() ?? 'NO_ID';
+        final productName = product['name']?.toString() ?? 'NO_NAME';
+        
+        print('🔍 Product $i: ID="$productId", Name="$productName"');
+        
+        if (_productControllers.containsKey(productId)) {
+          final controllers = _productControllers[productId]!;
+          print('   📱 Controllers: ${controllers.length} fields');
+          
+          for (final entry in controllers.entries) {
+            final fieldName = entry.key;
+            final controller = entry.value;
+            print('     - $fieldName: "${controller.text}" (${controller.hashCode})');
+          }
+        } else {
+          print('   ❌ NO CONTROLLERS FOUND');
+        }
+        print('');
+      }
+      
+      // Check for controller sharing
+      print('🔍 Checking for shared controllers...');
+      _detectAndFixControllerSharing();
+      print('🔍 =========================');
+      
+    } catch (e) {
+      print('❌ Failed to debug controller status: $e');
     }
   }
 
@@ -1472,8 +1983,9 @@ class AddEditDocumentController extends GetxController {
 
   void addProduct() {
     try {
-      // Check if template is selected first
-      if (_selectedTemplateId == null || _templateProductFields.isEmpty) {
+      // In edit mode, allow adding products even if template is not available
+      // For new documents, still require template selection
+      if (documentId == null && (_selectedTemplateId == null || _templateProductFields.isEmpty)) {
         Get.snackbar(
           'คำเตือน',
           'กรุณาเลือกเทมเพลตก่อนเพิ่มสินค้า',
@@ -1496,8 +2008,14 @@ class AddEditDocumentController extends GetxController {
 
       _products.add(product);
 
-      // Create controllers for this product based on template fields
-      _createProductControllersFromTemplate(productId);
+      // Create controllers for this product
+      if (_templateProductFields.isNotEmpty) {
+        // Use template if available
+        _createProductControllersFromTemplate(productId);
+      } else {
+        // Fallback to basic controllers if no template (edit mode scenario)
+        _createBasicProductControllers(productId);
+      }
 
       // Add listeners to all required field controllers for real-time validation
       _addProductControllerListeners(productId);
@@ -1560,19 +2078,52 @@ class AddEditDocumentController extends GetxController {
     _productControllers[productId] = controllers;
   }
 
+  // Create basic product controllers without template (fallback for edit mode)
+  void _createBasicProductControllers(String productId) {
+    final controllers = <String, TextEditingController>{};
+    
+    // Create controllers for basic product fields
+    controllers['name'] = TextEditingController(text: '');
+    controllers['description'] = TextEditingController(text: '');
+    controllers['quantity'] = TextEditingController(text: '1');
+    controllers['unit'] = TextEditingController(text: 'หน่วย');
+    controllers['pricePerUnit'] = TextEditingController(text: '0');
+    controllers['discount'] = TextEditingController(text: '0');
+    
+    _productControllers[productId] = controllers;
+  }
+
   // Add listeners to product controllers for real-time validation
   void _addProductControllerListeners(String productId) {
     try {
       final controllers = _productControllers[productId];
       if (controllers == null) return;
 
-      // Add listeners to required fields
-      controllers['name']?.addListener(() => update());
-      controllers['quantity']?.addListener(() => update());
-      controllers['unit']?.addListener(() => update());
-      controllers['pricePerUnit']?.addListener(() => update());
+      // Add listeners to each controller for this specific product only
+      controllers.forEach((fieldName, controller) {
+        // Remove any existing listeners to prevent duplicates
+        controller.removeListener(() {});
+        
+        // Add new listener that only updates THIS specific product's data
+        controller.addListener(() {
+          // Find the specific product index by ID to update only that product
+          final productIndex = _products.indexWhere((p) => p['id']?.toString() == productId);
+          if (productIndex >= 0) {
+            // Update only this specific product's field
+            _products[productIndex][fieldName] = controller.text;
+            print('📝 Updated product $productIndex ($productId) field $fieldName: "${controller.text}"');
+            
+            // Trigger UI update
+            update();
+          } else {
+            print('⚠️ Could not find product with ID: $productId');
+          }
+        });
+      });
+      
+      print('👂 Added isolated listeners to ${controllers.length} controllers for product: $productId');
     } catch (e) {
-      print('❌ Failed to add product controller listeners: $e');
+      print('❌ Failed to add product controller listeners for $productId: $e');
     }
   }
 
@@ -1771,13 +2322,78 @@ class AddEditDocumentController extends GetxController {
 
   TextEditingController getProductController(int index, String field) {
     try {
+      print('🔍 Getting controller for product index $index, field: $field');
+      print('🔍 Total products: ${_products.length}');
+      print('🔍 Product controllers keys: ${_productControllers.keys.toList()}');
+      
       if (index >= 0 && index < _products.length) {
-        final productId = _products[index]['id'];
-        if (_productControllers.containsKey(productId)) {
-          return _productControllers[productId]![field] ??
-              TextEditingController();
+        final product = _products[index];
+        final productId = product['id']?.toString();
+        
+        if (productId == null || productId.isEmpty) {
+          print('❌ Product at index $index has no valid ID');
+          return TextEditingController();
+        }
+        
+        print('🔍 Looking for product ID: $productId for field: $field');
+        
+        // Get controllers for this specific product
+        final productControllers = _productControllers[productId];
+        if (productControllers == null) {
+          print('❌ No controllers found for product ID: $productId');
+          
+          // This should not happen if initialization worked correctly
+          // Let's recreate all controllers for this product
+          print('🔧 Recreating controllers for product $productId');
+          _initializeControllersForSingleProduct(index);
+          
+          // Try again after recreation
+          final recreatedControllers = _productControllers[productId];
+          if (recreatedControllers != null && recreatedControllers.containsKey(field)) {
+            print('✅ Successfully recreated controller for $productId field $field');
+            return recreatedControllers[field]!;
+          }
+          
+          // Last resort fallback
+          print('⚠️ Creating emergency fallback controller for product $index ($productId) field $field');
+          final value = product[field]?.toString() ?? '';
+          final newController = TextEditingController(text: value);
+          
+          // Store it properly and add listener
+          if (!_productControllers.containsKey(productId)) {
+            _productControllers[productId] = {};
+          }
+          _productControllers[productId]![field] = newController;
+          
+          // Add listener for this emergency controller
+          _addListenerToSingleController(productId, field, newController);
+          
+          return newController;
+        }
+        
+        // Get the specific field controller for this product
+        final controller = productControllers[field];
+        if (controller != null) {
+          print('🔍 Found existing controller for product $index ($productId), field: $field, value: "${controller.text}"');
+          return controller;
+        } else {
+          print('⚠️ Field "$field" not found in controllers for product $productId');
+          print('🔍 Available fields for product $productId: ${productControllers.keys.toList()}');
+          
+          // Create a new controller for this missing field
+          final value = product[field]?.toString() ?? '';
+          final newController = TextEditingController(text: value);
+          productControllers[field] = newController;
+          
+          // Add listener for this new controller
+          _addListenerToSingleController(productId, field, newController);
+          
+          print('✅ Created missing field controller for product $index ($productId) field $field with value: "$value"');
+          return newController;
         }
       }
+      
+      print('❌ Index out of range for product $index field $field');
       return TextEditingController();
     } catch (e) {
       print('❌ Failed to get product controller: $e');
