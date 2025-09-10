@@ -137,6 +137,7 @@ class ReceiptListController extends GetxController {
       // Load first page of receipts from Firestore
       final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        documentType: 'RT', // Filter for receipts only
         limit: pageSize,
       );
       
@@ -144,14 +145,12 @@ class ReceiptListController extends GetxController {
       lastDocument = result['lastDocument'] as DocumentSnapshot?;
       hasMore.value = result['hasMore'] as bool;
       
-      // Filter only receipts
-      final receipts = documents.where((doc) => doc['type'] == 'RCP').toList();
+      // No need to filter again since we already filtered by type in the query
+      print('📄 Loaded ${documents.length} receipts from Firestore (first page)');
       
-      print('📄 Loaded ${receipts.length} receipts from Firestore (first page)');
-      
-      allReceipts.value = List.from(receipts);
-      this.receipts.value = List.from(receipts);
-      filteredReceipts.value = List.from(receipts);
+      allReceipts.value = List.from(documents);
+      this.receipts.value = List.from(documents);
+      filteredReceipts.value = List.from(documents);
       
     } catch (e) {
       print('❌ Error loading receipts: $e');
@@ -183,6 +182,7 @@ class ReceiptListController extends GetxController {
       // Load next page of receipts
       final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        documentType: 'RT', // Filter for receipts only
         limit: pageSize,
         startAfter: lastDocument,
       );
@@ -191,8 +191,8 @@ class ReceiptListController extends GetxController {
       lastDocument = result['lastDocument'] as DocumentSnapshot?;
       hasMore.value = result['hasMore'] as bool;
       
-      // Filter only receipts
-      final newReceipts = documents.where((doc) => doc['type'] == 'RCP').toList();
+      // No need to filter again since we already filtered by type in the query
+      final newReceipts = documents;
       
       // Add to existing lists
       allReceipts.addAll(newReceipts);

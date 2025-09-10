@@ -1214,13 +1214,35 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
         Row(
           children: [
             Expanded(
-              child: _buildTextField(
-                label: 'จำนวน *',
-                hint: '1',
-                controller: controller.getProductController(index, 'quantity'),
-                keyboardType: TextInputType.number,
-                isRequired: true,
-                onChanged: (value) => controller.update(),
+              child: GetBuilder<AddEditDocumentController>(
+                builder: (controller) {
+                  final quantityController = controller.getProductController(index, 'quantity');
+                  final remainingLimit = controller.getRemainingQuantityLimit(index);
+                  final currentValue = quantityController.text;
+                  final hasError = !controller.validateQuantityForInvoice(index, currentValue);
+                  
+                  String? helperText;
+                  String? errorText;
+                  
+                  if (remainingLimit != null) {
+                    helperText = 'สูงสุด: ${remainingLimit.toStringAsFixed(remainingLimit.truncateToDouble() == remainingLimit ? 0 : 2)}';
+                    if (hasError) {
+                      errorText = 'จำนวนต้องไม่เกิน $helperText';
+                    }
+                  }
+                  
+                  return _buildTextField(
+                    label: 'จำนวน *',
+                    hint: '1',
+                    controller: quantityController,
+                    keyboardType: TextInputType.number,
+                    isRequired: true,
+                    helperText: helperText,
+                    errorText: errorText,
+                    hasError: hasError,
+                    onChanged: (value) => controller.update(),
+                  );
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -1905,6 +1927,9 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     bool isRequired = false,
     bool isEnabled = true,
     Function(String)? onChanged,
+    String? helperText,
+    String? errorText,
+    bool hasError = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1928,17 +1953,25 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             hintText: hint,
             prefixText: prefix,
             suffixText: suffix,
+            helperText: helperText,
+            errorText: hasError ? errorText : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppTheme.borderGrey),
+              borderSide: BorderSide(
+                color: hasError ? Colors.red : AppTheme.borderGrey,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppTheme.borderGrey),
+              borderSide: BorderSide(
+                color: hasError ? Colors.red : AppTheme.borderGrey,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppTheme.primaryOrange),
+              borderSide: BorderSide(
+                color: hasError ? Colors.red : AppTheme.primaryOrange,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,

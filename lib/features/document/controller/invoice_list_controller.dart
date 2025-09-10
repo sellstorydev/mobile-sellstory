@@ -138,6 +138,7 @@ class InvoiceListController extends GetxController {
       // Load first page of invoices from Firestore
       final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        documentType: 'INV', // Filter for invoices only
         limit: pageSize,
       );
       
@@ -145,14 +146,12 @@ class InvoiceListController extends GetxController {
       lastDocument = result['lastDocument'] as DocumentSnapshot?;
       hasMore.value = result['hasMore'] as bool;
       
-      // Filter only invoices
-      final invoices = documents.where((doc) => doc['type'] == 'INV').toList();
+      // No need to filter again since we already filtered by type in the query
+      print('📄 Loaded ${documents.length} invoices from Firestore (first page)');
       
-      print('📄 Loaded ${invoices.length} invoices from Firestore (first page)');
-      
-      allInvoices.value = List.from(invoices);
-      this.invoices.value = List.from(invoices);
-      filteredInvoices.value = List.from(invoices);
+      allInvoices.value = List.from(documents);
+      this.invoices.value = List.from(documents);
+      filteredInvoices.value = List.from(documents);
       
     } catch (e) {
       print('❌ Error loading invoices: $e');
@@ -184,6 +183,7 @@ class InvoiceListController extends GetxController {
       // Load next page of invoices
       final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        documentType: 'INV', // Filter for invoices only
         limit: pageSize,
         startAfter: lastDocument,
       );
@@ -192,8 +192,8 @@ class InvoiceListController extends GetxController {
       lastDocument = result['lastDocument'] as DocumentSnapshot?;
       hasMore.value = result['hasMore'] as bool;
       
-      // Filter only invoices
-      final newInvoices = documents.where((doc) => doc['type'] == 'INV').toList();
+      // No need to filter again since we already filtered by type in the query
+      final newInvoices = documents;
       
       // Add to existing lists
       allInvoices.addAll(newInvoices);

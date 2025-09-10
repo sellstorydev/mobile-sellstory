@@ -138,6 +138,7 @@ class QuotationsListController extends GetxController {
       // Load first page of quotations from Firestore
       final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        documentType: 'QT', // Filter for quotations only
         limit: pageSize,
       );
       
@@ -145,14 +146,14 @@ class QuotationsListController extends GetxController {
       lastDocument = result['lastDocument'] as DocumentSnapshot?;
       hasMore.value = result['hasMore'] as bool;
       
-      // Filter only quotations
-      final quotations = documents.where((doc) => doc['type'] == 'QT').toList();
+      print('📄 Raw documents loaded: ${documents.length}');
       
-      allQuotations.value = quotations;
-      this.quotations.value = quotations;
-      filteredQuotations.value = quotations;
+      // No need to filter again since we already filtered by type in the query
+      allQuotations.value = documents;
+      this.quotations.value = documents;
+      filteredQuotations.value = documents;
       
-      print('📄 Loaded ${quotations.length} quotations (first page)');
+      print('📄 Loaded ${quotations.length} quotations (first page), hasMore: ${hasMore.value}');
       
     } catch (e) {
       print('❌ Failed to load quotations: $e');
@@ -170,6 +171,7 @@ class QuotationsListController extends GetxController {
 
   Future<void> loadMoreQuotations() async {
     if (isLoadingMore.value || !hasMore.value || lastDocument == null) {
+      print('🚫 Skip loadMore: isLoadingMore=${isLoadingMore.value}, hasMore=${hasMore.value}, lastDocument=${lastDocument != null}');
       return;
     }
 
@@ -181,9 +183,12 @@ class QuotationsListController extends GetxController {
         return;
       }
 
+      print('📄 Loading more quotations... Current total: ${allQuotations.length}');
+
       // Load next page of quotations
       final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        documentType: 'QT', // Filter for quotations only
         limit: pageSize,
         startAfter: lastDocument,
       );
@@ -192,8 +197,10 @@ class QuotationsListController extends GetxController {
       lastDocument = result['lastDocument'] as DocumentSnapshot?;
       hasMore.value = result['hasMore'] as bool;
       
-      // Filter only quotations
-      final newQuotations = documents.where((doc) => doc['type'] == 'QT').toList();
+      print('📄 Raw documents from loadMore: ${documents.length}');
+      
+      // No need to filter again since we already filtered by type in the query
+      final newQuotations = documents;
       
       // Add to existing lists
       allQuotations.addAll(newQuotations);
@@ -202,7 +209,7 @@ class QuotationsListController extends GetxController {
       // Reapply filters to include new data
       _applyFilters();
       
-      print('📄 Loaded ${newQuotations.length} more quotations (page ${(allQuotations.length / pageSize).ceil()})');
+      print('📄 Loaded ${newQuotations.length} more quotations. Total: ${allQuotations.length}, Filtered: ${filteredQuotations.length}, hasMore: ${hasMore.value}');
       
     } catch (e) {
       print('❌ Failed to load more quotations: $e');
@@ -425,6 +432,30 @@ class QuotationsListController extends GetxController {
 
   // Refresh data
   Future<void> refreshData() async {
+    // Store current state
+    final int currentItemCount = allQuotations.length;
+    print('🔄 Refresh started - Current item count: $currentItemCount');
+    
     await _loadQuotations();
+    
+    print('🔄 After _loadQuotations - New count: ${allQuotations.length}, hasMore: ${hasMore.value}');
+    
+    // If we had more items before refresh and still have more available,
+    // automatically load to match previous state
+    if (currentItemCount > quotations.length && hasMore.value) {
+      // Calculate how many more pages we need to load
+      final pagesNeeded = ((currentItemCount - quotations.length) / pageSize).ceil();
+      
+      print('🔄 Need to reload $pagesNeeded more pages to restore $currentItemCount items');
+      
+      for (int i = 0; i < pagesNeeded && hasMore.value; i++) {
+        await loadMoreQuotations();
+        print('🔄 Loaded page ${i + 1}/${pagesNeeded} - Current count: ${allQuotations.length}');
+        // Add a small delay to prevent overwhelming the server
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }
+    
+    print('🔄 Refresh completed - Final count: ${allQuotations.length}');
   }
 }

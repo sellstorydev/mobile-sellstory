@@ -564,8 +564,19 @@ class InvoiceCreationController extends GetxController {
       final filteredItems = selectedItems.where((item) => 
           item['selected'] == true && (item['quantity'] ?? 0) > 0).map((item) {
         final newItem = Map<String, dynamic>.from(item);
+        
+        // Calculate remaining quantity (original quantity - selected quantity)
+        final originalQuantity = item['originalQuantity']?.toDouble() ?? 0.0;
+        final selectedQuantity = item['quantity']?.toDouble() ?? 0.0;
+        final remainingQuantity = originalQuantity - selectedQuantity;
+        
+        // Add remainingQuantity field for future invoice tracking
+        newItem['remainingQuantity'] = remainingQuantity;
+        
+        // Remove temporary fields used only during selection
         newItem.remove('selected');
         newItem.remove('originalQuantity');
+        
         return newItem;
       }).toList();
 

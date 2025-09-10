@@ -15,6 +15,7 @@ class InvoiceListPage extends StatefulWidget {
 
 class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingObserver {
   late InvoiceListController controller;
+  DateTime? _lastLoadMoreCall;
 
   @override
   void initState() {
@@ -270,9 +271,21 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
       color: AppTheme.primaryOrange,
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
-          // Check if we're near the bottom and should load more
-          if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
-            controller.loadMoreInvoices();
+          // Only handle ScrollUpdateNotification (actual scrolling) and ScrollEndNotification
+          // This prevents triggering during drag start/drag end events
+          if (scrollInfo is ScrollUpdateNotification || scrollInfo is ScrollEndNotification) {
+            // Check if we're near the bottom and should load more
+            if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+              // Only load more if we're not already loading and there's more data to load
+              if (!controller.isLoadingMore.value && controller.hasMore.value) {
+                // Add debounce to prevent rapid calls (minimum 500ms between calls)
+                final now = DateTime.now();
+                if (_lastLoadMoreCall == null || now.difference(_lastLoadMoreCall!).inMilliseconds > 500) {
+                  _lastLoadMoreCall = now;
+                  controller.loadMoreInvoices();
+                }
+              }
+            }
           }
           return false;
         },

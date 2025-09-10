@@ -1470,26 +1470,35 @@ class FirestoreRepository {
   // Get documents with pagination support
   Future<Map<String, dynamic>> getDocumentsPaginated({
     required String workspaceId,
+    String? documentType, // Added document type filter
     int limit = 20,
     DocumentSnapshot? startAfter,
   }) async {
     try {
       _logger.methodEntry('FirestoreRepository.getDocumentsPaginated', {
         'workspaceId': workspaceId,
+        'documentType': documentType,
         'limit': limit,
         'hasStartAfter': startAfter != null,
       });
 
       print('🔄 FirestoreRepository.getDocumentsPaginated:');
       print('  - Workspace ID: $workspaceId');
+      print('  - Document Type: $documentType');
       print('  - Limit: $limit');
       print('  - Start after: ${startAfter != null ? 'Yes' : 'No'}');
 
       final documentsCollection = _firestoreService.getWorkspaceDocumentsCollection(workspaceId);
 
       Query<Map<String, dynamic>> query = documentsCollection
-          .orderBy('createdAt', descending: true)
-          .limit(limit);
+          .orderBy('createdAt', descending: true);
+      
+      // Add type filter if specified
+      if (documentType != null) {
+        query = query.where('type', isEqualTo: documentType);
+      }
+      
+      query = query.limit(limit);
 
       if (startAfter != null) {
         query = query.startAfterDocument(startAfter);

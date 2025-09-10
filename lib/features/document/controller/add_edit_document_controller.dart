@@ -2957,6 +2957,45 @@ class AddEditDocumentController extends GetxController {
     return parts;
   }
 
+  // Validate quantity input for invoices with remainingQuantity limits
+  bool validateQuantityForInvoice(int productIndex, String inputValue) {
+    // Only validate for invoice documents
+    if (documentType != 'INV') return true;
+    
+    if (productIndex < 0 || productIndex >= _products.length) return true;
+    
+    final product = _products[productIndex];
+    final remainingQuantity = product['remainingQuantity'];
+    
+    // If no remainingQuantity field, allow any quantity (backward compatibility)
+    if (remainingQuantity == null) return true;
+    
+    final maxQuantity = (remainingQuantity is double) 
+        ? remainingQuantity 
+        : double.tryParse(remainingQuantity.toString()) ?? double.infinity;
+    
+    final inputQuantity = double.tryParse(inputValue) ?? 0.0;
+    
+    return inputQuantity <= maxQuantity;
+  }
+
+  // Get remaining quantity limit for invoice items
+  double? getRemainingQuantityLimit(int productIndex) {
+    // Only applicable for invoice documents
+    if (documentType != 'INV') return null;
+    
+    if (productIndex < 0 || productIndex >= _products.length) return null;
+    
+    final product = _products[productIndex];
+    final remainingQuantity = product['remainingQuantity'];
+    
+    if (remainingQuantity == null) return null;
+    
+    return (remainingQuantity is double) 
+        ? remainingQuantity 
+        : double.tryParse(remainingQuantity.toString());
+  }
+
   // Validate customer data
   bool get isCustomerDataValid {
     if (_selectedCustomerId == null) return false;
