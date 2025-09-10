@@ -236,6 +236,9 @@ class _EditCardPageState extends State<EditCardPage> {
   // Todo state 
   List<Map<String, dynamic>> _todoItems = [];
   
+  // Product state
+  List<Map<String, dynamic>> _productItems = [];
+  
   // Form state
   String _selectedLane = '';
   String _selectedAssignee = '';
@@ -676,6 +679,17 @@ class _EditCardPageState extends State<EditCardPage> {
                 _buildCustomerSection(),
                 const SizedBox(height: 20),
                 _buildCustomerInterestSection(),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Product Section
+            _buildSectionCard(
+              title: 'Products & Services',
+              icon: Icons.shopping_cart,
+              color: Colors.deepOrange,
+              children: [
+                _buildProductSection(),
               ],
             ),
             const SizedBox(height: 24),
@@ -2932,6 +2946,347 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
+  Widget _buildProductSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Product Items',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _addProduct,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Add Product'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: _addCustomProduct,
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Add Custom'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.deepOrange,
+                    side: const BorderSide(color: Colors.deepOrange),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        // Product table header
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(8),
+            ),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Row(
+            children: const [
+              SizedBox(width: 60, child: Text('Img', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+              Expanded(flex: 3, child: Text('Product/Service', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+              Expanded(flex: 2, child: Text('Qty/Unit', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+              Expanded(flex: 2, child: Text('Price/Unit', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+              Expanded(flex: 2, child: Text('Discount', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+              Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+            ],
+          ),
+        ),
+        
+        // Product items list
+        _buildProductItems(),
+        
+        // Summary section
+        _buildProductSummary(),
+      ],
+    );
+  }
+
+  Widget _buildProductItems() {
+    if (_productItems.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(8),
+            bottomRight: Radius.circular(8),
+          ),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.shopping_cart_outlined, size: 48, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No products added yet',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Click "Add Product" to start adding products or services',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _productItems.length,
+        separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[300]),
+        itemBuilder: (context, index) {
+          final product = _productItems[index];
+          return _buildProductRow(product, index);
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductRow(Map<String, dynamic> product, int index) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: Row(
+        children: [
+          // Image
+          SizedBox(
+            width: 60,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: product['image'] != null 
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        product['image'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.image_not_supported, color: Colors.grey[400], size: 20);
+                        },
+                      ),
+                    )
+                  : Icon(Icons.image, color: Colors.grey[400], size: 20),
+            ),
+          ),
+          
+          // Product/Service name
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product['name'] ?? 'Product Name',
+                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (product['description'] != null && product['description'].isNotEmpty)
+                    Text(
+                      product['description'],
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Quantity/Unit
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                '${product['quantity'] ?? 0} ${product['unit'] ?? 'pcs'}',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ),
+          
+          // Price/Unit
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                '฿${_formatPrice(product['price'] ?? 0)}',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ),
+          
+          // Discount
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                product['discountType'] == 'percentage' 
+                    ? '${product['discount'] ?? 0}%'
+                    : '฿${_formatPrice(product['discount'] ?? 0)}',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ),
+          
+          // Total
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '฿${_formatPrice(_calculateItemTotal(product))}',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, size: 16, color: Colors.grey[600]),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          _editProduct(index);
+                          break;
+                        case 'delete':
+                          _deleteProduct(index);
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 16),
+                            SizedBox(width: 8),
+                            Text('Edit'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 16, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductSummary() {
+    final subtotal = _calculateSubtotal();
+    final totalDiscount = _calculateTotalDiscount();
+    final vat = _calculateVAT(subtotal - totalDiscount);
+    final grandTotal = subtotal - totalDiscount + vat;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(8),
+          bottomRight: Radius.circular(8),
+        ),
+      ),
+      child: Column(
+        children: [
+          _buildSummaryRow('Subtotal', subtotal),
+          _buildSummaryRow('Discount', totalDiscount, isNegative: true),
+          _buildSummaryRow('Total Amount', subtotal - totalDiscount),
+          _buildSummaryRow('VAT (7%)', vat),
+          const Divider(),
+          _buildSummaryRow('Grand Total:', grandTotal, isBold: true, fontSize: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, double amount, {bool isNegative = false, bool isBold = false, double fontSize = 14}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          Text(
+            '${isNegative ? '-' : ''}฿${_formatPrice(amount)}',
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+              color: isBold ? Colors.deepOrange : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionCard({
     required String title,
     required IconData icon,
@@ -3039,6 +3394,130 @@ class _EditCardPageState extends State<EditCardPage> {
         },
       ),
     );
+  }
+
+  // Product management methods
+  void _addProduct() {
+    // TODO: Implement product selection dialog
+    Get.snackbar(
+      'Coming Soon',
+      'Product selection will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _addCustomProduct() {
+    // TODO: Implement custom product creation dialog
+    Get.snackbar(
+      'Coming Soon',
+      'Custom product creation will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _editProduct(int index) {
+    // TODO: Implement product editing
+    Get.snackbar(
+      'Coming Soon',
+      'Product editing will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _deleteProduct(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: const Text('Are you sure you want to delete this product?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _productItems.removeAt(index);
+              });
+              Navigator.of(context).pop();
+              Get.snackbar(
+                'Success',
+                'Product deleted successfully',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+                duration: const Duration(seconds: 2),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Calculation methods
+  double _calculateItemTotal(Map<String, dynamic> product) {
+    final quantity = (product['quantity'] ?? 0).toDouble();
+    final price = (product['price'] ?? 0).toDouble();
+    final discount = (product['discount'] ?? 0).toDouble();
+    final discountType = product['discountType'] ?? 'amount';
+    
+    final subtotal = quantity * price;
+    
+    if (discountType == 'percentage') {
+      return subtotal - (subtotal * discount / 100);
+    } else {
+      return subtotal - discount;
+    }
+  }
+
+  double _calculateSubtotal() {
+    return _productItems.fold(0.0, (sum, product) {
+      final quantity = (product['quantity'] ?? 0).toDouble();
+      final price = (product['price'] ?? 0).toDouble();
+      return sum + (quantity * price);
+    });
+  }
+
+  double _calculateTotalDiscount() {
+    return _productItems.fold(0.0, (sum, product) {
+      final quantity = (product['quantity'] ?? 0).toDouble();
+      final price = (product['price'] ?? 0).toDouble();
+      final discount = (product['discount'] ?? 0).toDouble();
+      final discountType = product['discountType'] ?? 'amount';
+      
+      final subtotal = quantity * price;
+      
+      if (discountType == 'percentage') {
+        return sum + (subtotal * discount / 100);
+      } else {
+        return sum + discount;
+      }
+    });
+  }
+
+  double _calculateVAT(double amount) {
+    return amount * 0.07; // 7% VAT
+  }
+
+  String _formatPrice(double price) {
+    if (price == price.roundToDouble()) {
+      return price.toInt().toString();
+    } else {
+      return price.toStringAsFixed(2);
+    }
   }
 
   @override

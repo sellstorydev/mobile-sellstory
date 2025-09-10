@@ -133,18 +133,18 @@ class MorePage extends StatelessWidget {
                     //   ),
                     // ),
                     // _buildDivider(),
-                    // _buildMenuItem(
-                    //   icon: Icons.people_outline,
-                    //   title: 'บริหารจัดการเซล',
-                    //   onTap: () {
-                    //     Get.snackbar(
-                    //       'Info',
-                    //       'Sales Management coming soon',
-                    //       snackPosition: SnackPosition.BOTTOM,
-                    //     );
-                    //   },
-                    // ),
-                    // _buildDivider(),
+                    _buildMenuItem(
+                      icon: Icons.people_outline,
+                      title: 'บริหารจัดการเซล',
+                      onTap: () {
+                        Get.snackbar(
+                          'Info',
+                          'Sales Management coming soon',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                    ),
+                    _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.archive_outlined,
                       title: 'Archive',
