@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/theme/app_theme.dart';
@@ -40,6 +41,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.initState();
     _initializeUserData();
     _loadWorkspaceInfo();
+    _loadUserDataFromFirestore();
   }
 
   void _initializeUserData() {
@@ -48,6 +50,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
       _displayNameController.text = _currentUser!.displayName ?? '';
       _emailController.text = _currentUser!.email ?? '';
       _currentPhotoURL = _currentUser!.photoURL;
+    }
+  }
+
+  Future<void> _loadUserDataFromFirestore() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (userDoc.exists && mounted) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        
+        setState(() {
+          _phoneNumberController.text = userData['phoneNumber'] ?? '';
+          _documentDisplayNameController.text = userData['docDisplayName'] ?? '';
+          _documentPhoneNumberController.text = userData['docPhoneNumber'] ?? '';
+        });
+      }
+    } catch (e) {
+      print('Error loading user data from Firestore: $e');
     }
   }
 
@@ -182,9 +208,37 @@ class _EditProfilePageState extends State<EditProfilePage> {
         throw Exception('User not authenticated');
       }
 
-      // Update display name
+      // Update display name in Firebase Auth
       if (_displayNameController.text.trim() != currentUser.displayName) {
         await currentUser.updateDisplayName(_displayNameController.text.trim());
+      }
+
+      // Update user data in Firestore
+      final userData = <String, dynamic>{};
+      
+      // Add display name
+      if (_displayNameController.text.trim().isNotEmpty) {
+        userData['displayName'] = _displayNameController.text.trim();
+      }
+      
+      // Add phone number
+      if (_phoneNumberController.text.trim().isNotEmpty) {
+        userData['phoneNumber'] = _phoneNumberController.text.trim();
+      }
+      
+      // Add document display name
+      if (_documentDisplayNameController.text.trim().isNotEmpty) {
+        userData['docDisplayName'] = _documentDisplayNameController.text.trim();
+      }
+      
+      // Add document phone number
+      if (_documentPhoneNumberController.text.trim().isNotEmpty) {
+        userData['docPhoneNumber'] = _documentPhoneNumberController.text.trim();
+      }
+
+      // Update Firestore document if there's data to update
+      if (userData.isNotEmpty) {
+        await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).update(userData);
       }
 
       // Note: Email is disabled and cannot be updated
