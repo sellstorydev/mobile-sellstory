@@ -15,8 +15,15 @@ import '../../../core/widgets/permission_guard.dart';
 
 class AddEditProductPage extends StatefulWidget {
   final Product? product; // null for add, not null for edit
+  final Map<String, dynamic>? templateContext; // Template context if used in template
+  final double? remainingQuantity; // Remaining quantity limit if applicable
 
-  const AddEditProductPage({super.key, this.product});
+  const AddEditProductPage({
+    super.key, 
+    this.product,
+    this.templateContext,
+    this.remainingQuantity,
+  });
 
   @override
   State<AddEditProductPage> createState() => _AddEditProductPageState();
@@ -31,6 +38,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
   final _priceController = TextEditingController();
   final _costPriceController = TextEditingController();
   final _skuController = TextEditingController();
+  final _quantityController = TextEditingController();
 
   // Image picker
   final ImagePicker _imagePicker = ImagePicker();
@@ -65,6 +73,44 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
     _initializeForm();
     _loadHashtags();
     _loadCategories();
+  }
+
+  // Check if template has predefined quantity column
+  bool _hasQuantityColumn() {
+    if (widget.templateContext == null) return false;
+    
+    final columns = widget.templateContext?['columns'] as List<dynamic>?;
+    if (columns == null) return false;
+    
+    return columns.any((column) {
+      return column['type'] == 'predefined' && 
+             column['predefinedField'] == 'quantity';
+    });
+  }
+
+  // Get quantity validation error message
+  String? _getQuantityError(String? value) {
+    if (!_hasQuantityColumn()) return null;
+    if (widget.remainingQuantity == null) return null;
+    
+    if (value == null || value.trim().isEmpty) {
+      return 'กรุณากรอกจำนวน';
+    }
+    
+    final inputQuantity = double.tryParse(value);
+    if (inputQuantity == null || inputQuantity < 0) {
+      return 'กรุณากรอกตัวเลขที่ถูกต้อง';
+    }
+    
+    if (inputQuantity > widget.remainingQuantity!) {
+      final maxQty = widget.remainingQuantity!;
+      final displayQty = maxQty.truncateToDouble() == maxQty 
+          ? maxQty.toInt().toString() 
+          : maxQty.toStringAsFixed(2);
+      return 'จำนวนต้องไม่เกิน $displayQty';
+    }
+    
+    return null;
   }
 
   Future<void> _loadHashtags() async {
@@ -370,6 +416,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
     _priceController.dispose();
     _costPriceController.dispose();
     _skuController.dispose();
+    _quantityController.dispose();
     super.dispose();
   }
 
@@ -477,6 +524,21 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
               // Barcode
               _buildTextField('บาร์โค���ด', _barcodeController),
               const SizedBox(height: 16),
+
+              // Quantity (only if template has quantity column)
+              if (_hasQuantityColumn()) ...[
+                _buildTextField(
+                  'จำนวน',
+                  _quantityController,
+                  isRequired: true,
+                  keyboardType: TextInputType.number,
+                  helperText: widget.remainingQuantity != null 
+                      ? 'สูงสุด: ${widget.remainingQuantity!.truncateToDouble() == widget.remainingQuantity! ? widget.remainingQuantity!.toInt() : widget.remainingQuantity!.toStringAsFixed(2)}'
+                      : null,
+                  customValidator: _getQuantityError,
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Show in Online Catalog
               _buildSwitchField(
@@ -697,6 +759,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
     TextInputType? keyboardType,
     int maxLines = 1,
     String? prefix,
+    String? helperText,
+    String? Function(String?)? customValidator,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -739,8 +803,9 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                 vertical: 8,
               ),
               prefixText: prefix,
+              helperText: helperText,
             ),
-            validator: isRequired
+            validator: customValidator ?? (isRequired
                 ? (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'กรุณากรอก $label';
@@ -753,7 +818,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                     }
                     return null;
                   }
-                : null,
+                : null),
           ),
         ],
       ),
@@ -1157,7 +1222,6 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         // Get workspace ID from controller
         final controller = Get.find<ProductsController>();
         final workspaceId = controller.currentWorkspaceId;
-        final userId = FirebaseAuth.instance.currentUser?.uid ?? "";
 
         if (workspaceId.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(

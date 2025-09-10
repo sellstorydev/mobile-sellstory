@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
 
@@ -9,10 +10,16 @@ class ReceiptListController extends GetxController {
   
   // Observable variables
   final isLoading = false.obs;
+  final isLoadingMore = false.obs;
   final receipts = <Map<String, dynamic>>[].obs;
   final filteredReceipts = <Map<String, dynamic>>[].obs;
   final currentUserId = ''.obs;
   final currentWorkspaceId = ''.obs;
+  
+  // Pagination variables
+  final hasMore = true.obs;
+  DocumentSnapshot? lastDocument;
+  final pageSize = 20;
   
   // Search and filter variables
   final searchController = TextEditingController();
@@ -123,19 +130,27 @@ class ReceiptListController extends GetxController {
         return;
       }
 
-      // Load receipts from Firestore
-      final documents = await _repository.getDocuments(
+      // Reset pagination state
+      lastDocument = null;
+      hasMore.value = true;
+
+      // Load first page of receipts from Firestore
+      final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        documentType: 'RT', // Filter for receipts only
+        limit: pageSize,
       );
       
-      // Filter only receipts
-      final receipts = documents.where((doc) => doc['type'] == 'RT').toList();
+      final documents = result['documents'] as List<Map<String, dynamic>>;
+      lastDocument = result['lastDocument'] as DocumentSnapshot?;
+      hasMore.value = result['hasMore'] as bool;
       
-      print('📄 Loaded ${receipts.length} receipts from Firestore');
+      // No need to filter again since we already filtered by type in the query
+      print('📄 Loaded ${documents.length} receipts from Firestore (first page)');
       
-      allReceipts.value = List.from(receipts);
-      this.receipts.value = List.from(receipts);
-      filteredReceipts.value = List.from(receipts);
+      allReceipts.value = List.from(documents);
+      this.receipts.value = List.from(documents);
+      filteredReceipts.value = List.from(documents);
       
     } catch (e) {
       print('❌ Error loading receipts: $e');
@@ -151,13 +166,68 @@ class ReceiptListController extends GetxController {
     }
   }
 
+  Future<void> loadMoreReceipts() async {
+    if (isLoadingMore.value || !hasMore.value || lastDocument == null) {
+      return;
+    }
+
+    try {
+      isLoadingMore.value = true;
+      
+      if (currentWorkspaceId.value.isEmpty) {
+        print('⚠️ No workspace ID available');
+        return;
+      }
+
+      // Load next page of receipts
+      final result = await _repository.getDocumentsPaginated(
+        workspaceId: currentWorkspaceId.value,
+        documentType: 'RT', // Filter for receipts only
+        limit: pageSize,
+        startAfter: lastDocument,
+      );
+      
+      final documents = result['documents'] as List<Map<String, dynamic>>;
+      lastDocument = result['lastDocument'] as DocumentSnapshot?;
+      hasMore.value = result['hasMore'] as bool;
+      
+      // No need to filter again since we already filtered by type in the query
+      final newReceipts = documents;
+      
+      // Add to existing lists
+      allReceipts.addAll(newReceipts);
+      receipts.addAll(newReceipts);
+      
+      // Reapply filters to include new data
+      _applyFilters();
+      
+      print('📄 Loaded ${newReceipts.length} more receipts (page ${(allReceipts.length / pageSize).ceil()})');
+      
+    } catch (e) {
+      print('❌ Failed to load more receipts: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to load more receipts: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    } finally {
+      isLoadingMore.value = false;
+    }
+  }
+
   void onSearchChanged(String query) {
-    applyFilters();
+    _applyFilters();
   }
 
   void applyFilters() {
+    _applyFilters();
+  }
+
+  void _applyFilters() {
     try {
-      var filtered = List<Map<String, dynamic>>.from(allReceipts);
+      List<Map<String, dynamic>> filtered = List.from(allReceipts);
       
       // Apply search filter
       final searchQuery = searchController.text.toLowerCase();
@@ -165,7 +235,11 @@ class ReceiptListController extends GetxController {
         filtered = filtered.where((receipt) {
           final docNo = (receipt['docNo'] ?? '').toString().toLowerCase();
           final customerName = (receipt['customer']?['name'] ?? '').toString().toLowerCase();
-          return docNo.contains(searchQuery) || customerName.contains(searchQuery);
+          final sellerName = (receipt['seller']?['displayName'] ?? '').toString().toLowerCase();
+          
+          return docNo.contains(searchQuery) || 
+                 customerName.contains(searchQuery) ||
+                 sellerName.contains(searchQuery);
         }).toList();
       }
       
@@ -177,7 +251,7 @@ class ReceiptListController extends GetxController {
         }).toList();
       }
       
-      // Apply date filter
+      // Apply date range filter
       if (selectedDateRange.value != null) {
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
@@ -238,21 +312,14 @@ class ReceiptListController extends GetxController {
   }
 
   void createNewReceipt() {
-    // TODO: Navigate to create receipt page
-    Get.snackbar(
-      'Info',
-      'Create receipt page coming soon',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    // Implementation for creating new receipt
+    print('Creating new receipt');
   }
 
   void viewReceipt(Map<String, dynamic> receipt) {
-    // TODO: Navigate to receipt detail page
-    Get.snackbar(
-      'Info',
-      'Receipt detail page coming soon',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    final receiptId = receipt['id'] as String?;
+    // Implementation for viewing receipt
+    print('Viewing receipt: $receiptId');
   }
 
   String formatDate(int timestamp) {

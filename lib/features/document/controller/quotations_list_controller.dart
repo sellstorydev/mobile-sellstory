@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../view/add_edit_document_page.dart';
@@ -10,10 +11,16 @@ class QuotationsListController extends GetxController {
   
   // Observable variables
   final isLoading = false.obs;
+  final isLoadingMore = false.obs;
   final quotations = <Map<String, dynamic>>[].obs;
   final filteredQuotations = <Map<String, dynamic>>[].obs;
   final currentUserId = ''.obs;
   final currentWorkspaceId = ''.obs;
+  
+  // Pagination variables
+  final hasMore = true.obs;
+  DocumentSnapshot? lastDocument;
+  final pageSize = 20;
   
   // Search and filter variables
   final searchController = TextEditingController();
@@ -124,19 +131,29 @@ class QuotationsListController extends GetxController {
         return;
       }
 
-      // Load quotations from Firestore
-      final documents = await _repository.getDocuments(
+      // Reset pagination state
+      lastDocument = null;
+      hasMore.value = true;
+
+      // Load first page of quotations from Firestore
+      final result = await _repository.getDocumentsPaginated(
         workspaceId: currentWorkspaceId.value,
+        documentType: 'QT', // Filter for quotations only
+        limit: pageSize,
       );
       
-      // Filter only quotations
-      final quotations = documents.where((doc) => doc['type'] == 'QT').toList();
+      final documents = result['documents'] as List<Map<String, dynamic>>;
+      lastDocument = result['lastDocument'] as DocumentSnapshot?;
+      hasMore.value = result['hasMore'] as bool;
       
-      allQuotations.value = quotations;
-      this.quotations.value = quotations;
-      filteredQuotations.value = quotations;
+      print('📄 Raw documents loaded: ${documents.length}');
       
-      print('📄 Loaded ${documents.length} quotations');
+      // No need to filter again since we already filtered by type in the query
+      allQuotations.value = documents;
+      this.quotations.value = documents;
+      filteredQuotations.value = documents;
+      
+      print('📄 Loaded ${quotations.length} quotations (first page), hasMore: ${hasMore.value}');
       
     } catch (e) {
       print('❌ Failed to load quotations: $e');
@@ -149,6 +166,62 @@ class QuotationsListController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> loadMoreQuotations() async {
+    if (isLoadingMore.value || !hasMore.value || lastDocument == null) {
+      print('🚫 Skip loadMore: isLoadingMore=${isLoadingMore.value}, hasMore=${hasMore.value}, lastDocument=${lastDocument != null}');
+      return;
+    }
+
+    try {
+      isLoadingMore.value = true;
+      
+      if (currentWorkspaceId.value.isEmpty) {
+        print('⚠️ No workspace ID available');
+        return;
+      }
+
+      print('📄 Loading more quotations... Current total: ${allQuotations.length}');
+
+      // Load next page of quotations
+      final result = await _repository.getDocumentsPaginated(
+        workspaceId: currentWorkspaceId.value,
+        documentType: 'QT', // Filter for quotations only
+        limit: pageSize,
+        startAfter: lastDocument,
+      );
+      
+      final documents = result['documents'] as List<Map<String, dynamic>>;
+      lastDocument = result['lastDocument'] as DocumentSnapshot?;
+      hasMore.value = result['hasMore'] as bool;
+      
+      print('📄 Raw documents from loadMore: ${documents.length}');
+      
+      // No need to filter again since we already filtered by type in the query
+      final newQuotations = documents;
+      
+      // Add to existing lists
+      allQuotations.addAll(newQuotations);
+      quotations.addAll(newQuotations);
+      
+      // Reapply filters to include new data
+      _applyFilters();
+      
+      print('📄 Loaded ${newQuotations.length} more quotations. Total: ${allQuotations.length}, Filtered: ${filteredQuotations.length}, hasMore: ${hasMore.value}');
+      
+    } catch (e) {
+      print('❌ Failed to load more quotations: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to load more quotations: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 
@@ -255,6 +328,91 @@ class QuotationsListController extends GetxController {
     Get.to(() => AddEditDocumentPage(documentType: 'QT', documentId: quotationId));
   }
 
+  Future<void> reviseQuotationToInvoice(Map<String, dynamic> quotation) async {
+    try {
+      // Show loading
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+
+      if (currentWorkspaceId.value.isEmpty) {
+        Get.back(); // Close loading dialog
+        Get.snackbar('Error', 'No workspace available');
+        return;
+      }
+
+      // Create invoice data by copying quotation data
+      final invoiceData = Map<String, dynamic>.from(quotation);
+      
+      // Remove quotation-specific fields
+      invoiceData.remove('id');
+      invoiceData.remove('validUntil');
+      invoiceData.remove('approval');
+      invoiceData.remove('approvers');
+      
+      // Update fields for invoice
+      invoiceData['type'] = 'INV';
+      invoiceData['status'] = 'DRAFT';
+      invoiceData['relatedQuotationId'] = quotation['id'];
+      invoiceData['paymentStatus'] = 'unpaid';
+      invoiceData['invoiceType'] = 'full';
+      
+      // Set due date (30 days from now)
+      final dueDate = DateTime.now().add(const Duration(days: 30));
+      invoiceData['dueDate'] = dueDate.millisecondsSinceEpoch;
+      
+      // Update timestamps and user info
+      final now = DateTime.now().millisecondsSinceEpoch;
+      invoiceData['createdAt'] = now;
+      invoiceData['updatedAt'] = now;
+      invoiceData['createdBy'] = currentUserId.value;
+      invoiceData['updatedBy'] = currentUserId.value;
+      
+      // Update activity log
+      invoiceData['activityLog'] = [
+        {
+          'timestamp': now,
+          'userId': currentUserId.value,
+          'userDisplayName': invoiceData['seller']?['email'] ?? 'Unknown',
+          'action': 'Created',
+          'details': 'Created invoice from quotation ${quotation['docNo']}',
+        }
+      ];
+
+      // Create invoice in Firestore
+      final invoiceId = await _repository.createDocument(
+        workspaceId: currentWorkspaceId.value,
+        documentData: invoiceData,
+      );
+
+      Get.back(); // Close loading dialog
+      
+      // Show success message and navigate to invoice
+      Get.snackbar(
+        'Success', 
+        'Invoice created from quotation ${quotation['docNo']}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.1),
+        colorText: Colors.green,
+      );
+
+      // Navigate to the new invoice
+      Get.to(() => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId));
+
+    } catch (e) {
+      Get.back(); // Close loading dialog
+      print('❌ Failed to create invoice from quotation: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to create invoice: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    }
+  }
+
   String formatDate(int timestamp) {
     if (timestamp == 0) return '-';
     
@@ -274,6 +432,30 @@ class QuotationsListController extends GetxController {
 
   // Refresh data
   Future<void> refreshData() async {
+    // Store current state
+    final int currentItemCount = allQuotations.length;
+    print('🔄 Refresh started - Current item count: $currentItemCount');
+    
     await _loadQuotations();
+    
+    print('🔄 After _loadQuotations - New count: ${allQuotations.length}, hasMore: ${hasMore.value}');
+    
+    // If we had more items before refresh and still have more available,
+    // automatically load to match previous state
+    if (currentItemCount > quotations.length && hasMore.value) {
+      // Calculate how many more pages we need to load
+      final pagesNeeded = ((currentItemCount - quotations.length) / pageSize).ceil();
+      
+      print('🔄 Need to reload $pagesNeeded more pages to restore $currentItemCount items');
+      
+      for (int i = 0; i < pagesNeeded && hasMore.value; i++) {
+        await loadMoreQuotations();
+        print('🔄 Loaded page ${i + 1}/${pagesNeeded} - Current count: ${allQuotations.length}');
+        // Add a small delay to prevent overwhelming the server
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }
+    
+    print('🔄 Refresh completed - Final count: ${allQuotations.length}');
   }
 }
