@@ -187,10 +187,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         await currentUser.updateDisplayName(_displayNameController.text.trim());
       }
 
-      // Update email if changed
-      if (_emailController.text.trim() != currentUser.email) {
-        await currentUser.verifyBeforeUpdateEmail(_emailController.text.trim());
-      }
+      // Note: Email is disabled and cannot be updated
 
       // Update photo URL if image selected
       if (_selectedImageFile != null) {
@@ -360,6 +357,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ),
                           const SizedBox(height: 16),
                           
+                          // Email (disabled and moved to top)
+                          TextFormField(
+                            controller: _emailController,
+                            enabled: false,
+                            decoration: const InputDecoration(
+                              labelText: 'อีเมล',
+                              hintText: 'example@email.com',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
                           // Display Name
                           Column(
                             children: [
@@ -400,29 +412,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 },
                               ),
                             ],
-                          ),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // Email
-                          TextFormField(
-                            controller: _emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'อีเมล',
-                              hintText: 'example@email.com',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.email_outlined),
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'กรุณาใส่อีเมล';
-                              }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                                return 'กรุณาใส่อีเมลที่ถูกต้อง';
-                              }
-                              return null;
-                            },
                           ),
                         ],
                       ),
