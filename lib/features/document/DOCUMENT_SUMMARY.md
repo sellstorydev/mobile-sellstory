@@ -1,4 +1,70 @@
-# Document System Summary
+# Document System Development Summary
+
+## Recent Developments (January 27, 2025)
+
+### 1. Template-Aware Quantity Validation Enhancement
+- **Issue**: Template quantity validation not working properly for documents with predefined quantity columns and remainingQuantity limits
+- **Solution**: Enhanced `add_edit_document_controller.dart` with comprehensive template-aware validation methods:
+  - `hasTemplateQuantityColumn`: Detects if template has predefined quantity fields
+  - `validateQuantityForTemplate()`: Validates quantity input against template constraints
+  - `getQuantityErrorMessage()`: Provides user-friendly error messages
+- **Impact**: All document types (QT, INV, RT) now support template-based quantity validation with remainingQuantity constraints
+
+### 2. Database-Level Type Filtering Implementation  
+- **Issue**: Document pagination queries lacked proper `.where('type', isEqualTo: 'XX')` conditions
+- **Solution**: Enhanced `firestore_repository.dart` with documentType parameter for database-level filtering
+- **Controllers Updated**:
+  - `quotations_list_controller.dart`: Added `documentType: 'QT'` filtering
+  - `invoice_list_controller.dart`: Added `documentType: 'INV'` filtering  
+  - `receipt_list_controller.dart`: Added `documentType: 'RT'` filtering
+- **Impact**: Improved performance and accuracy of document list pagination
+
+### 3. Invoice Creation Item Selection Fix
+- **Issue**: When selecting items for "สร้างใบแจ้งหนี้ (แบ่งจ่ายแบบรายการ)", items were incorrectly setting quantity to 0 instead of minimum 1
+- **Solution**: Fixed `invoice_creation_controller.dart` methods:
+  - `toggleItemSelection()`: Now sets minimum quantity to 1 when item is selected, uses original quantity as default
+  - `toggleAllItems()`: Ensures all selected items get appropriate default quantities (minimum 1, preferably original quantity)
+  - `updateItemQuantity()`: Prevents setting quantity to 0 for selected items; unselects item if quantity is set to 0
+- **Impact**: Improved user experience for item-based invoice creation with logical quantity defaults
+
+## Technical Architecture
+
+### Template System Integration
+- Templates now support smart field detection and validation
+- Quantity constraints apply across all document types when template configuration requires it
+- Enhanced error messaging provides clear feedback about quantity limits
+
+### Database Optimization
+- Type-specific document queries at database level reduce client-side filtering overhead
+- Consistent pagination behavior across all document list controllers
+- Improved query performance for large document collections
+
+### Invoice Creation Workflow
+- Robust item selection logic ensures sensible quantity defaults
+- Maximum quantity validation prevents exceeding available inventory
+- Intuitive quantity management prevents user confusion with 0-quantity selections
+
+## Files Modified
+- `lib/features/document/controller/add_edit_document_controller.dart`
+- `lib/features/document/controller/invoice_creation_controller.dart`
+- `lib/features/document/view/add_edit_document_page.dart`
+- `lib/data/repositories/firestore_repository.dart`
+- `lib/features/document/controller/quotations_list_controller.dart`
+- `lib/features/document/controller/invoice_list_controller.dart`
+- `lib/features/document/controller/receipt_list_controller.dart`
+
+## Testing Status
+- All changes compile successfully with Flutter analyze
+- Template-aware validation system operational
+- Database filtering implementation complete
+- Item selection logic validated for edge cases
+
+## Next Priorities
+- User acceptance testing for template quantity validation
+- Performance monitoring for enhanced database queries
+- Cross-template compatibility validation for various field configurations
+
+## Previous Development History
 
 ## Current Implementation Status
 

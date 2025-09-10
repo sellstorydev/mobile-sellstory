@@ -1219,15 +1219,22 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                   final quantityController = controller.getProductController(index, 'quantity');
                   final remainingLimit = controller.getRemainingQuantityLimit(index);
                   final currentValue = quantityController.text;
-                  final hasError = !controller.validateQuantityForInvoice(index, currentValue);
+                  
+                  // Use template-aware validation
+                  final hasError = !controller.validateQuantityForTemplate(index, currentValue);
+                  final errorMessage = controller.getQuantityErrorMessage(index, currentValue);
                   
                   String? helperText;
                   String? errorText;
                   
                   if (remainingLimit != null) {
-                    helperText = 'สูงสุด: ${remainingLimit.toStringAsFixed(remainingLimit.truncateToDouble() == remainingLimit ? 0 : 2)}';
-                    if (hasError) {
-                      errorText = 'จำนวนต้องไม่เกิน $helperText';
+                    final formattedLimit = remainingLimit.truncateToDouble() == remainingLimit 
+                        ? remainingLimit.toInt().toString()
+                        : remainingLimit.toStringAsFixed(2);
+                    helperText = 'จำนวนคงเหลือ: $formattedLimit';
+                    
+                    if (hasError && errorMessage != null) {
+                      errorText = errorMessage;
                     }
                   }
                   

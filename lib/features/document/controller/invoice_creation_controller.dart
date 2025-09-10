@@ -188,10 +188,11 @@ class InvoiceCreationController extends GetxController {
       item['selected'] = shouldSelectAll;
       
       if (shouldSelectAll) {
-        // Use original quantity but ensure it doesn't exceed the maximum
-        final originalQuantity = item['originalQuantity']?.toDouble() ?? 0.0;
-        item['quantity'] = originalQuantity;
-        _quantityControllers[i]?.text = originalQuantity > 0 ? originalQuantity.toStringAsFixed(0) : '';
+        // Use original quantity but ensure minimum is 1
+        final originalQuantity = item['originalQuantity']?.toDouble() ?? 1.0;
+        final defaultQuantity = originalQuantity > 0 ? originalQuantity : 1.0;
+        item['quantity'] = defaultQuantity;
+        _quantityControllers[i]?.text = defaultQuantity.toStringAsFixed(0);
       } else {
         item['quantity'] = 0;
         _quantityControllers[i]?.text = '';
@@ -213,10 +214,11 @@ class InvoiceCreationController extends GetxController {
       item['quantity'] = 0;
       _quantityControllers[index]?.text = '';
     } else {
-      // Set to original quantity but ensure it doesn't exceed maximum
-      final originalQuantity = item['originalQuantity']?.toDouble() ?? 0.0;
-      item['quantity'] = originalQuantity;
-      _quantityControllers[index]?.text = originalQuantity > 0 ? originalQuantity.toStringAsFixed(0) : '';
+      // Set to original quantity but ensure minimum is 1 and maximum is original quantity
+      final originalQuantity = item['originalQuantity']?.toDouble() ?? 1.0;
+      final defaultQuantity = originalQuantity > 0 ? originalQuantity : 1.0;
+      item['quantity'] = defaultQuantity;
+      _quantityControllers[index]?.text = defaultQuantity.toStringAsFixed(0);
     }
     
     selectedItems[index] = item;
@@ -230,8 +232,18 @@ class InvoiceCreationController extends GetxController {
     
     if (quantity < 0) {
       // Don't allow negative quantities
-      _quantityControllers[index]?.text = '0';
-      selectedItems[index]['quantity'] = 0;
+      _quantityControllers[index]?.text = '1';
+      selectedItems[index]['quantity'] = 1.0;
+      selectedItems.refresh();
+      _updateHasSelectedItems();
+      _updateAllSelectedState();
+      return;
+    }
+    
+    if (quantity == 0) {
+      // If quantity is set to 1
+      selectedItems[index]['quantity'] = 1;
+      _quantityControllers[index]?.text = '1';
       selectedItems.refresh();
       _updateHasSelectedItems();
       _updateAllSelectedState();
@@ -258,8 +270,9 @@ class InvoiceCreationController extends GetxController {
       return;
     }
     
-    // Valid quantity - update normally
+    // Valid quantity - update normally and ensure item is selected
     selectedItems[index]['quantity'] = quantity;
+    selectedItems[index]['selected'] = true; // Ensure item is selected when quantity is set
     selectedItems.refresh();
     _updateHasSelectedItems();
     _updateAllSelectedState();
@@ -567,8 +580,7 @@ class InvoiceCreationController extends GetxController {
         
         // Calculate remaining quantity (original quantity - selected quantity)
         final originalQuantity = item['originalQuantity']?.toDouble() ?? 0.0;
-        final selectedQuantity = item['quantity']?.toDouble() ?? 0.0;
-        final remainingQuantity = originalQuantity - selectedQuantity;
+        final remainingQuantity = originalQuantity;
         
         // Add remainingQuantity field for future invoice tracking
         newItem['remainingQuantity'] = remainingQuantity;

@@ -2169,6 +2169,14 @@ class AddEditDocumentController extends GetxController {
         return false;
       }
       
+      // Check template quantity constraints if applicable
+      if (hasTemplateQuantityColumn || documentType == 'INV') {
+        if (!validateQuantityForTemplate(index, quantity)) {
+          print('❌ Product $index quantity validation failed: $quantity exceeds limit');
+          return false;
+        }
+      }
+      
       return true;
     } catch (e) {
       print('❌ Failed to check product completion: $e');
@@ -2957,8 +2965,45 @@ class AddEditDocumentController extends GetxController {
     return parts;
   }
 
+  // Check if template has predefined quantity column
+  bool get hasTemplateQuantityColumn {
+    return _templateProductFields.any((field) => 
+      field['type'] == 'predefined' && 
+      field['predefinedField'] == 'quantity'
+    );
+  }
+
+  // Validate quantity input for templates with quantity constraints
+  bool validateQuantityForTemplate(int productIndex, String inputValue) {
+    // Check if template has quantity column first
+    if (!hasTemplateQuantityColumn) return true;
+    
+    if (productIndex < 0 || productIndex >= _products.length) return true;
+    
+    final product = _products[productIndex];
+    final remainingQuantity = product['remainingQuantity'];
+    
+    // If no remainingQuantity field, allow any quantity (backward compatibility)
+    if (remainingQuantity == null) return true;
+    
+    final maxQuantity = (remainingQuantity is double) 
+        ? remainingQuantity 
+        : double.tryParse(remainingQuantity.toString()) ?? double.infinity;
+    
+    final inputQuantity = double.tryParse(inputValue) ?? 0.0;
+    
+    print('🔢 Quantity validation: input=$inputQuantity, max=$maxQuantity, hasTemplate=$hasTemplateQuantityColumn');
+    
+    return inputQuantity <= maxQuantity;
+  }
+
   // Validate quantity input for invoices with remainingQuantity limits
   bool validateQuantityForInvoice(int productIndex, String inputValue) {
+    // Use template validation for all documents if template has quantity column
+    if (hasTemplateQuantityColumn) {
+      return validateQuantityForTemplate(productIndex, inputValue);
+    }
+    
     // Only validate for invoice documents
     if (documentType != 'INV') return true;
     
@@ -2979,10 +3024,28 @@ class AddEditDocumentController extends GetxController {
     return inputQuantity <= maxQuantity;
   }
 
-  // Get remaining quantity limit for invoice items
+  // Get remaining quantity limit for template/invoice items
   double? getRemainingQuantityLimit(int productIndex) {
-    // Only applicable for invoice documents
-    if (documentType != 'INV') return null;
+    // Check template first for any document type
+    if (hasTemplateQuantityColumn || documentType == 'INV') {
+      if (productIndex < 0 || productIndex >= _products.length) return null;
+      
+      final product = _products[productIndex];
+      final remainingQuantity = product['remainingQuantity'];
+      
+      if (remainingQuantity == null) return null;
+      
+      return (remainingQuantity is double) 
+          ? remainingQuantity 
+          : double.tryParse(remainingQuantity.toString());
+    }
+    
+    return null;
+  }
+
+  // Get error message for quantity validation
+  String? getQuantityErrorMessage(int productIndex, String inputValue) {
+    if (!hasTemplateQuantityColumn && documentType != 'INV') return null;
     
     if (productIndex < 0 || productIndex >= _products.length) return null;
     
@@ -2991,9 +3054,18 @@ class AddEditDocumentController extends GetxController {
     
     if (remainingQuantity == null) return null;
     
-    return (remainingQuantity is double) 
+    final maxQuantity = (remainingQuantity is double) 
         ? remainingQuantity 
-        : double.tryParse(remainingQuantity.toString());
+        : double.tryParse(remainingQuantity.toString()) ?? double.infinity;
+    
+    final inputQuantity = double.tryParse(inputValue) ?? 0.0;
+    
+    if (inputQuantity > maxQuantity) {
+      final unit = product['unit'] ?? 'หน่วย';
+      return 'จำนวนไม่สามารถเกิน ${maxQuantity.toStringAsFixed(0)} $unit';
+    }
+    
+    return null;
   }
 
   // Validate customer data
