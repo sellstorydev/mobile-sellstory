@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/theme/app_theme.dart';
@@ -70,6 +71,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
           _phoneNumberController.text = userData['phoneNumber'] ?? '';
           _documentDisplayNameController.text = userData['docDisplayName'] ?? '';
           _documentPhoneNumberController.text = userData['docPhoneNumber'] ?? '';
+          
+          // Load photoURL from Firestore if available
+          final firestorePhotoURL = userData['photoURL'] as String?;
+          if (firestorePhotoURL != null && firestorePhotoURL.isNotEmpty) {
+            _currentPhotoURL = firestorePhotoURL;
+          }
         });
       }
     } catch (e) {
@@ -161,6 +168,34 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  Future<String?> _uploadImageToStorage(File imageFile, String userId) async {
+    try {
+      // Create a unique filename with timestamp
+      final String fileName = '${DateTime.now().millisecondsSinceEpoch}-${imageFile.path.split('/').last}';
+      
+      // Create reference to Firebase Storage
+      final Reference storageRef = FirebaseStorage.instance
+          .ref()
+          .child('users')
+          .child(userId)
+          .child(fileName);
+      
+      // Upload the file
+      final UploadTask uploadTask = storageRef.putFile(imageFile);
+      
+      // Wait for upload to complete
+      final TaskSnapshot snapshot = await uploadTask;
+      
+      // Get download URL
+      final String downloadURL = await snapshot.ref.getDownloadURL();
+      
+      return downloadURL;
+    } catch (e) {
+      print('Error uploading image: $e');
+      return null;
+    }
+  }
+
   Future<void> _showImagePickerDialog() {
     return showDialog(
       context: context,
@@ -236,6 +271,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
         userData['docPhoneNumber'] = _documentPhoneNumberController.text.trim();
       }
 
+      // Upload photo if image selected
+      String? uploadedPhotoURL;
+      if (_selectedImageFile != null) {
+        uploadedPhotoURL = await _uploadImageToStorage(_selectedImageFile!, currentUser.uid);
+        if (uploadedPhotoURL != null) {
+          userData['photoURL'] = uploadedPhotoURL;
+          // Also update Firebase Auth profile
+          await currentUser.updatePhotoURL(uploadedPhotoURL);
+        }
+      }
+
       // Update Firestore document if there's data to update
       if (userData.isNotEmpty) {
         await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).update(userData);
@@ -243,15 +289,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       // Note: Email is disabled and cannot be updated
 
-      // Update photo URL if image selected
-      if (_selectedImageFile != null) {
-        // TODO: Implement image upload to Firebase Storage
-        // For now, we'll just show a success message
+      // Show success message
+      if (_selectedImageFile != null && uploadedPhotoURL != null) {
         Get.snackbar(
           'Success',
-          'Profile updated successfully! Note: Photo upload feature coming soon.',
+          'Profile and photo updated successfully!',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      } else if (_selectedImageFile != null && uploadedPhotoURL == null) {
+        Get.snackbar(
+          'Partial Success',
+          'Profile updated but photo upload failed. Please try again.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
           colorText: Colors.white,
         );
       } else {
