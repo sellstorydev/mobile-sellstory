@@ -1198,11 +1198,24 @@ class AddEditDocumentController extends GetxController {
       final isVatEnabled = documentData['isVatEnabled'] ?? false;
       _isVatEnabled = isVatEnabled;
       
-      final isWhtEnabled = documentData['isWhtEnabled'] ?? false;
-      _isWhtEnabled = isWhtEnabled;
-      
-      final whtPercentage = documentData['withholdingTaxPercentage']?.toString() ?? '3.0';
+      // WHT settings - check withholdingTaxPercentage first to determine if WHT is enabled
+      final whtPercentageValue = documentData['withholdingTaxPercentage'];
+      final whtPercentage = whtPercentageValue?.toString() ?? '3.0';
       whtPercentageController.text = whtPercentage;
+      
+      // Determine WHT enabled state based on withholdingTaxPercentage
+      // If withholdingTaxPercentage has data and is not 0, then WHT is enabled
+      bool isWhtEnabled = false;
+      if (whtPercentageValue != null) {
+        final percentageDouble = (whtPercentageValue is double) 
+            ? whtPercentageValue 
+            : double.tryParse(whtPercentageValue.toString()) ?? 0.0;
+        isWhtEnabled = percentageDouble > 0.0;
+      } else {
+        // Fallback to existing isWhtEnabled flag if withholdingTaxPercentage is null
+        isWhtEnabled = documentData['isWhtEnabled'] ?? false;
+      }
+      _isWhtEnabled = isWhtEnabled;
       
       // End-of-bill discount settings
       final discountAmount = documentData['discount'];

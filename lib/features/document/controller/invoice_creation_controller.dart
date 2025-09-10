@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/services/id_generation_service.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../view/add_edit_document_page.dart';
+import 'quotations_list_controller.dart';
 
 class InvoiceCreationController extends GetxController {
   final Map<String, dynamic> quotation;
@@ -366,6 +367,16 @@ class InvoiceCreationController extends GetxController {
       // Update quotation status to INVOICED
       await _updateQuotationStatus('INVOICED');
 
+      // Refresh quotations list if available
+      try {
+        final quotationsController = Get.find<QuotationsListController>();
+        await quotationsController.refreshData();
+        print('✅ Quotations list refreshed after full invoice creation');
+      } catch (e) {
+        print('⚠️ QuotationsListController not found, skipping refresh: $e');
+        // This is not critical - the list will be refreshed when user navigates back
+      }
+
       Get.back(); // Close loading dialog
       Get.back(); // Close options page
       
@@ -488,6 +499,16 @@ class InvoiceCreationController extends GetxController {
 
       // Update quotation status to INVOICED
       await _updateQuotationStatus('INVOICED');
+
+      // Refresh quotations list if available
+      try {
+        final quotationsController = Get.find<QuotationsListController>();
+        await quotationsController.refreshData();
+        print('✅ Quotations list refreshed after installment invoice creation');
+      } catch (e) {
+        print('⚠️ QuotationsListController not found, skipping refresh: $e');
+        // This is not critical - the list will be refreshed when user navigates back
+      }
 
       Get.back(); // Close loading dialog
       Get.back(); // Close options page
@@ -623,6 +644,16 @@ class InvoiceCreationController extends GetxController {
       // Update quotation status to INVOICED
       await _updateQuotationStatus('INVOICED');
 
+      // Refresh quotations list if available
+      try {
+        final quotationsController = Get.find<QuotationsListController>();
+        await quotationsController.refreshData();
+        print('✅ Quotations list refreshed after item-based invoice creation');
+      } catch (e) {
+        print('⚠️ QuotationsListController not found, skipping refresh: $e');
+        // This is not critical - the list will be refreshed when user navigates back
+      }
+
       Get.back(); // Close loading dialog
       Get.back(); // Close options page
       
@@ -667,6 +698,18 @@ class InvoiceCreationController extends GetxController {
     invoiceData['type'] = 'INV';
     invoiceData['status'] = 'DRAFT';
     invoiceData['paymentStatus'] = 'unpaid';
+    
+    // Ensure WHT data is properly copied from quotation
+    invoiceData['withholdingTaxPercentage'] = quotation['withholdingTaxPercentage'] ?? 0.0;
+    invoiceData['whtAmount'] = quotation['whtAmount'] ?? 0.0;
+    
+    // Ensure VAT data is properly copied from quotation
+    invoiceData['isVatEnabled'] = quotation['isVatEnabled'] ?? false;
+    invoiceData['vatPercentage'] = quotation['vatPercentage'] ?? 7.0;
+    invoiceData['vatAmount'] = quotation['vatAmount'] ?? 0.0;
+    
+    // Copy other tax-related fields
+    invoiceData['netTotal'] = quotation['netTotal'] ?? quotation['grandTotal'] ?? 0.0;
     
     // Keep quotation's tax and discount settings as defaults (will be overridden by specific invoice type methods if needed)
     // These settings will be used by the specific invoice creation methods

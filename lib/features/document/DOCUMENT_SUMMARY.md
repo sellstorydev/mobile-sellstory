@@ -2,6 +2,73 @@
 
 ## Current Implementation Status
 
+### Quotation List Auto-refresh on Invoice Creation (UX Enhancement - September 10, 2025)
+- **UX ENHANCEMENT ADDED**: Automatic quotation list refresh when invoice is successfully created
+- **Problem Addressed**: 
+  - After creating an invoice from a quotation, the quotation status was updated in database but not reflected in the UI
+  - Users had to manually refresh the quotations list to see the updated "INVOICED" status
+  - Created inconsistency between database state and UI display
+- **Key Changes Made**:
+  - Added import for `QuotationsListController` in `InvoiceCreationController`
+  - Enhanced all three invoice creation methods with automatic list refresh
+  - Added graceful error handling for cases when QuotationsListController is not available
+- **Technical Implementation**:
+  - Added `Get.find<QuotationsListController>()` to locate existing controller instance
+  - Called `refreshData()` method to reload quotations from database
+  - Wrapped in try-catch to handle cases where controller might not be initialized
+  - Added specific logging for each invoice type (full, installment, item-based)
+- **Affected Methods**:
+  - `createFullInvoice()`: Refreshes list after full invoice creation
+  - `createInstallmentInvoice()`: Refreshes list after installment invoice creation  
+  - `createItemBasedInvoice()`: Refreshes list after item-based invoice creation
+- **User Experience**: 
+  - Quotation list now immediately shows updated "INVOICED" status after invoice creation
+  - No manual refresh required - seamless workflow from quotation to invoice
+  - Maintains UI consistency with database state
+- **Error Handling**: Non-critical operation - if refresh fails, user can still navigate and list will refresh when they return to quotations page
+- **Business Logic**: Ensures real-time status tracking without requiring full page reloads or manual user actions
+
+### WHT Default Data Loading Implementation (Data Loading Enhancement - September 10, 2025)
+- **DATA LOADING ENHANCEMENT**: Automatic WHT state determination based on `withholdingTaxPercentage` field when editing documents
+- **Smart Logic Implemented**:
+  - Primary Check: Examines `withholdingTaxPercentage` field value
+  - If percentage > 0: WHT automatically enabled
+  - If percentage = 0 or null: WHT disabled  
+  - Fallback: Uses existing `isWhtEnabled` boolean flag for backward compatibility
+- **File Modified**: `lib/features/document/controller/add_edit_document_controller.dart`
+- **Technical Implementation**:
+  - Type-safe parsing supporting both numeric and string values
+  - Graceful fallback for legacy documents without percentage data
+  - Maintains existing functionality while adding intelligent defaults
+- **User Experience**: WHT checkbox automatically reflects correct state when editing documents with tax data
+- **Business Logic**: 
+  - WHT Enabled: When `withholdingTaxPercentage` > 0
+  - WHT Disabled: When `withholdingTaxPercentage` == 0 or null
+  - Backward Compatible: Falls back to `isWhtEnabled` flag when percentage unavailable
+
+### WHT Data Duplication Fix for Invoice Creation (Critical Fix - September 10, 2025)
+- **CRITICAL BUG FIXED**: Withholding Tax (WHT) data was not being properly duplicated when creating invoices from quotations
+- **Root Cause Analysis**: 
+  - Invoice creation was copying quotation data but not explicitly ensuring WHT fields were preserved
+  - While general data copying occurred, specific tax fields needed explicit duplication for data integrity
+  - Missing WHT data could lead to incorrect tax calculations in invoices
+- **Key Changes Made**:
+  - Enhanced `_createBaseInvoiceData()` method to explicitly copy all WHT-related fields
+  - Added explicit duplication of `isWhtEnabled`, `withholdingTaxPercentage`, and `whtAmount`
+  - Added explicit duplication of VAT fields for consistency: `isVatEnabled`, `vatPercentage`, `vatAmount`
+  - Added `netTotal` field duplication to preserve original quotation calculations
+- **Technical Implementation**:
+  - WHT Fields: `isWhtEnabled`, `withholdingTaxPercentage`, `whtAmount`
+  - VAT Fields: `isVatEnabled`, `vatPercentage`, `vatAmount` 
+  - Net Total: `netTotal` with fallback to `grandTotal`
+  - All fields use safe fallback values (false for booleans, 0.0 for numbers)
+- **Data Integrity**: 
+  - Ensures all tax settings from quotations are properly inherited by invoices
+  - Maintains consistency between quotation and invoice tax calculations
+  - Prevents loss of critical financial data during document conversion
+- **Business Logic**: All three invoice types (full, installment, item-based) now properly inherit complete tax configuration from original quotations
+- **Validation**: All invoice creation methods continue to work correctly with explicit tax data duplication
+
 ### Discount Input Fix for Item-based Invoices (Bug Fix - September 10, 2025)
 - **CRITICAL BUG FIXED**: Item-based invoice discount input was incorrectly limited by quotation discount amount
 - **Root Cause Analysis**: 
