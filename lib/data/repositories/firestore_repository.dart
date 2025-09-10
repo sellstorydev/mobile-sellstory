@@ -1467,6 +1467,68 @@ class FirestoreRepository {
     }
   }
 
+  // Get documents with pagination support
+  Future<Map<String, dynamic>> getDocumentsPaginated({
+    required String workspaceId,
+    String? documentType, // Added document type filter
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+  }) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.getDocumentsPaginated', {
+        'workspaceId': workspaceId,
+        'documentType': documentType,
+        'limit': limit,
+        'hasStartAfter': startAfter != null,
+      });
+
+      print('🔄 FirestoreRepository.getDocumentsPaginated:');
+      print('  - Workspace ID: $workspaceId');
+      print('  - Document Type: $documentType');
+      print('  - Limit: $limit');
+      print('  - Start after: ${startAfter != null ? 'Yes' : 'No'}');
+
+      final documentsCollection = _firestoreService.getWorkspaceDocumentsCollection(workspaceId);
+
+      Query<Map<String, dynamic>> query = documentsCollection
+          .orderBy('createdAt', descending: true);
+      
+      // Add type filter if specified
+      if (documentType != null) {
+        query = query.where('type', isEqualTo: documentType);
+      }
+      
+      query = query.limit(limit);
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final querySnapshot = await query.get();
+
+      final documents = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id; // Add document ID to the data
+        return data;
+      }).toList();
+
+      final hasMore = documents.length == limit;
+      final lastDocument = querySnapshot.docs.isNotEmpty ? querySnapshot.docs.last : null;
+
+      print('✅ Documents loaded successfully - ${documents.length} documents, hasMore: $hasMore');
+      
+      return {
+        'documents': documents,
+        'hasMore': hasMore,
+        'lastDocument': lastDocument,
+      };
+    } catch (e) {
+      print('❌ Failed to get paginated documents: $e');
+      _logger.error('Failed to get paginated documents', e);
+      rethrow;
+    }
+  }
+
   // Create new document
   Future<String> createDocument({
     required String workspaceId,

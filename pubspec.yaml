@@ -1,7 +1,7 @@
 name: sellstory
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub pu blish`. This is preferred for private packages.
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
@@ -108,7 +108,7 @@ dependencies:
   video_player: ^2.9.2
   audioplayers: ^6.0.0
   pdfx: ^2.6.0
-  video_thumbnail: ^0.5.6
+  # video_thumbnail: ^0.5.6
 
   # Slidable list item actions
   flutter_slidable: ^3.1.0

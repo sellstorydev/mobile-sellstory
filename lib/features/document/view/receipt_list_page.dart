@@ -2,16 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
-import '../../../core/widgets/assignees_input_field.dart';
 import '../controller/receipt_list_controller.dart';
 import 'receipt_filter_page.dart';
 
-class ReceiptListPage extends StatelessWidget {
+class ReceiptListPage extends StatefulWidget {
   const ReceiptListPage({super.key});
 
   @override
+  State<ReceiptListPage> createState() => _ReceiptListPageState();
+}
+
+class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingObserver {
+  late ReceiptListController controller;
+  DateTime? _lastLoadMoreCall;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(ReceiptListController());
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh data when app comes back to foreground
+      controller.refreshData();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ReceiptListController());
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -236,17 +263,67 @@ class ReceiptListPage extends StatelessWidget {
       return _buildEmptyState(controller);
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing16,
-        vertical: AppTheme.spacing8,
-      ),
-      itemCount: controller.receipts.length,
-      itemBuilder: (context, index) {
-        final receipt = controller.receipts[index];
-        return _buildReceiptCard(receipt, controller);
+    return RefreshIndicator(
+      onRefresh: () async {
+        await controller.refreshData();
       },
+      color: AppTheme.primaryOrange,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification scrollInfo) {
+          // Only handle ScrollUpdateNotification (actual scrolling) and ScrollEndNotification
+          // This prevents triggering during drag start/drag end events
+          if (scrollInfo is ScrollUpdateNotification || scrollInfo is ScrollEndNotification) {
+            // Check if we're near the bottom and should load more
+            if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+              // Only load more if we're not already loading and there's more data to load
+              if (!controller.isLoadingMore.value && controller.hasMore.value) {
+                // Add debounce to prevent rapid calls (minimum 500ms between calls)
+                final now = DateTime.now();
+                if (_lastLoadMoreCall == null || now.difference(_lastLoadMoreCall!).inMilliseconds > 500) {
+                  _lastLoadMoreCall = now;
+                  controller.loadMoreReceipts();
+                }
+              }
+            }
+          }
+          return false;
+        },
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing16,
+            vertical: AppTheme.spacing8,
+          ),
+          itemCount: controller.receipts.length + (controller.hasMore.value ? 1 : 0),
+          itemBuilder: (context, index) {
+            // Show loading indicator at the bottom when loading more
+            if (index == controller.receipts.length) {
+              return _buildLoadingMoreIndicator(controller);
+            }
+            
+            final receipt = controller.receipts[index];
+            return _buildReceiptCard(receipt, controller);
+          },
+        ),
+      ),
     );
+  }
+
+  Widget _buildLoadingMoreIndicator(ReceiptListController controller) {
+    return Obx(() {
+      if (!controller.isLoadingMore.value) {
+        return const SizedBox.shrink();
+      }
+      
+      return Container(
+        padding: const EdgeInsets.all(AppTheme.spacing16),
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: AppTheme.primaryOrange,
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildReceiptCard(
@@ -397,56 +474,6 @@ class ReceiptListPage extends StatelessWidget {
           fontFamily: AppFont.family,
           fontWeight: FontWeight.w600,
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(String status) {
-    Color color;
-    String text;
-    IconData icon;
-
-    switch (status) {
-      case 'COMPLETED':
-        color = const Color(0xFF4CAF50);
-        text = 'เสร็จสิ้น';
-        icon = Icons.check_circle;
-        break;
-      case 'VOID':
-        color = AppTheme.textSecondary;
-        text = 'ยกเลิก';
-        icon = Icons.block;
-        break;
-      default:
-        color = AppTheme.textSecondary;
-        text = status;
-        icon = Icons.info;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing8,
-        vertical: AppTheme.spacing8,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppTheme.spacing16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: AppTheme.iconSize12, color: color),
-          const SizedBox(width: AppTheme.spacing4),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: AppTheme.fontSize10,
-              fontFamily: AppFont.family,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+// import 'package:video_thumbnail/video_thumbnail.dart';  // Temporarily disabled due to Android SDK issues
 import 'package:image/image.dart' as img;
 import 'dart:io';
 import 'dart:typed_data';
@@ -226,18 +226,18 @@ class _NotesSheetState extends State<NotesSheet> {
       } else if (type == NoteType.video) {
         storagePath = '$baseDir/${f.name.replaceAll(' ', '_')}';
         url = await _uploadFile(storagePath, File(path), contentType: 'video/${ext == 'mov' ? 'quicktime' : 'mp4'}');
-        // thumbnail
-        final thumbFile = await VideoThumbnail.thumbnailFile(
-          video: path,
-          imageFormat: ImageFormat.PNG,
-          maxHeight: 320,
-          quality: 80,
-        );
-        if (thumbFile != null) {
-          final tb = await File(thumbFile).readAsBytes();
-          thumbStoragePath = '$baseDir/thumbnail.png';
-          thumbUrl = await _uploadBytes(thumbStoragePath, tb, contentType: 'image/png');
-        }
+        // thumbnail - temporarily disabled due to video_thumbnail plugin issues
+        // final thumbFile = await VideoThumbnail.thumbnailFile(
+        //   video: path,
+        //   imageFormat: ImageFormat.PNG,
+        //   maxHeight: 320,
+        //   quality: 80,
+        // );
+        // if (thumbFile != null) {
+        //   final tb = await File(thumbFile).readAsBytes();
+        //   thumbStoragePath = '$baseDir/thumbnail.png';
+        //   thumbUrl = await _uploadBytes(thumbStoragePath, tb, contentType: 'image/png');
+        // }
       } else if (type == NoteType.audio) {
         storagePath = '$baseDir/${f.name.replaceAll(' ', '_')}';
         url = await _uploadFile(storagePath, File(path), contentType: 'audio/$ext');
