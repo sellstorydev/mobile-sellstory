@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import '../../../data/services/firebase_auth_service.dart';
 import '../../../data/services/webview_api_service.dart';
@@ -12,6 +14,8 @@ class MoreController extends GetxController {
   // User data
   final user = Rx<User?>(null);
   final isLoading = false.obs;
+  final firestoreDisplayName = ''.obs;
+  final firestorePhotoURL = Rx<String?>(null);
 
   @override
   void onInit() {
@@ -19,37 +23,98 @@ class MoreController extends GetxController {
     // Get current user
     user.value = FirebaseAuth.instance.currentUser;
     
+    // Load user data from Firestore
+    _loadUserDataFromFirestore();
+    
     // Listen to auth state changes
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       this.user.value = user;
+      if (user != null) {
+        _loadUserDataFromFirestore();
+      } else {
+        // Clear Firestore data when user logs out
+        firestoreDisplayName.value = '';
+        firestorePhotoURL.value = null;
+      }
     });
   }
 
-  // Logout
-  Future<void> logout() async {
+  // Load user data from Firestore
+  Future<void> _loadUserDataFromFirestore() async {
+    final currentUser = user.value;
+    if (currentUser == null) return;
+
     try {
-      isLoading.value = true;
-      await _authService.signOut();
-      
-      // Reset dependencies to prevent issues after logout
-      Locator.resetDependencies();
-      
-      Get.offAllNamed('/login');
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        firestoreDisplayName.value = data['displayName'] ?? '';
+        firestorePhotoURL.value = data['photoURL'];
+      }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Logout failed: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
-        colorText: Get.theme.colorScheme.error,
-      );
-    } finally {
-      isLoading.value = false;
+      print('Error loading user data from Firestore: $e');
     }
   }
 
-  // Get user display name
+  // Logout with confirmation
+  Future<void> logout() async {
+    // Show confirmation dialog
+    final bool? confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('ออกจากระบบ'),
+        content: const Text('คุณต้องการออกจากระบบหรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('ออกจากระบบ'),
+          ),
+        ],
+      ),
+    );
+
+    // If user confirmed, proceed with logout
+    if (confirmed == true) {
+      try {
+        isLoading.value = true;
+        await _authService.signOut();
+        
+        // Reset dependencies to prevent issues after logout
+        Locator.resetDependencies();
+        
+        Get.offAllNamed('/login');
+      } catch (e) {
+        Get.snackbar(
+          'Error',
+          'Logout failed: ${e.toString()}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          colorText: Get.theme.colorScheme.error,
+        );
+      } finally {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  // Get user display name (prioritize Firestore data)
   String get displayName {
+    // First try Firestore data
+    if (firestoreDisplayName.value.isNotEmpty) {
+      return firestoreDisplayName.value;
+    }
+    
+    // Fallback to Firebase Auth data
     final currentUser = user.value;
     if (currentUser == null) return 'Guest';
     
@@ -69,8 +134,14 @@ class MoreController extends GetxController {
     return user.value?.email ?? 'No email';
   }
 
-  // Get user photo URL
+  // Get user photo URL (prioritize Firestore data)
   String? get photoURL {
+    // First try Firestore data
+    if (firestorePhotoURL.value != null && firestorePhotoURL.value!.isNotEmpty) {
+      return firestorePhotoURL.value;
+    }
+    
+    // Fallback to Firebase Auth data
     return user.value?.photoURL;
   }
 

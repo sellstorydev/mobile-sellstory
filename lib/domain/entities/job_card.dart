@@ -256,11 +256,23 @@ class JobCard {
     // Handle priority
     String? priority = _nullableStringFrom(map['priority']);
     
-    // Handle watchers
-    List<String> watchers = List<String>.from(map['watchers'] ?? const []);
+    // Handle watchers with type safety
+    List<String> watchers = [];
+    if (map['watchers'] != null) {
+      final watchersData = map['watchers'];
+      if (watchersData is List) {
+        watchers = watchersData.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+      }
+    }
     
-    // Handle collaborators 
-    List<String> collaborators = List<String>.from(map['collaborators'] ?? const []);
+    // Handle collaborators with type safety
+    List<String> collaborators = [];
+    if (map['collaborators'] != null) {
+      final collaboratorsData = map['collaborators'];
+      if (collaboratorsData is List) {
+        collaborators = collaboratorsData.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+      }
+    }
 
 
     // Handle hashtags with type safety
