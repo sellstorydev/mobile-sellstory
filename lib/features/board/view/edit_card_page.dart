@@ -4241,12 +4241,30 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _addCustomProduct() {
-    // TODO: Implement custom product creation dialog
+    setState(() {
+      // Create empty custom product item
+      final newItem = {
+        'id': 'custom-${DateTime.now().millisecondsSinceEpoch}',
+        'productId': null, // No product ID for custom items
+        'name': '', // Empty name to be filled by user
+        'description': '', // Empty description
+        'quantity': 1.0,
+        'unit': 'item',
+        'price': 0.0,
+        'pricePerUnit': 0.0,
+        'discount': 0.0,
+        'discountType': 'amount',
+        'image': null, // No image for custom items
+      };
+      _productItems.add(newItem);
+    });
+    
+    // Show a helpful message
     Get.snackbar(
-      'Coming Soon',
-      'Custom product creation will be available soon',
+      'Custom Product Added',
+      'Please fill in the product details in the table below',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.blue,
+      backgroundColor: Colors.green,
       colorText: Colors.white,
       duration: const Duration(seconds: 2),
     );
