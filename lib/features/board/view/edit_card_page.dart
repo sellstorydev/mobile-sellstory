@@ -1011,6 +1011,17 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
             const SizedBox(height: 24),
 
+            // Related Documents Section
+            _buildSectionCard(
+              title: 'Related Documents',
+              icon: Icons.description,
+              color: Colors.purple,
+              children: [
+                _buildRelatedDocumentsSection(),
+              ],
+            ),
+            const SizedBox(height: 24),
+
             // Content Section
             _buildSectionCard(
               title: 'Content & Details',
@@ -4296,6 +4307,16 @@ class _EditCardPageState extends State<EditCardPage> {
             'discountType': 'amount',
             'image': product['imageUrl'],
           };
+          
+          // Add dynamic fields for user_input columns based on current template
+          for (final column in _visibleColumns) {
+            if (column['type'] == 'user_input') {
+              final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+              // For selected products, prefill with product data if available
+              newItem[fieldKey] = product[fieldKey] ?? '';
+            }
+          }
+          
           _productItems.add(newItem);
         }
       });
@@ -4317,9 +4338,16 @@ class _EditCardPageState extends State<EditCardPage> {
         'discount': 0.0,
         'discountType': 'amount',
         'image': null, // No image for custom items
-        // Add fields for user_input columns
-        'sku': '', // For SKU user input field
       };
+      
+      // Add dynamic fields for user_input columns based on current template
+      for (final column in _visibleColumns) {
+        if (column['type'] == 'user_input') {
+          final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+          newItem[fieldKey] = ''; // Initialize with empty string
+        }
+      }
+      
       _productItems.add(newItem);
     });
     
@@ -5077,6 +5105,197 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRelatedDocumentsSection() {
+    return Column(
+      children: [
+        // Header with Create Quotation button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Related Documents',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                // TODO: Implement create quotation
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Create Quotation feature coming soon')),
+                );
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Create Quotation'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple[600],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        // Documents Table
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              // Table Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
+                ),
+                child: Row(
+                  children: const [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Doc No.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Type',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Job Card',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Seller',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Date',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Valid Until',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Amount',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Status',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 40), // For actions column
+                  ],
+                ),
+              ),
+              
+              // Empty state when no documents
+              Container(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No related documents yet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create your first quotation to get started',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
