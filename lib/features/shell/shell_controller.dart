@@ -141,9 +141,14 @@ class ShellController extends GetxController {
                             .limit(1)
                             .get();
                         if (dupExact.docs.isNotEmpty && dupExact.docs.first.id != (current?.uid ?? '')) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            const SnackBar(content: Text('อีเมลนี้มีอยู่แล้วในระบบ')),
+                          Get.snackbar(
+                            'ไม่สำเร็จ',
+                            'อีเมลนี้มีอยู่แล้วในระบบ',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red.withValues(alpha: 0.08),
+                            colorText: Colors.red,
                           );
+                          if (Get.isOverlaysOpen) Get.back();
                           return;
                         }
                         // Case-insensitive via emailLower
@@ -153,9 +158,14 @@ class ShellController extends GetxController {
                             .limit(1)
                             .get();
                         if (dupLower.docs.isNotEmpty && dupLower.docs.first.id != (current?.uid ?? '')) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            const SnackBar(content: Text('อีเมลนี้มีอยู่แล้วในระบบ')),
+                          Get.snackbar(
+                            'ไม่สำเร็จ',
+                            'อีเมลนี้มีอยู่แล้วในระบบ',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red.withValues(alpha: 0.08),
+                            colorText: Colors.red,
                           );
+                          if (Get.isOverlaysOpen) Get.back();
                           return;
                         }
                         // Save
@@ -166,11 +176,24 @@ class ShellController extends GetxController {
                           'updatedAt': FieldValue.serverTimestamp(),
                         }, SetOptions(merge: true));
 
+                        Get.snackbar(
+                          'สำเร็จ',
+                          'บันทึกอีเมลเรียบร้อย',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.green.withValues(alpha: 0.08),
+                          colorText: Colors.green,
+                        );
                         if (Get.isOverlaysOpen) Get.back();
                       } catch (e) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('บันทึกอีเมลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')),
+
+                        Get.snackbar(
+                          'ไม่สำเร็จ',
+                          'บันทึกอีเมลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.red.withValues(alpha: 0.08),
+                          colorText: Colors.red,
                         );
+                        if (Get.isOverlaysOpen) Get.back();
                       }
                     },
                     style: ElevatedButton.styleFrom(

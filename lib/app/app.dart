@@ -10,10 +10,10 @@ import '../core/i18n/locale_controller.dart';
 import '../core/i18n/app_translations.dart';
 import '../core/di/locator.dart';
 import 'routes.dart';
-import '../core/services/analytics_service.dart';
 import '../data/services/mobile_permissions_service.dart';
 import '../data/services/canned_responses_service.dart';
 import '../data/services/auth_otp_service.dart';
+import '../data/services/firestore_service.dart';
 
 class SellStoryApp extends StatelessWidget {
   const SellStoryApp({super.key});
@@ -61,6 +61,9 @@ class SellStoryApp extends StatelessWidget {
 
     // Firebase Auth service setup
     Get.put<FirebaseAuthService>(FirebaseAuthService(), permanent: true);
+
+    // Firestore service setup (needed for ShellController email save)
+    Get.put<FirestoreService>(FirestoreService(), permanent: true);
 
     // Mobile permissions service
     Get.put<MobilePermissionsService>(MobilePermissionsService(), permanent: true);

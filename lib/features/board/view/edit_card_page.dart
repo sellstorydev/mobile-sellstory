@@ -12,6 +12,7 @@ import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/services/notifications_service.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -1594,6 +1595,11 @@ class _EditCardPageState extends State<EditCardPage> {
         _isLoading = true;
       });
 
+      // Determine old/new lane names for notification context
+      final oldLaneId = widget.card.laneId;
+      final oldLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == oldLaneId)?['name'] ?? oldLaneId;
+      final newLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == targetLaneId)?['name'] ?? targetLaneId;
+
       // Update card with new boardId and laneId before moving
       final updatedCard = widget.card.copyWith(
         boardId: targetBoardId,
@@ -1611,6 +1617,23 @@ class _EditCardPageState extends State<EditCardPage> {
         toLaneId: targetLaneId,
         toIndex: 0, // Move to top of target lane
       );
+
+      // Notify watchers/collaborators/assignee about lane change
+      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      if (recipients.isNotEmpty) {
+        try {
+          await NotificationsService.to.notifyStatusChange(
+            userIds: recipients,
+            cardId: widget.card.id,
+            boardId: targetBoardId,
+            oldStatus: oldLaneName,
+            newStatus: newLaneName,
+            workspaceId: _controller.currentWorkspaceId.value,
+            workspaceName: _controller.currentWorkspaceName.value,
+            createdBy: _currentUserInfo?['uid'],
+          );
+        } catch (_) {}
+      }
 
       Get.snackbar(
         'Success',
@@ -1737,7 +1760,7 @@ class _EditCardPageState extends State<EditCardPage> {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 1),
@@ -2189,6 +2212,22 @@ class _EditCardPageState extends State<EditCardPage> {
         newComment,
       );
       print('✅ Comment saved to Firestore successfully');
+
+      // Notify watchers/collaborators/assignee
+      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      if (recipients.isNotEmpty) {
+        try {
+          await NotificationsService.to.notifyComment(
+            userIds: recipients,
+            commenterName: _currentUserInfo?['displayName'] ?? 'Someone',
+            cardId: widget.card.id,
+            boardId: widget.card.boardId,
+            workspaceId: _controller.currentWorkspaceId.value,
+            workspaceName: _controller.currentWorkspaceName.value,
+            createdBy: _currentUserInfo?['uid'],
+          );
+        } catch (_) {}
+      }
     } catch (e) {
       print('❌ Failed to save comment to Firestore: $e');
       // Remove from local state if failed
@@ -2238,6 +2277,22 @@ class _EditCardPageState extends State<EditCardPage> {
         newReply,
       );
       print('✅ Reply saved to Firestore successfully');
+
+      // Notify watchers/collaborators/assignee
+      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      if (recipients.isNotEmpty) {
+        try {
+          await NotificationsService.to.notifyComment(
+            userIds: recipients,
+            commenterName: _currentUserInfo?['displayName'] ?? 'Someone',
+            cardId: widget.card.id,
+            boardId: widget.card.boardId,
+            workspaceId: _controller.currentWorkspaceId.value,
+            workspaceName: _controller.currentWorkspaceName.value,
+            createdBy: _currentUserInfo?['uid'],
+          );
+        } catch (_) {}
+      }
     } catch (e) {
       print('❌ Failed to save reply to Firestore: $e');
       // Remove from local state if failed
@@ -2262,7 +2317,7 @@ class _EditCardPageState extends State<EditCardPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
+            color: Colors.grey.withValues(alpha: 0.3),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, -2),
@@ -2308,6 +2363,22 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
+
+  List<String> _collectNotifyRecipients({String? excludeUserId}) {
+    final set = <String>{};
+    if (_selectedAssignee.isNotEmpty) set.add(_selectedAssignee);
+    for (final c in _selectedCollaborators) {
+      if (c.isNotEmpty) set.add(c);
+    }
+    for (final w in _selectedWatchers) {
+      if (w.isNotEmpty) set.add(w);
+    }
+    if (excludeUserId != null && excludeUserId.isNotEmpty) {
+      set.remove(excludeUserId);
+    }
+    return set.toList();
+  }
+
   Future<void> _saveChanges() async {
     if (!_canEditAny) {
       _showNoPermission();
@@ -2329,21 +2400,23 @@ class _EditCardPageState extends State<EditCardPage> {
     });
 
     try {
-      // Get assignee details
+      // Determine original vs new values for notifications
+      final originalAssignee = widget.card.assignedTo;
+      final originalStatus = widget.card.status;
+      final originalLaneId = widget.card.laneId;
+      final originalLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == originalLaneId)?['name'] ?? originalLaneId;
+
+      // Get assignee details for updatedByDisplayName
       String assigneeDisplayName = '';
       if (_selectedAssignee.isNotEmpty) {
-        final selectedUser = _availableAssignees.firstWhereOrNull(
-          (user) => user['id'] == _selectedAssignee
-        );
+        final selectedUser = _availableAssignees.firstWhereOrNull((u) => u['id'] == _selectedAssignee);
         assigneeDisplayName = selectedUser?['displayName'] ?? selectedUser?['name'] ?? _selectedAssignee;
       }
-      
-      // Get customer name if selected
+
+      // Get customer display name
       String customerName = '';
       if (_selectedCustomer.isNotEmpty) {
-        final selectedCustomer = _availableCustomers.firstWhereOrNull(
-          (c) => c['id'] == _selectedCustomer
-        );
+        final selectedCustomer = _availableCustomers.firstWhereOrNull((c) => c['id'] == _selectedCustomer);
         customerName = selectedCustomer?['name'] ?? '';
       }
 
@@ -2388,6 +2461,51 @@ class _EditCardPageState extends State<EditCardPage> {
 
       // Update card in repository
       await _controller.updateCard(updatedCard);
+
+      // Fire notifications after update
+      final createdBy = _currentUserInfo?['uid'];
+      final workspaceId = _controller.currentWorkspaceId.value;
+      final workspaceName = _controller.currentWorkspaceName.value;
+      final boardId = updatedCard.boardId;
+
+      // 1) Assignment change -> notify new assignee
+      if (_selectedAssignee.isNotEmpty && _selectedAssignee != originalAssignee) {
+        try {
+          await NotificationsService.to.notifyCardAssignment(
+            assigneeId: _selectedAssignee,
+            assignerName: _currentUserInfo?['displayName'] ?? 'Someone',
+            cardId: updatedCard.id,
+            boardId: boardId,
+            workspaceId: workspaceId,
+            workspaceName: workspaceName,
+            createdBy: createdBy,
+          );
+        } catch (_) {}
+      }
+
+      // 2) Status or lane change -> notify watchers/collaborators/assignee
+      final newLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == _selectedLane)?['name'] ?? _selectedLane;
+      final statusChanged = _selectedStatus != originalStatus;
+      final laneChanged = _selectedLane != originalLaneId;
+      if (statusChanged || laneChanged) {
+        final recipients = _collectNotifyRecipients(excludeUserId: createdBy);
+        if (recipients.isNotEmpty) {
+          final oldStatusLabel = laneChanged ? originalLaneName : originalStatus;
+          final newStatusLabel = laneChanged ? newLaneName : _selectedStatus;
+          try {
+            await NotificationsService.to.notifyStatusChange(
+              userIds: recipients,
+              cardId: updatedCard.id,
+              boardId: boardId,
+              oldStatus: oldStatusLabel,
+              newStatus: newStatusLabel,
+              workspaceId: workspaceId,
+              workspaceName: workspaceName,
+              createdBy: createdBy,
+            );
+          } catch (_) {}
+        }
+      }
 
       Get.snackbar(
         'Success',
@@ -2945,7 +3063,7 @@ class _EditCardPageState extends State<EditCardPage> {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -2958,7 +3076,7 @@ class _EditCardPageState extends State<EditCardPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -3347,12 +3465,12 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
   }
 
   bool _canMoveCard() {
-    return _selectedBoardId.isNotEmpty && 
-           _selectedLaneId.isNotEmpty && 
-           _availableLanes.isNotEmpty && // Check if lanes are available
-           !_isLoading &&
-           !_isLoadingLanes && // Check if lanes are still loading
-           !(_selectedBoardId == widget.currentBoardId && _selectedLaneId == widget.currentLaneId);
+    return _selectedBoardId.isNotEmpty &&
+        _selectedLaneId.isNotEmpty &&
+        _availableLanes.isNotEmpty &&
+        !_isLoading &&
+        !_isLoadingLanes &&
+        !(_selectedBoardId == widget.currentBoardId && _selectedLaneId == widget.currentLaneId);
   }
 
   void _performMove() {
