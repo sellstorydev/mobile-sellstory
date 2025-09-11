@@ -13,6 +13,7 @@ import 'routes.dart';
 import '../core/services/analytics_service.dart';
 import '../data/services/mobile_permissions_service.dart';
 import '../data/services/canned_responses_service.dart';
+import '../data/services/auth_otp_service.dart';
 
 class SellStoryApp extends StatelessWidget {
   const SellStoryApp({super.key});
@@ -66,6 +67,9 @@ class SellStoryApp extends StatelessWidget {
 
     // Canned responses service
     Get.put<CannedResponsesService>(CannedResponsesService(), permanent: true);
+
+    // Auth OTP service
+    Get.put<AuthOtpService>(AuthOtpService(), permanent: true);
 
     // Analytics service setup
     // Get.put<AnalyticsService>(AnalyticsService(), permanent: true);

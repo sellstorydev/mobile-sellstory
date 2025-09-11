@@ -7,6 +7,7 @@ import '../../../core/services/fcm_service.dart';
 import '../../../core/services/analytics_service.dart';
 import '../../../data/services/chat_service.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../app/routes.dart';
 
 
 class LoginController extends GetxController {
@@ -208,40 +209,13 @@ class LoginController extends GetxController {
     }
   }
 
-  // Password Reset
-  Future<void> forgotPassword() async {
-    if (identity.value.isEmpty || !identity.value.contains('@')) {
-      Get.snackbar(
-        'Error',
-        'Please enter a valid email address',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
-        colorText: Get.theme.colorScheme.error,
-      );
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      await _authService.sendPasswordResetEmail(identity.value);
-      Get.snackbar(
-        'Success',
-        'Password reset email sent to ${identity.value}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.primary.withValues(alpha: 0.1),
-        colorText: Get.theme.colorScheme.primary,
-      );
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to send reset email: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
-        colorText: Get.theme.colorScheme.error,
-      );
-    } finally {
-      isLoading.value = false;
-    }
+  // Forgot Password (navigate to OTP flow)
+  void forgotPassword() {
+    final email = identity.value.trim();
+    Get.toNamed(
+      AppRoutes.forgotPasswordEmail,
+      parameters: email.isNotEmpty ? {'email': email} : {},
+    );
   }
 
   // Handle Firebase Auth Errors
