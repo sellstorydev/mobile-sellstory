@@ -175,7 +175,7 @@ class ShellController extends GetxController {
                           'emailCollected': true,
                           'updatedAt': FieldValue.serverTimestamp(),
                         }, SetOptions(merge: true));
-
+                        Get.back();
                         Get.snackbar(
                           'สำเร็จ',
                           'บันทึกอีเมลเรียบร้อย',
@@ -183,7 +183,7 @@ class ShellController extends GetxController {
                           backgroundColor: Colors.green.withValues(alpha: 0.08),
                           colorText: Colors.green,
                         );
-                        if (Get.isOverlaysOpen) Get.back();
+                        // if (Get.isOverlaysOpen) Get.back();
                       } catch (e) {
 
                         Get.snackbar(
