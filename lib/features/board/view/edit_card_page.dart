@@ -6,6 +6,7 @@ import '../../../data/services/upload_service.dart';
 import '../../../domain/entities/board.dart';
 import '../../../domain/entities/lane.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
@@ -239,6 +240,11 @@ class _EditCardPageState extends State<EditCardPage> {
   // Product state
   List<Map<String, dynamic>> _productItems = [];
   
+  // Template and columns state
+  List<Map<String, dynamic>> _quotationTemplates = [];
+  String? _selectedTemplateId;
+  List<Map<String, dynamic>> _visibleColumns = [];
+  
   // VAT and discount state
   bool _isVatEnabled = false;
   Map<String, dynamic>? _additionalDiscount;
@@ -342,10 +348,14 @@ class _EditCardPageState extends State<EditCardPage> {
       'quantity': (expense['quantity'] ?? 0).toDouble(),
       'unit': expense['unit'] ?? 'item',
       'price': (expense['pricePerUnit'] ?? 0).toDouble(), // Map pricePerUnit to price with type casting
+      'pricePerUnit': (expense['pricePerUnit'] ?? 0).toDouble(), // Keep original pricePerUnit field
       'discount': (expense['discount'] ?? 0).toDouble(),
       'discountType': expense['discountType'] ?? 'percentage',
-      'image': null, // Add image if needed
+      'image': null, // Will be loaded from product database
     }));
+    
+    // Load product images from database
+    await _loadProductImages();
     
     // Initialize VAT and discount settings
     _isVatEnabled = widget.card.isVatEnabled;
@@ -354,6 +364,9 @@ class _EditCardPageState extends State<EditCardPage> {
     
     // Load available options
     await _loadAvailableOptions();
+    
+    // Load quotation templates
+    await _loadQuotationTemplates();
     
     // โหลด companies ของ customer ที่เลือกไว้
     if (_selectedCustomer.isNotEmpty && _selectedCustomer != 'none') {
@@ -515,6 +528,259 @@ class _EditCardPageState extends State<EditCardPage> {
         _selectedCompany = 'none';
       });
     }
+  }
+
+  Future<void> _loadProductImages() async {
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value;
+      if (workspaceId.isEmpty || _productItems.isEmpty) return;
+
+      print('🔄 Loading product images for ${_productItems.length} products');
+      
+      final firestore = FirebaseFirestore.instance;
+      
+      // Load images for each product
+      for (int i = 0; i < _productItems.length; i++) {
+        final productId = _productItems[i]['productId'];
+        if (productId != null && productId.isNotEmpty) {
+          try {
+            final productDoc = await firestore
+                .collection('workspaces/$workspaceId/products')
+                .doc(productId)
+                .get();
+                
+            if (productDoc.exists) {
+              final productData = productDoc.data()!;
+              setState(() {
+                _productItems[i]['image'] = productData['imageUrl'];
+              });
+            }
+          } catch (e) {
+            print('❌ Failed to load image for product $productId: $e');
+          }
+        }
+      }
+      
+      print('✅ Product images loaded successfully');
+    } catch (e) {
+      print('❌ Failed to load product images: $e');
+    }
+  }
+
+  Future<void> _loadQuotationTemplates() async {
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value;
+      if (workspaceId.isEmpty) {
+        print('⚠️ No workspace selected for loading templates');
+        return;
+      }
+
+      print('🔄 Loading quotation templates for workspace: $workspaceId');
+      
+      // Use Firebase service to get templates
+      final firestore = FirebaseFirestore.instance;
+      final snapshot = await firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('quotationTemplates')
+          .get();
+
+      final List<Map<String, dynamic>> templates = [];
+      
+      // Add "None" option first
+      templates.add({
+        'id': 'none',
+        'name': 'None',
+        'columns': _getDefaultColumns(),
+      });
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final tableComponent = _findTableComponent(data);
+        
+        templates.add({
+          'id': doc.id,
+          'name': data['name'] ?? 'Unnamed Template',
+          'columns': tableComponent?['columns'] ?? _getDefaultColumns(),
+          'data': data,
+        });
+      }
+
+      setState(() {
+        _quotationTemplates = templates;
+        _selectedTemplateId = 'none'; // Default to 'none' for now since this is a new feature
+        _updateVisibleColumns();
+      });
+
+      print('✅ Loaded ${templates.length - 1} quotation templates');
+    } catch (e) {
+      print('❌ Failed to load quotation templates: $e');
+      // Set default state
+      setState(() {
+        _quotationTemplates = [{
+          'id': 'none',
+          'name': 'None',
+          'columns': _getDefaultColumns(),
+        }];
+        _selectedTemplateId = 'none';
+        _updateVisibleColumns();
+      });
+    }
+  }
+
+  Map<String, dynamic>? _findTableComponent(Map<String, dynamic> templateData) {
+    // Search in body components
+    final body = templateData['body'];
+    if (body != null && body['components'] != null) {
+      for (final component in body['components']) {
+        if (component['type'] == 'table') {
+          return component;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> _getDefaultColumns() {
+    return [
+      {
+        'id': 'img',
+        'label': 'Img',
+        'type': 'image',
+        'isVisible': true,
+        'width': '60px',
+        'order': 0,
+      },
+      {
+        'id': 'name',
+        'label': 'Product/Service',
+        'type': 'product_field',
+        'sourceField': 'name',
+        'isVisible': true,
+        'width': '3',
+        'order': 1,
+      },
+      {
+        'id': 'quantity',
+        'label': 'Qty/Unit',
+        'type': 'predefined',
+        'predefinedField': 'quantity',
+        'isVisible': true,
+        'width': '2',
+        'order': 2,
+      },
+      {
+        'id': 'pricePerUnit',
+        'label': 'Price/Unit',
+        'type': 'product_field',
+        'sourceField': 'pricePerUnit',
+        'isVisible': true,
+        'width': '2',
+        'order': 3,
+      },
+      {
+        'id': 'discount',
+        'label': 'Discount',
+        'type': 'predefined',
+        'predefinedField': 'discount',
+        'isVisible': true,
+        'width': '2',
+        'order': 4,
+      },
+      {
+        'id': 'total',
+        'label': 'Total',
+        'type': 'predefined',
+        'predefinedField': 'line_total',
+        'isVisible': true,
+        'width': '2',
+        'order': 5,
+      },
+    ];
+  }
+
+  void _updateVisibleColumns() {
+    if (_selectedTemplateId == null || _selectedTemplateId == 'none') {
+      _visibleColumns = _getDefaultColumns();
+    } else {
+      final template = _quotationTemplates.firstWhereOrNull(
+        (t) => t['id'] == _selectedTemplateId
+      );
+      if (template != null) {
+        final columns = List<Map<String, dynamic>>.from(template['columns'] ?? []);
+        // Sort by order
+        columns.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
+        // Filter only visible columns
+        _visibleColumns = columns.where((col) => col['isVisible'] == true).toList();
+      } else {
+        _visibleColumns = _getDefaultColumns();
+      }
+    }
+  }
+
+  void _onTemplateChanged(String? templateId) {
+    setState(() {
+      _selectedTemplateId = templateId;
+      _updateVisibleColumns();
+    });
+  }
+
+  List<Widget> _buildHeaderColumns() {
+    List<Widget> headers = [];
+    
+    for (final column in _visibleColumns) {
+      Widget headerWidget;
+      
+      // Determine flex based on column width
+      int flex = 2; // default
+      String? widthStr = column['width'];
+      if (widthStr != null) {
+        if (widthStr.contains('%')) {
+          // Convert percentage to flex
+          final percentage = int.tryParse(widthStr.replaceAll('%', '')) ?? 20;
+          flex = (percentage / 10).round().clamp(1, 6);
+        } else if (widthStr.contains('px')) {
+          // Fixed width columns get smaller flex
+          flex = 1;
+        } else {
+          // Plain number as flex
+          flex = int.tryParse(widthStr) ?? 2;
+        }
+      }
+      
+      // Handle special columns
+      if (column['id'] == 'img' || column['type'] == 'image') {
+        headerWidget = const SizedBox(
+          width: 50, 
+          child: Text('', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))
+        );
+      } else {
+        // Determine text alignment
+        TextAlign textAlign = TextAlign.left;
+        if (column['align'] == 'center') {
+          textAlign = TextAlign.center;
+        } else if (column['align'] == 'right') {
+          textAlign = TextAlign.right;
+        }
+        
+        headerWidget = Expanded(
+          flex: flex,
+          child: Text(
+            column['label'] ?? '',
+            style: const TextStyle(
+              fontWeight: FontWeight.w600, 
+              fontSize: 12, 
+              color: Colors.deepOrange
+            ),
+            textAlign: textAlign,
+          ),
+        );
+      }
+      
+      headers.add(headerWidget);
+    }
+    
+    return headers;
   }
 
   Future<void> _selectStartDate(BuildContext context) async {
@@ -2408,7 +2674,7 @@ class _EditCardPageState extends State<EditCardPage> {
         'description': product['description'] ?? '',
         'quantity': (product['quantity'] ?? 0).toInt(),
         'unit': product['unit'],
-        'pricePerUnit': (product['price'] ?? 0).toInt(), // Map back from price to pricePerUnit with type casting
+        'pricePerUnit': (product['pricePerUnit'] ?? product['price'] ?? 0).toInt(), // Use pricePerUnit field first, fallback to price
         'discount': (product['discount'] ?? 0).toInt(),
         'discountType': product['discountType'],
       }).toList();
@@ -2991,6 +3257,7 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header with title and template selector
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -3002,8 +3269,44 @@ class _EditCardPageState extends State<EditCardPage> {
                 color: Colors.black87,
               ),
             ),
+            // Template dropdown and buttons row
             Row(
               children: [
+                // Template Dropdown
+                Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.deepOrange, width: 1.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedTemplateId,
+                      hint: const Text('Select Template'),
+                      items: _quotationTemplates.map((template) {
+                        return DropdownMenuItem<String>(
+                          value: template['id'],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              template['name'],
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: _onTemplateChanged,
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.deepOrange),
+                      iconSize: 20,
+                      style: const TextStyle(
+                        color: Colors.deepOrange,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: _addProduct,
                   icon: const Icon(Icons.add, size: 18),
@@ -3052,14 +3355,7 @@ class _EditCardPageState extends State<EditCardPage> {
             border: Border.all(color: Colors.deepOrange[200]!),
           ),
           child: Row(
-            children: const [
-              SizedBox(width: 50, child: Text('', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))), // Image column
-              Expanded(flex: 3, child: Text('Product/Service', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange))),
-              Expanded(flex: 2, child: Text('Qty/Unit', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange), textAlign: TextAlign.center)),
-              Expanded(flex: 2, child: Text('Price/Unit', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange), textAlign: TextAlign.center)),
-              Expanded(flex: 2, child: Text('Discount', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange), textAlign: TextAlign.center)),
-              Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange), textAlign: TextAlign.center)),
-            ],
+            children: _buildHeaderColumns(),
           ),
         ),
         
@@ -3145,118 +3441,117 @@ class _EditCardPageState extends State<EditCardPage> {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Image
-          SizedBox(
-            width: 50,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: product['image'] != null 
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        product['image'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.image_not_supported, color: Colors.grey[400], size: 20);
-                        },
-                      ),
-                    )
-                  : Icon(Icons.image, color: Colors.grey[400], size: 20),
-            ),
+        children: _buildProductCells(product, index),
+      ),
+    );
+  }
+
+  List<Widget> _buildProductCells(Map<String, dynamic> product, int index) {
+    List<Widget> cells = [];
+    
+    for (final column in _visibleColumns) {
+      Widget cellWidget = _buildProductCell(column, product, index);
+      cells.add(cellWidget);
+    }
+    
+    // Always add delete button at the end
+    cells.add(
+      GestureDetector(
+        onTap: () => _deleteProduct(index),
+        child: Icon(Icons.close, size: 16, color: Colors.red[400]),
+      ),
+    );
+    
+    return cells;
+  }
+
+  Widget _buildProductCell(Map<String, dynamic> column, Map<String, dynamic> product, int index) {
+    // Determine flex based on column width
+    int flex = 2; // default
+    String? widthStr = column['width'];
+    if (widthStr != null) {
+      if (widthStr.contains('%')) {
+        final percentage = int.tryParse(widthStr.replaceAll('%', '')) ?? 20;
+        flex = (percentage / 10).round().clamp(1, 6);
+      } else if (widthStr.contains('px')) {
+        flex = 1;
+      } else {
+        flex = int.tryParse(widthStr) ?? 2;
+      }
+    }
+
+    // Handle special columns
+    if (column['id'] == 'img' || column['type'] == 'image') {
+      return SizedBox(
+        width: 50,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
           ),
-          
-          // Product/Service name (editable)
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextFormField(
-                    initialValue: product['name'] ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      isDense: true,
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _productItems[index]['name'] = value;
-                      });
+          child: product['image'] != null 
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    product['image'],
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(Icons.image_not_supported, color: Colors.grey[400], size: 20);
                     },
                   ),
-                  if (product['description'] != null && product['description'].toString().isNotEmpty)
-                    Text(
-                      product['description'],
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Quantity/Unit (editable)
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Column(
-                children: [
-                  TextFormField(
-                    initialValue: (product['quantity'] ?? 0).toDouble().toInt().toString(),
-                    style: const TextStyle(fontSize: 14),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      isDense: true,
-                    ),
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    onChanged: (value) {
-                      setState(() {
-                        _productItems[index]['quantity'] = double.tryParse(value) ?? 0;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 2),
-                  TextFormField(
-                    initialValue: product['unit'] ?? 'item',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      isDense: true,
-                    ),
-                    textAlign: TextAlign.center,
-                    onChanged: (value) {
-                      setState(() {
-                        _productItems[index]['unit'] = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Price/Unit (editable)
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextFormField(
-                initialValue: (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble().toInt().toString(),
+                )
+              : Icon(Icons.image, color: Colors.grey[400], size: 20),
+        ),
+      );
+    }
+
+    // Get field key based on column type and sourceField
+    String fieldKey = _getFieldKey(column);
+    
+    // Handle different column types
+    switch (column['type']) {
+      case 'product_field':
+        return _buildEditableCell(flex, product, fieldKey, column, index);
+        
+      case 'predefined':
+        return _buildPredefinedCell(flex, product, column, index);
+        
+      default:
+        return _buildDisplayCell(flex, product[fieldKey]?.toString() ?? '', column);
+    }
+  }
+
+  String _getFieldKey(Map<String, dynamic> column) {
+    if (column['sourceField'] != null) {
+      return column['sourceField'];
+    }
+    
+    switch (column['predefinedField']) {
+      case 'quantity':
+        return 'quantity';
+      case 'line_total':
+        return 'total';
+      case 'discount':
+        return 'discount';
+      default:
+        return column['id'] ?? '';
+    }
+  }
+
+  Widget _buildEditableCell(int flex, Map<String, dynamic> product, String fieldKey, Map<String, dynamic> column, int index) {
+    // Special handling for unit field combined with quantity
+    if (fieldKey == 'quantity' && column['predefinedField'] == 'quantity') {
+      return Expanded(
+        flex: flex,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            children: [
+              TextFormField(
+                initialValue: (product['quantity'] ?? 0).toDouble().toInt().toString(),
                 style: const TextStyle(fontSize: 14),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
@@ -3264,132 +3559,225 @@ class _EditCardPageState extends State<EditCardPage> {
                   isDense: true,
                 ),
                 keyboardType: TextInputType.number,
-                textAlign: TextAlign.right,
+                textAlign: TextAlign.center,
                 onChanged: (value) {
                   setState(() {
-                    _productItems[index]['pricePerUnit'] = double.tryParse(value) ?? 0;
-                    if (_productItems[index]['price'] != null) {
-                      _productItems[index]['price'] = double.tryParse(value) ?? 0;
-                    }
+                    _productItems[index]['quantity'] = double.tryParse(value) ?? 0;
                   });
                 },
               ),
-            ),
-          ),
-          
-          // Discount (editable with toggle)
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Column(
-                children: [
-                  TextFormField(
-                    initialValue: (product['discount'] ?? 0).toDouble().toInt().toString(),
-                    style: const TextStyle(fontSize: 14),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      isDense: true,
-                    ),
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    onChanged: (value) {
-                      setState(() {
-                        _productItems[index]['discount'] = double.tryParse(value) ?? 0;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _productItems[index]['discountType'] = 'percentage';
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[200],
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              bottomLeft: Radius.circular(12),
-                            ),
-                            border: Border.all(
-                              color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[300]!,
-                            ),
-                          ),
-                          child: Text(
-                            '%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: product['discountType'] == 'percentage' ? Colors.white : Colors.grey[600],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _productItems[index]['discountType'] = 'amount';
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[200],
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(12),
-                              bottomRight: Radius.circular(12),
-                            ),
-                            border: Border.all(
-                              color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[300]!,
-                            ),
-                          ),
-                          child: Text(
-                            '฿',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: product['discountType'] == 'amount' ? Colors.white : Colors.grey[600],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              const SizedBox(height: 2),
+              TextFormField(
+                initialValue: product['unit'] ?? 'item',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
+                textAlign: TextAlign.center,
+                onChanged: (value) {
+                  setState(() {
+                    _productItems[index]['unit'] = value;
+                  });
+                },
               ),
-            ),
+            ],
           ),
-          
-          // Total (calculated, non-editable)
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '฿${_formatPrice(_calculateItemTotal(product))}',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                  GestureDetector(
-                    onTap: () => _deleteProduct(index),
-                    child: Icon(Icons.close, size: 16, color: Colors.red[400]),
-                  ),
-                ],
-              ),
-            ),
+        ),
+      );
+    }
+    
+    // Regular editable fields
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: TextFormField(
+          initialValue: _getInitialValue(product, fieldKey),
+          style: const TextStyle(fontSize: 14),
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+            isDense: true,
           ),
-        ],
+          keyboardType: _getKeyboardType(fieldKey),
+          textAlign: _getTextAlign(column),
+          onChanged: (value) {
+            setState(() {
+              if (fieldKey == 'pricePerUnit') {
+                _productItems[index]['pricePerUnit'] = double.tryParse(value) ?? 0;
+                if (_productItems[index]['price'] != null) {
+                  _productItems[index]['price'] = double.tryParse(value) ?? 0;
+                }
+              } else if (fieldKey == 'quantity') {
+                _productItems[index]['quantity'] = double.tryParse(value) ?? 0;
+              } else {
+                _productItems[index][fieldKey] = value;
+              }
+            });
+          },
+        ),
       ),
     );
+  }
+
+  Widget _buildPredefinedCell(int flex, Map<String, dynamic> product, Map<String, dynamic> column, int index) {
+    final predefinedField = column['predefinedField'];
+    
+    switch (predefinedField) {
+      case 'quantity':
+        return _buildEditableCell(flex, product, 'quantity', column, index);
+        
+      case 'discount':
+        return Expanded(
+          flex: flex,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              children: [
+                TextFormField(
+                  initialValue: (product['discount'] ?? 0).toDouble().toInt().toString(),
+                  style: const TextStyle(fontSize: 14),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    isDense: true,
+                  ),
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  onChanged: (value) {
+                    setState(() {
+                      _productItems[index]['discount'] = double.tryParse(value) ?? 0;
+                    });
+                  },
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _productItems[index]['discountType'] = 'percentage';
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[200],
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            bottomLeft: Radius.circular(12),
+                          ),
+                          border: Border.all(
+                            color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: Text(
+                          '%',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: product['discountType'] == 'percentage' ? Colors.white : Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _productItems[index]['discountType'] = 'amount';
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[200],
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(12),
+                            bottomRight: Radius.circular(12),
+                          ),
+                          border: Border.all(
+                            color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: Text(
+                          '฿',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: product['discountType'] == 'amount' ? Colors.white : Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+        
+      case 'line_total':
+        return Expanded(
+          flex: flex,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              '฿${_formatPrice(_calculateItemTotal(product))}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        );
+        
+      default:
+        return _buildDisplayCell(flex, product[predefinedField]?.toString() ?? '', column);
+    }
+  }
+
+  Widget _buildDisplayCell(int flex, String value, Map<String, dynamic> column) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Text(
+          value,
+          style: const TextStyle(fontSize: 14),
+          textAlign: _getTextAlign(column),
+        ),
+      ),
+    );
+  }
+
+  String _getInitialValue(Map<String, dynamic> product, String fieldKey) {
+    final value = product[fieldKey];
+    if (value == null) return '';
+    
+    if (fieldKey == 'pricePerUnit' || fieldKey == 'price' || fieldKey == 'quantity') {
+      return value.toDouble().toInt().toString();
+    }
+    
+    return value.toString();
+  }
+
+  TextInputType _getKeyboardType(String fieldKey) {
+    if (fieldKey == 'pricePerUnit' || fieldKey == 'price' || fieldKey == 'quantity' || fieldKey == 'discount') {
+      return TextInputType.number;
+    }
+    return TextInputType.text;
+  }
+
+  TextAlign _getTextAlign(Map<String, dynamic> column) {
+    switch (column['align']) {
+      case 'center':
+        return TextAlign.center;
+      case 'right':
+        return TextAlign.right;
+      default:
+        return TextAlign.left;
+    }
   }
 
   Widget _buildProductSummary() {
@@ -3818,15 +4206,38 @@ class _EditCardPageState extends State<EditCardPage> {
 
   // Product management methods
   void _addProduct() {
-    // TODO: Implement product selection dialog
-    Get.snackbar(
-      'Coming Soon',
-      'Product selection will be available soon',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 2),
+    _showProductSelectionDialog();
+  }
+
+  Future<void> _showProductSelectionDialog() async {
+    final selectedProducts = await showDialog<List<Map<String, dynamic>>>(
+      context: context,
+      builder: (context) => _ProductSelectionDialog(
+        workspaceId: _controller.currentWorkspaceId.value,
+      ),
     );
+
+    if (selectedProducts != null && selectedProducts.isNotEmpty) {
+      setState(() {
+        for (final product in selectedProducts) {
+          // Create new product item for table
+          final newItem = {
+            'id': 'exp-${DateTime.now().millisecondsSinceEpoch}-${product['id']}',
+            'productId': product['id'],
+            'name': product['name'],
+            'description': product['description'] ?? '',
+            'quantity': 1.0,
+            'unit': product['unit'] ?? 'item',
+            'price': (product['price'] ?? 0).toDouble(),
+            'pricePerUnit': (product['price'] ?? 0).toDouble(),
+            'discount': 0.0,
+            'discountType': 'amount',
+            'image': product['imageUrl'],
+          };
+          _productItems.add(newItem);
+        }
+      });
+    }
   }
 
   void _addCustomProduct() {
@@ -4257,5 +4668,333 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
   void _performMove() {
     Navigator.of(context).pop();
     widget.onMoveCard(_selectedBoardId, _selectedLaneId);
+  }
+}
+
+// Product Selection Dialog
+class _ProductSelectionDialog extends StatefulWidget {
+  final String workspaceId;
+
+  const _ProductSelectionDialog({
+    required this.workspaceId,
+  });
+
+  @override
+  State<_ProductSelectionDialog> createState() => _ProductSelectionDialogState();
+}
+
+class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
+  List<Map<String, dynamic>> _allProducts = [];
+  List<Map<String, dynamic>> _filteredProducts = [];
+  Set<String> _selectedProductIds = {};
+  bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+    _searchController.addListener(_filterProducts);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final querySnapshot = await firestore
+          .collection('workspaces/${widget.workspaceId}/products')
+          .where('showInCatalog', isEqualTo: true)
+          .get();
+
+      final products = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': data['name'] ?? '',
+          'price': data['price'] ?? 0,
+          'unit': data['unit'] ?? 'item',
+          'imageUrl': data['imageUrl'],
+          'sku': data['sku'] ?? '',
+          'description': data['description'] ?? '',
+        };
+      }).toList();
+
+      // Sort products by name in Dart instead of Firestore
+      products.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+
+      setState(() {
+        _allProducts = products;
+        _filteredProducts = products;
+        _isLoading = false;
+      });
+      
+      print('✅ Products loaded successfully: ${products.length} products');
+    } catch (e) {
+      print('❌ Failed to load products: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _filterProducts() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = _allProducts;
+      } else {
+        _filteredProducts = _allProducts.where((product) {
+          final name = (product['name'] ?? '').toLowerCase();
+          final sku = (product['sku'] ?? '').toLowerCase();
+          return name.contains(query) || sku.contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  void _toggleProduct(String productId) {
+    setState(() {
+      if (_selectedProductIds.contains(productId)) {
+        _selectedProductIds.remove(productId);
+      } else {
+        _selectedProductIds.add(productId);
+      }
+    });
+  }
+
+  List<Map<String, dynamic>> _getSelectedProducts() {
+    return _allProducts.where((product) => 
+        _selectedProductIds.contains(product['id'])).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        height: MediaQuery.of(context).size.height * 0.8,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'เพิ่มสินค้า',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepOrange,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Search bar
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'ชื่อ,รายละเอียด,Hashtag,สินค้า',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.deepOrange[200]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.deepOrange[200]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.deepOrange),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Products list section header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'รายการสินค้า',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (_selectedProductIds.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrange[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'เลือกแล้ว ${_selectedProductIds.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.deepOrange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Products list
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredProducts.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'ไม่พบสินค้า',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = _filteredProducts[index];
+                            final isSelected = _selectedProductIds.contains(product['id']);
+                            
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: InkWell(
+                                onTap: () => _toggleProduct(product['id']),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: isSelected ? Colors.deepOrange : Colors.grey[300]!,
+                                      width: isSelected ? 2 : 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: isSelected ? Colors.deepOrange[50] : Colors.white,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // Checkbox
+                                      Checkbox(
+                                        value: isSelected,
+                                        onChanged: (_) => _toggleProduct(product['id']),
+                                        activeColor: Colors.deepOrange,
+                                      ),
+                                      
+                                      // Product image
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        margin: const EdgeInsets.only(right: 12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[100],
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.grey[300]!),
+                                        ),
+                                        child: product['imageUrl'] != null 
+                                            ? ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Image.network(
+                                                  product['imageUrl'],
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Icon(Icons.image, color: Colors.grey[400], size: 30);
+                                                  },
+                                                ),
+                                              )
+                                            : Icon(Icons.image, color: Colors.grey[400], size: 30),
+                                      ),
+                                      
+                                      // Product details
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product['name'] ?? '',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '฿${(product['price'] ?? 0).toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+
+            // Pagination (if needed)
+            const SizedBox(height: 16),
+            
+            // Bottom buttons
+            Row(
+              children: [
+                Text(
+                  '< 1 >',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton(
+                  onPressed: _selectedProductIds.isNotEmpty
+                      ? () => Navigator.of(context).pop(_getSelectedProducts())
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'ยืนยัน',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
