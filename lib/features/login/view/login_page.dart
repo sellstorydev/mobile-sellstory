@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:get/get.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../controller/login_controller.dart';
 import '../widgets/branded_logo.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/top_snack.dart';
+
 
 
 class LoginPage extends StatelessWidget {
@@ -227,7 +229,38 @@ class LoginPage extends StatelessWidget {
                             ),
                           ),
                         )),
-                        
+
+                        // Apple Sign-In button (Apple platforms only)
+                        const SizedBox(height: 12),
+                        if (GetPlatform.isIOS)
+                          Obx(() => SizedBox(
+                            width: double.infinity,
+                            height: 44,
+                            child: OutlinedButton.icon(
+                              onPressed: controller.isLoading.value ? null : controller.signInWithApple,
+                              icon: const FaIcon(FontAwesomeIcons.apple, size: 24, color: Colors.black),
+                              label: const Text(
+                                'เข้าสู่ระบบด้วย Apple',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                  height: 1.2,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                side: const BorderSide(color: AppTheme.borderGrey),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                elevation: 2,
+                                shadowColor: Colors.black.withValues(alpha: 0.1),
+                              ),
+                            ),
+                          )),
+
                         const SizedBox(height: 32),
                         
                         // Information link

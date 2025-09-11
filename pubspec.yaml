@@ -116,6 +116,12 @@ dependencies:
   # Brand icons (Facebook, Instagram, LINE)
   font_awesome_flutter:
 
+  # Apple Sign-In
+  sign_in_with_apple: ^5.0.0
+
+  # Crypto for SHA256 (Apple nonce)
+  crypto: ^3.0.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
