@@ -239,6 +239,11 @@ class _EditCardPageState extends State<EditCardPage> {
   // Product state
   List<Map<String, dynamic>> _productItems = [];
   
+  // VAT and discount state
+  bool _isVatEnabled = false;
+  Map<String, dynamic>? _additionalDiscount;
+  double _withholdingTaxPercentage = 0.0;
+  
   // Form state
   String _selectedLane = '';
   String _selectedAssignee = '';
@@ -327,6 +332,25 @@ class _EditCardPageState extends State<EditCardPage> {
     
     // Initialize attachments
     _attachments = List<Map<String, dynamic>>.from(widget.card.attachments);
+    
+    // Initialize product items from expenses
+    _productItems = List<Map<String, dynamic>>.from(widget.card.expenses.map((expense) => {
+      'id': expense['id'],
+      'productId': expense['productId'],
+      'name': expense['name'],
+      'description': expense['description'] ?? '',
+      'quantity': (expense['quantity'] ?? 0).toDouble(),
+      'unit': expense['unit'] ?? 'item',
+      'price': (expense['pricePerUnit'] ?? 0).toDouble(), // Map pricePerUnit to price with type casting
+      'discount': (expense['discount'] ?? 0).toDouble(),
+      'discountType': expense['discountType'] ?? 'percentage',
+      'image': null, // Add image if needed
+    }));
+    
+    // Initialize VAT and discount settings
+    _isVatEnabled = widget.card.isVatEnabled;
+    _additionalDiscount = widget.card.additionalDiscount;
+    _withholdingTaxPercentage = widget.card.withholdingTaxPercentage.toDouble();
     
     // Load available options
     await _loadAvailableOptions();
@@ -2376,6 +2400,19 @@ class _EditCardPageState extends State<EditCardPage> {
         htmlDescription = '<p><strong>${_detailsController.text.trim()}</strong></p>';
       }
 
+      // Prepare expenses data from product items
+      final expensesData = _productItems.map((product) => {
+        'id': product['id'],
+        'productId': product['productId'],
+        'name': product['name'],
+        'description': product['description'] ?? '',
+        'quantity': (product['quantity'] ?? 0).toInt(),
+        'unit': product['unit'],
+        'pricePerUnit': (product['price'] ?? 0).toInt(), // Map back from price to pricePerUnit with type casting
+        'discount': (product['discount'] ?? 0).toInt(),
+        'discountType': product['discountType'],
+      }).toList();
+
       // Create updated card
       final updatedCard = widget.card.copyWith(
         title: _titleController.text.trim(),
@@ -2396,6 +2433,10 @@ class _EditCardPageState extends State<EditCardPage> {
         collaborators: _selectedCollaborators,
         watchers: _selectedWatchers,
         attachments: _attachments,
+        expenses: expensesData, // Include expenses
+        isVatEnabled: _isVatEnabled, // Include VAT setting
+        additionalDiscount: _additionalDiscount, // Include additional discount
+        withholdingTaxPercentage: _withholdingTaxPercentage, // Include withholding tax
         updatedAt: DateTime.now(),
         updatedByDisplayName: assigneeDisplayName,
       );
@@ -2965,25 +3006,28 @@ class _EditCardPageState extends State<EditCardPage> {
               children: [
                 ElevatedButton.icon(
                   onPressed: _addProduct,
-                  icon: const Icon(Icons.add, size: 16),
+                  icon: const Icon(Icons.add, size: 18),
                   label: const Text('Add Product'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepOrange,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 2,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 OutlinedButton.icon(
                   onPressed: _addCustomProduct,
-                  icon: const Icon(Icons.edit, size: 16),
+                  icon: const Icon(Icons.edit, size: 18),
                   label: const Text('Add Custom'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.deepOrange,
-                    side: const BorderSide(color: Colors.deepOrange),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    side: const BorderSide(color: Colors.deepOrange, width: 1.5),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
               ],
@@ -2994,23 +3038,27 @@ class _EditCardPageState extends State<EditCardPage> {
         
         // Product table header
         Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
+            gradient: LinearGradient(
+              colors: [Colors.deepOrange[50]!, Colors.orange[50]!],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
-            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+            border: Border.all(color: Colors.deepOrange[200]!),
           ),
           child: Row(
             children: const [
-              SizedBox(width: 60, child: Text('Img', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-              Expanded(flex: 3, child: Text('Product/Service', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-              Expanded(flex: 2, child: Text('Qty/Unit', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-              Expanded(flex: 2, child: Text('Price/Unit', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-              Expanded(flex: 2, child: Text('Discount', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-              Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+              SizedBox(width: 50, child: Text('', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))), // Image column
+              Expanded(flex: 3, child: Text('Product/Service', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange))),
+              Expanded(flex: 2, child: Text('Qty/Unit', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange), textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text('Price/Unit', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange), textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text('Discount', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange), textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.deepOrange), textAlign: TextAlign.center)),
             ],
           ),
         ),
@@ -3027,25 +3075,33 @@ class _EditCardPageState extends State<EditCardPage> {
   Widget _buildProductItems() {
     if (_productItems.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(40),
         decoration: BoxDecoration(
+          color: Colors.white,
           border: Border.all(color: Colors.grey[300]!),
           borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(8),
-            bottomRight: Radius.circular(8),
+            bottomLeft: Radius.circular(12),
+            bottomRight: Radius.circular(12),
           ),
         ),
         child: Center(
           child: Column(
             children: [
-              Icon(Icons.shopping_cart_outlined, size: 48, color: Colors.grey[400]),
-              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.deepOrange[50],
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Icon(Icons.shopping_cart_outlined, size: 48, color: Colors.deepOrange[300]),
+              ),
+              const SizedBox(height: 20),
               Text(
                 'No products added yet',
                 style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
+                  fontSize: 18,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
@@ -3081,24 +3137,29 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Widget _buildProductRow(Map<String, dynamic> product, int index) {
-    return Padding(
+    return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: index % 2 == 0 ? Colors.white : Colors.grey[50],
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Image
           SizedBox(
-            width: 60,
+            width: 50,
             child: Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(6),
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey[300]!),
               ),
               child: product['image'] != null 
                   ? ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                       child: Image.network(
                         product['image'],
                         fit: BoxFit.cover,
@@ -3111,7 +3172,7 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ),
           
-          // Product/Service name
+          // Product/Service name (editable)
           Expanded(
             flex: 3,
             child: Padding(
@@ -3119,13 +3180,21 @@ class _EditCardPageState extends State<EditCardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product['name'] ?? 'Product Name',
+                  TextFormField(
+                    initialValue: product['name'] ?? '',
                     style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _productItems[index]['name'] = value;
+                      });
+                    },
                   ),
-                  if (product['description'] != null && product['description'].isNotEmpty)
+                  if (product['description'] != null && product['description'].toString().isNotEmpty)
                     Text(
                       product['description'],
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -3137,45 +3206,168 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ),
           
-          // Quantity/Unit
+          // Quantity/Unit (editable)
           Expanded(
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                '${product['quantity'] ?? 0} ${product['unit'] ?? 'pcs'}',
-                style: const TextStyle(fontSize: 14),
+              child: Column(
+                children: [
+                  TextFormField(
+                    initialValue: (product['quantity'] ?? 0).toDouble().toInt().toString(),
+                    style: const TextStyle(fontSize: 14),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                    ),
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    onChanged: (value) {
+                      setState(() {
+                        _productItems[index]['quantity'] = double.tryParse(value) ?? 0;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 2),
+                  TextFormField(
+                    initialValue: product['unit'] ?? 'item',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                    ),
+                    textAlign: TextAlign.center,
+                    onChanged: (value) {
+                      setState(() {
+                        _productItems[index]['unit'] = value;
+                      });
+                    },
+                  ),
+                ],
               ),
             ),
           ),
           
-          // Price/Unit
+          // Price/Unit (editable)
           Expanded(
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                '฿${_formatPrice(product['price'] ?? 0)}',
+              child: TextFormField(
+                initialValue: (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble().toInt().toString(),
                 style: const TextStyle(fontSize: 14),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.right,
+                onChanged: (value) {
+                  setState(() {
+                    _productItems[index]['pricePerUnit'] = double.tryParse(value) ?? 0;
+                    if (_productItems[index]['price'] != null) {
+                      _productItems[index]['price'] = double.tryParse(value) ?? 0;
+                    }
+                  });
+                },
               ),
             ),
           ),
           
-          // Discount
+          // Discount (editable with toggle)
           Expanded(
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                product['discountType'] == 'percentage' 
-                    ? '${product['discount'] ?? 0}%'
-                    : '฿${_formatPrice(product['discount'] ?? 0)}',
-                style: const TextStyle(fontSize: 14),
+              child: Column(
+                children: [
+                  TextFormField(
+                    initialValue: (product['discount'] ?? 0).toDouble().toInt().toString(),
+                    style: const TextStyle(fontSize: 14),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                    ),
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    onChanged: (value) {
+                      setState(() {
+                        _productItems[index]['discount'] = double.tryParse(value) ?? 0;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _productItems[index]['discountType'] = 'percentage';
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[200],
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              bottomLeft: Radius.circular(12),
+                            ),
+                            border: Border.all(
+                              color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Text(
+                            '%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: product['discountType'] == 'percentage' ? Colors.white : Colors.grey[600],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _productItems[index]['discountType'] = 'amount';
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[200],
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(12),
+                              bottomRight: Radius.circular(12),
+                            ),
+                            border: Border.all(
+                              color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Text(
+                            '฿',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: product['discountType'] == 'amount' ? Colors.white : Colors.grey[600],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
           
-          // Total
+          // Total (calculated, non-editable)
           Expanded(
             flex: 2,
             child: Padding(
@@ -3187,40 +3379,9 @@ class _EditCardPageState extends State<EditCardPage> {
                     '฿${_formatPrice(_calculateItemTotal(product))}',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, size: 16, color: Colors.grey[600]),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          _editProduct(index);
-                          break;
-                        case 'delete':
-                          _deleteProduct(index);
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 16),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 16, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
+                  GestureDetector(
+                    onTap: () => _deleteProduct(index),
+                    child: Icon(Icons.close, size: 16, color: Colors.red[400]),
                   ),
                 ],
               ),
@@ -3233,34 +3394,293 @@ class _EditCardPageState extends State<EditCardPage> {
 
   Widget _buildProductSummary() {
     final subtotal = _calculateSubtotal();
-    final totalDiscount = _calculateTotalDiscount();
-    final vat = _calculateVAT(subtotal - totalDiscount);
-    final grandTotal = subtotal - totalDiscount + vat;
+    final itemDiscount = _calculateTotalDiscount();
+    final subtotalAfterItemDiscount = subtotal - itemDiscount;
+    
+    // Calculate additional discount
+    double additionalDiscountAmount = 0.0;
+    if (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0) {
+      if (_additionalDiscount!['type'] == 'percentage') {
+        additionalDiscountAmount = subtotalAfterItemDiscount * ((_additionalDiscount!['value'] ?? 0).toDouble() / 100);
+      } else {
+        additionalDiscountAmount = (_additionalDiscount!['value'] ?? 0).toDouble();
+      }
+    }
+    
+    final totalAmount = subtotalAfterItemDiscount - additionalDiscountAmount;
+    final vat = _isVatEnabled ? _calculateVAT(totalAmount) : 0.0;
+    final grandTotal = totalAmount + vat;
+    
+    // Calculate withholding tax
+    final withholdingTax = (_withholdingTaxPercentage > 0) ? grandTotal * (_withholdingTaxPercentage / 100) : 0.0;
+    final finalAmount = grandTotal - withholdingTax;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.grey[50]!],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         border: Border.all(color: Colors.grey[300]!),
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(8),
-          bottomRight: Radius.circular(8),
+          bottomLeft: Radius.circular(12),
+          bottomRight: Radius.circular(12),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
           _buildSummaryRow('Subtotal', subtotal),
-          _buildSummaryRow('Discount', totalDiscount, isNegative: true),
-          _buildSummaryRow('Total Amount', subtotal - totalDiscount),
-          _buildSummaryRow('VAT (7%)', vat),
+          
+          // Additional Discount Row with Toggle
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Switch(
+                      value: (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0),
+                      onChanged: (value) {
+                        setState(() {
+                          if (value) {
+                            _additionalDiscount = {'value': 97, 'type': 'percentage'};
+                          } else {
+                            _additionalDiscount = null;
+                          }
+                        });
+                      },
+                      activeColor: Colors.orange,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Discount',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+                if (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0) ...[
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 60,
+                        child: TextFormField(
+                          initialValue: (_additionalDiscount!['value'] ?? 0).toString(),
+                          style: const TextStyle(fontSize: 14),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.right,
+                          onChanged: (value) {
+                            setState(() {
+                              _additionalDiscount!['value'] = double.tryParse(value) ?? 0;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _additionalDiscount!['type'] = 'percentage';
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _additionalDiscount!['type'] == 'percentage' ? Colors.orange : Colors.grey[200],
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  bottomLeft: Radius.circular(12),
+                                ),
+                                border: Border.all(
+                                  color: _additionalDiscount!['type'] == 'percentage' ? Colors.orange : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                'เปอร์เซ็น',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _additionalDiscount!['type'] == 'percentage' ? Colors.white : Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _additionalDiscount!['type'] = 'amount';
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _additionalDiscount!['type'] == 'amount' ? Colors.orange : Colors.grey[200],
+                                borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(12),
+                                  bottomRight: Radius.circular(12),
+                                ),
+                                border: Border.all(
+                                  color: _additionalDiscount!['type'] == 'amount' ? Colors.orange : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                'บาท',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _additionalDiscount!['type'] == 'amount' ? Colors.white : Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    '฿0.00',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          _buildSummaryRow('Total Amount', totalAmount),
+          
+          // VAT Row with Toggle
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Switch(
+                      value: _isVatEnabled,
+                      onChanged: (value) {
+                        setState(() {
+                          _isVatEnabled = value;
+                        });
+                      },
+                      activeColor: Colors.orange,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'VAT (7%)',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+                Text(
+                  '฿${_formatPrice(vat)}',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          
           const Divider(),
           _buildSummaryRow('Grand Total:', grandTotal, isBold: true, fontSize: 16),
+          
+          // Withholding Tax Row with Checkbox and Input
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _withholdingTaxPercentage > 0,
+                      onChanged: (value) {
+                        setState(() {
+                          _withholdingTaxPercentage = value == true ? 3.0 : 0.0;
+                        });
+                      },
+                      activeColor: Colors.orange,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const Text(
+                      'หัก ณ ที่จ่าย',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+                if (_withholdingTaxPercentage > 0) ...[
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 30,
+                        child: TextFormField(
+                          initialValue: _withholdingTaxPercentage.toInt().toString(),
+                          style: const TextStyle(fontSize: 14),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          onChanged: (value) {
+                            setState(() {
+                              _withholdingTaxPercentage = double.tryParse(value) ?? 0;
+                            });
+                          },
+                        ),
+                      ),
+                      const Text(
+                        '%',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        '(฿${_formatPrice(withholdingTax)})',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    '฿0.00',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          if (_withholdingTaxPercentage > 0) ...[
+            const Divider(),
+            _buildSummaryRow('ยอดชำระสุทธิ:', finalAmount, isBold: true, fontSize: 16, color: Colors.green),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount, {bool isNegative = false, bool isBold = false, double fontSize = 14}) {
+  Widget _buildSummaryRow(String label, double amount, {bool isNegative = false, bool isBold = false, double fontSize = 14, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -3271,7 +3691,7 @@ class _EditCardPageState extends State<EditCardPage> {
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-              color: Colors.black87,
+              color: color ?? Colors.black87,
             ),
           ),
           Text(
@@ -3279,7 +3699,7 @@ class _EditCardPageState extends State<EditCardPage> {
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
-              color: isBold ? Colors.deepOrange : Colors.black87,
+              color: color ?? (isBold ? Colors.deepOrange : Colors.black87),
             ),
           ),
         ],
@@ -3470,7 +3890,7 @@ class _EditCardPageState extends State<EditCardPage> {
   // Calculation methods
   double _calculateItemTotal(Map<String, dynamic> product) {
     final quantity = (product['quantity'] ?? 0).toDouble();
-    final price = (product['price'] ?? 0).toDouble();
+    final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
     final discount = (product['discount'] ?? 0).toDouble();
     final discountType = product['discountType'] ?? 'amount';
     
@@ -3486,7 +3906,7 @@ class _EditCardPageState extends State<EditCardPage> {
   double _calculateSubtotal() {
     return _productItems.fold(0.0, (sum, product) {
       final quantity = (product['quantity'] ?? 0).toDouble();
-      final price = (product['price'] ?? 0).toDouble();
+      final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
       return sum + (quantity * price);
     });
   }
@@ -3494,7 +3914,7 @@ class _EditCardPageState extends State<EditCardPage> {
   double _calculateTotalDiscount() {
     return _productItems.fold(0.0, (sum, product) {
       final quantity = (product['quantity'] ?? 0).toDouble();
-      final price = (product['price'] ?? 0).toDouble();
+      final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
       final discount = (product['discount'] ?? 0).toDouble();
       final discountType = product['discountType'] ?? 'amount';
       
