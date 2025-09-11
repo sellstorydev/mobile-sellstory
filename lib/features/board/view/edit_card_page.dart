@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import 'package:collection/collection.dart';
 import '../../../data/services/upload_service.dart';
 import '../../../domain/entities/board.dart';
 import '../../../domain/entities/lane.dart';
@@ -14,6 +13,8 @@ import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/services/id_generation_service.dart';
+import '../../document/controller/quotations_list_controller.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -270,6 +271,10 @@ class _EditCardPageState extends State<EditCardPage> {
   // Notes data
   List<Map<String, dynamic>> _notes = [];
   
+  // Related documents data
+  List<Map<String, dynamic>> _relatedDocuments = [];
+  bool _isLoadingRelatedDocuments = false;
+  
   // Attachments data
   List<Map<String, dynamic>> _attachments = [];
   
@@ -339,6 +344,12 @@ class _EditCardPageState extends State<EditCardPage> {
     
     // Initialize attachments
     _attachments = List<Map<String, dynamic>>.from(widget.card.attachments);
+    
+    // Initialize related documents list
+    _relatedDocuments = List<Map<String, dynamic>>.from(widget.card.relatedDocuments);
+    
+    // Load detailed related documents information
+    await _loadRelatedDocumentsDetails();
     
     // Initialize product items from expenses
     _productItems = List<Map<String, dynamic>>.from(widget.card.expenses.map((expense) => {
@@ -1421,119 +1432,210 @@ class _EditCardPageState extends State<EditCardPage> {
 
   Widget _buildRelatedDocumentsSection() {
     return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Icon(
+                  Icons.description,
+                  color: Colors.blue,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
                   'Related Documents',
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryOrange,
+                    color: Colors.blue,
                   ),
                 ),
+                const Spacer(),
+                // Create Quotation Button
                 ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Document'),
+                  onPressed: _createDocument,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Create Quotation'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
+                    backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: const TextStyle(fontSize: 12),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            
-            // Table Header
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Row(
-                children: [
-                  Expanded(flex: 2, child: Text('Doc No', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Type', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                'No related documents found',
-                style: TextStyle(color: Colors.grey),
-              ),
+            const SizedBox(height: 12),
+            if (_relatedDocuments.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      'No related documents yet',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _relatedDocuments.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final relatedDoc = _relatedDocuments[index];
+                  final docData = relatedDoc['data'] as Map<String, dynamic>? ?? {};
+                  final docType = relatedDoc['type'] ?? '';
+                  final docId = relatedDoc['id'] ?? '';
+                  final createdAt = relatedDoc['createdAt'] ?? '';
+                  
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        _getDocumentIcon(docType),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _getDocumentTitle(docType, docData),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'ID: $docId',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (createdAt.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Created: ${_formatDateTime(createdAt)}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                            if (docData['totalAmount'] != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Amount: ฿${_formatNumber(docData['totalAmount'])}',
+                                style: TextStyle(
+                                  color: Colors.green[700],
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.visibility,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildTodoListSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'To-Do List',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryOrange,
-                  ),
-                ),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.description),
-                      label: const Text('Apply Template'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Item'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryOrange,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                'No to-do items yet. Add one to get started!',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          ],
-        ),
-      ),
+  
+  Widget _getDocumentIcon(String docType) {
+    IconData iconData;
+    Color iconColor;
+    
+    switch (docType) {
+      case 'quotation':
+        iconData = Icons.request_quote;
+        iconColor = Colors.orange;
+        break;
+      case 'invoice':
+        iconData = Icons.receipt;
+        iconColor = Colors.green;
+        break;
+      case 'receipt':
+        iconData = Icons.receipt_long;
+        iconColor = Colors.blue;
+        break;
+      case 'purchase_order':
+        iconData = Icons.shopping_cart;
+        iconColor = Colors.purple;
+        break;
+      default:
+        iconData = Icons.description;
+        iconColor = Colors.grey;
+    }
+    
+    return Icon(
+      iconData,
+      color: iconColor,
+      size: 24,
+    );
+  }
+  
+  String _getDocumentTitle(String docType, Map<String, dynamic> docData) {
+    switch (docType) {
+      case 'quotation':
+        return 'Quotation #${docData['number'] ?? 'N/A'}';
+      case 'invoice':
+        return 'Invoice #${docData['number'] ?? 'N/A'}';
+      case 'receipt':
+        return 'Receipt #${docData['number'] ?? 'N/A'}';
+      case 'purchase_order':
+        return 'Purchase Order #${docData['number'] ?? 'N/A'}';
+      default:
+        return 'Document';
+    }
+  }
+  
+  String _formatDateTime(String isoString) {
+    try {
+      final dateTime = DateTime.parse(isoString);
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    } catch (e) {
+      return isoString;
+    }
+  }
+  
+  String _formatNumber(dynamic number) {
+    if (number == null) return '0';
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
     );
   }
 
@@ -1979,94 +2081,6 @@ class _EditCardPageState extends State<EditCardPage> {
         _isLoading = false;
       });
     }
-  }
-
-  Widget _buildHistorySection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'History',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryOrange,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // History items
-            const ListTile(
-              leading: Icon(Icons.history, color: Colors.grey),
-              title: Text('bew kiw updated field Title from New Card to New Cardo.'),
-              subtitle: Text('less than a minute ago'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.history, color: Colors.grey),
-              title: Text('bew kiw created this card in To Do.'),
-              subtitle: Text('about 1 hour ago'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCommentsSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Comments',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryOrange,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Comment input
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    decoration: const InputDecoration(
-                      hintText: 'Write a comment...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    // Comment functionality will be implemented later
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryOrange,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Post'),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            const Text(
-              'less than a minute ago Updated by bew kiw',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // Build History/Comment toggle section
@@ -2610,39 +2624,66 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+          // Create Document Button
+          if (widget.card.expenses.isNotEmpty) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _createDocument,
+                icon: const Icon(Icons.description_outlined, size: 18),
+                label: const Text('Create Quotation'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
-              child: const Text('Cancel'),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _saveChanges,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+            const SizedBox(height: 12),
+          ],
+          
+          // Save and Cancel buttons
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Cancel'),
+                ),
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text('Save'),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveChanges,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Save'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -2776,6 +2817,229 @@ class _EditCardPageState extends State<EditCardPage> {
     if (value is int) return value; // already epoch
     if (value is DateTime) return value.millisecondsSinceEpoch;
     return null;
+  }
+
+  /// Auto-generate quotation directly from job card
+  Future<void> _createDocument() async {
+    if (widget.card.expenses.isEmpty) {
+      Get.snackbar(
+        'No Products',
+        'Please add products or services before creating a quotation.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Show loading dialog
+      Get.dialog(
+        const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(
+                    'Auto generating quotation...',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        barrierDismissible: false,
+      );
+
+      // Get required services
+      final repository = Get.find<FirestoreRepository>();
+      final idService = Get.find<IdGenerationService>();
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Generate document number
+      final docNo = await idService.generateDocumentDocNo(widget.card.workspaceId, 'quotation');
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      // Convert job card expenses to document items
+      final items = widget.card.expenses.map((expense) => {
+        'id': expense['id'] ?? 'exp-${DateTime.now().millisecondsSinceEpoch}-${expense['productId'] ?? ''}',
+        'productId': expense['productId'] ?? '',
+        'name': expense['name'] ?? '',
+        'description': expense['description'] ?? '',
+        'quantity': expense['quantity'] ?? 1,
+        'unit': expense['unit'] ?? 'item',
+        'pricePerUnit': expense['pricePerUnit'] ?? 0,
+        'discount': expense['discount'] ?? 0,
+        'discountType': expense['discountType'] ?? 'percentage',
+      }).toList();
+
+      // Calculate totals (similar to original logic)
+      double subtotal = 0;
+      double totalDiscount = 0;
+
+      for (final item in items) {
+        final quantity = (item['quantity'] as num).toDouble();
+        final pricePerUnit = (item['pricePerUnit'] as num).toDouble();
+        final discount = (item['discount'] as num).toDouble();
+        final discountType = item['discountType'] as String;
+        
+        final itemTotal = quantity * pricePerUnit;
+        subtotal += itemTotal;
+        
+        if (discountType == 'percentage') {
+          totalDiscount += itemTotal * (discount / 100);
+        } else {
+          totalDiscount += discount * quantity;
+        }
+      }
+
+      // Apply additional discount from job card if exists
+      double additionalDiscountAmount = 0;
+      if (widget.card.additionalDiscount != null) {
+        final additionalDiscount = widget.card.additionalDiscount!;
+        if (additionalDiscount['type'] == 'percentage') {
+          additionalDiscountAmount = subtotal * ((additionalDiscount['value'] as num).toDouble() / 100);
+        } else {
+          additionalDiscountAmount = (additionalDiscount['value'] as num).toDouble();
+        }
+      }
+
+      final afterDiscount = subtotal - totalDiscount - additionalDiscountAmount;
+      final vatAmount = widget.card.isVatEnabled ? afterDiscount * 0.07 : 0;
+      final grandTotal = afterDiscount + vatAmount;
+      final whtPercentage = widget.card.withholdingTaxPercentage;
+      final whtAmount = grandTotal * (whtPercentage / 100);
+      final netTotal = grandTotal - whtAmount;
+
+      // Create document data structure similar to web version
+      final documentData = {
+        'docNo': docNo,
+        'type': 'QT',
+        'workspaceId': widget.card.workspaceId,
+        'status': 'DRAFT',
+        'customer': {
+          'id': widget.card.customerId,
+          'name': widget.card.customer,
+        },
+        'seller': {
+          'uid': currentUser.uid,
+          'displayName': currentUser.displayName ?? 'Unknown',
+          'photoURL': currentUser.photoURL,
+        },
+        'sellerName': currentUser.displayName ?? 'Unknown',
+        'jobName': widget.card.title,
+        'jobCardId': widget.card.id,
+        'project': {
+          'name': '',
+          'refId': '',
+        },
+        'jobcardCustomId': widget.card.customId,
+        'jobCardBoardId': widget.card.boardId,
+        'items': items,
+        'subtotal': subtotal,
+        'discount': totalDiscount + additionalDiscountAmount,
+        'vatAmount': vatAmount,
+        'grandTotal': grandTotal,
+        'whtAmount': whtAmount,
+        'withholdingTaxPercentage': whtPercentage,
+        'netTotal': netTotal,
+        'isVatEnabled': widget.card.isVatEnabled,
+        'validUntil': now + (30 * 24 * 60 * 60 * 1000), // 30 days from now
+        'createdAt': now,
+        'updatedAt': now,
+        'createdBy': currentUser.uid,
+        'updatedBy': currentUser.uid,
+        'activityLog': [
+          {
+            'timestamp': now,
+            'userId': currentUser.uid,
+            'userDisplayName': currentUser.displayName ?? 'Unknown',
+            'action': 'Created',
+            'details': 'Created quotation $docNo from job card ${widget.card.customId}',
+          }
+        ],
+        'templateId': '', // Default empty template
+      };
+
+      // Save to Firestore
+      final createdDocumentId = await repository.createDocument(
+        workspaceId: widget.card.workspaceId,
+        documentData: documentData,
+      );
+
+      // Update job card with related document reference
+      final relatedDocuments = List<Map<String, dynamic>>.from(widget.card.relatedDocuments);
+      relatedDocuments.add({
+        'id': createdDocumentId,
+        'docNo': docNo,
+        'type': 'QT',
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+
+      // Update job card
+      final updatedCard = widget.card.copyWith(
+        relatedDocuments: relatedDocuments,
+      );
+
+      await repository.updateCard(widget.card.workspaceId, updatedCard);
+
+      // Close loading dialog
+      Get.back();
+
+      // Show success message
+      Get.snackbar(
+        'Success',
+        'Quotation $docNo created successfully!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+
+      // Reload related documents
+      await _loadRelatedDocumentsDetails();
+
+      // Update quotations list if controller exists
+      try {
+        final quotationsController = Get.find<QuotationsListController>();
+        quotationsController.refreshData();
+      } catch (e) {
+        // Controller not found, ignore
+      }
+
+    } catch (e) {
+      // Close loading dialog if open
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      
+      print('Error creating quotation: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to create quotation: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 5),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   // Hashtag section methods (copied from create page)
@@ -4361,16 +4625,54 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  void _editProduct(int index) {
-    // TODO: Implement product editing
-    Get.snackbar(
-      'Coming Soon',
-      'Product editing will be available soon',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 2),
-    );
+  // Load related documents details
+  Future<void> _loadRelatedDocumentsDetails() async {
+    try {
+      final repository = Get.find<FirestoreRepository>();
+      List<Map<String, dynamic>> detailedDocuments = [];
+      
+      for (var doc in _relatedDocuments) {
+        String docType = doc['type'] ?? '';
+        String docId = doc['id'] ?? '';
+        
+        if (docType.isNotEmpty && docId.isNotEmpty) {
+          try {
+            Map<String, dynamic>? docData;
+            
+            // Get documents from the workspace documents collection based on type and id
+            // Since all documents are stored in the workspace documents collection,
+            // we need to get the document by its ID and verify its type
+            final workspaceId = widget.card.workspaceId;
+            final documents = await repository.getDocuments(workspaceId: workspaceId);
+            
+            // Find the specific document by ID and type
+            final foundDoc = documents.firstWhere(
+              (document) => document['id'] == docId && document['type'] == docType,
+              orElse: () => <String, dynamic>{},
+            );
+            
+            if (foundDoc.isNotEmpty) {
+              docData = foundDoc;
+              
+              detailedDocuments.add({
+                'type': docType,
+                'id': docId,
+                'data': docData,
+                'createdAt': doc['createdAt'] ?? DateTime.now().toIso8601String(),
+              });
+            }
+          } catch (e) {
+            print('Error loading document $docType:$docId - $e');
+          }
+        }
+      }
+      
+      setState(() {
+        _relatedDocuments = detailedDocuments;
+      });
+    } catch (e) {
+      print('Error loading related documents: $e');
+    }
   }
 
   void _deleteProduct(int index) {
@@ -5104,197 +5406,6 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildRelatedDocumentsSection() {
-    return Column(
-      children: [
-        // Header with Create Quotation button
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Related Documents',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                // TODO: Implement create quotation
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Create Quotation feature coming soon')),
-                );
-              },
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Create Quotation'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple[600],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // Documents Table
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: [
-              // Table Header
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                    topRight: Radius.circular(8),
-                  ),
-                ),
-                child: Row(
-                  children: const [
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Doc No.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Type',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Job Card',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Seller',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Date',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Valid Until',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Amount',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Status',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 40), // For actions column
-                  ],
-                ),
-              ),
-              
-              // Empty state when no documents
-              Container(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.description_outlined,
-                      size: 48,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No related documents yet',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Create your first quotation to get started',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

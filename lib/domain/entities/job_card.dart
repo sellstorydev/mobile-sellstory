@@ -38,6 +38,7 @@ class JobCard {
   final Map<String, dynamic>? additionalDiscount; // Add additional discount field
   final num withholdingTaxPercentage; // Add withholding tax percentage field
   final List<Map<String, dynamic>> attachments; // Add attachments field
+  final List<Map<String, dynamic>> relatedDocuments; // Add related documents field
 
   JobCard({
     required this.id,
@@ -77,6 +78,7 @@ class JobCard {
     this.additionalDiscount,
     this.withholdingTaxPercentage = 0,
     this.attachments = const [],
+    this.relatedDocuments = const [],
   });
 
   JobCard copyWith({
@@ -117,6 +119,7 @@ class JobCard {
     Map<String, dynamic>? additionalDiscount,
     num? withholdingTaxPercentage,
     List<Map<String, dynamic>>? attachments,
+    List<Map<String, dynamic>>? relatedDocuments,
   }) {
     return JobCard(
       id: id ?? this.id,
@@ -156,6 +159,7 @@ class JobCard {
       additionalDiscount: additionalDiscount ?? this.additionalDiscount,
       withholdingTaxPercentage: withholdingTaxPercentage ?? this.withholdingTaxPercentage,
       attachments: attachments ?? this.attachments,
+      relatedDocuments: relatedDocuments ?? this.relatedDocuments,
     );
   }
 
@@ -198,6 +202,7 @@ class JobCard {
       'additionalDiscount': additionalDiscount,
       'withholdingTaxPercentage': withholdingTaxPercentage,
       'attachments': attachments,
+      'relatedDocuments': relatedDocuments,
     };
   }
 
@@ -330,6 +335,7 @@ class JobCard {
       additionalDiscount: map['additionalDiscount'] != null ? Map<String, dynamic>.from(map['additionalDiscount'] as Map) : null,
       withholdingTaxPercentage: map['withholdingTaxPercentage'] ?? 0,
       attachments: List<Map<String, dynamic>>.from(map['attachments'] ?? const []),
+      relatedDocuments: List<Map<String, dynamic>>.from(map['relatedDocuments'] ?? const []),
     );
   }
 
