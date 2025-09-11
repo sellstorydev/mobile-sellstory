@@ -1684,16 +1684,6 @@
             "updatedAt": 1757575845672
           },
           "v9GCzC6qLDd473ZCdIeD": {
-            "page": {
-              "width": "210mm",
-              "height": "297mm",
-              "fontFamily": "Kanit",
-              "pageNumbering": {
-                "enabled": true,
-                "format": "{page}/{total}",
-                "position": "bottom_right"
-              }
-            },
             "headers": [
               {
                 "id": "header-ms-1",
@@ -1729,113 +1719,6 @@
                 ]
               }
             ],
-            "body": {
-              "components": [
-                {
-                  "id": "comp-ms-customer",
-                  "type": "text",
-                  "x": 40,
-                  "y": 120,
-                  "width": 300,
-                  "height": 60,
-                  "content": "<p style=\"color:#666;\">Prepared for:</p><h2 style=\"font-size: 16px; font-weight: bold;\">{customer.name}</h2>",
-                  "style": {
-                    "zIndex": 1
-                  }
-                },
-                {
-                  "id": "comp-ms-table",
-                  "type": "table",
-                  "x": 40,
-                  "y": 200,
-                  "width": 710,
-                  "height": 500,
-                  "columns": [
-                    {
-                      "id": "dOGhH",
-                      "label": "สินค้า/บริการ",
-                      "type": "product_field",
-                      "sourceField": "name",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 0,
-                      "width": "50%",
-                      "style": {
-                        "isBold": true,
-                        "fontSize": 13
-                      }
-                    },
-                    {
-                      "id": "CU7n2",
-                      "label": "จำนวน",
-                      "type": "predefined",
-                      "predefinedField": "quantity",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 1,
-                      "width": "15%",
-                      "align": "center",
-                      "style": {
-                        "fontSize": 13
-                      }
-                    },
-                    {
-                      "id": "Y6J4Y",
-                      "label": "ราคาต่อหน่วย",
-                      "type": "product_field",
-                      "sourceField": "pricePerUnit",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 2,
-                      "width": "15%",
-                      "align": "right",
-                      "style": {
-                        "fontSize": 13
-                      }
-                    },
-                    {
-                      "id": "I8TGx",
-                      "label": "รวม",
-                      "type": "predefined",
-                      "predefinedField": "line_total",
-                      "isVisible": true,
-                      "isEditable": false,
-                      "order": 3,
-                      "width": "20%",
-                      "align": "right",
-                      "style": {
-                        "fontSize": 13
-                      }
-                    }
-                  ],
-                  "style": {
-                    "zIndex": 1,
-                    "headerColor": "#4f46e5",
-                    "textColor": "#ffffff",
-                    "headerHeight": 40
-                  },
-                  "content": ""
-                },
-                {
-                  "id": "comp-ms-summary",
-                  "type": "summary",
-                  "x": 450,
-                  "y": 720,
-                  "width": 300,
-                  "height": 150,
-                  "content": "",
-                  "style": {
-                    "zIndex": 1
-                  },
-                  "summaryFields": {
-                    "subtotal": true,
-                    "discount": true,
-                    "vat": true,
-                    "grandTotal": true
-                  }
-                }
-              ]
-            },
             "footers": [
               {
                 "id": "footer-ms-1",
@@ -1872,7 +1755,137 @@
             ],
             "name": "Modern Standard Quotation",
             "createdAt": 1757575864078,
-            "updatedAt": 1757575864078
+            "page": {
+              "width": "210mm",
+              "height": "297mm",
+              "fontFamily": "Kanit"
+            },
+            "body": {
+              "components": [
+                {
+                  "x": 40,
+                  "content": "<p style=\"color:#666;\">Prepared for:</p><h2 style=\"font-size: 16px; font-weight: bold;\">{customer.name}</h2>",
+                  "id": "comp-ms-customer",
+                  "type": "text",
+                  "width": 300,
+                  "style": {
+                    "zIndex": 1
+                  },
+                  "y": 120,
+                  "height": 60
+                },
+                {
+                  "style": {
+                    "zIndex": 1,
+                    "textColor": "#ffffff",
+                    "headerColor": "#4f46e5",
+                    "headerHeight": 40
+                  },
+                  "x": 40,
+                  "y": 200,
+                  "content": "",
+                  "height": 500,
+                  "type": "table",
+                  "id": "comp-ms-table",
+                  "columns": [
+                    {
+                      "style": {
+                        "isBold": true,
+                        "fontSize": 13
+                      },
+                      "isEditable": true,
+                      "id": "dOGhH",
+                      "width": "50%",
+                      "label": "สินค้า/บริการ",
+                      "order": 0,
+                      "type": "product_field",
+                      "isVisible": true,
+                      "sourceField": "name"
+                    },
+                    {
+                      "order": 1,
+                      "type": "predefined",
+                      "width": "15%",
+                      "predefinedField": "quantity",
+                      "isVisible": true,
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "isEditable": true,
+                      "id": "CU7n2",
+                      "label": "จำนวน",
+                      "align": "center"
+                    },
+                    {
+                      "isEditable": true,
+                      "isVisible": true,
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "width": "15%",
+                      "sourceField": "pricePerUnit",
+                      "type": "product_field",
+                      "label": "ราคาต่อหน่วย",
+                      "id": "Y6J4Y",
+                      "order": 2,
+                      "align": "right"
+                    },
+                    {
+                      "id": "I8TGx",
+                      "type": "predefined",
+                      "align": "right",
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "isVisible": true,
+                      "order": 3,
+                      "isEditable": false,
+                      "predefinedField": "line_total",
+                      "label": "รวม",
+                      "width": "20%"
+                    },
+                    {
+                      "id": "WtwtSRTxFY0N-H83PORrG",
+                      "label": "Desc",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 4,
+                      "prefillSourceField": "description"
+                    },
+                    {
+                      "id": "Ww9jjpqJA3_-4QBgWvXXP",
+                      "label": "SKU",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 5,
+                      "prefillSourceField": "sku"
+                    }
+                  ],
+                  "width": 710
+                },
+                {
+                  "width": 300,
+                  "x": 450,
+                  "content": "",
+                  "type": "summary",
+                  "summaryFields": {
+                    "grandTotal": true,
+                    "vat": true,
+                    "subtotal": true,
+                    "discount": true
+                  },
+                  "style": {
+                    "zIndex": 1
+                  },
+                  "height": 150,
+                  "id": "comp-ms-summary",
+                  "y": 720
+                }
+              ]
+            },
+            "updatedAt": 1757584598039
           }
         }
       }

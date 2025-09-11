@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'package:collection/collection.dart';
 import '../../../data/services/upload_service.dart';
 import '../../../domain/entities/board.dart';
 import '../../../domain/entities/lane.dart';
@@ -608,11 +609,26 @@ class _EditCardPageState extends State<EditCardPage> {
 
       setState(() {
         _quotationTemplates = templates;
-        _selectedTemplateId = 'none'; // Default to 'none' for now since this is a new feature
+        // Try to default to Modern Standard Quotation template, fallback to 'none'
+        final modernTemplate = templates.firstWhereOrNull((t) => t['id'] == 'v9GCzC6qLDd473ZCdIeD');
+        _selectedTemplateId = modernTemplate != null ? 'v9GCzC6qLDd473ZCdIeD' : 'none';
         _updateVisibleColumns();
       });
 
       print('✅ Loaded ${templates.length - 1} quotation templates');
+      print('🎯 Selected template: $_selectedTemplateId');
+      if (_selectedTemplateId != 'none') {
+        final template = _quotationTemplates.firstWhereOrNull((t) => t['id'] == _selectedTemplateId);
+        if (template != null) {
+          final columns = template['columns'] as List<dynamic>? ?? [];
+          print('📋 Template columns count: ${columns.length}');
+          for (final column in columns) {
+            if (column is Map<String, dynamic>) {
+              print('  - ${column['label']} (${column['type']}) - visible: ${column['isVisible']}');
+            }
+          }
+        }
+      }
     } catch (e) {
       print('❌ Failed to load quotation templates: $e');
       // Set default state
@@ -700,20 +716,31 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _updateVisibleColumns() {
+    print('🔄 Updating visible columns for template: $_selectedTemplateId');
+    
     if (_selectedTemplateId == null || _selectedTemplateId == 'none') {
       _visibleColumns = _getDefaultColumns();
+      print('📋 Using default columns: ${_visibleColumns.length} columns');
     } else {
       final template = _quotationTemplates.firstWhereOrNull(
         (t) => t['id'] == _selectedTemplateId
       );
       if (template != null) {
         final columns = List<Map<String, dynamic>>.from(template['columns'] ?? []);
+        print('📋 Template found with ${columns.length} total columns');
+        
         // Sort by order
         columns.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
+        
         // Filter only visible columns
         _visibleColumns = columns.where((col) => col['isVisible'] == true).toList();
+        print('📋 Filtered to ${_visibleColumns.length} visible columns:');
+        for (final col in _visibleColumns) {
+          print('  - ${col['label']} (${col['type']}) - order: ${col['order']}');
+        }
       } else {
         _visibleColumns = _getDefaultColumns();
+        print('📋 Template not found, using default columns');
       }
     }
   }
@@ -3519,12 +3546,20 @@ class _EditCardPageState extends State<EditCardPage> {
       case 'predefined':
         return _buildPredefinedCell(flex, product, column, index);
         
+      case 'user_input':
+        return _buildUserInputCell(flex, product, column, index);
+        
       default:
         return _buildDisplayCell(flex, product[fieldKey]?.toString() ?? '', column);
     }
   }
 
   String _getFieldKey(Map<String, dynamic> column) {
+    // For user_input columns, use prefillSourceField if available, otherwise use column id
+    if (column['type'] == 'user_input') {
+      return column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+    }
+    
     if (column['sourceField'] != null) {
       return column['sourceField'];
     }
@@ -3746,6 +3781,33 @@ class _EditCardPageState extends State<EditCardPage> {
           value,
           style: const TextStyle(fontSize: 14),
           textAlign: _getTextAlign(column),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserInputCell(int flex, Map<String, dynamic> product, Map<String, dynamic> column, int index) {
+    // Get the field key from prefillSourceField if available, otherwise use column id
+    final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+    
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: TextFormField(
+          initialValue: _getInitialValue(product, fieldKey),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            isDense: true,
+          ),
+          style: const TextStyle(fontSize: 14),
+          textAlign: _getTextAlign(column),
+          onChanged: (value) {
+            setState(() {
+              product[fieldKey] = value;
+            });
+          },
         ),
       ),
     );
@@ -4255,6 +4317,8 @@ class _EditCardPageState extends State<EditCardPage> {
         'discount': 0.0,
         'discountType': 'amount',
         'image': null, // No image for custom items
+        // Add fields for user_input columns
+        'sku': '', // For SKU user input field
       };
       _productItems.add(newItem);
     });
@@ -4262,7 +4326,7 @@ class _EditCardPageState extends State<EditCardPage> {
     // Show a helpful message
     Get.snackbar(
       'Custom Product Added',
-      'Please fill in the product details in the table below',
+      'Empty product row added. You can now edit the details.',
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.green,
       colorText: Colors.white,
