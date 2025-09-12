@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'package:collection/collection.dart';
 import '../../../data/services/upload_service.dart';
 import '../../../domain/entities/board.dart';
 import '../../../domain/entities/lane.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
@@ -237,6 +239,19 @@ class _EditCardPageState extends State<EditCardPage> {
   // Todo state 
   List<Map<String, dynamic>> _todoItems = [];
   
+  // Product state
+  List<Map<String, dynamic>> _productItems = [];
+  
+  // Template and columns state
+  List<Map<String, dynamic>> _quotationTemplates = [];
+  String? _selectedTemplateId;
+  List<Map<String, dynamic>> _visibleColumns = [];
+  
+  // VAT and discount state
+  bool _isVatEnabled = false;
+  Map<String, dynamic>? _additionalDiscount;
+  double _withholdingTaxPercentage = 0.0;
+  
   // Form state
   String _selectedLane = '';
   String _selectedAssignee = '';
@@ -326,8 +341,34 @@ class _EditCardPageState extends State<EditCardPage> {
     // Initialize attachments
     _attachments = List<Map<String, dynamic>>.from(widget.card.attachments);
     
+    // Initialize product items from expenses
+    _productItems = List<Map<String, dynamic>>.from(widget.card.expenses.map((expense) => {
+      'id': expense['id'],
+      'productId': expense['productId'],
+      'name': expense['name'],
+      'description': expense['description'] ?? '',
+      'quantity': (expense['quantity'] ?? 0).toDouble(),
+      'unit': expense['unit'] ?? 'item',
+      'price': (expense['pricePerUnit'] ?? 0).toDouble(), // Map pricePerUnit to price with type casting
+      'pricePerUnit': (expense['pricePerUnit'] ?? 0).toDouble(), // Keep original pricePerUnit field
+      'discount': (expense['discount'] ?? 0).toDouble(),
+      'discountType': expense['discountType'] ?? 'percentage',
+      'image': null, // Will be loaded from product database
+    }));
+    
+    // Load product images from database
+    await _loadProductImages();
+    
+    // Initialize VAT and discount settings
+    _isVatEnabled = widget.card.isVatEnabled;
+    _additionalDiscount = widget.card.additionalDiscount;
+    _withholdingTaxPercentage = widget.card.withholdingTaxPercentage.toDouble();
+    
     // Load available options
     await _loadAvailableOptions();
+    
+    // Load quotation templates
+    await _loadQuotationTemplates();
     
     // โหลด companies ของ customer ที่เลือกไว้
     if (_selectedCustomer.isNotEmpty && _selectedCustomer != 'none') {
@@ -400,7 +441,6 @@ class _EditCardPageState extends State<EditCardPage> {
       _selectedCompany = 'none';
     }
   }
-
   Future<void> _loadWorkspaceUsers() async {
     try {
       final workspaceId = _controller.currentWorkspaceId.value;
@@ -489,6 +529,285 @@ class _EditCardPageState extends State<EditCardPage> {
         _selectedCompany = 'none';
       });
     }
+  }
+
+  Future<void> _loadProductImages() async {
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value;
+      if (workspaceId.isEmpty || _productItems.isEmpty) return;
+
+      print('🔄 Loading product images for ${_productItems.length} products');
+      
+      final firestore = FirebaseFirestore.instance;
+      
+      // Load images for each product
+      for (int i = 0; i < _productItems.length; i++) {
+        final productId = _productItems[i]['productId'];
+        if (productId != null && productId.isNotEmpty) {
+          try {
+            final productDoc = await firestore
+                .collection('workspaces/$workspaceId/products')
+                .doc(productId)
+                .get();
+                
+            if (productDoc.exists) {
+              final productData = productDoc.data()!;
+              setState(() {
+                _productItems[i]['image'] = productData['imageUrl'];
+              });
+            }
+          } catch (e) {
+            print('❌ Failed to load image for product $productId: $e');
+          }
+        }
+      }
+      
+      print('✅ Product images loaded successfully');
+    } catch (e) {
+      print('❌ Failed to load product images: $e');
+    }
+  }
+
+  Future<void> _loadQuotationTemplates() async {
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value;
+      if (workspaceId.isEmpty) {
+        print('⚠️ No workspace selected for loading templates');
+        return;
+      }
+
+      print('🔄 Loading quotation templates for workspace: $workspaceId');
+      
+      // Use Firebase service to get templates
+      final firestore = FirebaseFirestore.instance;
+      final snapshot = await firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('quotationTemplates')
+          .get();
+
+      final List<Map<String, dynamic>> templates = [];
+      
+      // Add "None" option first
+      templates.add({
+        'id': 'none',
+        'name': 'None',
+        'columns': _getDefaultColumns(),
+      });
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final tableComponent = _findTableComponent(data);
+        
+        templates.add({
+          'id': doc.id,
+          'name': data['name'] ?? 'Unnamed Template',
+          'columns': tableComponent?['columns'] ?? _getDefaultColumns(),
+          'data': data,
+        });
+      }
+
+      setState(() {
+        _quotationTemplates = templates;
+        // Try to default to Modern Standard Quotation template, fallback to 'none'
+        final modernTemplate = templates.firstWhereOrNull((t) => t['id'] == 'v9GCzC6qLDd473ZCdIeD');
+        _selectedTemplateId = modernTemplate != null ? 'v9GCzC6qLDd473ZCdIeD' : 'none';
+        _updateVisibleColumns();
+      });
+
+      print('✅ Loaded ${templates.length - 1} quotation templates');
+      print('🎯 Selected template: $_selectedTemplateId');
+      if (_selectedTemplateId != 'none') {
+        final template = _quotationTemplates.firstWhereOrNull((t) => t['id'] == _selectedTemplateId);
+        if (template != null) {
+          final columns = template['columns'] as List<dynamic>? ?? [];
+          print('📋 Template columns count: ${columns.length}');
+          for (final column in columns) {
+            if (column is Map<String, dynamic>) {
+              print('  - ${column['label']} (${column['type']}) - visible: ${column['isVisible']}');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ Failed to load quotation templates: $e');
+      // Set default state
+      setState(() {
+        _quotationTemplates = [{
+          'id': 'none',
+          'name': 'None',
+          'columns': _getDefaultColumns(),
+        }];
+        _selectedTemplateId = 'none';
+        _updateVisibleColumns();
+      });
+    }
+  }
+
+  Map<String, dynamic>? _findTableComponent(Map<String, dynamic> templateData) {
+    // Search in body components
+    final body = templateData['body'];
+    if (body != null && body['components'] != null) {
+      for (final component in body['components']) {
+        if (component['type'] == 'table') {
+          return component;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> _getDefaultColumns() {
+    return [
+      {
+        'id': 'img',
+        'label': 'Img',
+        'type': 'image',
+        'isVisible': true,
+        'width': '60px',
+        'order': 0,
+      },
+      {
+        'id': 'name',
+        'label': 'Product/Service',
+        'type': 'product_field',
+        'sourceField': 'name',
+        'isVisible': true,
+        'width': '3',
+        'order': 1,
+      },
+      {
+        'id': 'quantity',
+        'label': 'Qty/Unit',
+        'type': 'predefined',
+        'predefinedField': 'quantity',
+        'isVisible': true,
+        'width': '2',
+        'order': 2,
+      },
+      {
+        'id': 'pricePerUnit',
+        'label': 'Price/Unit',
+        'type': 'product_field',
+        'sourceField': 'pricePerUnit',
+        'isVisible': true,
+        'width': '2',
+        'order': 3,
+      },
+      {
+        'id': 'discount',
+        'label': 'Discount',
+        'type': 'predefined',
+        'predefinedField': 'discount',
+        'isVisible': true,
+        'width': '2',
+        'order': 4,
+      },
+      {
+        'id': 'total',
+        'label': 'Total',
+        'type': 'predefined',
+        'predefinedField': 'line_total',
+        'isVisible': true,
+        'width': '2',
+        'order': 5,
+      },
+    ];
+  }
+
+  void _updateVisibleColumns() {
+    print('🔄 Updating visible columns for template: $_selectedTemplateId');
+    
+    if (_selectedTemplateId == null || _selectedTemplateId == 'none') {
+      _visibleColumns = _getDefaultColumns();
+      print('📋 Using default columns: ${_visibleColumns.length} columns');
+    } else {
+      final template = _quotationTemplates.firstWhereOrNull(
+        (t) => t['id'] == _selectedTemplateId
+      );
+      if (template != null) {
+        final columns = List<Map<String, dynamic>>.from(template['columns'] ?? []);
+        print('📋 Template found with ${columns.length} total columns');
+        
+        // Sort by order
+        columns.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
+        
+        // Filter only visible columns
+        _visibleColumns = columns.where((col) => col['isVisible'] == true).toList();
+        print('📋 Filtered to ${_visibleColumns.length} visible columns:');
+        for (final col in _visibleColumns) {
+          print('  - ${col['label']} (${col['type']}) - order: ${col['order']}');
+        }
+      } else {
+        _visibleColumns = _getDefaultColumns();
+        print('📋 Template not found, using default columns');
+      }
+    }
+  }
+
+  void _onTemplateChanged(String? templateId) {
+    setState(() {
+      _selectedTemplateId = templateId;
+      _updateVisibleColumns();
+    });
+  }
+
+  List<Widget> _buildHeaderColumns() {
+    List<Widget> headers = [];
+    
+    for (final column in _visibleColumns) {
+      Widget headerWidget;
+      
+      // Determine flex based on column width
+      int flex = 2; // default
+      String? widthStr = column['width'];
+      if (widthStr != null) {
+        if (widthStr.contains('%')) {
+          // Convert percentage to flex
+          final percentage = int.tryParse(widthStr.replaceAll('%', '')) ?? 20;
+          flex = (percentage / 10).round().clamp(1, 6);
+        } else if (widthStr.contains('px')) {
+          // Fixed width columns get smaller flex
+          flex = 1;
+        } else {
+          // Plain number as flex
+          flex = int.tryParse(widthStr) ?? 2;
+        }
+      }
+      
+      // Handle special columns
+      if (column['id'] == 'img' || column['type'] == 'image') {
+        headerWidget = const SizedBox(
+          width: 50, 
+          child: Text('', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))
+        );
+      } else {
+        // Determine text alignment
+        TextAlign textAlign = TextAlign.left;
+        if (column['align'] == 'center') {
+          textAlign = TextAlign.center;
+        } else if (column['align'] == 'right') {
+          textAlign = TextAlign.right;
+        }
+        
+        headerWidget = Expanded(
+          flex: flex,
+          child: Text(
+            column['label'] ?? '',
+            style: const TextStyle(
+              fontWeight: FontWeight.w600, 
+              fontSize: 12, 
+              color: Colors.deepOrange
+            ),
+            textAlign: textAlign,
+          ),
+        );
+      }
+      
+      headers.add(headerWidget);
+    }
+    
+    return headers;
   }
 
   Future<void> _selectStartDate(BuildContext context) async {
@@ -677,6 +996,28 @@ class _EditCardPageState extends State<EditCardPage> {
                 _buildCustomerSection(),
                 const SizedBox(height: 20),
                 _buildCustomerInterestSection(),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Product Section
+            _buildSectionCard(
+              title: 'Products & Services',
+              icon: Icons.shopping_cart,
+              color: Colors.deepOrange,
+              children: [
+                _buildProductSection(),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Related Documents Section
+            _buildSectionCard(
+              title: 'Related Documents',
+              icon: Icons.description,
+              color: Colors.purple,
+              children: [
+                _buildRelatedDocumentsSection(),
               ],
             ),
             const SizedBox(height: 24),
@@ -2435,6 +2776,19 @@ class _EditCardPageState extends State<EditCardPage> {
         htmlDescription = '<p><strong>${_detailsController.text.trim()}</strong></p>';
       }
 
+      // Prepare expenses data from product items
+      final expensesData = _productItems.map((product) => {
+        'id': product['id'],
+        'productId': product['productId'],
+        'name': product['name'],
+        'description': product['description'] ?? '',
+        'quantity': (product['quantity'] ?? 0).toInt(),
+        'unit': product['unit'],
+        'pricePerUnit': (product['pricePerUnit'] ?? product['price'] ?? 0).toInt(), // Use pricePerUnit field first, fallback to price
+        'discount': (product['discount'] ?? 0).toInt(),
+        'discountType': product['discountType'],
+      }).toList();
+
       // Create updated card
       final updatedCard = widget.card.copyWith(
         title: _titleController.text.trim(),
@@ -2455,6 +2809,10 @@ class _EditCardPageState extends State<EditCardPage> {
         collaborators: _selectedCollaborators,
         watchers: _selectedWatchers,
         attachments: _attachments,
+        expenses: expensesData, // Include expenses
+        isVatEnabled: _isVatEnabled, // Include VAT setting
+        additionalDiscount: _additionalDiscount, // Include additional discount
+        withholdingTaxPercentage: _withholdingTaxPercentage, // Include withholding tax
         updatedAt: DateTime.now(),
         updatedByDisplayName: assigneeDisplayName,
       );
@@ -3050,6 +3408,883 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
+  Widget _buildProductSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with title and template selector
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Product Items',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            // Template dropdown and buttons row
+            Row(
+              children: [
+                // Template Dropdown
+                Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.deepOrange, width: 1.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedTemplateId,
+                      hint: const Text('Select Template'),
+                      items: _quotationTemplates.map((template) {
+                        return DropdownMenuItem<String>(
+                          value: template['id'],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              template['name'],
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: _onTemplateChanged,
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.deepOrange),
+                      iconSize: 20,
+                      style: const TextStyle(
+                        color: Colors.deepOrange,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _addProduct,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Product'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 2,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: _addCustomProduct,
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Add Custom'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.deepOrange,
+                    side: const BorderSide(color: Colors.deepOrange, width: 1.5),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        // Product table header
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepOrange[50]!, Colors.orange[50]!],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+            border: Border.all(color: Colors.deepOrange[200]!),
+          ),
+          child: Row(
+            children: _buildHeaderColumns(),
+          ),
+        ),
+        
+        // Product items list
+        _buildProductItems(),
+        
+        // Summary section
+        _buildProductSummary(),
+      ],
+    );
+  }
+
+  Widget _buildProductItems() {
+    if (_productItems.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(12),
+            bottomRight: Radius.circular(12),
+          ),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.deepOrange[50],
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Icon(Icons.shopping_cart_outlined, size: 48, color: Colors.deepOrange[300]),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'No products added yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Click "Add Product" to start adding products or services',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _productItems.length,
+        separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[300]),
+        itemBuilder: (context, index) {
+          final product = _productItems[index];
+          return _buildProductRow(product, index);
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductRow(Map<String, dynamic> product, int index) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: index % 2 == 0 ? Colors.white : Colors.grey[50],
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: _buildProductCells(product, index),
+      ),
+    );
+  }
+
+  List<Widget> _buildProductCells(Map<String, dynamic> product, int index) {
+    List<Widget> cells = [];
+    
+    for (final column in _visibleColumns) {
+      Widget cellWidget = _buildProductCell(column, product, index);
+      cells.add(cellWidget);
+    }
+    
+    // Always add delete button at the end
+    cells.add(
+      GestureDetector(
+        onTap: () => _deleteProduct(index),
+        child: Icon(Icons.close, size: 16, color: Colors.red[400]),
+      ),
+    );
+    
+    return cells;
+  }
+
+  Widget _buildProductCell(Map<String, dynamic> column, Map<String, dynamic> product, int index) {
+    // Determine flex based on column width
+    int flex = 2; // default
+    String? widthStr = column['width'];
+    if (widthStr != null) {
+      if (widthStr.contains('%')) {
+        final percentage = int.tryParse(widthStr.replaceAll('%', '')) ?? 20;
+        flex = (percentage / 10).round().clamp(1, 6);
+      } else if (widthStr.contains('px')) {
+        flex = 1;
+      } else {
+        flex = int.tryParse(widthStr) ?? 2;
+      }
+    }
+
+    // Handle special columns
+    if (column['id'] == 'img' || column['type'] == 'image') {
+      return SizedBox(
+        width: 50,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: product['image'] != null 
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    product['image'],
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(Icons.image_not_supported, color: Colors.grey[400], size: 20);
+                    },
+                  ),
+                )
+              : Icon(Icons.image, color: Colors.grey[400], size: 20),
+        ),
+      );
+    }
+
+    // Get field key based on column type and sourceField
+    String fieldKey = _getFieldKey(column);
+    
+    // Handle different column types
+    switch (column['type']) {
+      case 'product_field':
+        return _buildEditableCell(flex, product, fieldKey, column, index);
+        
+      case 'predefined':
+        return _buildPredefinedCell(flex, product, column, index);
+        
+      case 'user_input':
+        return _buildUserInputCell(flex, product, column, index);
+        
+      default:
+        return _buildDisplayCell(flex, product[fieldKey]?.toString() ?? '', column);
+    }
+  }
+
+  String _getFieldKey(Map<String, dynamic> column) {
+    // For user_input columns, use prefillSourceField if available, otherwise use column id
+    if (column['type'] == 'user_input') {
+      return column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+    }
+    
+    if (column['sourceField'] != null) {
+      return column['sourceField'];
+    }
+    
+    switch (column['predefinedField']) {
+      case 'quantity':
+        return 'quantity';
+      case 'line_total':
+        return 'total';
+      case 'discount':
+        return 'discount';
+      default:
+        return column['id'] ?? '';
+    }
+  }
+
+  Widget _buildEditableCell(int flex, Map<String, dynamic> product, String fieldKey, Map<String, dynamic> column, int index) {
+    // Special handling for unit field combined with quantity
+    if (fieldKey == 'quantity' && column['predefinedField'] == 'quantity') {
+      return Expanded(
+        flex: flex,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            children: [
+              TextFormField(
+                initialValue: (product['quantity'] ?? 0).toDouble().toInt().toString(),
+                style: const TextStyle(fontSize: 14),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                onChanged: (value) {
+                  setState(() {
+                    _productItems[index]['quantity'] = double.tryParse(value) ?? 0;
+                  });
+                },
+              ),
+              const SizedBox(height: 2),
+              TextFormField(
+                initialValue: product['unit'] ?? 'item',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
+                textAlign: TextAlign.center,
+                onChanged: (value) {
+                  setState(() {
+                    _productItems[index]['unit'] = value;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Regular editable fields
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: TextFormField(
+          initialValue: _getInitialValue(product, fieldKey),
+          style: const TextStyle(fontSize: 14),
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+            isDense: true,
+          ),
+          keyboardType: _getKeyboardType(fieldKey),
+          textAlign: _getTextAlign(column),
+          onChanged: (value) {
+            setState(() {
+              if (fieldKey == 'pricePerUnit') {
+                _productItems[index]['pricePerUnit'] = double.tryParse(value) ?? 0;
+                if (_productItems[index]['price'] != null) {
+                  _productItems[index]['price'] = double.tryParse(value) ?? 0;
+                }
+              } else if (fieldKey == 'quantity') {
+                _productItems[index]['quantity'] = double.tryParse(value) ?? 0;
+              } else {
+                _productItems[index][fieldKey] = value;
+              }
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPredefinedCell(int flex, Map<String, dynamic> product, Map<String, dynamic> column, int index) {
+    final predefinedField = column['predefinedField'];
+    
+    switch (predefinedField) {
+      case 'quantity':
+        return _buildEditableCell(flex, product, 'quantity', column, index);
+        
+      case 'discount':
+        return Expanded(
+          flex: flex,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              children: [
+                TextFormField(
+                  initialValue: (product['discount'] ?? 0).toDouble().toInt().toString(),
+                  style: const TextStyle(fontSize: 14),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    isDense: true,
+                  ),
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  onChanged: (value) {
+                    setState(() {
+                      _productItems[index]['discount'] = double.tryParse(value) ?? 0;
+                    });
+                  },
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _productItems[index]['discountType'] = 'percentage';
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[200],
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            bottomLeft: Radius.circular(12),
+                          ),
+                          border: Border.all(
+                            color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: Text(
+                          '%',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: product['discountType'] == 'percentage' ? Colors.white : Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _productItems[index]['discountType'] = 'amount';
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[200],
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(12),
+                            bottomRight: Radius.circular(12),
+                          ),
+                          border: Border.all(
+                            color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: Text(
+                          '฿',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: product['discountType'] == 'amount' ? Colors.white : Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+        
+      case 'line_total':
+        return Expanded(
+          flex: flex,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              '฿${_formatPrice(_calculateItemTotal(product))}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        );
+        
+      default:
+        return _buildDisplayCell(flex, product[predefinedField]?.toString() ?? '', column);
+    }
+  }
+
+  Widget _buildDisplayCell(int flex, String value, Map<String, dynamic> column) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Text(
+          value,
+          style: const TextStyle(fontSize: 14),
+          textAlign: _getTextAlign(column),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserInputCell(int flex, Map<String, dynamic> product, Map<String, dynamic> column, int index) {
+    // Get the field key from prefillSourceField if available, otherwise use column id
+    final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+    
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: TextFormField(
+          initialValue: _getInitialValue(product, fieldKey),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            isDense: true,
+          ),
+          style: const TextStyle(fontSize: 14),
+          textAlign: _getTextAlign(column),
+          onChanged: (value) {
+            setState(() {
+              product[fieldKey] = value;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  String _getInitialValue(Map<String, dynamic> product, String fieldKey) {
+    final value = product[fieldKey];
+    if (value == null) return '';
+    
+    if (fieldKey == 'pricePerUnit' || fieldKey == 'price' || fieldKey == 'quantity') {
+      return value.toDouble().toInt().toString();
+    }
+    
+    return value.toString();
+  }
+
+  TextInputType _getKeyboardType(String fieldKey) {
+    if (fieldKey == 'pricePerUnit' || fieldKey == 'price' || fieldKey == 'quantity' || fieldKey == 'discount') {
+      return TextInputType.number;
+    }
+    return TextInputType.text;
+  }
+
+  TextAlign _getTextAlign(Map<String, dynamic> column) {
+    switch (column['align']) {
+      case 'center':
+        return TextAlign.center;
+      case 'right':
+        return TextAlign.right;
+      default:
+        return TextAlign.left;
+    }
+  }
+
+  Widget _buildProductSummary() {
+    final subtotal = _calculateSubtotal();
+    final itemDiscount = _calculateTotalDiscount();
+    final subtotalAfterItemDiscount = subtotal - itemDiscount;
+    
+    // Calculate additional discount
+    double additionalDiscountAmount = 0.0;
+    if (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0) {
+      if (_additionalDiscount!['type'] == 'percentage') {
+        additionalDiscountAmount = subtotalAfterItemDiscount * ((_additionalDiscount!['value'] ?? 0).toDouble() / 100);
+      } else {
+        additionalDiscountAmount = (_additionalDiscount!['value'] ?? 0).toDouble();
+      }
+    }
+    
+    final totalAmount = subtotalAfterItemDiscount - additionalDiscountAmount;
+    final vat = _isVatEnabled ? _calculateVAT(totalAmount) : 0.0;
+    final grandTotal = totalAmount + vat;
+    
+    // Calculate withholding tax
+    final withholdingTax = (_withholdingTaxPercentage > 0) ? grandTotal * (_withholdingTaxPercentage / 100) : 0.0;
+    final finalAmount = grandTotal - withholdingTax;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.grey[50]!],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(12),
+          bottomRight: Radius.circular(12),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildSummaryRow('Subtotal', subtotal),
+          
+          // Additional Discount Row with Toggle
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Switch(
+                      value: (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0),
+                      onChanged: (value) {
+                        setState(() {
+                          if (value) {
+                            _additionalDiscount = {'value': 97, 'type': 'percentage'};
+                          } else {
+                            _additionalDiscount = null;
+                          }
+                        });
+                      },
+                      activeColor: Colors.orange,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Discount',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+                if (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0) ...[
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 60,
+                        child: TextFormField(
+                          initialValue: (_additionalDiscount!['value'] ?? 0).toString(),
+                          style: const TextStyle(fontSize: 14),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.right,
+                          onChanged: (value) {
+                            setState(() {
+                              _additionalDiscount!['value'] = double.tryParse(value) ?? 0;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _additionalDiscount!['type'] = 'percentage';
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _additionalDiscount!['type'] == 'percentage' ? Colors.orange : Colors.grey[200],
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  bottomLeft: Radius.circular(12),
+                                ),
+                                border: Border.all(
+                                  color: _additionalDiscount!['type'] == 'percentage' ? Colors.orange : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                'เปอร์เซ็น',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _additionalDiscount!['type'] == 'percentage' ? Colors.white : Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _additionalDiscount!['type'] = 'amount';
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _additionalDiscount!['type'] == 'amount' ? Colors.orange : Colors.grey[200],
+                                borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(12),
+                                  bottomRight: Radius.circular(12),
+                                ),
+                                border: Border.all(
+                                  color: _additionalDiscount!['type'] == 'amount' ? Colors.orange : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                'บาท',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _additionalDiscount!['type'] == 'amount' ? Colors.white : Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    '฿0.00',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          _buildSummaryRow('Total Amount', totalAmount),
+          
+          // VAT Row with Toggle
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Switch(
+                      value: _isVatEnabled,
+                      onChanged: (value) {
+                        setState(() {
+                          _isVatEnabled = value;
+                        });
+                      },
+                      activeColor: Colors.orange,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'VAT (7%)',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+                Text(
+                  '฿${_formatPrice(vat)}',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          
+          const Divider(),
+          _buildSummaryRow('Grand Total:', grandTotal, isBold: true, fontSize: 16),
+          
+          // Withholding Tax Row with Checkbox and Input
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _withholdingTaxPercentage > 0,
+                      onChanged: (value) {
+                        setState(() {
+                          _withholdingTaxPercentage = value == true ? 3.0 : 0.0;
+                        });
+                      },
+                      activeColor: Colors.orange,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const Text(
+                      'หัก ณ ที่จ่าย',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+                if (_withholdingTaxPercentage > 0) ...[
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 30,
+                        child: TextFormField(
+                          initialValue: _withholdingTaxPercentage.toInt().toString(),
+                          style: const TextStyle(fontSize: 14),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          onChanged: (value) {
+                            setState(() {
+                              _withholdingTaxPercentage = double.tryParse(value) ?? 0;
+                            });
+                          },
+                        ),
+                      ),
+                      const Text(
+                        '%',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        '(฿${_formatPrice(withholdingTax)})',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    '฿0.00',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          if (_withholdingTaxPercentage > 0) ...[
+            const Divider(),
+            _buildSummaryRow('ยอดชำระสุทธิ:', finalAmount, isBold: true, fontSize: 16, color: Colors.green),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, double amount, {bool isNegative = false, bool isBold = false, double fontSize = 14, Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+              color: color ?? Colors.black87,
+            ),
+          ),
+          Text(
+            '${isNegative ? '-' : ''}฿${_formatPrice(amount)}',
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+              color: color ?? (isBold ? Colors.deepOrange : Colors.black87),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionCard({
     required String title,
     required IconData icon,
@@ -3157,6 +4392,190 @@ class _EditCardPageState extends State<EditCardPage> {
         },
       ),
     );
+  }
+
+  // Product management methods
+  void _addProduct() {
+    _showProductSelectionDialog();
+  }
+
+  Future<void> _showProductSelectionDialog() async {
+    final selectedProducts = await showDialog<List<Map<String, dynamic>>>(
+      context: context,
+      builder: (context) => _ProductSelectionDialog(
+        workspaceId: _controller.currentWorkspaceId.value,
+      ),
+    );
+
+    if (selectedProducts != null && selectedProducts.isNotEmpty) {
+      setState(() {
+        for (final product in selectedProducts) {
+          // Create new product item for table
+          final newItem = {
+            'id': 'exp-${DateTime.now().millisecondsSinceEpoch}-${product['id']}',
+            'productId': product['id'],
+            'name': product['name'],
+            'description': product['description'] ?? '',
+            'quantity': 1.0,
+            'unit': product['unit'] ?? 'item',
+            'price': (product['price'] ?? 0).toDouble(),
+            'pricePerUnit': (product['price'] ?? 0).toDouble(),
+            'discount': 0.0,
+            'discountType': 'amount',
+            'image': product['imageUrl'],
+          };
+          
+          // Add dynamic fields for user_input columns based on current template
+          for (final column in _visibleColumns) {
+            if (column['type'] == 'user_input') {
+              final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+              // For selected products, prefill with product data if available
+              newItem[fieldKey] = product[fieldKey] ?? '';
+            }
+          }
+          
+          _productItems.add(newItem);
+        }
+      });
+    }
+  }
+
+  void _addCustomProduct() {
+    setState(() {
+      // Create empty custom product item
+      final newItem = {
+        'id': 'custom-${DateTime.now().millisecondsSinceEpoch}',
+        'productId': null, // No product ID for custom items
+        'name': '', // Empty name to be filled by user
+        'description': '', // Empty description
+        'quantity': 1.0,
+        'unit': 'item',
+        'price': 0.0,
+        'pricePerUnit': 0.0,
+        'discount': 0.0,
+        'discountType': 'amount',
+        'image': null, // No image for custom items
+      };
+      
+      // Add dynamic fields for user_input columns based on current template
+      for (final column in _visibleColumns) {
+        if (column['type'] == 'user_input') {
+          final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+          newItem[fieldKey] = ''; // Initialize with empty string
+        }
+      }
+      
+      _productItems.add(newItem);
+    });
+    
+    // Show a helpful message
+    Get.snackbar(
+      'Custom Product Added',
+      'Empty product row added. You can now edit the details.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _editProduct(int index) {
+    // TODO: Implement product editing
+    Get.snackbar(
+      'Coming Soon',
+      'Product editing will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _deleteProduct(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: const Text('Are you sure you want to delete this product?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _productItems.removeAt(index);
+              });
+              Navigator.of(context).pop();
+              Get.snackbar(
+                'Success',
+                'Product deleted successfully',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+                duration: const Duration(seconds: 2),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Calculation methods
+  double _calculateItemTotal(Map<String, dynamic> product) {
+    final quantity = (product['quantity'] ?? 0).toDouble();
+    final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
+    final discount = (product['discount'] ?? 0).toDouble();
+    final discountType = product['discountType'] ?? 'amount';
+    
+    final subtotal = quantity * price;
+    
+    if (discountType == 'percentage') {
+      return subtotal - (subtotal * discount / 100);
+    } else {
+      return subtotal - discount;
+    }
+  }
+
+  double _calculateSubtotal() {
+    return _productItems.fold(0.0, (sum, product) {
+      final quantity = (product['quantity'] ?? 0).toDouble();
+      final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
+      return sum + (quantity * price);
+    });
+  }
+
+  double _calculateTotalDiscount() {
+    return _productItems.fold(0.0, (sum, product) {
+      final quantity = (product['quantity'] ?? 0).toDouble();
+      final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
+      final discount = (product['discount'] ?? 0).toDouble();
+      final discountType = product['discountType'] ?? 'amount';
+      
+      final subtotal = quantity * price;
+      
+      if (discountType == 'percentage') {
+        return sum + (subtotal * discount / 100);
+      } else {
+        return sum + discount;
+      }
+    });
+  }
+
+  double _calculateVAT(double amount) {
+    return amount * 0.07; // 7% VAT
+  }
+
+  String _formatPrice(double price) {
+    if (price == price.roundToDouble()) {
+      return price.toInt().toString();
+    } else {
+      return price.toStringAsFixed(2);
+    }
   }
 
   @override
@@ -3476,5 +4895,524 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
   void _performMove() {
     Navigator.of(context).pop();
     widget.onMoveCard(_selectedBoardId, _selectedLaneId);
+  }
+}
+
+// Product Selection Dialog
+class _ProductSelectionDialog extends StatefulWidget {
+  final String workspaceId;
+
+  const _ProductSelectionDialog({
+    required this.workspaceId,
+  });
+
+  @override
+  State<_ProductSelectionDialog> createState() => _ProductSelectionDialogState();
+}
+
+class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
+  List<Map<String, dynamic>> _allProducts = [];
+  List<Map<String, dynamic>> _filteredProducts = [];
+  Set<String> _selectedProductIds = {};
+  bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+    _searchController.addListener(_filterProducts);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final querySnapshot = await firestore
+          .collection('workspaces/${widget.workspaceId}/products')
+          .where('showInCatalog', isEqualTo: true)
+          .get();
+
+      final products = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': data['name'] ?? '',
+          'price': data['price'] ?? 0,
+          'unit': data['unit'] ?? 'item',
+          'imageUrl': data['imageUrl'],
+          'sku': data['sku'] ?? '',
+          'description': data['description'] ?? '',
+        };
+      }).toList();
+
+      // Sort products by name in Dart instead of Firestore
+      products.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+
+      setState(() {
+        _allProducts = products;
+        _filteredProducts = products;
+        _isLoading = false;
+      });
+      
+      print('✅ Products loaded successfully: ${products.length} products');
+    } catch (e) {
+      print('❌ Failed to load products: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _filterProducts() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = _allProducts;
+      } else {
+        _filteredProducts = _allProducts.where((product) {
+          final name = (product['name'] ?? '').toLowerCase();
+          final sku = (product['sku'] ?? '').toLowerCase();
+          return name.contains(query) || sku.contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  void _toggleProduct(String productId) {
+    setState(() {
+      if (_selectedProductIds.contains(productId)) {
+        _selectedProductIds.remove(productId);
+      } else {
+        _selectedProductIds.add(productId);
+      }
+    });
+  }
+
+  List<Map<String, dynamic>> _getSelectedProducts() {
+    return _allProducts.where((product) => 
+        _selectedProductIds.contains(product['id'])).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        height: MediaQuery.of(context).size.height * 0.8,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'เพิ่มสินค้า',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepOrange,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Search bar
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'ชื่อ,รายละเอียด,Hashtag,สินค้า',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.deepOrange[200]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.deepOrange[200]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.deepOrange),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Products list section header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'รายการสินค้า',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (_selectedProductIds.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrange[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'เลือกแล้ว ${_selectedProductIds.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.deepOrange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Products list
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredProducts.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'ไม่พบสินค้า',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = _filteredProducts[index];
+                            final isSelected = _selectedProductIds.contains(product['id']);
+                            
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: InkWell(
+                                onTap: () => _toggleProduct(product['id']),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: isSelected ? Colors.deepOrange : Colors.grey[300]!,
+                                      width: isSelected ? 2 : 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: isSelected ? Colors.deepOrange[50] : Colors.white,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // Checkbox
+                                      Checkbox(
+                                        value: isSelected,
+                                        onChanged: (_) => _toggleProduct(product['id']),
+                                        activeColor: Colors.deepOrange,
+                                      ),
+                                      
+                                      // Product image
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        margin: const EdgeInsets.only(right: 12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[100],
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.grey[300]!),
+                                        ),
+                                        child: product['imageUrl'] != null 
+                                            ? ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Image.network(
+                                                  product['imageUrl'],
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Icon(Icons.image, color: Colors.grey[400], size: 30);
+                                                  },
+                                                ),
+                                              )
+                                            : Icon(Icons.image, color: Colors.grey[400], size: 30),
+                                      ),
+                                      
+                                      // Product details
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product['name'] ?? '',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '฿${(product['price'] ?? 0).toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+
+            // Pagination (if needed)
+            const SizedBox(height: 16),
+            
+            // Bottom buttons
+            Row(
+              children: [
+                Text(
+                  '< 1 >',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton(
+                  onPressed: _selectedProductIds.isNotEmpty
+                      ? () => Navigator.of(context).pop(_getSelectedProducts())
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'ยืนยัน',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRelatedDocumentsSection() {
+    return Column(
+      children: [
+        // Header with Create Quotation button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Related Documents',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                // TODO: Implement create quotation
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Create Quotation feature coming soon')),
+                );
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Create Quotation'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple[600],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        // Documents Table
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              // Table Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
+                ),
+                child: Row(
+                  children: const [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Doc No.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Type',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Job Card',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Seller',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Date',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Valid Until',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Amount',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Status',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 40), // For actions column
+                  ],
+                ),
+              ),
+              
+              // Empty state when no documents
+              Container(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No related documents yet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create your first quotation to get started',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
