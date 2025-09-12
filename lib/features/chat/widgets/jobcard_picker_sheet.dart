@@ -16,7 +16,8 @@ class JobCardPickerResult {
 
 class JobCardPickerSheet extends StatefulWidget {
   final String workspaceId;
-  const JobCardPickerSheet({super.key, required this.workspaceId});
+  final String? customerId; // Add customerId param
+  const JobCardPickerSheet({super.key, required this.workspaceId, this.customerId});
 
   @override
   State<JobCardPickerSheet> createState() => _JobCardPickerSheetState();
@@ -25,8 +26,6 @@ class JobCardPickerSheet extends StatefulWidget {
 class _JobCardPickerSheetState extends State<JobCardPickerSheet> {
   String? _selectedBoardId;
   String? _selectedBoardName;
-  String? _selectedLaneId;
-  String? _selectedLaneName;
 
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadBoards() async {
     final qs = await FirebaseFirestore.instance
@@ -38,26 +37,16 @@ class _JobCardPickerSheetState extends State<JobCardPickerSheet> {
     return qs.docs;
   }
 
-  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadLanes(String boardId) async {
-    final qs = await FirebaseFirestore.instance
-        .collection('workspaces')
-        .doc(widget.workspaceId)
-        .collection('lanes')
-        .where('boardId', isEqualTo: boardId)
-        .orderBy('order')
-        .get();
-    return qs.docs;
-  }
-
-  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadCards(String boardId, String laneId) async {
-    final qs = await FirebaseFirestore.instance
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadCards(String boardId) async {
+    var query = FirebaseFirestore.instance
         .collection('workspaces')
         .doc(widget.workspaceId)
         .collection('cards')
-        .where('boardId', isEqualTo: boardId)
-        .where('laneId', isEqualTo: laneId)
-        .orderBy('order')
-        .get();
+        .where('boardId', isEqualTo: boardId);
+    if (widget.customerId != null && widget.customerId!.isNotEmpty) {
+      query = query.where('customerId', isEqualTo: widget.customerId);
+    }
+    final qs = await query.orderBy('order').get();
     return qs.docs;
   }
 
@@ -83,33 +72,21 @@ class _JobCardPickerSheetState extends State<JobCardPickerSheet> {
                           _selectedBoardName = name;
                         });
                       }, loadBoards: _loadBoards)
-                    : _selectedLaneId == null
-                        ? _LanesList(
-                            boardId: _selectedBoardId!,
-                            onPick: (id, name) {
-                              setState(() {
-                                _selectedLaneId = id;
-                                _selectedLaneName = name;
-                              });
-                            },
-                            loadLanes: _loadLanes,
-                          )
-                        : _CardsList(
-                            boardId: _selectedBoardId!,
-                            laneId: _selectedLaneId!,
-                            onPick: (id, title) {
-                              Navigator.pop(
-                                context,
-                                JobCardPickerResult(
-                                  cardId: id,
-                                  title: title,
-                                  boardId: _selectedBoardId!,
-                                  laneId: _selectedLaneId!,
-                                ),
-                              );
-                            },
-                            loadCards: _loadCards,
-                          ),
+                    : _CardsList(
+                        boardId: _selectedBoardId!,
+                        onPick: (id, title) {
+                          Navigator.pop(
+                            context,
+                            JobCardPickerResult(
+                              cardId: id,
+                              title: title,
+                              boardId: _selectedBoardId!,
+                              laneId: '', // Lane not used
+                            ),
+                          );
+                        },
+                        loadCards: _loadCards,
+                      ),
               ),
             ],
           ),
@@ -139,19 +116,10 @@ class _JobCardPickerSheetState extends State<JobCardPickerSheet> {
 
     add('Boards', onTap: () => setState(() {
           _selectedBoardId = null;
-          _selectedLaneId = null;
         }));
     if (_selectedBoardId != null) {
       add(_selectedBoardName ?? 'Board');
     }
-    if (_selectedLaneId != null) {
-      items.add(const Icon(Icons.chevron_right, size: 18, color: Colors.black38));
-      items.add(Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: Text(_selectedLaneName ?? 'Lane', style: const TextStyle(fontWeight: FontWeight.w600)),
-      ));
-    }
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -196,61 +164,23 @@ class _BoardsList extends StatelessWidget {
   }
 }
 
-class _LanesList extends StatelessWidget {
-  final String boardId;
-  final Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> Function(String boardId) loadLanes;
-  final void Function(String id, String name) onPick;
-  const _LanesList({required this.boardId, required this.loadLanes, required this.onPick});
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-      future: loadLanes(boardId),
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final docs = snap.data ?? [];
-        if (docs.isEmpty) {
-          return const Center(child: Text('ไม่มีเลนในบอร์ดนี้'));
-        }
-        return ListView.separated(
-          itemCount: docs.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final d = docs[index];
-            final m = d.data();
-            final name = (m['name'] ?? 'Lane').toString();
-            return ListTile(
-              leading: const Icon(Icons.view_column_outlined),
-              title: Text(name),
-              onTap: () => onPick(d.id, name),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
 class _CardsList extends StatelessWidget {
   final String boardId;
-  final String laneId;
-  final Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> Function(String boardId, String laneId) loadCards;
+  final Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> Function(String boardId) loadCards;
   final void Function(String id, String title) onPick;
-  const _CardsList({required this.boardId, required this.laneId, required this.loadCards, required this.onPick});
+  const _CardsList({required this.boardId, required this.loadCards, required this.onPick});
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-      future: loadCards(boardId, laneId),
+      future: loadCards(boardId),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         final docs = snap.data ?? [];
         if (docs.isEmpty) {
-          return const Center(child: Text('ไม่มีการ์ดในเลนนี้'));
+          return const Center(child: Text('ไม่มีการ์ดในบอร์ดนี้'));
         }
         return ListView.separated(
           itemCount: docs.length,
@@ -268,9 +198,7 @@ class _CardsList extends StatelessWidget {
             );
           },
         );
-
       },
     );
   }
 }
-

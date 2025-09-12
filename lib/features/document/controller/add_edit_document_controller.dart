@@ -310,6 +310,7 @@ class AddEditDocumentController extends GetxController {
           '✅ Document page initialized with workspace: ${firstWorkspace['name']}',
         );
 
+
         // Load all data sequentially but without triggering updates until the end
         await _loadCustomers(skipUpdates: true);
         await _loadWorkspaceMembers();
@@ -354,116 +355,11 @@ class AddEditDocumentController extends GetxController {
       if (_currentWorkspaceId != null) {
         _setCustomerLoading(true, skipUpdate: skipUpdates);
 
-        // Load customers from Firebase path: workspaces/{WorkspaceId}/customers/{Customer Uids}
-        final customersSnapshot = await FirebaseFirestore.instance
-            .collection('workspaces')
-            .doc(_currentWorkspaceId)
-            .collection('customers')
-            .get();
+        // Load customers via repository with permission-based filtering
+        final customersList = await _repository.getCustomers(_currentWorkspaceId!);
+        _customers = customersList;
 
-        if (customersSnapshot.docs.isNotEmpty) {
-          _customers = customersSnapshot.docs.map((doc) {
-            try {
-              final data = doc.data();
-              print('📋 Processing customer document: ${doc.id}');
-              print('📋 Customer data keys: ${data.keys.toList()}');
-
-              // Helper function to safely convert to list
-              List<Map<String, dynamic>> safeListConversion(dynamic value) {
-                if (value == null) return [];
-                if (value is List) {
-                  return value
-                      .map(
-                        (item) => item is Map<String, dynamic>
-                            ? item
-                            : <String, dynamic>{},
-                      )
-                      .toList();
-                }
-                print(
-                  '⚠️ Expected list but got: ${value.runtimeType} for value: $value',
-                );
-                return [];
-              }
-
-              List<String> safeStringListConversion(dynamic value) {
-                if (value == null) return [];
-                if (value is List) {
-                  return value.map((item) => item?.toString() ?? '').toList();
-                }
-                print(
-                  '⚠️ Expected string list but got: ${value.runtimeType} for value: $value',
-                );
-                return [];
-              }
-
-              final customer = Customer(
-                id: doc.id,
-                name: data['name']?.toString() ?? '',
-                prefix: data['prefix']?.toString() ?? '',
-                gender: data['gender']?.toString() ?? '',
-                age: data['age']?.toString() ?? '',
-                customerType: data['customerType']?.toString() ?? 'Customer',
-                emails: safeListConversion(data['emails']),
-                phones: safeListConversion(data['phones']),
-                companyNames: safeListConversion(data['companyNames']),
-                nationalId: data['nationalId']?.toString() ?? '',
-                address: data['address']?.toString() ?? '',
-                source: data['source']?.toString() ?? '',
-                hashtags: safeListConversion(data['hashtags']),
-                assignees: safeStringListConversion(data['assignees']),
-                customId: data['customId']?.toString() ?? '',
-                workspaceId:
-                    data['workspaceId']?.toString() ?? _currentWorkspaceId!,
-                createdAt: DateTime.fromMillisecondsSinceEpoch(
-                  data['createdAt'] ?? DateTime.now().millisecondsSinceEpoch,
-                ),
-                updatedAt: DateTime.fromMillisecondsSinceEpoch(
-                  data['updatedAt'] ?? DateTime.now().millisecondsSinceEpoch,
-                ),
-                createdBy: data['createdBy']?.toString() ?? '',
-                updatedBy: data['updatedBy']?.toString() ?? '',
-              );
-
-              print(
-                '✅ Successfully created customer: ${customer.name} with ${customer.companyNames.length} companies',
-              );
-              return customer;
-            } catch (e) {
-              print('❌ Error processing customer document ${doc.id}: $e');
-              print('❌ Document data: ${doc.data()}');
-              // Return a default customer to prevent the entire operation from failing
-              return Customer(
-                id: doc.id,
-                name: 'Error Loading Customer',
-                prefix: '',
-                gender: '',
-                age: '',
-                customerType: 'Customer',
-                emails: [],
-                phones: [],
-                companyNames: [],
-                nationalId: '',
-                address: '',
-                source: '',
-                hashtags: [],
-                assignees: [],
-                customId: '',
-                workspaceId: _currentWorkspaceId!,
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
-                createdBy: '',
-                updatedBy: '',
-              );
-            }
-          }).toList();
-
-          print('✅ Loaded ${_customers.length} customers from Firebase');
-        } else {
-          print('⚠️ No customers found in workspace: $_currentWorkspaceId');
-          _customers = [];
-        }
-
+        print('✅ Loaded ${_customers.length} customers from repository (permission-aware)');
         update();
       }
     } catch (e) {
@@ -3447,3 +3343,12 @@ class AddEditDocumentController extends GetxController {
     }
   }
 }
+
+int _parseAge(dynamic raw) {
+  if (raw == null) return 0;
+  if (raw is int) return raw;
+  if (raw is double) return raw.toInt();
+  if (raw is String) return int.tryParse(raw.trim()) ?? 0;
+  return 0;
+}
+

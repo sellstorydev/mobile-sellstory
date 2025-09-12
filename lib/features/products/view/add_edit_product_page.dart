@@ -273,10 +273,9 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
           _coverImageUrl = imageUrl;
           _isUploadingCover = false;
         });
-
         Get.snackbar(
           'สำเร็จ',
-          'อัปโหลดรูปภาพหลัก��รียบร้อยแล้ว',
+          'อัปโหลดรูปภาพหลักเรียบร้อยแล้ว',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -522,7 +521,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
               const SizedBox(height: 16),
 
               // Barcode
-              _buildTextField('บาร์โค���ด', _barcodeController),
+              _buildTextField('บาร์โค้ด', _barcodeController),
               const SizedBox(height: 16),
 
               // Quantity (only if template has quantity column)
@@ -602,7 +601,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
             items: [
               const DropdownMenuItem<String>(
                 value: '',
-                child: Text('ไม่ร���บุหมวดหมู่'),
+                child: Text('ไม่ระบุหมวดหมู่'),
               ),
               ..._availableCategories.map((category) {
                 return DropdownMenuItem<String>(

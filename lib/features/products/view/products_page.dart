@@ -34,6 +34,7 @@ class ProductsPage extends StatelessWidget {
               label: const Text(
                 'เพิ่มสินค้า',
                 style: TextStyle(
+                  fontSize: 16,
                   color: AppTheme.primaryOrange,
                   fontWeight: FontWeight.w600,
                 ),
@@ -229,7 +230,7 @@ class ProductsPage extends StatelessWidget {
                                         });
                                       },
                                       icon: const Icon(Icons.add),
-                                      label: const Text('เพิ่มสินค้า'),
+                                      label: const Text('เพิ่มสินค้า  '),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppTheme.primaryOrange,
                                         foregroundColor: Colors.white,

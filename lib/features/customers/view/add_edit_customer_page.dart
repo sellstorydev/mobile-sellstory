@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import '../../../core/services/thai_location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
@@ -10,6 +13,7 @@ import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/services/id_generation_service.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../companies/view/add_edit_company_page.dart';
 
 import '../../../domain/entities/customer.dart';
 import '../controller/customers_controller.dart';
@@ -31,6 +35,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   final _nationalIdController = TextEditingController();
   final _addressController = TextEditingController();
   final _customIdController = TextEditingController();
+  final _ageController = TextEditingController(); // NEW age controller
 
   final HashtagService _hashtagService = HashtagService();
   final WorkspaceMembersService _workspaceMembersService = Get.find<WorkspaceMembersService>();
@@ -63,6 +68,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   final List<String> _genderOptions = ['Female', 'Male', 'Other'];
   final List<String> _customerTypeOptions = ['Lead', 'Customer'];
 
+  final GlobalKey<CompanyPickerState> _companyPickerGlobalKey = GlobalKey<CompanyPickerState>();
+
+  String? _profileImageUrl;
+  File? _profileImageFile;
+  bool _uploadingImage = false;
+
   @override
   void initState() {
     super.initState();
@@ -70,8 +81,10 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     _loadHashtags();
     _loadMembers();
     _loadProvinces();
+    if (widget.customer?.profileImageUrl != null && widget.customer!.profileImageUrl.isNotEmpty) {
+      _profileImageUrl = widget.customer!.profileImageUrl;
+    }
   }
-
 
   void _initForm() {
     final c = widget.customer;
@@ -81,6 +94,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       _nationalIdController.text = c.nationalId;
       _addressController.text = c.address;
       _customIdController.text = c.customId;
+      _ageController.text = c.age.toString(); // set age
       if (_genderOptions.contains(c.gender)) _selectedGender = c.gender;
       if (_customerTypeOptions.contains(c.customerType)) _selectedCustomerType = c.customerType;
       _selectedSource = c.source;
@@ -145,6 +159,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         {'id': 'phone-initial', 'label': 'Work', 'value': ''}
       ];
       _selectedSource = widget.customerSources.isNotEmpty ? widget.customerSources.first : '';
+      _ageController.text = '';
     }
   }
 
@@ -222,6 +237,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     _nationalIdController.dispose();
     _addressController.dispose();
     _customIdController.dispose();
+    _ageController.dispose(); // dispose age controller
     super.dispose();
   }
 
@@ -254,10 +270,11 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     // Same as _canOpenPage for this page
     return _canOpenPage();
   }
-
   @override
   Widget build(BuildContext context) {
     final canOpen = _canOpenPage();
+    final customersController = Get.find<CustomersController>();
+    final workspaceId = customersController.currentWorkspaceId.value;
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
@@ -295,16 +312,16 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionHeader('แชร์กับผู้อื่น', isRequired: true, trailing: _addButton(onPressed: () {})),
-                    const SizedBox(height: 8),
+                    // _buildSectionHeader('แชร์กับผู้อื่น', isRequired: true, trailing: _addButton(onPressed: () {})),
+                    // const SizedBox(height: 8),
                     AssigneesInputField(
                       selectedAssignees: _selectedAssignees,
                       availableMembers: _availableMembers,
                       onAssigneesChanged: (v) => setState(() => _selectedAssignees = v),
                       isLoading: _isLoadingMembers,
                     ),
-                    const SizedBox(height: 16),
-                    _buildSectionDivider(),
+                    // const SizedBox(height: 16),
+                    // _buildSectionDivider(),
                     const SizedBox(height: 16),
                     _buildSectionHeader('ข้อมูลส่วนบุคคล'),
                     const SizedBox(height: 12),
@@ -327,6 +344,10 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                     const SizedBox(height: 16),
                     _buildTextField('ชื่อ-นามสกุล', _nameController, isRequired: true),
                     const SizedBox(height: 16),
+                    _buildTextField('อายุ', _ageController, keyboardType: TextInputType.number), // NEW age field
+                    const SizedBox(height: 16),
+                    _buildTextField('เลขประจำตัว / บัตรประชาชน', _nationalIdController, keyboardType: TextInputType.text), // NEW nationalId field
+                    const SizedBox(height: 16),
                     _buildDropdownField('เพศ', _selectedGender, _genderOptions, (v) => setState(() => _selectedGender = v ?? _selectedGender)),
                     const SizedBox(height: 16),
                     _buildMultipleEmailsSection(),
@@ -339,13 +360,16 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                     const SizedBox(height: 16),
                     _buildSectionDivider(),
                     const SizedBox(height: 16),
-                    _buildSectionHeader('ข้อมูลบริษัท', trailing: _addButton(onPressed: () {})),
+                    _buildSectionHeader('ข้อมูลบริษัท', trailing: _addButton(onPressed: _openAddCompany)),
                     const SizedBox(height: 12),
+
                     CompanyPicker(
+                      key: _companyPickerGlobalKey,
                       selectedCompanies: _selectedCompanies,
                       onCompaniesChanged: (companies) => setState(() => _selectedCompanies = companies),
                       label: 'บริษัท',
                       hintText: 'เลือกบริษัท',
+                      workspaceId: workspaceId,
                     ),
                     const SizedBox(height: 16),
                     _buildCustomIdField(),
@@ -417,14 +441,48 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         ),
       );
 
+  Future<void> _pickProfileImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 30);
+    if (picked == null) return;
+    setState(() { _uploadingImage = true; });
+    try {
+      final file = File(picked.path);
+      final customersController = Get.find<CustomersController>();
+      final workspaceId = customersController.currentWorkspaceId.value;
+      final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}_${picked.name}';
+      final ref = FirebaseStorage.instance.ref().child('customers/$workspaceId/$fileName');
+      final uploadTask = await ref.putFile(file);
+      final url = await ref.getDownloadURL();
+      setState(() {
+        _profileImageFile = file;
+        _profileImageUrl = url;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปโหลดรูปไม่สำเร็จ: $e'), backgroundColor: Colors.red));
+    } finally {
+      setState(() { _uploadingImage = false; });
+    }
+  }
+
   Widget _buildAvatarPlaceholder() => Row(
         children: [
           Stack(
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.grey.shade300,
-                child: const Icon(Icons.person, size: 28, color: Colors.white),
+              GestureDetector(
+                onTap: _uploadingImage ? null : _pickProfileImage,
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage: _profileImageFile != null
+                      ? FileImage(_profileImageFile!)
+                      : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty)
+                          ? NetworkImage(_profileImageUrl!) as ImageProvider
+                          : null,
+                  child: (_profileImageFile == null && (_profileImageUrl == null || _profileImageUrl!.isEmpty))
+                      ? const Icon(Icons.person, size: 28, color: Colors.white)
+                      : null,
+                ),
               ),
               Positioned(
                 bottom: 0,
@@ -436,7 +494,9 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                     border: Border.all(color: Colors.white, width: 2),
                   ),
                   padding: const EdgeInsets.all(2),
-                  child: const Icon(Icons.camera_alt, size: 12, color: Colors.white),
+                  child: _uploadingImage
+                      ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.camera_alt, size: 12, color: Colors.white),
                 ),
               ),
             ],
@@ -682,11 +742,57 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            hintText: isEdit ? null : 'จะถูก���ร้างอัตโนมัติเมื่อบันทึก',
+            hintText: isEdit ? null : 'จะถูกสร้างอัตโนมัติเมื่อบันทึก',
           ),
         ),
       ]),
     );
+  }
+
+  void _openAddCompany() async {
+    // snapshot existing company ids if picker already loaded
+    final pickerStateBefore = _companyPickerGlobalKey.currentState;
+    final beforeIds = pickerStateBefore?.availableCompanyIds ?? <String>{};
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddEditCompanyPage()),
+    );
+    if (result == true && mounted) {
+      final pickerState = _companyPickerGlobalKey.currentState;
+      await pickerState?.refresh();
+
+      // Determine newly added company ids
+      final afterIds = pickerState?.availableCompanyIds ?? <String>{};
+      final newIds = afterIds.difference(beforeIds).toList();
+
+      if (newIds.isNotEmpty && pickerState != null) {
+        // Find the new company objects
+        final newlyAdded = pickerState.availableCompanies.where((c) => newIds.contains(c.id)).toList();
+        if (newlyAdded.isNotEmpty) {
+          setState(() {
+            // Append new companies (avoid duplicates)
+            for (final nc in newlyAdded) {
+              if (!_selectedCompanies.any((c) => c.id == nc.id)) {
+                _selectedCompanies.add(nc);
+              }
+            }
+          });
+        }
+      }
+
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('เพิ่มบริษัทสำเร็จ'),
+        backgroundColor: Colors.green,
+      ));
+      // automatically open picker so user can verify / adjust selection
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          _companyPickerGlobalKey.currentState?.open();
+        }
+      });
+    }
   }
 
   // ===== Save handlers =====
@@ -708,7 +814,6 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
 
   Future<void> _saveCustomer() async {
     if (!_formKey.currentState!.validate()) return;
-
     try {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
@@ -732,7 +837,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (workspaceId.isEmpty) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม���พบ Workspace'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ Workspace'), backgroundColor: Colors.red));
         return;
       }
 
@@ -743,7 +848,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         name: _nameController.text.trim(),
         prefix: _prefixController.text.trim(),
         gender: _selectedGender,
-        age: '0',
+        age: int.tryParse(_ageController.text.trim()) ?? 0, // updated to int
         customerType: _selectedCustomerType,
         emails: emailsObjects,
         phones: phonesObjects,
@@ -754,7 +859,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                   'value': c.companyNames.isNotEmpty ? (c.companyNames.first['value']?.toString() ?? '') : '',
                 })
             .toList(),
-        nationalId: _nationalIdController.text.trim(),
+        nationalId: _nationalIdController.text.trim(), // ensure saved
         address: _addressController.text.trim(),
         source: _selectedSource,
         hashtags: hashtagObjects,
@@ -765,6 +870,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         updatedAt: DateTime.now(),
         createdBy: widget.customer?.createdBy ?? userId,
         updatedBy: userId,
+        profileImageUrl: _profileImageUrl ?? '',
       );
 
       if (widget.customer == null) {

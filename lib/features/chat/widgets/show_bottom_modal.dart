@@ -779,6 +779,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Future<void> _openJobCardPicker() async {
+    // Prevent opening picker if no customer is linked
+    if (_currentCustomerId == null || _currentCustomerId!.isEmpty) {
+      _showTopSnack('กรุณาเชื่อมลูกค้าก่อนผูก Job Card', isError: true);
+      return;
+    }
     final result = await showModalBottomSheet<JobCardPickerResult>(
       context: context,
       useSafeArea: true,
@@ -791,7 +796,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         final h = MediaQuery.of(ctx).size.height;
         return SizedBox(
           height: h * 0.9,
-          child: JobCardPickerSheet(workspaceId: widget.workspaceId),
+          child: JobCardPickerSheet(
+            workspaceId: widget.workspaceId,
+            customerId: _currentCustomerId, // Pass customerId
+          ),
         );
       },
     );
@@ -1159,13 +1167,14 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                               child: OutlinedButton.icon(
                                 onPressed: _creatingHashtag ? null : _createNewCustomerHashtag,
                                 icon: const Icon(Icons.add, size: 16),
-                                label: Text(_creatingHashtag ? 'กำลังเพิ่ม...' : 'เพิ่มแฮชแท็กใหม่'),
+                                label: Text(_creatingHashtag ? 'กำลังเพิ่ม...' : 'เพิ่มแฮชแท็กใหม่  '),
                               ),
                               fallback: const SizedBox.shrink(),
                             ),
                           ),
                         ],
                       ],
+
                     ),
                   ),
                 ),

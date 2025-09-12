@@ -192,10 +192,26 @@ class CustomersController extends GetxController {
 
   // Filter customers based on search query
   void _filterCustomers() {
-    if (searchQuery.value.isEmpty) {
-      filteredCustomers.value = customers;
+    // Determine permission
+    final isOwner = MobilePermissionsService.to.isOwner;
+    final canViewAll = MobilePermissionsService.to.can('customer:view:all');
+    final canViewAssigned = MobilePermissionsService.to.can('customer:view:assigned');
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    // Base list: all or assigned only
+    List<Customer> baseList;
+    if (isOwner || canViewAll) {
+      baseList = customers;
+    } else if (canViewAssigned && userId.isNotEmpty) {
+      baseList = customers.where((c) => c.assignees.contains(userId)).toList();
     } else {
-      filteredCustomers.value = customers.where((customer) {
+      baseList = [];
+    }
+
+    if (searchQuery.value.isEmpty) {
+      filteredCustomers.value = baseList;
+    } else {
+      filteredCustomers.value = baseList.where((customer) {
         final query = searchQuery.value.toLowerCase();
         // Search in emails
         final emailMatch = customer.emails.any((email) =>

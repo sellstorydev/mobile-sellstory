@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // added for Timestamp support
 import '../theme/app_theme.dart';
 import '../services/company_service.dart';
 import '../../features/companies/view/add_edit_company_page.dart';
 import '../../data/repositories/firestore_repository.dart';
+import 'dart:async';
 
 class Company {
   final String id;
@@ -58,19 +60,39 @@ class Company {
     List<Map<String, dynamic>> companyNames = [];
     
     if (map['companyNames'] != null) {
-      // New structure: companyNames array
       companyNames = List<Map<String, dynamic>>.from(map['companyNames'] ?? []);
     } else if (map['name'] != null) {
-      // Old structure: single name field - convert to new structure
       companyNames = [
         {
           'id': map['id'] ?? '',
           'label': 'Main',
+            // Use name as value
           'value': map['name'] as String,
         }
       ];
     }
-    
+
+    DateTime _parseDate(dynamic raw) {
+      if (raw == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      if (raw is DateTime) return raw;
+      if (raw is Timestamp) return raw.toDate();
+      if (raw is int) {
+        // Heuristic: treat as ms if it's large, else seconds
+        if (raw > 2000000000) { // already ms
+          return DateTime.fromMillisecondsSinceEpoch(raw);
+        } else {
+          return DateTime.fromMillisecondsSinceEpoch(raw * 1000);
+        }
+      }
+      if (raw is String) {
+        try { return DateTime.parse(raw); } catch (_) {}
+      }
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+
+    final createdAt = _parseDate(map['createdAt']);
+    final updatedAt = _parseDate(map['updatedAt']);
+
     return Company(
       id: map['id'] ?? '',
       companyNames: companyNames,
@@ -88,8 +110,8 @@ class Company {
       hashtags: List<Map<String, dynamic>>.from(map['hashtags'] ?? []),
       website: map['website'] ?? '',
       workspaceId: map['workspaceId'] ?? '',
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       createdBy: map['createdBy'] ?? '',
       updatedBy: map['updatedBy'] ?? '',
       associatedCustomerIds: List<String>.from(map['associatedCustomerIds'] ?? []),
@@ -133,27 +155,36 @@ class Company {
 
 class CompanyPicker extends StatefulWidget {
   final List<Company>? selectedCompanies;
+  final List<String>? selectedCompanyIds; // new: IDs to fetch
   final Function(List<Company>) onCompaniesChanged;
   final String? label;
   final bool isRequired;
   final bool allowMultiple;
   final String? hintText;
+  final String? workspaceId; // new override
+  final bool lockWorkspaceId; // new: if true, ignore subsequent workspaceId changes
+  final bool showAllWorkspaces; // new: load companies from all user workspaces
+
 
   const CompanyPicker({
     super.key,
     this.selectedCompanies,
+    this.selectedCompanyIds,
     required this.onCompaniesChanged,
     this.label = 'บริษัท',
     this.isRequired = false,
     this.allowMultiple = true,
     this.hintText,
+    this.workspaceId,
+    this.lockWorkspaceId = false,
+    this.showAllWorkspaces = false,
   });
 
   @override
-  State<CompanyPicker> createState() => _CompanyPickerState();
+  State<CompanyPicker> createState() => CompanyPickerState();
 }
 
-class _CompanyPickerState extends State<CompanyPicker> {
+class CompanyPickerState extends State<CompanyPicker> { // renamed from _CompanyPickerState
   final TextEditingController _searchController = TextEditingController();
   final CompanyService _companyService = CompanyService();
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -171,148 +202,160 @@ class _CompanyPickerState extends State<CompanyPicker> {
   // Modal state management
   StateSetter? _currentModalStateSetter;
 
+  // Pending selected company IDs (to be resolved after companies load)
+  List<String> _pendingSelectedCompanyIds = [];
+  bool _companiesLoaded = false;
+
+  // Realtime subscription
+  StreamSubscription<List<Company>>? _companiesSub;
+  final Map<String, StreamSubscription<List<Company>>> _workspaceSubs = {}; // multi-workspace subs
+  final Map<String, String> _workspaceNames = {}; // id -> name
+  bool _usingAllWorkspaces = false;
+
   @override
   void initState() {
     super.initState();
-    _selectedCompanies = List<Company>.from(widget.selectedCompanies ?? []);
-    _initializeUserAndWorkspace();
+    // Prefer full objects if provided; else store IDs for later resolution
+    if (widget.selectedCompanies != null && widget.selectedCompanies!.isNotEmpty) {
+      _selectedCompanies = List<Company>.from(widget.selectedCompanies!);
+    } else if (widget.selectedCompanyIds != null && widget.selectedCompanyIds!.isNotEmpty) {
+      _pendingSelectedCompanyIds = List<String>.from(widget.selectedCompanyIds!);
+    }
+    if (widget.showAllWorkspaces) {
+      _usingAllWorkspaces = true;
+      _initializeAllWorkspaces();
+    } else if (widget.workspaceId != null && widget.workspaceId!.isNotEmpty) {
+      _currentWorkspaceId = widget.workspaceId!;
+      print('🏷️ CompanyPicker using provided workspaceId: $_currentWorkspaceId');
+      _loadCompanies();
+    } else {
+      _initializeUserAndWorkspace();
+    }
   }
+
+  void _scheduleSelectionUpdate(VoidCallback fn) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      fn();
+    });
+  }
+
 
   @override
   void didUpdateWidget(CompanyPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedCompanies != widget.selectedCompanies) {
-      setState(() {
-        _selectedCompanies = List<Company>.from(widget.selectedCompanies ?? []);
+    if (widget.showAllWorkspaces && !_usingAllWorkspaces) {
+      _usingAllWorkspaces = true;
+      _switchToAllWorkspaces();
+    }
+    if (!widget.showAllWorkspaces && _usingAllWorkspaces && widget.workspaceId != null && widget.workspaceId!.isNotEmpty) {
+      // switch back to single workspace mode
+      _usingAllWorkspaces = false;
+      for (final sub in _workspaceSubs.values) { sub.cancel(); }
+      _workspaceSubs.clear();
+      _currentWorkspaceId = widget.workspaceId!;
+      _availableCompanies.clear();
+      _filteredCompanies.clear();
+      _loadCompanies();
+    }
+    // Workspace override changed (only if not locked and not in all mode)
+    if (!widget.showAllWorkspaces && !widget.lockWorkspaceId && oldWidget.workspaceId != widget.workspaceId && widget.workspaceId != null && widget.workspaceId!.isNotEmpty) {
+      _currentWorkspaceId = widget.workspaceId!;
+      print('🔄 Workspace override changed -> reload companies for $_currentWorkspaceId');
+      _loadCompanies();
+    }
+    // If explicit Company objects change
+    if (oldWidget.selectedCompanies != widget.selectedCompanies && widget.selectedCompanies != null) {
+      final newList = List<Company>.from(widget.selectedCompanies!);
+      _scheduleSelectionUpdate(() {
+        _selectedCompanies = newList;
+        widget.onCompaniesChanged(List<Company>.from(_selectedCompanies));
+        setState(() {});
       });
+    }
+    // If list of IDs changed (and no direct Company list supplied)
+    if (widget.selectedCompanies == null && oldWidget.selectedCompanyIds != widget.selectedCompanyIds) {
+      _pendingSelectedCompanyIds = List<String>.from(widget.selectedCompanyIds ?? []);
+      _scheduleSelectionUpdate(_resolvePendingSelectedIds);
+    }
+  }
+
+  void _resolvePendingSelectedIds() {
+    if (!_companiesLoaded) return; // wait until companies loaded
+    if (_pendingSelectedCompanyIds.isEmpty) return;
+    final idSet = _pendingSelectedCompanyIds.toSet();
+    final resolved = _availableCompanies.where((c) => idSet.contains(c.id)).toList();
+    // Only update if changed
+    final currentIds = _selectedCompanies.map((c) => c.id).toSet();
+    final resolvedIds = resolved.map((c) => c.id).toSet();
+    if (currentIds.length != resolvedIds.length || !currentIds.containsAll(resolvedIds)) {
+      _selectedCompanies = resolved;
+      widget.onCompaniesChanged(List<Company>.from(_selectedCompanies));
+      setState(() {});
     }
   }
 
   @override
   void dispose() {
+    for (final sub in _workspaceSubs.values) {
+      sub.cancel();
+    }
+    _companiesSub?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _initializeUserAndWorkspace() async {
-    try {
-      // Get current user ID from Firebase Auth
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        print('❌ No authenticated user found');
-        return;
-      }
-      
-      _currentUserId = currentUser.uid;
-      print('👤 Initializing company picker with user: $_currentUserId');
-      
-      // Get user's workspaces
-      print('📋 Fetching user workspaces...');
-      final workspaces = await _repository.getUserWorkspaces(_currentUserId);
-      
-      print('📋 User workspaces loaded: ${workspaces.length} workspaces');
-      
-      if (workspaces.isNotEmpty) {
-        // Try to get last active workspace ID
-        String? selectedWorkspaceId;
-        String? selectedWorkspaceName;
-        
-        try {
-          final lastActiveWorkspaceId = await _repository.getUserLastActiveWorkspaceId(_currentUserId);
-          print('📋 Last active workspace ID: $lastActiveWorkspaceId');
-          
-          if (lastActiveWorkspaceId != null && lastActiveWorkspaceId.isNotEmpty) {
-            // Check if the last active workspace still exists in user's workspaces
-            final lastActiveWorkspace = workspaces.firstWhereOrNull(
-              (ws) => ws['id'] == lastActiveWorkspaceId
-            );
-            
-            if (lastActiveWorkspace != null) {
-              selectedWorkspaceId = lastActiveWorkspaceId;
-              selectedWorkspaceName = lastActiveWorkspace['name'] as String;
-              print('✅ Using last active workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
-            } else {
-              print('⚠️ Last active workspace not found in user workspaces, using first workspace');
-            }
-          }
-        } catch (e) {
-          print('⚠️ Failed to get last active workspace: $e');
-        }
-        
-        // Fallback to first workspace if no last active workspace
-        if (selectedWorkspaceId == null) {
-          final firstWorkspace = workspaces.first;
-          selectedWorkspaceId = firstWorkspace['id'] as String;
-          selectedWorkspaceName = firstWorkspace['name'] as String;
-          print('✅ Using first workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
-        }
-        
-        _currentWorkspaceId = selectedWorkspaceId;
-        
-        print('✅ Company picker initialized with workspace: $selectedWorkspaceName');
-        
-        // Load companies for the selected workspace
-        await _loadCompanies();
-      } else {
-        print('⚠️ No workspaces found for user: $_currentUserId');
-      }
-    } catch (e) {
-      print('❌ Failed to initialize user and workspace: $e');
-    }
+  // Apply current search filter to available companies
+  List<Company> _applySearchFilter(String query) {
+    final searchQuery = query.toLowerCase().trim();
+    if (searchQuery.isEmpty) return List<Company>.from(_availableCompanies);
+    return _availableCompanies.where((company) {
+      return company.displayName.toLowerCase().contains(searchQuery) ||
+          company.customId.toLowerCase().contains(searchQuery) ||
+          company.taxId.toLowerCase().contains(searchQuery);
+    }).toList();
   }
 
-  Future<void> _loadCompanies() async {
+  Future<void> _loadCompanies() async { // now becomes realtime subscribe
     try {
-      setState(() {
-        _isLoading = true;
-      });
+      setState(() { _isLoading = true; });
 
       if (_currentWorkspaceId.isEmpty) {
         print('⚠️ CompanyPicker: No workspace ID available for companies');
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() { _isLoading = false; });
         return;
       }
 
-      final companies = await _companyService.getCompanies(_currentWorkspaceId);
-      
-      setState(() {
-        _availableCompanies = companies;
-        _filteredCompanies = companies;
-        _isLoading = false;
+      // Cancel previous subscription if any
+      await _companiesSub?.cancel();
+      print('🔁 Subscribing to companiesStream for workspace: $_currentWorkspaceId');
+      _companiesSub = _companyService.companiesStream(_currentWorkspaceId).listen((companies) {
+        print('📡 Realtime companies update: ${companies.length} docs');
+        if (!mounted) return;
+        setState(() {
+          _availableCompanies = companies;
+          _filteredCompanies = _applySearchFilter(_searchController.text);
+          _isLoading = false;
+          _companiesLoaded = true;
+        });
+        _resolvePendingSelectedIds();
+      }, onError: (e) {
+        print('❌ Realtime companies stream error: $e');
+        if (!mounted) return;
+        setState(() { _isLoading = false; });
       });
-      
-      print('📋 Companies loaded: ${companies.length} companies');
-      
-      // Force rebuild of any open modal
-      if (mounted) {
-        setState(() {});
-        _currentModalStateSetter?.call(() {});
-      }
     } catch (e) {
-      print('Error loading companies: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      print('❌ Error subscribing companies for workspace $_currentWorkspaceId: $e');
+      setState(() { _isLoading = false; });
     }
   }
 
   void _onSearchChanged(String value) {
-    final searchQuery = value.toLowerCase().trim();
     setState(() {
-      _isSearching = searchQuery.isNotEmpty;
-      if (searchQuery.isEmpty) {
-        _filteredCompanies = List<Company>.from(_availableCompanies);
-      } else {
-        _filteredCompanies = _availableCompanies.where((company) {
-          return company.displayName.toLowerCase().contains(searchQuery) ||
-                 company.customId.toLowerCase().contains(searchQuery) ||
-                 company.taxId.toLowerCase().contains(searchQuery);
-        }).toList();
-      }
+      _isSearching = value.trim().isNotEmpty;
+      _filteredCompanies = _applySearchFilter(value);
     });
-    // Search query processed: "$searchQuery", Found: ${_filteredCompanies.length} companies
   }
 
   void _toggleCompany(Company company) {
@@ -588,12 +631,16 @@ class _CompanyPickerState extends State<CompanyPicker> {
                             ),
                             trailing: Checkbox(
                               value: isSelected,
-                              onChanged: (_) => _toggleCompany(company),
+
+                              onChanged: (_) {
+                                _toggleCompany(company);
+                                setState(() {});
+                                setModalState?.call(() {});
+                              },
                               activeColor: AppTheme.primaryOrange,
                             ),
                             onTap: () {
                               _toggleCompany(company);
-                              // Force rebuild to show selection state immediately
                               setState(() {});
                               setModalState?.call(() {});
                             },
@@ -713,6 +760,31 @@ class _CompanyPickerState extends State<CompanyPicker> {
     );
   }
 
+
+  // Public: refresh companies list
+  Future<void> refresh() async {
+    if (_currentWorkspaceId.isEmpty) {
+      await _initializeUserAndWorkspace();
+    } else {
+      await _loadCompanies();
+    }
+  }
+
+  // Public: open picker modal
+  void open() {
+    _showCompanyPicker();
+  }
+
+  // Public helper to set selected company IDs dynamically
+  void setSelectedCompanyIds(List<String> ids) {
+    _pendingSelectedCompanyIds = List<String>.from(ids);
+    _resolvePendingSelectedIds();
+  }
+
+  // Public getters to allow parent widgets to inspect loaded companies
+  List<Company> get availableCompanies => List<Company>.unmodifiable(_availableCompanies);
+  Set<String> get availableCompanyIds => _availableCompanies.map((c) => c.id).where((id) => id.isNotEmpty).toSet();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -790,12 +862,123 @@ class _CompanyPickerState extends State<CompanyPicker> {
               runSpacing: 8,
                           children: _selectedCompanies.map((company) {
               return _buildCompanyChip(company, true, null);
-            }).toList(),
-            ),
+            }).toList(),),
             const SizedBox(height: 12),
           ],
         ],
       ),
     );
   }
+
+  Future<void> _initializeUserAndWorkspace() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        print('❌ CompanyPicker: no authenticated user');
+        setState(() { _isLoading = false; });
+        return;
+      }
+      _currentUserId = currentUser.uid;
+      print('👤 CompanyPicker init for user $_currentUserId');
+
+      final workspaces = await _repository.getUserWorkspaces(_currentUserId);
+      print('📋 User workspaces count: ${workspaces.length}');
+      if (workspaces.isEmpty) {
+        print('⚠️ No workspaces for user $_currentUserId');
+        setState(() { _isLoading = false; });
+        return;
+      }
+
+      String? chosenId;
+      try {
+        final lastActive = await _repository.getUserLastActiveWorkspaceId(_currentUserId);
+        if (lastActive != null && lastActive.isNotEmpty && workspaces.any((w) => w['id'] == lastActive)) {
+          chosenId = lastActive;
+          print('✅ Using lastActive workspace $chosenId');
+        }
+      } catch (e) {
+        print('ℹ️ Could not get last active workspace: $e');
+      }
+      chosenId ??= workspaces.first['id'] as String? ?? '';
+      _currentWorkspaceId = chosenId;
+      print('🏢 Final workspaceId: $_currentWorkspaceId');
+      await _loadCompanies();
+    } catch (e) {
+      print('❌ _initializeUserAndWorkspace error: $e');
+      if (mounted) setState(() { _isLoading = false; });
+    }
+  }
+
+  void _mergeAllWorkspaceCompanies(Map<String, List<Company>> all) {
+    final merged = <Company>[];
+    for (final entry in all.entries) {
+      merged.addAll(entry.value);
+    }
+    _availableCompanies = merged;
+    _filteredCompanies = _applySearchFilter(_searchController.text);
+  }
+
+  Future<void> _initializeAllWorkspaces() async {
+    try {
+      setState(() { _isLoading = true; });
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        setState(() { _isLoading = false; });
+        return;
+      }
+      _currentUserId = currentUser.uid;
+      final workspaces = await _repository.getUserWorkspaces(_currentUserId);
+      if (workspaces.isEmpty) {
+        setState(() { _isLoading = false; });
+        return;
+      }
+      for (final ws in workspaces) {
+        final id = ws['id'] as String? ?? '';
+        final name = ws['name'] as String? ?? id;
+        if (id.isEmpty) continue;
+        _workspaceNames[id] = name;
+        _subscribeWorkspace(id);
+      }
+    } catch (e) {
+      print('❌ _initializeAllWorkspaces error: $e');
+      setState(() { _isLoading = false; });
+    }
+  }
+
+  void _switchToAllWorkspaces() {
+    for (final sub in _workspaceSubs.values) { sub.cancel(); }
+    _workspaceSubs.clear();
+    _availableCompanies.clear();
+    _filteredCompanies.clear();
+    _initializeAllWorkspaces();
+  }
+
+  void _subscribeWorkspace(String workspaceId) async {
+    print('🔁 Subscribing workspace $workspaceId (all mode)');
+    final sub = _companyService.companiesStream(workspaceId).listen((companies) {
+      if (!mounted) return;
+      print('📡 Update from $workspaceId count=${companies.length}');
+      // tag each company with its workspaceId (already present)
+      final grouped = <String, List<Company>>{};
+      // Rebuild grouped from existing subscriptions
+      for (final entry in _workspaceSubs.entries) {
+        if (entry.key == workspaceId) continue; // skip current; will add after
+      }
+      // We don't keep per-workspace cache yet; simple approach: refetch all via subs snapshots stored
+      // Simpler: maintain a map id->list in state
+      _workspaceCompanyCache[workspaceId] = companies;
+      grouped.addAll(_workspaceCompanyCache);
+      setState(() {
+        _mergeAllWorkspaceCompanies(grouped);
+        _isLoading = false;
+        _companiesLoaded = true;
+      });
+      _resolvePendingSelectedIds();
+    }, onError: (e) {
+      print('❌ Stream error workspace $workspaceId: $e');
+    });
+    _workspaceSubs[workspaceId] = sub;
+  }
+
+  final Map<String,List<Company>> _workspaceCompanyCache = {}; // workspaceId -> companies
 }

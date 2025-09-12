@@ -5,7 +5,7 @@ class Customer {
   final String name;
   final String prefix;
   final String gender;
-  final String age;
+  final int age; // changed from String to int
   final String customerType;
   final List<Map<String, dynamic>> emails;
   final List<Map<String, dynamic>> phones;
@@ -21,13 +21,14 @@ class Customer {
   final DateTime updatedAt;
   final String createdBy;
   final String updatedBy;
+  final String profileImageUrl; // NEW
 
   Customer({
     required this.id,
     required this.name,
     required this.prefix,
     required this.gender,
-    required this.age,
+    required this.age, // int now
     required this.customerType,
     required this.emails,
     required this.phones,
@@ -43,6 +44,7 @@ class Customer {
     required this.updatedAt,
     required this.createdBy,
     required this.updatedBy,
+    this.profileImageUrl = '', // default empty
   });
 
   Customer copyWith({
@@ -50,7 +52,7 @@ class Customer {
     String? name,
     String? prefix,
     String? gender,
-    String? age,
+    int? age, // int now
     String? customerType,
     List<Map<String, dynamic>>? emails,
     List<Map<String, dynamic>>? phones,
@@ -66,6 +68,7 @@ class Customer {
     DateTime? updatedAt,
     String? createdBy,
     String? updatedBy,
+    String? profileImageUrl,
   }) {
     return Customer(
       id: id ?? this.id,
@@ -88,6 +91,7 @@ class Customer {
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
     );
   }
 
@@ -97,7 +101,7 @@ class Customer {
       'name': name,
       'prefix': prefix,
       'gender': gender,
-      'age': age,
+      'age': age, // store as number
       'customerType': customerType,
       'emails': emails,
       'phones': phones,
@@ -113,18 +117,28 @@ class Customer {
       'updatedAt': updatedAt.millisecondsSinceEpoch,
       'createdBy': createdBy,
       'updatedBy': updatedBy,
+      'profileImageUrl': profileImageUrl,
     };
   }
 
   // Create from Map from Firestore
   factory Customer.fromMap(Map<String, dynamic> map, String id) {
     try {
+      final dynamic rawAge = map['age'];
+      int parsedAge = 0;
+      if (rawAge is int) {
+        parsedAge = rawAge;
+      } else if (rawAge is double) {
+        parsedAge = rawAge.toInt();
+      } else if (rawAge is String) {
+        parsedAge = int.tryParse(rawAge.trim()) ?? 0;
+      }
       return Customer(
         id: id,
         name: map['name']?.toString() ?? '',
         prefix: map['prefix']?.toString() ?? '',
         gender: map['gender']?.toString() ?? '',
-        age: map['age']?.toString() ?? '',
+        age: parsedAge,
         customerType: map['customerType']?.toString() ?? '',
         emails: parseEmailsFromMap(map['emails']),
         phones: parsePhonesFromMap(map['phones']),
@@ -140,6 +154,7 @@ class Customer {
         updatedAt: _parseDateTime(map['updatedAt']),
         createdBy: map['createdBy']?.toString() ?? '',
         updatedBy: map['updatedBy']?.toString() ?? '',
+        profileImageUrl: (map['profileImageUrl'] ?? '').toString(),
       );
     } catch (e) {
       print('Error creating Customer from map: $e');
@@ -195,7 +210,7 @@ class Customer {
         other.name == name &&
         other.prefix == prefix &&
         other.gender == gender &&
-        other.age == age &&
+        other.age == age && // int compare
         other.customerType == customerType &&
         other.emails == emails &&
         other.phones == phones &&
@@ -219,7 +234,7 @@ class Customer {
         name.hashCode ^
         prefix.hashCode ^
         gender.hashCode ^
-        age.hashCode ^
+        age.hashCode ^ // int hash
         customerType.hashCode ^
         emails.hashCode ^
         phones.hashCode ^
@@ -566,5 +581,3 @@ class Customer {
     }
   }
 }
-
-

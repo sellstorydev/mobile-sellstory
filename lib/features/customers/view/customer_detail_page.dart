@@ -607,13 +607,19 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           // Profile Image
           CircleAvatar(
             radius: 40,
-            backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-            child: Icon(
-              Icons.person,
-              size: 40,
-              color: AppTheme.primaryOrange,
-            ),
+            backgroundColor: AppTheme.primaryOrange.withAlpha(25),
+            backgroundImage: (_currentCustomer != null && _currentCustomer!.profileImageUrl.isNotEmpty)
+                ? NetworkImage(_currentCustomer!.profileImageUrl)
+                : null,
+            child: (_currentCustomer == null || _currentCustomer!.profileImageUrl.isEmpty)
+                ? Icon(
+                    Icons.person,
+                    size: 40,
+                    color: AppTheme.primaryOrange,
+                  )
+                : null,
           ),
+
           const SizedBox(height: 16),
           
           // Name
@@ -722,11 +728,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
               color: AppTheme.primaryOrange.withAlpha(25),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.person,
-              color: AppTheme.primaryOrange,
-              size: 28,
-            ),
+            child: (customer.profileImageUrl.isNotEmpty)
+                ? ClipOval(child: Image.network(customer.profileImageUrl, width: 56, height: 56, fit: BoxFit.cover))
+                : const Icon(
+                    Icons.person,
+                    color: AppTheme.primaryOrange,
+                    size: 28,
+                  ),
           ),
           const SizedBox(height: 10),
           Text(
@@ -1054,6 +1062,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     if (visible.isEmpty) {
       return Center(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(

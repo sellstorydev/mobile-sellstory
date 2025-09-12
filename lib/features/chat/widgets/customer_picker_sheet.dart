@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
+import '../../../data/repositories/firestore_repository.dart';
+import '../../../domain/entities/customer.dart';
 
 class CustomerItem {
   final String id;
@@ -20,6 +22,7 @@ class CustomerPickerSheet extends StatefulWidget {
 class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
   late Future<List<CustomerItem>> _future;
   String _query = '';
+  final FirestoreRepository _repository = Get.find<FirestoreRepository>();
 
   @override
   void initState() {
@@ -28,24 +31,20 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
   }
 
   Future<List<CustomerItem>> _loadCustomers() async {
-    final qs = await FirebaseFirestore.instance
-        .collection('workspaces')
-        .doc(widget.workspaceId)
-        .collection('customers')
-        .limit(500)
-        .get();
-    final list = qs.docs.map((d) {
-      final m = d.data();
-      final name = (m['name'] ?? m['displayName'] ?? m['customerName'] ?? '').toString();
-      final customId = m['customId']?.toString();
+    final List<Customer> customers = await _repository.getCustomers(widget.workspaceId);
+    final list = customers.map((c) {
       String? company;
-      final companies = (m['companyNames'] as List?)?.cast<Map?>();
-      if (companies != null && companies.isNotEmpty) {
-        final first = companies.first as Map?;
-        final firstMap = first as Map<String, dynamic>?;
-        company = firstMap?['value']?.toString();
+      if (c.companyNames.isNotEmpty) {
+        final first = c.companyNames.first;
+        company = (first['value']?.toString() ?? '').isNotEmpty ? first['value'].toString() : null;
       }
-      return CustomerItem(id: d.id, name: name.isEmpty ? '(ไม่มีชื่อ)' : name, customId: customId, company: company);
+      final displayName = c.name.isNotEmpty ? c.name : '(ไม่มีชื่อ)';
+      return CustomerItem(
+        id: c.id,
+        name: displayName,
+        customId: c.customId.isNotEmpty ? c.customId : null,
+        company: company,
+      );
     }).toList();
     list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return list;

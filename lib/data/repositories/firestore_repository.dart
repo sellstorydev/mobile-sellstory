@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import '../services/firestore_service.dart';
 import '../../domain/entities/lane.dart';
@@ -7,6 +8,7 @@ import '../../domain/entities/customer.dart';
 import '../../domain/entities/company.dart';
 import '../../domain/entities/board.dart';
 import '../../core/services/logger_service.dart';
+import '../services/mobile_permissions_service.dart';
 
 class FirestoreRepository {
   final FirestoreService _firestoreService = Get.find<FirestoreService>();
@@ -1087,14 +1089,30 @@ class FirestoreRepository {
       
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
       final querySnapshot = await _firestoreService.getDocuments(customersCollection);
-      
+
       final customers = querySnapshot.docs.map((doc) {
         return Customer.fromMap(doc.data(), doc.id);
       }).toList();
       
       print('✅ Customers loaded successfully - ${customers.length} customers');
       _logger.methodExit('FirestoreRepository.getCustomers', {'count': customers.length});
-      return customers;
+
+      // Permission-based filtering
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('customer:view:all');
+      final bool canViewAssigned = perms.can('customer:view:assigned');
+
+      if (isOwner || canViewAll) {
+        return customers;
+      }
+      if (canViewAssigned && uid.isNotEmpty) {
+        return customers.where((c) => c.assignees.contains(uid)).toList();
+      }
+      // No permission to view
+      return <Customer>[];
+
     } catch (e) {
       print('❌ Failed to get customers: $e');
       _logger.error('Failed to get customers', e);
@@ -1114,12 +1132,28 @@ class FirestoreRepository {
       
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
       return _firestoreService.getDocumentsStream(customersCollection).map((querySnapshot) {
+
         final customers = querySnapshot.docs.map((doc) {
           return Customer.fromMap(doc.data(), doc.id);
+
         }).toList();
-        
         print('✅ Customers stream updated - ${customers.length} customers');
-        return customers;
+
+        // Permission-based filtering (stream)
+        final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+        final perms = MobilePermissionsService.to;
+        final bool isOwner = perms.isOwner;
+        final bool canViewAll = perms.can('customer:view:all');
+        final bool canViewAssigned = perms.can('customer:view:assigned');
+
+        if (isOwner || canViewAll) {
+          return customers;
+        }
+        if (canViewAssigned && uid.isNotEmpty) {
+          return customers.where((c) => c.assignees.contains(uid)).toList();
+        }
+        return <Customer>[];
+
       });
     } catch (e) {
       print('❌ Failed to get customers stream: $e');
