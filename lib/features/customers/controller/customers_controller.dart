@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -26,6 +27,7 @@ class CustomersController extends GetxController {
 
   // Companies index for search (companyId -> { name, taxId })
   final Map<String, Map<String, String>> _companyIndex = {};
+  StreamSubscription<List<Customer>>? _customersSub;
 
   CustomersController(this._customerRepository);
 
@@ -133,19 +135,25 @@ class CustomersController extends GetxController {
   // Load customers for a workspace
   Future<void> loadCustomers(String workspaceId) async {
     print(workspaceId);
+    // Cancel any previous subscription to avoid leaks/duplicates
+    await _customersSub?.cancel();
+    isLoading.value = true;
+    errorMessage.value = '';
     try {
-      isLoading.value = true;
-      errorMessage.value = '';
-
-      // Get customers stream for real-time updates
-      _customerRepository.getCustomersStream(workspaceId).listen((customersList) {
-        print(customersList);
-        customers.value = customersList;
-        _filterCustomers();
-      });
+      _customersSub = _customerRepository.getCustomersStream(workspaceId).listen(
+        (customersList) {
+          customers.value = customersList;
+          _filterCustomers();
+          isLoading.value = false;
+        },
+        onError: (e) {
+          errorMessage.value = 'Failed to load customers: $e';
+          isLoading.value = false;
+        },
+        cancelOnError: false,
+      );
     } catch (e) {
       errorMessage.value = 'Failed to load customers: $e';
-    } finally {
       isLoading.value = false;
     }
   }
@@ -499,5 +507,11 @@ class CustomersController extends GetxController {
       print('❌ Failed to switch workspace: $e');
       errorMessage.value = 'Failed to switch workspace';
     }
+  }
+
+  @override
+  void onClose() {
+    _customersSub?.cancel();
+    super.onClose();
   }
 }

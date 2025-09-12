@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../data/services/firestore_service.dart';
 import '../../../core/services/logger_service.dart';
 import '../../board/controller/board_controller.dart'; // Add this import
+import '../../../data/services/mobile_permissions_service.dart';
 
 class ChatController extends GetxController {
   final FirestoreService _firestoreService = Get.find<FirestoreService>();
@@ -517,9 +518,13 @@ class ChatController extends GetxController {
             final ids = ((enriched['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
             if (ids.isNotEmpty) {
               enriched['assigneeIds'] = ids;
+              enriched['assigneesKnown'] = true;
+            } else {
+              enriched['assigneesKnown'] = false;
             }
-
-          } catch (_) {}
+          } catch (_) {
+            enriched['assigneesKnown'] = false;
+          }
           // Attach hashtag meta (name + color from master list)
           try {
             enriched['hashtagMeta'] = _buildHashtagMeta(enriched);
@@ -573,11 +578,28 @@ class ChatController extends GetxController {
   }
 
   List<Map<String, dynamic>> get filteredConversations {
+    final perms = MobilePermissionsService.to;
+    final bool isOwnerOrAll = perms.isOwner || perms.can('chat:view:all');
+    final bool canAssigned = perms.can('chat:view:assigned');
+    final bool canUnassigned = perms.can('chat:view:unassigned');
+    final String uid = _currentUserId ?? '';
+
     var filtered = conversations.where((conv) {
+      // Permission gating
+      if (!isOwnerOrAll) {
+        final ids = (conv['assigneeIds'] is List)
+            ? (conv['assigneeIds'] as List).map((e) => e.toString()).toSet()
+            : <String>{};
+        final bool assignedToMe = canAssigned && uid.isNotEmpty && ids.contains(uid);
+        final bool assigneesKnown = (conv['assigneesKnown'] == true);
+        final bool unassigned = canUnassigned && assigneesKnown && ids.isEmpty;
+        if (!(assignedToMe || unassigned)) return false;
+      }
+
       // Ensure hashtagMeta exists so UI can render tags even after search/first paint
       try {
         final rawMeta = conv['hashtagMeta'];
-        final isEmptyMeta = rawMeta is! List || (rawMeta as List).isEmpty;
+        final isEmptyMeta = rawMeta is! List || rawMeta.isEmpty;
         if (isEmptyMeta) {
           conv['hashtagMeta'] = _buildHashtagMeta(conv);
         }
@@ -837,10 +859,9 @@ class ChatController extends GetxController {
         final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
         if (idx >= 0) {
           conversations[idx]['assigneeNames'] = names;
-          // If we fetched uids in this round, store them for filtering
-          if (uids.isNotEmpty) {
-            conversations[idx]['assigneeIds'] = uids;
-          }
+          // Always set ids (can be empty) and known flag
+          conversations[idx]['assigneeIds'] = uids;
+          conversations[idx]['assigneesKnown'] = true;
           conversations.refresh();
         }
       } else {
@@ -852,25 +873,25 @@ class ChatController extends GetxController {
             uids = raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
           } else {
             // Fallback: read from chatroom doc
-            final doc = await _firestoreService
+            final chatDoc = await _firestoreService
                 .getChatroomsCollection(wsId)
                 .doc((item['id'] ?? '').toString())
                 .get();
-            final m = doc.data() ?? {};
+            final m = chatDoc.data() ?? {};
             uids = ((m['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
           }
-          if (uids.isEmpty) continue;
-          final futures = uids.map((uid) async {
-            final u = await FirestoreService.to.usersCollection.doc(uid).get();
+          final futures = uids.map((id) async {
+            final u = await FirestoreService.to.usersCollection.doc(id).get();
             final m = u.data() ?? {};
             final dn = (m['displayName'] ?? m['name'] ?? '').toString();
-            return dn.isNotEmpty ? dn : uid;
+            return dn.isNotEmpty ? dn : id;
           });
           final names = await Future.wait(futures);
           final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
           if (idx >= 0) {
             conversations[idx]['assigneeNames'] = names;
             conversations[idx]['assigneeIds'] = uids;
+            conversations[idx]['assigneesKnown'] = true;
             conversations.refresh();
           }
         } catch (_) {
@@ -939,9 +960,9 @@ class ChatController extends GetxController {
         final currentIds = (conversations[idx]['hashtagIds'] is List)
             ? (conversations[idx]['hashtagIds'] as List).map((e) => e.toString()).toSet()
             : <String>{};
-        final mergedIds = <String>{}..addAll(currentIds)..addAll(ids ?? const []);
+        final List<String> idsToAdd = ids;
+        final mergedIds = <String>{}..addAll(currentIds)..addAll(idsToAdd);
         conversations[idx]['hashtagIds'] = mergedIds.toList();
-
         List<Map<String, String>> currentMeta = const [];
         try {
           currentMeta = (conversations[idx]['hashtagMeta'] as List?)
@@ -956,8 +977,9 @@ class ChatController extends GetxController {
 
         String norm(String s) => s.replaceFirst('#', '').toLowerCase();
         final namesSet = currentMeta.map((m) => norm(m['name'] ?? '')).toSet();
+        final List<Map<String, String>> metaToAdd = meta;
         final toAdd = <Map<String, String>>[];
-        for (final m in (meta ?? const [])) {
+        for (final m in metaToAdd) {
           final n = norm(m['name'] ?? '');
           if (n.isEmpty || namesSet.contains(n)) continue;
           toAdd.add(m);

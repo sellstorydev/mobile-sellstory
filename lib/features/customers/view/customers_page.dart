@@ -372,6 +372,8 @@ class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
+
+
   const _ErrorState({required this.message, required this.onRetry});
 
   @override
@@ -393,16 +395,21 @@ class _ErrorState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-            ),
+            getLotStr(message),
             const SizedBox(height: 14),
             OutlinedButton(onPressed: onRetry, child: const Text('ลองใหม่')),
           ],
         ),
       ),
     );
+  }
+  getLotStr(message){
+
+    print(message);
+        return  Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+        );
   }
 }

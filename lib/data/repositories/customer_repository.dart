@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/customer.dart';
 import '../services/firestore_service.dart';
@@ -19,7 +20,7 @@ class CustomerRepository {
 
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
 
-      var query = customersCollection as dynamic;
+      Query<Map<String, dynamic>> query = customersCollection;
       if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
         // Reduce data by server-side filtering when only assigned
         query = query.where('assignees', arrayContains: uid);
@@ -102,12 +103,12 @@ class CustomerRepository {
 
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
 
-      var base = customersCollection as dynamic;
+      Query<Map<String, dynamic>> base = customersCollection;
       if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
         base = base.where('assignees', arrayContains: uid);
       }
 
-      return base.snapshots().map((snapshot) {
+      return base.snapshots().map((QuerySnapshot<Map<String, dynamic>> snapshot) {
         final List<Customer> customers = [];
         
         for (final doc in snapshot.docs) {
@@ -236,7 +237,7 @@ class CustomerRepository {
 
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
 
-      var query = customersCollection
+      Query<Map<String, dynamic>> query = customersCollection
           .where('name', isGreaterThanOrEqualTo: searchTerm)
           .where('name', isLessThan: searchTerm + '\uf8ff');
 
@@ -261,7 +262,8 @@ class CustomerRepository {
           print('Error Message: $e');
           print('Raw Data: ${doc.data()}');
           print('Data Keys: ${doc.data().keys.toList()}');
-          
+
+
           // Try to extract basic information even if parsing fails
           try {
             final data = doc.data();
