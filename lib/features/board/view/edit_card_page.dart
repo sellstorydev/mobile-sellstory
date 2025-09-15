@@ -3633,7 +3633,7 @@ class _EditCardPageState extends State<EditCardPage> {
     print('🎯 EditCardPage - selected templateId: $_selectedTemplateId');
 
     // Navigate to CreateDocumentFromCardPage with selected template
-    Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CreateDocumentFromCardPage(
@@ -3642,6 +3642,12 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       ),
     );
+
+    // If quotation was created successfully, refresh the related documents
+    if (result == true) {
+      print('🔄 EditCardPage - Quotation created successfully, refreshing related documents');
+      await _loadRelatedDocumentsDetails();
+    }
   }
 
   // Hashtag section methods (copied from create page)
@@ -5469,17 +5475,40 @@ class _EditCardPageState extends State<EditCardPage> {
 
       final firestore = FirebaseFirestore.instance;
       final workspaceId = widget.card.workspaceId;
+      final cardId = widget.card.id;
 
       if (workspaceId.isEmpty) {
         print('⚠️ Missing workspaceId for loading related documents');
         return;
       }
 
-      // Get relatedDocuments from the card's field (not subcollection)
-      final cardRelatedDocuments = widget.card.relatedDocuments;
+      // Get fresh card data from Firestore to get latest relatedDocuments
+      final cardSnapshot = await firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('cards')
+          .doc(cardId)
+          .get();
+
+      List<Map<String, dynamic>> cardRelatedDocuments = [];
+      
+      if (cardSnapshot.exists) {
+        final cardData = cardSnapshot.data()!;
+        
+        // Extract relatedDocuments from fresh card data
+        final relatedDocsRaw = cardData['relatedDocuments'];
+        if (relatedDocsRaw != null && relatedDocsRaw is List) {
+          cardRelatedDocuments = List<Map<String, dynamic>>.from(
+            relatedDocsRaw.map((doc) => Map<String, dynamic>.from(doc))
+          );
+        }
+      } else {
+        // Fallback to widget card data if Firestore fetch fails
+        cardRelatedDocuments = widget.card.relatedDocuments;
+      }
       
       if (cardRelatedDocuments.isEmpty) {
-        print('ℹ️ No related documents found in card field');
+        print('ℹ️ No related documents found in card');
         setState(() {
           _relatedDocuments = [];
           _isLoadingRelatedDocuments = false;
