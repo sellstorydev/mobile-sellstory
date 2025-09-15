@@ -36,9 +36,9 @@ class ConversationTile extends StatelessWidget {
   String _detectPlatform(Map<String, dynamic> c) {
     final conn = c['connection'];
 
-    print("----------------");
-    print(conn);
-    print("----------------");
+    // print("----------------");
+    // print(c["source_type"]);
+    // print("----------------");
     final nestedPlatform = (conn is Map ? conn['platform'] : null)?.toString().toLowerCase();
 
 
@@ -57,9 +57,9 @@ class ConversationTile extends StatelessWidget {
         .where((s) => s.isNotEmpty)
         .toList();
 
-    final raw = candidates.isNotEmpty ? candidates.first : '';
+    final raw = (candidates.isNotEmpty ? candidates.first : '' ) + c["source_type"];
 
-    print("platfrom : "+raw);
+    // print("platfrom : "+raw);
 
     // New channels detection
     if (raw.contains('lazada')) return 'lazada';
@@ -96,7 +96,7 @@ class ConversationTile extends StatelessWidget {
   }
 
   (_PlatformIconColor, IconData) _platformStyle(String platform) {
-    print("platform :  "+platform);
+    // print("platform :  "+platform);
     switch (platform) {
       case 'facebook':
         return ((_PlatformIconColor(const Color(0xFF1877F2))), FontAwesomeIcons.facebook);
@@ -156,6 +156,7 @@ class ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // print(conversation);
     // Removed unused isGroup variable
     final name = (conversation['name'] ?? 'Unknown').toString();
     final chat_provider_name = (conversation['chat_provider_name'] ?? '').toString();
