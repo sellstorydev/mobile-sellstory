@@ -43,9 +43,9 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'ใบเสร็จรับเงิน',
-          style: TextStyle(
+        title: Text(
+          'receipts'.tr,
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
             fontFamily: AppFont.family,
@@ -104,7 +104,7 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
             controller: controller.searchController,
             onChanged: controller.onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'ค้นหาใบเสร็จรับเงิน...',
+              hintText: 'search_receipts'.tr,
               hintStyle: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: AppTheme.fontSize14,
@@ -199,15 +199,15 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
     final filters = <String>[];
 
     if (controller.selectedSeller.value != null) {
-      filters.add('เซล: ${controller.selectedSeller.value!.displayName}');
+      filters.add('seller_filter'.tr.replaceFirst('{name}', controller.selectedSeller.value!.displayName));
     }
 
     if (controller.selectedDateRange.value != null) {
-      filters.add('วันที่: ${_getDateRangeDisplayText(controller)}');
+      filters.add('date_filter'.tr.replaceFirst('{range}', _getDateRangeDisplayText(controller)));
     }
 
     if (controller.selectedStatuses.isNotEmpty) {
-      filters.add('สถานะ: ${controller.selectedStatuses.length} รายการ');
+      filters.add('status_filter'.tr.replaceFirst('{count}', controller.selectedStatuses.length.toString()));
     }
 
     return filters.join(' • ');
@@ -215,25 +215,25 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
 
   String _getDateRangeDisplayText(ReceiptListController controller) {
     if (controller.selectedDateRange.value == null) {
-      return 'ทั้งหมด';
+      return 'all'.tr;
     }
 
     switch (controller.selectedDateRange.value) {
       case 'today':
-        return 'วันนี้';
+        return 'today'.tr;
       case 'this_week':
-        return 'สัปดาห์นี้';
+        return 'this_week'.tr;
       case 'this_month':
-        return 'เดือนนี้';
+        return 'this_month'.tr;
       case 'custom':
         if (controller.selectedCustomDateRange.value != null) {
           final startDate = controller.selectedCustomDateRange.value!.start;
           final endDate = controller.selectedCustomDateRange.value!.end;
           return '${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month}';
         }
-        return 'เลือกช่วงวันที่';
+        return 'select_date_range'.tr;
       default:
-        return 'ทั้งหมด';
+        return 'all'.tr;
     }
   }
 
@@ -409,7 +409,7 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '฿${grandTotal.toStringAsFixed(2)}',
+                        '${'currency_symbol'.tr}${grandTotal.toStringAsFixed(2)}',
                         style: const TextStyle(
                           color: AppTheme.textPrimary,
                           fontSize: AppTheme.fontSize14,
@@ -446,11 +446,11 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
     switch (status) {
       case 'COMPLETED':
         color = const Color(0xFF4CAF50);
-        text = 'เสร็จสิ้น';
+        text = 'completed'.tr;
         break;
       case 'VOID':
         color = AppTheme.textSecondary;
-        text = 'ยกเลิก';
+        text = 'void'.tr;
         break;
       default:
         color = AppTheme.textSecondary;
@@ -498,7 +498,7 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
           ),
           const SizedBox(height: AppTheme.spacing24),
           Text(
-            'ไม่พบใบเสร็จรับเงิน',
+            'no_receipts_found'.tr,
             style: TextStyle(
               color: AppTheme.textPrimary,
               fontSize: AppTheme.fontSize18,
@@ -508,7 +508,7 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
           ),
           const SizedBox(height: AppTheme.spacing8),
           Text(
-            'เริ่มต้นสร้างใบเสร็จรับเงินแรกของคุณ',
+            'start_creating_first_receipt'.tr,
             style: TextStyle(
               color: AppTheme.textSecondary,
               fontSize: AppTheme.fontSize14,
@@ -520,7 +520,7 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
           ElevatedButton.icon(
             onPressed: () => controller.createNewReceipt(),
             icon: const Icon(Icons.add),
-            label: const Text('สร้างใบเสร็จรับเงิน'),
+            label: Text('create_receipt'.tr),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,

@@ -96,7 +96,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _handleLinkTap(String rawLink) async {
     final uri = _parseLink(rawLink);
     if (uri == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ลิงก์ไม่ถูกต้อง')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('invalid_link'.tr)));
       return;
     }
 
@@ -120,14 +120,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (path.startsWith('/sales-docs/')) {
       // Not yet supported in-app; show info
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เปิดเอกสาร: $path')),
+        SnackBar(content: Text('${'open_document'.tr}: $path')),
       );
       return;
     }
 
     // Fallback
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('ยังไม่รองรับลิงก์นี้: ${uri.toString()}')),
+      SnackBar(content: Text('${'unsupported_link'.tr}: ${uri.toString()}')),
     );
   }
 
@@ -156,7 +156,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       return true;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('คุณไม่มีสิทธิ์เปิดบอร์ดงาน')),
+      SnackBar(content: Text('no_permission_open_board'.tr)),
     );
     return false;
   }
@@ -170,7 +170,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       Get.toNamed(AppRoutes.board);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ไปที่บอร์ดไม่สำเร็จ: $e')),
+        SnackBar(content: Text('${'failed_goto_board'.tr}: $e')),
       );
     }
   }
@@ -204,7 +204,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         // Permission check for viewing this card
         if (!_canViewCard(found, uid)) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('คุณไม่มีสิทธิ์ดูการ์ดนี้')),
+            SnackBar(content: Text('no_permission_view_card'.tr)),
           );
           return;
         }
@@ -220,7 +220,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               if (c != null) {
                 if (!_canViewCard(c, uid)) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('คุณไม่มีสิทธิ์ดูการ์ดนี้')),
+                    SnackBar(content: Text('no_permission_view_card'.tr)),
                   );
                   return;
                 }
@@ -231,12 +231,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
           }
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ไม่พบการ์ดนี้ในบอร์ด')),
+          SnackBar(content: Text('card_not_found_in_board'.tr)),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เปิดการ์ดไม่สำเร็จ: $e')),
+        SnackBar(content: Text('${'failed_open_card'.tr}: $e')),
       );
     }
   }
@@ -336,7 +336,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       await _handleLinkTap(link);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ไม่มีลิงก์สำหรับการแจ้งเตือนนี้')),
+                        SnackBar(content: Text('no_link_for_notification'.tr)),
                       );
                     }
                   },

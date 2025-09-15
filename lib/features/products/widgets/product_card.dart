@@ -17,8 +17,8 @@ class ProductCard extends StatelessWidget {
   void _showDeleteConfirmation(BuildContext context) async {
     final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      title: 'ยืนยันการลบสินค้า',
-      content: 'คุณต้องการลบสินค้า "${product.name}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้',
+      title: 'confirm_delete_product'.tr,
+      content: 'delete_product_confirmation'.tr.replaceFirst('{name}', product.name),
     );
 
     if (confirmed == true) {
@@ -43,8 +43,8 @@ class ProductCard extends StatelessWidget {
       if (workspaceId.isEmpty) {
         Navigator.of(context).pop(); // Close loading dialog
         Get.snackbar(
-          'ข้อผิดพลาด',
-          'ไม่สามารถลบสินค้าได้: ไม่พบ Workspace',
+          'error'.tr,
+          'cannot_delete_product_no_workspace'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -59,8 +59,8 @@ class ProductCard extends StatelessWidget {
 
       if (success) {
         Get.snackbar(
-          'สำเร็จ',
-          'ลบสินค้าเรียบร้อยแล้ว',
+          'success'.tr,
+          'product_deleted_successfully'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -69,8 +69,8 @@ class ProductCard extends StatelessWidget {
         controller.refreshProducts();
       } else {
         Get.snackbar(
-          'ข้อผิดพลาด',
-          'ไม่สามารถลบสินค้าได้',
+          'error'.tr,
+          'cannot_delete_product'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -81,8 +81,8 @@ class ProductCard extends StatelessWidget {
       Navigator.of(context).pop();
       
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'เกิดข้อผิดพลาดในการลบสินค้า: $e',
+        'error'.tr,
+        'error_deleting_product'.tr.replaceFirst('{error}', e.toString()),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -170,10 +170,10 @@ class ProductCard extends StatelessWidget {
                              top: Radius.circular(12),
                            ),
                          ),
-                         child: const Center(
+                         child: Center(
                            child: Text(
-                             'ยังไม่เปิดขาย',
-                             style: TextStyle(
+                             'not_on_sale'.tr,
+                             style: const TextStyle(
                                color: Colors.white,
                                fontSize: 16,
                                fontWeight: FontWeight.bold,
@@ -217,9 +217,9 @@ class ProductCard extends StatelessWidget {
                                     color: AppTheme.primaryBlue,
                                   ),
                                   const SizedBox(width: 8),
-                                  const Text(
-                                    'แก้ไข',
-                                    style: TextStyle(
+                                  Text(
+                                    'edit'.tr,
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       color: AppTheme.textPrimary,
                                     ),
@@ -238,9 +238,9 @@ class ProductCard extends StatelessWidget {
                                     color: AppTheme.errorRed,
                                   ),
                                   const SizedBox(width: 8),
-                                  const Text(
-                                    'ลบ',
-                                    style: TextStyle(
+                                  Text(
+                                    'delete'.tr,
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       color: AppTheme.errorRed,
                                     ),
@@ -338,7 +338,7 @@ class ProductCard extends StatelessWidget {
 
                     // Price
                     Text(
-                      '฿${product.price.toStringAsFixed(2)}',
+                      '${'currency_symbol'.tr}${product.price.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: isSmallScreen ? 14 : 16,
                         fontWeight: FontWeight.bold,

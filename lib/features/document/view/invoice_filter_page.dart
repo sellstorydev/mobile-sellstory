@@ -77,20 +77,20 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
   @override
   Widget build(BuildContext context) {
     final statusOptions = [
-      {'value': 'DRAFT', 'label': 'ร่าง', 'icon': Icons.edit_outlined},
-      {'value': 'SENT', 'label': 'ส่งแล้ว', 'icon': Icons.send},
-      {'value': 'PARTIAL_PAID', 'label': 'ชำระบางส่วน', 'icon': Icons.payment},
-      {'value': 'PAID', 'label': 'ชำระแล้ว', 'icon': Icons.check_circle},
-      {'value': 'OVERDUE', 'label': 'เกินกำหนด', 'icon': Icons.warning},
-      {'value': 'VOID', 'label': 'ยกเลิก', 'icon': Icons.block},
+      {'value': 'DRAFT', 'label': 'draft'.tr, 'icon': Icons.edit_outlined},
+      {'value': 'SENT', 'label': 'sent'.tr, 'icon': Icons.send},
+      {'value': 'PARTIAL_PAID', 'label': 'partial_paid'.tr, 'icon': Icons.payment},
+      {'value': 'PAID', 'label': 'paid'.tr, 'icon': Icons.check_circle},
+      {'value': 'OVERDUE', 'label': 'overdue'.tr, 'icon': Icons.warning},
+      {'value': 'VOID', 'label': 'void'.tr, 'icon': Icons.block},
     ];
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'ตัวกรอง',
-          style: TextStyle(
+        title: Text(
+          'filter'.tr,
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
             fontFamily: AppFont.family,
@@ -113,9 +113,9 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
                 tempSelectedStatuses.clear();
               });
             },
-            child: const Text(
-              'ล้างตัวกรอง',
-              style: TextStyle(
+            child: Text(
+              'clear_filter'.tr,
+              style: const TextStyle(
                 color: AppTheme.primaryOrange,
                 fontSize: AppTheme.fontSize14,
                 fontFamily: AppFont.family,
@@ -131,7 +131,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Seller Filter Section
-            _buildSectionTitle('เซล'),
+            _buildSectionTitle('seller'.tr),
             const SizedBox(height: AppTheme.spacing12),
 
             // Seller selection using AssigneesInputField
@@ -141,8 +141,8 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
                   : [],
               availableMembers: _availableMembers,
               onAssigneesChanged: _onAssigneesChanged,
-              label: 'เลือกเซล',
-              hintText: 'เลือกเซลที่ต้องการกรอง',
+              label: 'select_seller'.tr,
+              hintText: 'select_seller_hint'.tr,
               isLoading: _isLoadingMembers,
               allowMultipleSelection: false, // Single selection for filtering
             )),
@@ -150,7 +150,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
             const SizedBox(height: AppTheme.spacing24),
 
             // Date Filter Section
-            _buildSectionTitle('วันที่'),
+            _buildSectionTitle('date'.tr),
             const SizedBox(height: AppTheme.spacing12),
 
             Container(
@@ -170,7 +170,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
               child: Column(
                 children: [
                   // Date range options
-                  _buildDateOption('ทั้งหมด', null, Icons.all_inclusive, () {
+                  _buildDateOption('all'.tr, null, Icons.all_inclusive, () {
                     setState(() {
                       widget.controller.selectedDateRange.value = null;
                       widget.controller.selectedCustomDateRange.value = null;
@@ -180,7 +180,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
 
                   const SizedBox(height: AppTheme.spacing8),
 
-                  _buildDateOption('วันนี้', 'today', Icons.today, () {
+                  _buildDateOption('today'.tr, 'today', Icons.today, () {
                     setState(() {
                       widget.controller.selectedDateRange.value = 'today';
                       widget.controller.applyFilters();
@@ -190,7 +190,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'สัปดาห์นี้',
+                    'this_week'.tr,
                     'this_week',
                     Icons.view_week,
                     () {
@@ -204,7 +204,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'เดือนนี้',
+                    'this_month'.tr,
                     'this_month',
                     Icons.calendar_view_month,
                     () {
@@ -219,7 +219,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'เลือกช่วงวันที่เอง',
+                    'select_custom_date_range'.tr,
                     'custom',
                     Icons.date_range,
                     () async {
@@ -296,7 +296,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
             // Status Filter Section
             Row(
               children: [
-                _buildSectionTitle('สถานะ'),
+                _buildSectionTitle('status'.tr),
                 const SizedBox(width: AppTheme.spacing8),
                 if (tempSelectedStatuses.isNotEmpty)
                   Container(
@@ -321,7 +321,7 @@ class _InvoiceFilterPageState extends State<InvoiceFilterPage> {
                         fontFamily: AppFont.family,
                         fontWeight: FontWeight.w500,
                       ),
-                      'เลือกแล้ว ${tempSelectedStatuses.length} รายการ',
+                      '${'selected'.tr} ${tempSelectedStatuses.length} ${'items'.tr}',
                     ),
                   ),
               ],

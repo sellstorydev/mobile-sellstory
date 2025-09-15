@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HashtagPickerResult {
@@ -112,7 +113,7 @@ class _HashtagPickerSheetState extends State<HashtagPickerSheet> {
     } catch (e) {
       // ignore: avoid_print
       print('HashtagPickerSheet fetch error: $e');
-      setState(() { _error = 'โหลดรายการไม่สำเร็จ'; _loading = false; });
+      setState(() { _error = 'load_list_failed'.tr; _loading = false; });
     }
   }
 
@@ -137,10 +138,10 @@ class _HashtagPickerSheetState extends State<HashtagPickerSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
-              children: const [
+              children: [
                 Icon(Icons.tag, color: Colors.black87),
                 SizedBox(width: 8),
-                Text('เลือก Hashtag', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                Text('select_hashtag'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -149,7 +150,7 @@ class _HashtagPickerSheetState extends State<HashtagPickerSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'ค้นหา hashtag...',
+                hintText: 'search_hashtag_hint'.tr,
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -165,7 +166,7 @@ class _HashtagPickerSheetState extends State<HashtagPickerSheet> {
                 : _error.isNotEmpty
                     ? Center(child: Text(_error))
                     : _all.isEmpty
-                        ? const Center(child: Text('ไม่มีรายการ hashtag'))
+                        ? Center(child: Text('no_hashtag_list'.tr))
                         : ListView.builder(
                             itemCount: _filtered.length,
                             itemBuilder: (ctx, i) {
@@ -204,7 +205,7 @@ class _HashtagPickerSheetState extends State<HashtagPickerSheet> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('ยกเลิก'),
+                    child: Text('cancel'.tr),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -215,7 +216,7 @@ class _HashtagPickerSheetState extends State<HashtagPickerSheet> {
                       final names = _all.where((t) => _selectedIds.contains(t.id)).map((t) => t.name).toList();
                       Navigator.pop(context, HashtagPickerResult(ids: ids, names: names));
                     },
-                    child: const Text('บันทึก'),
+                    child: Text('save'.tr),
                   ),
                 ),
               ],

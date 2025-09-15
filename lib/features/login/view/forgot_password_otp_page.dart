@@ -13,7 +13,7 @@ class ForgotPasswordOtpPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ยืนยัน OTP'),
+        title: Text('confirm_otp'.tr),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -96,7 +96,7 @@ class ForgotPasswordOtpPage extends StatelessWidget {
                                 height: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
                               )
-                            : const Text('ยืนยัน'),
+                            : Text('confirm'.tr),
                       ),
                     )),
               ],

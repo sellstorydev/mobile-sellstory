@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:get/get.dart';
 import 'dart:async';
 import '../../../data/services/chat_service.dart';
 import '../widgets/chat_header_line.dart';
@@ -64,7 +65,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _nearBottom = true;
 
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
-  String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? '���ชท');
+  String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? 'chat_default_name'.tr);
   String? get _avatarUrl => widget.conversationData['avatar'];
   String get _sourceType => widget.conversationData['source_type'] ?? 'unknown';
 
@@ -113,11 +114,11 @@ class _ChatScreenState extends State<ChatScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('ยืนยันการผูกเซล'),
-          content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?'),
+          title: Text('chat_confirm_assign_sales'.tr),
+          content: Text('chat_confirm_assign_user_question'.tr),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('confirm'.tr)),
           ],
         ),
       );
@@ -154,12 +155,12 @@ class _ChatScreenState extends State<ChatScreen> {
       } catch (_) {}
 
       if (mounted) {
-        _showSuccessSnackBar("ผูกเซลเรียบร้อย");
+        _showSuccessSnackBar("chat_assign_sales_success".tr);
 
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar("ผูกเซลไม่สำเร็จ");
+        _showErrorSnackBar("chat_assign_sales_failed".tr);
 
       }
     }

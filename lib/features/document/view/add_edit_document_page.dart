@@ -52,11 +52,11 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             title: Text(
               widget.documentId == null
                   ? (widget.documentType == 'QT'
-                        ? 'สร้างใบเสนอราคา'
-                        : 'สร้างใบแจ้งหนี้')
+                        ? 'create_quotation'.tr
+                        : 'create_invoice'.tr)
                   : (widget.documentType == 'QT'
-                        ? 'แก้ไขใบเสนอราคา'
-                        : 'แก้ไขใบแจ้งหนี้'),
+                        ? 'edit_quotation'.tr
+                        : 'edit_invoice'.tr),
               style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
@@ -81,7 +81,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                   Icons.unfold_more,
                   color: AppTheme.primaryOrange,
                 ),
-                tooltip: 'ขยายทุกส่วน',
+                tooltip: 'expand_all_sections'.tr,
               ),
               // Collapse All Sections Button
               IconButton(
@@ -94,7 +94,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                   Icons.unfold_less,
                   color: AppTheme.primaryOrange,
                 ),
-                tooltip: 'ย่อทุกส่วน',
+                tooltip: 'collapse_all_sections'.tr,
               ),
                              GetBuilder<AddEditDocumentController>(
                  builder: (controller) {
@@ -115,7 +115,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                             ),
                           )
                         : Text(
-                            'บันทึก',
+                            'save'.tr,
                             style: TextStyle(
                               color: _areRequiredFieldsComplete()
                                   ? AppTheme.primaryOrange
@@ -148,7 +148,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                             return Column(
                               children: [
                                 _buildSectionHeader(
-                                'สถานะเอกสาร & เทมเพลต',
+                                'document_status_template'.tr,
                                 Icons.settings,
                                 'status_template',
                                 ),
@@ -171,7 +171,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'สถานะเอกสาร',
+                                            'document_status'.tr,
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
@@ -210,7 +210,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'เทมเพลตเอกสาร',
+                                            'document_template'.tr,
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
@@ -251,7 +251,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                            return Column(
                              children: [
                                _buildSectionHeader(
-                                 'ข้อมูลลูกค้า',
+                                 'customer_data'.tr,
                                  Icons.person,
                                  'customer',
                                ),
@@ -271,7 +271,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                            return Column(
                              children: [
                                _buildSectionHeader(
-                                 'ข้อมูลผู้ขาย',
+                                 'seller_data'.tr,
                                  Icons.business,
                                  'seller',
                                ),
@@ -291,7 +291,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                            return Column(
                              children: [
                                _buildSectionHeader(
-                                 'รายการสินค้า/บริการ (${controller.products.length} รายการ)',
+                                 '${'product_service_list'.tr} (${'items_count'.trParams({'count': controller.products.length.toString()})})',
                                  Icons.inventory,
                                  'product',
                                ),
@@ -307,7 +307,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
                        // More Options Section
                        _buildSectionHeader(
-                         'ข้อมูลเพิ่มเติม',
+                         'additional_data'.tr,
                          Icons.settings,
                          'more',
                        ),
@@ -319,7 +319,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
                       // Summary Section
                       _buildSectionHeader(
-                        'สรุปยอด',
+                        'total_summary'.tr,
                         Icons.calculate,
                         'summary',
                       ),
@@ -358,9 +358,9 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     final items = <DropdownMenuItem<String>>[];
     
     // Add "None" option
-    items.add(const DropdownMenuItem<String>(
+    items.add(DropdownMenuItem<String>(
       value: null,
-      child: Text('ไม่มี (None)'),
+      child: Text('${'none_option'.tr} (None)'),
     ));
     
     // Add unique template items
@@ -437,7 +437,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                   ),
                   if (isRequired && !isComplete)
                     Text(
-                      'กรุณากรอกข้อมูลให้ครบถ้วน',
+                      'please_fill_all_required_info'.tr,
                       style: TextStyle(
                         color: AppTheme.errorRed,
                         fontSize: 12,
@@ -612,7 +612,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             children: [
               Expanded(
                 child: Text(
-                  'ข้อมูลลูกค้า',
+                  'customer_data'.tr,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -626,20 +626,20 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           // Customer Selection
           if (controller.isLoadingCustomers &&
               controller.customers.isEmpty) ...[
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    CircularProgressIndicator(
+                    const CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(
                         AppTheme.primaryOrange,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'กำลังโหลดรายชื่อลูกค้า...',
-                      style: TextStyle(
+                      'loading_customers'.tr,
+                      style: const TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: 14,
                       ),
@@ -656,18 +656,18 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppTheme.borderLightGrey),
               ),
-              child: const Center(
+              child: Center(
                 child: Column(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.person_off,
                       color: AppTheme.textSecondary,
                       size: 32,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'ไม่พบลูกค้าในระบบ',
-                      style: TextStyle(
+                      'no_customers_found'.tr,
+                      style: const TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -675,7 +675,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'กรุณาเพิ่มลูกค้าในระบบก่อนสร้างใบเสนอราคา',
+                      'add_customer_before_quotation'.tr,
                       style: TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: 12,
@@ -688,8 +688,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             ),
           ] else ...[
             _buildDropdownField(
-              label: 'เลือกลูกค้า *',
-              hint: 'เลือกลูกค้าจากฐานข้อมูล',
+              label: 'select_customer_required'.tr,
+              hint: 'select_customer_hint'.tr,
               value: controller.selectedCustomerId,
               items: controller.customers.map((customer) {
                 return DropdownMenuItem<String>(
@@ -707,8 +707,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           if (controller.selectedCustomer != null &&
               controller.selectedCustomer!.companyNames.isNotEmpty) ...[
             _buildDropdownField(
-              label: 'บริษัทลูกค้า',
-              hint: 'เลือกบริษัท',
+              label: 'customer_company'.tr,
+              hint: 'select_company'.tr,
               value: controller.selectedCompanyId,
               items: controller.selectedCustomer!.companyNames
                   .map((company) {
@@ -733,8 +733,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
           // Customer Address
           _buildTextField(
-            label: 'ที่อยู่ลูกค้า',
-            hint: 'กรอกที่อยู่ลูกค้า',
+            label: 'customer_address'.tr,
+            hint: 'enter_customer_address'.tr,
             controller: controller.customerAddressController,
             maxLines: 3,
           ),
@@ -742,8 +742,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
           // Postal Code
           _buildTextField(
-            label: 'รหัสไปรษณีย์',
-            hint: 'กรอกรหัสไปรษณีย์',
+            label: 'postal_code'.tr,
+            hint: 'enter_postal_code'.tr,
             controller: controller.customerPostalCodeController,
             keyboardType: TextInputType.number,
           ),
@@ -751,8 +751,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
           // National ID
           _buildTextField(
-            label: 'เลขประจำตัวประชาชน',
-            hint: 'กรอกเลขประจำตัวประชาชน',
+            label: 'id_number'.tr,
+            hint: 'enter_id_number'.tr,
             controller: controller.customerNationalIdController,
             keyboardType: TextInputType.number,
           ),
@@ -761,28 +761,28 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           // Multiple Phones
           _buildMultipleContactFields(
             controller: controller,
-            label: 'เบอร์โทรศัพท์',
+            label: 'phone_number'.tr,
             contactType: 'phone',
             contacts: controller.customerPhones,
             addContact: controller.addCustomerPhone,
             removeContact: controller.removeCustomerPhone,
             updateContact: controller.updateCustomerPhone,
             keyboardType: TextInputType.phone,
-            hint: 'กรอกเบอร์โทรศัพท์',
+            hint: 'enter_phone_number'.tr,
           ),
           const SizedBox(height: 16),
 
           // Multiple Emails
           _buildMultipleContactFields(
             controller: controller,
-            label: 'อีเมล',
+            label: 'email'.tr,
             contactType: 'email',
             contacts: controller.customerEmails,
             addContact: controller.addCustomerEmail,
             removeContact: controller.removeCustomerEmail,
             updateContact: controller.updateCustomerEmail,
             keyboardType: TextInputType.emailAddress,
-            hint: 'กรอกอีเมล',
+            hint: 'enter_email'.tr,
           ),
         ],
       ),
@@ -805,8 +805,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             selectedAssignees: controller.selectedSellerIds,
             availableMembers: controller.availableAssignees,
             onAssigneesChanged: controller.onSellerAssigneesChanged,
-            label: 'ผู้ขาย/ผู้รับผิดชอบ *',
-            hintText: 'เลือกผู้ขายจากรายชื่อผู้รับผิดชอบ',
+            label: 'seller_responsible_person'.tr,
+            hintText: 'select_seller_from_responsible_list'.tr,
             isLoading: controller.isLoadingAssignees,
             allowMultipleSelection: false, // Single selection for seller
             showBorder: false,
@@ -815,24 +815,24 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
           // Job Name
           _buildTextField(
-            label: 'ชื่องาน',
-            hint: 'กรอกชื่องาน',
+            label: 'job_name'.tr,
+            hint: 'enter_job_name'.tr,
             controller: controller.jobNameController,
           ),
           const SizedBox(height: 16),
 
           // Ref ID
           _buildTextField(
-            label: 'รหัสอ้างอิง',
-            hint: 'กรอกรหัสอ้างอิง',
+            label: 'reference_code'.tr,
+            hint: 'enter_reference_code'.tr,
             controller: controller.refIdController,
           ),
           const SizedBox(height: 16),
 
           // Document Date
           _buildDateField(
-            label: 'วันที่ออกเอกสาร',
-            hint: 'เลือกวันที่ออกเอกสาร',
+            label: 'issue_date'.tr,
+            hint: 'select_issue_date'.tr,
             value: controller.documentDate,
             onChanged: controller.onDocumentDateChanged,
           ),
@@ -1048,7 +1048,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           Row(
             children: [
               Text(
-                'รายการที่ ${index + 1}',
+                'item_number'.tr.replaceFirst('{number}', '${index + 1}'),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -1456,8 +1456,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
           // Notes
           _buildTextField(
-            label: 'หมายเหตุ',
-            hint: 'กรอกหมายเหตุเพิ่มเติม',
+            label: 'note'.tr,
+            hint: 'note_hint'.tr,
             controller: controller.notesController,
             maxLines: 3,
           ),
@@ -1805,7 +1805,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           // End-of-bill discount input
           if (controller.isEndOfBillDiscountEnabled) ...[
             _buildTextField(
-              label: 'จำนวนส่วนลด',
+              label: 'discount_amount'.tr,
               hint: '0',
               controller: controller.endOfBillDiscountController,
               keyboardType: TextInputType.number,
@@ -1816,7 +1816,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             
             // After End-of-bill discount
             _buildSummaryRow(
-              'ยอดรวมหลังหักส่วนลด',
+              'total_after_discount'.tr,
               controller.afterDiscount.toStringAsFixed(2),
               '฿',
             ),
@@ -1825,7 +1825,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
           // VAT Checkbox
           _buildCheckboxField(
-            label: 'ภาษีมูลค่าเพิ่ม (7%)',
+            label: 'value_added_tax_7_percent'.tr,
             value: controller.isVatEnabled,
             onChanged: controller.onVatEnabledChanged,
           ),
@@ -1834,7 +1834,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           // VAT Amount
           if (controller.isVatEnabled) ...[
             _buildSummaryRow(
-              'ภาษีมูลค่าเพิ่ม',
+              'value_added_tax'.tr,
               controller.vatAmount.toStringAsFixed(2),
               '฿',
             ),
@@ -1844,7 +1844,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           // After VAT
           if (controller.isVatEnabled) ...[
             _buildSummaryRow(
-              'ยอดรวมหลังหักภาษี',
+              'total_after_tax'.tr,
               controller.afterVat.toStringAsFixed(2),
               '฿',
             ),
@@ -1853,7 +1853,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
           // Withholding Tax
           _buildCheckboxField(
-            label: 'หักภาษี ณ ที่จ่าย',
+            label: 'withholding_tax'.tr,
             value: controller.isWhtEnabled,
             onChanged: controller.onWhtEnabledChanged,
           ),
@@ -1866,7 +1866,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                 Expanded(
                   flex: 2,
                   child: _buildTextField(
-                    label: 'เปอร์เซ็นต์',
+                    label: 'percentage'.tr,
                     hint: '3',
                     controller: controller.whtPercentageController,
                     keyboardType: TextInputType.number,
@@ -1878,7 +1878,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                 Expanded(
                   flex: 3,
                   child: _buildSummaryRow(
-                    'หักภาษี ณ ที่จ่าย',
+                    'withholding_tax'.tr,
                     controller.whtAmount.toStringAsFixed(2),
                     '฿',
                   ),
@@ -1898,9 +1898,9 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             ),
             child: Row(
               children: [
-                const Text(
-                  'ยอดรวมสุทธิ',
-                  style: TextStyle(
+                Text(
+                  'net_total'.tr,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,
@@ -2358,13 +2358,13 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           },
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('ยกเลิก')),
+          TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
           ElevatedButton(
             onPressed: () {
               onChanged(tempSelected);
               Get.back();
             },
-            child: const Text('ยืนยัน'),
+            child: Text('confirm'.tr),
           ),
         ],
       ),
@@ -2503,7 +2503,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('ยกเลิก'),
+                child: Text('cancel'.tr),
               ),
               ElevatedButton(
                 onPressed: () {

@@ -278,14 +278,14 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
-        title: Text(_isEditing ? 'แก้ไขรายละเอียดลูกค้า' : 'เพิ่มลูกค้า'),
+        title: Text(_isEditing ? 'edit_customer_title'.tr : 'add_customer_title'.tr),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
           TextButton(
             onPressed: _canSubmit() ? _saveCustomer : null,
-            child: const Text('บันทึก', style: TextStyle(color: AppTheme.primaryOrange, fontWeight: FontWeight.w600)),
+            child: Text('save'.tr, style: const TextStyle(color: AppTheme.primaryOrange, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -295,10 +295,10 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.lock_outline, size: 56, color: Colors.grey),
-                    SizedBox(height: 12),
-                    Text('คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
+                  children: [
+                    const Icon(Icons.lock_outline, size: 56, color: Colors.grey),
+                    const SizedBox(height: 12),
+                    Text('no_permission_access'.tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 16, color: Colors.grey)),
                   ],
@@ -323,7 +323,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                     // const SizedBox(height: 16),
                     // _buildSectionDivider(),
                     const SizedBox(height: 16),
-                    _buildSectionHeader('ข้อมูลส่วนบุคคล'),
+                    _buildSectionHeader('personal_information'.tr),
                     const SizedBox(height: 12),
                     _buildAvatarPlaceholder(),
                     const SizedBox(height: 16),
@@ -337,38 +337,38 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                         availableHashtags: _availableHashtags,
                         onHashtagsChanged: (v) => setState(() => _selectedHashtags = v),
                         label: 'Hashtag',
-                        hintText: 'กรุณากรอก Hashtag',
+                        hintText: 'enter_hashtag'.tr,
                       ),
                     const SizedBox(height: 16),
-                    _buildDropdownField('แหล่งที่มาลูกค้า', _selectedSource, widget.customerSources, (v) => setState(() => _selectedSource = v ?? '')),
+                    _buildDropdownField('customer_source'.tr, _selectedSource, widget.customerSources, (v) => setState(() => _selectedSource = v ?? '')),
                     const SizedBox(height: 16),
-                    _buildTextField('ชื่อ-นามสกุล', _nameController, isRequired: true),
+                    _buildTextField('customer_name'.tr, _nameController, isRequired: true),
                     const SizedBox(height: 16),
-                    _buildTextField('อายุ', _ageController, keyboardType: TextInputType.number), // NEW age field
+                    _buildTextField('age'.tr, _ageController, keyboardType: TextInputType.number), // NEW age field
                     const SizedBox(height: 16),
-                    _buildTextField('เลขประจำตัว / บัตรประชาชน', _nationalIdController, keyboardType: TextInputType.text), // NEW nationalId field
+                    _buildTextField('national_id'.tr, _nationalIdController, keyboardType: TextInputType.text), // NEW nationalId field
                     const SizedBox(height: 16),
-                    _buildDropdownField('เพศ', _selectedGender, _genderOptions, (v) => setState(() => _selectedGender = v ?? _selectedGender)),
+                    _buildDropdownField('gender'.tr, _selectedGender, _genderOptions, (v) => setState(() => _selectedGender = v ?? _selectedGender)),
                     const SizedBox(height: 16),
                     _buildMultipleEmailsSection(),
                     const SizedBox(height: 16),
                     _buildMultiplePhonesSection(),
                     const SizedBox(height: 16),
-                    _buildTextField('ที่อยู่', _addressController, maxLines: 3),
+                    _buildTextField('address'.tr, _addressController, maxLines: 3),
                     const SizedBox(height: 16),
                     _buildLocationSection(),
                     const SizedBox(height: 16),
                     _buildSectionDivider(),
                     const SizedBox(height: 16),
-                    _buildSectionHeader('ข้อมูลบริษัท', trailing: _addButton(onPressed: _openAddCompany)),
+                    _buildSectionHeader('company_info'.tr, trailing: _addButton(onPressed: _openAddCompany)),
                     const SizedBox(height: 12),
 
                     CompanyPicker(
                       key: _companyPickerGlobalKey,
                       selectedCompanies: _selectedCompanies,
                       onCompaniesChanged: (companies) => setState(() => _selectedCompanies = companies),
-                      label: 'บริษัท',
-                      hintText: 'เลือกบริษัท',
+                      label: 'company'.tr,
+                      hintText: 'select_company'.tr,
                       workspaceId: workspaceId,
                     ),
                     const SizedBox(height: 16),
@@ -393,7 +393,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: const Text('ถัดไป', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: Text('next'.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
               ),
@@ -405,7 +405,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   Widget _addButton({required VoidCallback onPressed}) => OutlinedButton.icon(
         onPressed: onPressed,
         icon: const Icon(Icons.add, color: AppTheme.primaryOrange, size: 18),
-        label: const Text('เพิ่ม', style: TextStyle(color: AppTheme.primaryOrange)),
+  label: Text('add'.tr, style: const TextStyle(color: AppTheme.primaryOrange)),
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppTheme.primaryOrange),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -419,7 +419,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         Expanded(
           child: Row(
             children: [
-              Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
+              Text(title.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
               if (isRequired) const Text(' *', style: TextStyle(color: Colors.red)),
             ],
           ),
@@ -459,7 +459,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         _profileImageUrl = url;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปโหลดรูปไม่สำเร็จ: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${'upload_image_failed'.tr}: $e'), backgroundColor: Colors.red));
     } finally {
       setState(() { _uploadingImage = false; });
     }
@@ -513,12 +513,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('ประเภท', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+        Text('customer_type'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
         const SizedBox(height: 8),
         Row(children: [
-          Expanded(child: _segButton('ลีด', _selectedCustomerType == 'Lead', () => setState(() => _selectedCustomerType = 'Lead'))),
+          Expanded(child: _segButton('lead'.tr, _selectedCustomerType == 'Lead', () => setState(() => _selectedCustomerType = 'Lead'))),
           const SizedBox(width: 8),
-          Expanded(child: _segButton('ลูกค้า', _selectedCustomerType == 'Customer', () => setState(() => _selectedCustomerType = 'Customer'))),
+          Expanded(child: _segButton('customer'.tr, _selectedCustomerType == 'Customer', () => setState(() => _selectedCustomerType = 'Customer'))),
         ]),
       ]),
     );
@@ -544,7 +544,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       decoration: BoxDecoration(color: AppTheme.backgroundWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+          Text(label.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
           if (isRequired) const Text(' *', style: TextStyle(color: Colors.red)),
         ]),
         const SizedBox(height: 8),
@@ -553,7 +553,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           maxLines: maxLines,
           keyboardType: keyboardType,
           validator: (v) {
-            if (isRequired && (v == null || v.trim().isEmpty)) return 'จำเป็นต้องกรอก';
+            if (isRequired && (v == null || v.trim().isEmpty)) return 'required_field'.tr;
             return null;
           },
           decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
@@ -568,14 +568,14 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppTheme.backgroundWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+        Text(label.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: hasValue ? value : null,
-          items: options.map((o) => DropdownMenuItem<String>(value: o, child: Text(o))).toList(),
+          items: options.map((o) => DropdownMenuItem<String>(value: o, child: Text(o.tr))).toList(),
           onChanged: onChanged,
           decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-          hint: Text('เลือก$label'),
+          hint: Text('select_'.tr + label.tr),
         ),
       ]),
     );
@@ -587,7 +587,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       decoration: BoxDecoration(color: AppTheme.backgroundWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Text('อีเมล', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+          Text('email'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
           const Spacer(),
           _addButton(onPressed: _addEmail),
         ]),
@@ -602,7 +602,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                 flex: 2,
                 child: TextFormField(
                   initialValue: email['label'],
-                  decoration: const InputDecoration(labelText: 'ประเภท', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+                  decoration: InputDecoration(labelText: 'type'.tr, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
                   onChanged: (v) => email['label'] = v,
                 ),
               ),
@@ -612,7 +612,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                 child: TextFormField(
                   initialValue: email['value'],
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'อีเมล', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+                  decoration: InputDecoration(labelText: 'email'.tr, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
                   onChanged: (v) => email['value'] = v,
                 ),
               ),
@@ -620,7 +620,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               IconButton(
                 onPressed: _emails.length > 1 ? () => _removeEmail(i) : null,
                 icon: Icon(Icons.delete, color: _emails.length > 1 ? Colors.red : Colors.grey),
-                tooltip: 'ลบอีเมล',
+                tooltip: 'delete_email'.tr,
               ),
             ]),
           );
@@ -635,7 +635,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       decoration: BoxDecoration(color: AppTheme.backgroundWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Text('เบอร์โทรศัพท์', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+          Text('phone_number'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
           const Spacer(),
           _addButton(onPressed: _addPhone),
         ]),
@@ -650,7 +650,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                 flex: 2,
                 child: TextFormField(
                   initialValue: phone['label'],
-                  decoration: const InputDecoration(labelText: 'ประเภท', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+                  decoration: InputDecoration(labelText: 'type'.tr, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
                   onChanged: (v) => phone['label'] = v,
                 ),
               ),
@@ -660,7 +660,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                 child: TextFormField(
                   initialValue: phone['value'],
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'เบอร์โทร', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+                  decoration: InputDecoration(labelText: 'phone'.tr, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
                   onChanged: (v) => phone['value'] = v,
                 ),
               ),
@@ -668,7 +668,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               IconButton(
                 onPressed: _phones.length > 1 ? () => _removePhone(i) : null,
                 icon: Icon(Icons.delete, color: _phones.length > 1 ? Colors.red : Colors.grey),
-                tooltip: 'ลบเบอร์โทร',
+                tooltip: 'delete_phone'.tr,
               ),
             ]),
           );
@@ -682,27 +682,27 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppTheme.backgroundWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('ที่อยู่', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+        Text('location'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
         const SizedBox(height: 16),
-        _buildLocationDropdown('จังหวัด', _selectedProvinceId, _provinces, (v) {
+        _buildLocationDropdown('province'.tr, _selectedProvinceId, _provinces, (v) {
           setState(() {
             _selectedProvinceId = v;
             if (v != null) _loadDistricts(v);
           });
         }),
         const SizedBox(height: 16),
-        _buildLocationDropdown('อำเภอ/เขต', _selectedDistrictId, _districts, (v) {
+        _buildLocationDropdown('district'.tr, _selectedDistrictId, _districts, (v) {
           setState(() {
             _selectedDistrictId = v;
             if (v != null) _loadSubdistricts(v);
           });
         }),
         const SizedBox(height: 16),
-        _buildLocationDropdown('ตำบล/แขวง', _selectedSubdistrictId, _subdistricts, (v) => setState(() => _selectedSubdistrictId = v)),
+        _buildLocationDropdown('subdistrict'.tr, _selectedSubdistrictId, _subdistricts, (v) => setState(() => _selectedSubdistrictId = v)),
         const SizedBox(height: 16),
-        _buildTextField('รหัสไปรษณีย์', TextEditingController(), keyboardType: TextInputType.number),
+        _buildTextField('postal_code'.tr, TextEditingController(), keyboardType: TextInputType.number),
         const SizedBox(height: 16),
-        _buildTextField('ประเทศ', TextEditingController()),
+        _buildTextField('country'.tr, TextEditingController()),
       ]),
     );
   }
@@ -723,7 +723,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
             .toList(),
         onChanged: onChanged,
         decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-        hint: Text('เลือก$label'),
+        hint: Text('${'select_'.tr}$label'),
       )
     ]);
   }
@@ -734,7 +734,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppTheme.backgroundWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('รหัสลูกค้า', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+        Text('customer_id'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
         const SizedBox(height: 8),
         TextFormField(
           controller: _customIdController,
@@ -742,7 +742,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            hintText: isEdit ? null : 'จะถูกสร้างอัตโนมัติเมื่อบันทึก',
+            hintText: isEdit ? null : 'auto_generate_when_save'.tr,
           ),
         ),
       ]),
@@ -782,8 +782,8 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       }
 
 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('เพิ่มบริษัทสำเร็จ'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('add_company_success'.tr),
         backgroundColor: Colors.green,
       ));
       // automatically open picker so user can verify / adjust selection
@@ -837,7 +837,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (workspaceId.isEmpty) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบ Workspace'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('workspace_not_found'.tr), backgroundColor: Colors.red));
         return;
       }
 
@@ -887,14 +887,14 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(widget.customer == null ? 'เพิ่มลูกค้าใหม่เรียบร้อยแล้ว' : 'อัปเดตข้อมูลลูกค้าเรียบร้อยแล้ว'),
+        content: Text(widget.customer == null ? 'customer_add_success'.tr : 'customer_update_success'.tr),
         backgroundColor: Colors.green,
       ));
 
       Navigator.pop(context, true);
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${'error_occurred'.tr}: $e'), backgroundColor: Colors.red));
     }
   }
 

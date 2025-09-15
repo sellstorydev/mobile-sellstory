@@ -306,7 +306,7 @@ class InvoiceCreationOptionsPage extends StatelessWidget {
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
-              'ยกเลิก',
+              'cancel'.tr,
               style: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: AppTheme.fontSize14,
@@ -327,7 +327,7 @@ class InvoiceCreationOptionsPage extends StatelessWidget {
               ),
             ),
             child: Text(
-              'ยืนยัน',
+              'confirm'.tr,
               style: TextStyle(
                 fontSize: AppTheme.fontSize14,
                 fontFamily: AppFont.family,
@@ -550,7 +550,7 @@ class InvoiceCreationOptionsPage extends StatelessWidget {
                     child: TextButton(
                       onPressed: () => Get.back(),
                       child: Text(
-                        'ยกเลิก',
+                        'cancel'.tr,
                         style: TextStyle(
                           color: AppTheme.textSecondary,
                           fontSize: AppTheme.fontSize14,
@@ -969,7 +969,7 @@ class InvoiceCreationOptionsPage extends StatelessWidget {
                     child: TextButton(
                       onPressed: () => Get.back(),
                       child: Text(
-                        'ยกเลิก',
+                        'cancel'.tr,
                         style: TextStyle(
                           color: AppTheme.textSecondary,
                           fontSize: AppTheme.fontSize14,

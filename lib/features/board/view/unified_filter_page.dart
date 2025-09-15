@@ -11,7 +11,7 @@ class UnifiedFilterPage extends StatelessWidget {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ตัวกรองงาน'),
+        title: Text('filter_tasks'.tr),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -19,7 +19,7 @@ class UnifiedFilterPage extends StatelessWidget {
           TextButton(
             onPressed: () => controller.clearFilter(),
             child: Text(
-              'ล้างทั้งหมด',
+              'clear_all'.tr,
               style: TextStyle(color: Colors.red[600]),
             ),
           ),
@@ -67,7 +67,7 @@ class UnifiedFilterPage extends StatelessWidget {
             Icon(Icons.calendar_today, color: Colors.blue[600], size: 20),
             const SizedBox(width: 8),
             Text(
-              'ตัวกรองวันที่ Job Card',
+              'date_filter_job_card'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -89,8 +89,8 @@ class UnifiedFilterPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'เลือกประเภทวันที่:',
+              Text(
+                'select_date_type'.tr,
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 12),
@@ -125,8 +125,8 @@ class UnifiedFilterPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'ตัวเลือกด่วน:',
+              Text(
+                'quick_options'.tr,
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 12),
@@ -136,16 +136,16 @@ class UnifiedFilterPage extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildQuickDateChip(controller, 'today', 'วันนี้'),
-                  _buildQuickDateChip(controller, 'thisWeek', 'สัปดาห์นี้'),
-                  _buildQuickDateChip(controller, 'thisMonth', 'เดือนนี้'),
-                  _buildQuickDateChip(controller, 'lastMonth', 'เดือนก่อน'),
-                  _buildQuickDateChip(controller, '+1day', '+1 วัน'),
-                  _buildQuickDateChip(controller, '+3days', '+3 วัน'),
-                  _buildQuickDateChip(controller, '+7days', '+7 วัน'),
-                  _buildQuickDateChip(controller, '+14days', '+14 วัน'),
-                  _buildQuickDateChip(controller, '+30days', '+30 วัน'),
-                  _buildQuickDateChip(controller, 'lastWeek', 'สัปดาห์ที่แล้ว'),
+                  _buildQuickDateChip(controller, 'today', 'today'.tr),
+                  _buildQuickDateChip(controller, 'thisWeek', 'this_week'.tr),
+                  _buildQuickDateChip(controller, 'thisMonth', 'this_month'.tr),
+                  _buildQuickDateChip(controller, 'lastMonth', 'last_month'.tr),
+                  _buildQuickDateChip(controller, '+1day', '+1_day'.tr),
+                  _buildQuickDateChip(controller, '+3days', '+3_days'.tr),
+                  _buildQuickDateChip(controller, '+7days', '+7_days'.tr),
+                  _buildQuickDateChip(controller, '+14days', '+14_days'.tr),
+                  _buildQuickDateChip(controller, '+30days', '+30_days'.tr),
+                  _buildQuickDateChip(controller, 'lastWeek', 'last_week'.tr),
                 ],
               ),
               
@@ -157,15 +157,15 @@ class UnifiedFilterPage extends StatelessWidget {
                 onChanged: (bool? value) {
                   controller.toggleShowCardsWithoutDate();
                 },
-                title: const Text(
-                  'แสดงที่ไม่ได้เลือกวันที่',
+                title: Text(
+                  'show_unselected_dates'.tr,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                subtitle: const Text(
-                  'แสดงงานที่ไม่มีวันที่ในประเภทที่เลือก',
+                subtitle: Text(
+                  'show_tasks_without_date_in_selected_type'.tr,
                   style: TextStyle(fontSize: 12),
                 ),
                 activeColor: Colors.orange[600],
@@ -189,8 +189,8 @@ class UnifiedFilterPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'กำหนดช่วงวันที่เอง:',
+              Text(
+                'set_custom_date_range'.tr,
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 12),
@@ -204,7 +204,7 @@ class UnifiedFilterPage extends StatelessWidget {
                       label: Text(
                         controller.selectedStartDate.value != null
                             ? _formatDate(controller.selectedStartDate.value!)
-                            : 'เลือกวันเริ่มต้น',
+                            : 'select_start_date'.tr,
                       ),
                     )),
                   ),
@@ -216,7 +216,7 @@ class UnifiedFilterPage extends StatelessWidget {
                       label: Text(
                         controller.selectedEndDate.value != null
                             ? _formatDate(controller.selectedEndDate.value!)
-                            : 'เลือกวันสิ้นสุด',
+                            : 'select_end_date'.tr,
                       ),
                     )),
                   ),
@@ -238,7 +238,7 @@ class UnifiedFilterPage extends StatelessWidget {
             Icon(Icons.person, color: Colors.orange[600], size: 20),
             const SizedBox(width: 8),
             Text(
-              'ผู้รับผิดชอบ',
+              'assignee'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -260,7 +260,7 @@ class UnifiedFilterPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'เลือกผู้รับผิดชอบ (เลือกได้หลายคน):',
+                'select_assignees_multiple'.tr,
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
                   color: Colors.orange[800],
@@ -270,8 +270,8 @@ class UnifiedFilterPage extends StatelessWidget {
               
               Obx(() {
                 if (controller.availableAssignees.isEmpty) {
-                  return const Text(
-                    'ไม่มีผู้รับผิดชอบในระบบ',
+                  return Text(
+                    'no_assignees_in_system'.tr,
                     style: TextStyle(color: Colors.grey),
                   );
                 }
@@ -329,7 +329,7 @@ class UnifiedFilterPage extends StatelessWidget {
             Icon(Icons.people_alt, color: Colors.green[600], size: 20),
             const SizedBox(width: 8),
             Text(
-              'ลูกค้า',
+              'customer'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -351,7 +351,7 @@ class UnifiedFilterPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'เลือกลูกค้า (เลือกได้หลายราย):',
+                'select_customers_multiple'.tr,
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
                   color: Colors.green[800],
@@ -361,8 +361,8 @@ class UnifiedFilterPage extends StatelessWidget {
               
               Obx(() {
                 if (controller.availableCustomers.isEmpty) {
-                  return const Text(
-                    'ไม่มีลูกค้าในระบบ',
+                  return Text(
+                    'no_customers_in_system'.tr,
                     style: TextStyle(color: Colors.grey),
                   );
                 }
@@ -413,7 +413,7 @@ class UnifiedFilterPage extends StatelessWidget {
             Icon(Icons.tag, color: Colors.purple[600], size: 20),
             const SizedBox(width: 8),
             Text(
-              'แฮชแท็ก',
+              'hashtag'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -435,7 +435,7 @@ class UnifiedFilterPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'เลือกแฮชแท็ก (เลือกได้หลายอัน):',
+                'select_hashtags_multiple'.tr,
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
                   color: Colors.purple[800],
@@ -451,8 +451,8 @@ class UnifiedFilterPage extends StatelessWidget {
                 print('🔍 UnifiedFilterPage - hashtags length: ${hashtags.length}');
                 
                 if (hashtags.isEmpty) {
-                  return const Text(
-                    'ไม่มีแฮชแท็กในระบบ',
+                  return Text(
+                    'no_hashtags_in_system'.tr,
                     style: TextStyle(color: Colors.grey),
                   );
                 }
@@ -503,7 +503,7 @@ class UnifiedFilterPage extends StatelessWidget {
             Icon(Icons.favorite, color: Colors.red[600], size: 20),
             const SizedBox(width: 8),
             Text(
-              'ความสนใจ',
+              'interest'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -525,7 +525,7 @@ class UnifiedFilterPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'เลือกความสนใจ (เลือกได้หลายอัน):',
+                'select_interests_multiple'.tr,
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
                   color: Colors.red[800],
@@ -537,8 +537,8 @@ class UnifiedFilterPage extends StatelessWidget {
                 final interests = controller.currentAvailableInterests;
                 
                 if (interests.isEmpty) {
-                  return const Text(
-                    'ไม่มีข้อมูลความสนใจในระบบ',
+                  return Text(
+                    'no_interests_in_system'.tr,
                     style: TextStyle(color: Colors.grey),
                   );
                 }
@@ -593,7 +593,7 @@ class UnifiedFilterPage extends StatelessWidget {
         return ElevatedButton.icon(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.check),
-          label: Text(hasAnyFilter ? 'ใช้ตัวกรอง' : 'ปิด'),
+          label: Text(hasAnyFilter ? 'apply_filter'.tr : 'close'.tr),
           style: ElevatedButton.styleFrom(
             backgroundColor: hasAnyFilter ? Colors.blue[600] : Colors.grey[400],
             foregroundColor: Colors.white,
@@ -665,7 +665,7 @@ class UnifiedFilterPage extends StatelessWidget {
     for (final lane in controller.lanes) {
       count += lane.cards.where((card) => card.assignedTo == assigneeId).length;
     }
-    return '$count งาน';
+    return '$count ${'tasks'.tr}';
   }
 
   String _getCustomerCardCount(BoardController controller, String customerName) {
@@ -673,7 +673,7 @@ class UnifiedFilterPage extends StatelessWidget {
     for (final lane in controller.lanes) {
       count += lane.cards.where((card) => card.customer == customerName).length;
     }
-    return '$count งาน';
+    return '$count ${'tasks'.tr}';
   }
 
   String _getHashtagCardCount(BoardController controller, String hashtag) {
@@ -685,6 +685,6 @@ class UnifiedFilterPage extends StatelessWidget {
         )
       ).length;
     }
-    return '$count งาน';
+    return '$count ${'tasks'.tr}';
   }
 }

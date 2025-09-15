@@ -66,28 +66,28 @@ class ShellPage extends StatelessWidget {
                   index: 1,
                   currentIndex: controller.currentIndex.value,
                   icon: const Icon(Icons.receipt_long_outlined),
-                  label: 'เอกสาร',
+                  label: 'documents'.tr,
                   onTap: () => controller.onTabTapped(1),
                 ),
                 _buildNavItem(
                   index: 2,
                   currentIndex: controller.currentIndex.value,
                   icon: _buildSvgIcon('assets/icons/icon-person-outline.svg', controller.currentIndex.value == 2),
-                  label: 'ลูกค้า',
+                  label: 'customers'.tr,
                   onTap: () => controller.onTabTapped(2),
                 ),
                 _buildNavItem(
                   index: 3,
                   currentIndex: controller.currentIndex.value,
                   icon: _buildSvgIcon('assets/icons/icon-shopping-outline.svg', controller.currentIndex.value == 3),
-                  label: 'สินค้า',
+                  label: 'products_nav'.tr,
                   onTap: () => controller.onTabTapped(3),
                 ),
                 _buildNavItem(
                   index: 4,
                   currentIndex: controller.currentIndex.value,
                   icon: _buildSvgIcon('assets/icons/icon-dashboard-outline.svg', controller.currentIndex.value == 4),
-                  label: 'อื่น ๆ',
+                  label: 'others_nav'.tr,
                   onTap: () => controller.onTabTapped(4),
                 ),
               ],
@@ -129,33 +129,33 @@ class ShellPage extends StatelessWidget {
             children: [
               // Icon with better styling
               SizedBox(
-                width: AppTheme.iconSize28,
-                height: AppTheme.iconSize28,
-                child: IconTheme(
-                  data: IconThemeData(
-                    color: isSelected
-                        ? AppTheme.figmaRed
-                        : AppTheme.textSecondary,
-                    size: AppTheme.iconSize28,
-                  ),
-                  child: icon,
+              width: AppTheme.iconSize28,
+              height: AppTheme.iconSize28,
+              child: IconTheme(
+                data: IconThemeData(
+                color: isSelected
+                  ? AppTheme.figmaRed
+                  : AppTheme.textSecondary,
+                size: AppTheme.iconSize28,
                 ),
+                child: icon,
+              ),
               ),
               Container(height: AppTheme.spacing8), // Reduced from spacing16 to spacing8
               // Label with better styling and responsive
               Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isSelected
-                      ? AppTheme.figmaRed
-                      : AppTheme.textSecondary,
-                  fontSize: AppTheme.fontSize12,
-                  fontFamily: AppFont.family,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isSelected
+                  ? AppTheme.figmaRed
+                  : AppTheme.textSecondary,
+                fontSize: AppTheme.fontSize12,
+                fontFamily: AppFont.family,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
               ),
             ],
           ),
