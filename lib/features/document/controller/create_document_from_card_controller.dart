@@ -22,25 +22,49 @@ class CreateDocumentFromCardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initializeUserAndWorkspace();
+    // Don't initialize here, wait for initializeWithJobCard to be called
+    // This ensures we have job card data to use for workspace ID
   }
 
-  Future<void> _initializeUserAndWorkspace() async {
+  Future<void> _initializeUserAndWorkspace({JobCard? jobCard}) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         _currentUserId = user.uid;
         
-        // Get workspace from controller or repository
-        final workspaceSnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+        // ลำดับความสำคัญในการหา workspace ID:
+        // 1. จาก job card ถ้ามี
+        // 2. จาก user's currentWorkspaceId
+        // 3. จาก user's first workspace
+        
+        if (jobCard != null && jobCard.workspaceId.isNotEmpty) {
+          _currentWorkspaceId = jobCard.workspaceId;
+          print('🎯 Using workspace ID from job card: $_currentWorkspaceId');
+        } else {
+          // Get workspace from user document
+          final workspaceSnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+              
+          if (workspaceSnapshot.exists) {
+            final userData = workspaceSnapshot.data()!;
+            _currentWorkspaceId = userData['currentWorkspaceId'];
+            print('🎯 Using workspace ID from user currentWorkspaceId: $_currentWorkspaceId');
             
-        if (workspaceSnapshot.exists) {
-          _currentWorkspaceId = workspaceSnapshot.data()?['currentWorkspaceId'];
+            // ถ้ายังไม่มี workspace ID ให้หา workspace แรกของ user
+            if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
+              final userWorkspaces = await _repository.getUserWorkspaces(user.uid);
+              if (userWorkspaces.isNotEmpty) {
+                _currentWorkspaceId = userWorkspaces.first['id'] as String;
+                print('🎯 Using first workspace from user workspaces: $_currentWorkspaceId');
+              }
+            }
+          }
         }
       }
+      
+      print('🎯 Final workspace ID: $_currentWorkspaceId, User ID: $_currentUserId');
     } catch (e) {
       print('❌ Failed to initialize user and workspace: $e');
     }
@@ -48,7 +72,7 @@ class CreateDocumentFromCardController extends GetxController {
 
   // Initialize with job card and optional template ID
   Future<void> initializeWithJobCard(JobCard jobCard, {String? templateId}) async {
-    await _initializeUserAndWorkspace();
+    await _initializeUserAndWorkspace(jobCard: jobCard);
     // Additional initialization logic can be added here if needed
   }
 
@@ -60,10 +84,22 @@ class CreateDocumentFromCardController extends GetxController {
   Future<String?> createQuotationFromJobCard(JobCard jobCard, {String? templateId}) async {
     print('🎯 CreateDocumentFromCardController - received templateId: $templateId');
     
-    if (_currentUserId == null || _currentWorkspaceId == null) {
-      Get.snackbar('Error', 'User or workspace not found');
+    // Re-initialize to ensure we have correct workspace and user data
+    await _initializeUserAndWorkspace(jobCard: jobCard);
+    
+    if (_currentUserId == null) {
+      print('❌ Current user ID is null');
+      Get.snackbar('Error', 'User not found. Please login again.');
       return null;
     }
+    
+    if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
+      print('❌ Current workspace ID is null or empty. Job card workspace: ${jobCard.workspaceId}');
+      Get.snackbar('Error', 'Workspace not found. Please check your workspace access.');
+      return null;
+    }
+
+    print('🎯 Using User ID: $_currentUserId, Workspace ID: $_currentWorkspaceId');
 
     _setLoading(true);
 
