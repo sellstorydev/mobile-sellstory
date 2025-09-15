@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -140,8 +141,8 @@ class _NotesSheetState extends State<NotesSheet> {
           maxLines: 5,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('บันทึก')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('cancel'.tr)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: Text('save'.tr)),
         ],
       ),
     );
@@ -283,8 +284,8 @@ class _NotesSheetState extends State<NotesSheet> {
           maxLines: 5,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('บันทึก')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('cancel'.tr)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: Text('save'.tr)),
         ],
       ),
     );

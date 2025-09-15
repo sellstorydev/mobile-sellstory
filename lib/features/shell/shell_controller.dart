@@ -90,21 +90,21 @@ class ShellController extends GetxController {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'กรอกอีเมลสำหรับติดต่อ',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                Text(
+                  'enter_email_contact'.tr,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'คุณเข้าสู่ระบบด้วย Apple ID กรุณากรอกอีเมลสำหรับการติดต่อและกู้คืนบัญชี (ครั้งแรกเท่านั้น)',
-                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                Text(
+                  'apple_id_email_prompt'.tr,
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    hintText: 'example@domain.com',
+                    hintText: 'email_placeholder'.tr,
                     filled: true,
                     fillColor: const Color(0xFFF5F5F5),
                     border: OutlineInputBorder(
@@ -116,8 +116,8 @@ class ShellController extends GetxController {
                   validator: (value) {
                     final v = (value ?? '').trim();
                     final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-                    if (v.isEmpty) return 'กรุณากรอกอีเมล';
-                    if (!emailRegex.hasMatch(v)) return 'อีเมลไม่ถูกต้อง';
+                    if (v.isEmpty) return 'please_enter_email'.tr;
+                    if (!emailRegex.hasMatch(v)) return 'invalid_email'.tr;
                     return null;
                   },
                 ),
@@ -142,8 +142,8 @@ class ShellController extends GetxController {
                             .get();
                         if (dupExact.docs.isNotEmpty && dupExact.docs.first.id != (current?.uid ?? '')) {
                           Get.snackbar(
-                            'ไม่สำเร็จ',
-                            'อีเมลนี้มีอยู่แล้วในระบบ',
+                            'failed'.tr,
+                            'email_already_exists'.tr,
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.red.withValues(alpha: 0.08),
                             colorText: Colors.red,
@@ -159,8 +159,8 @@ class ShellController extends GetxController {
                             .get();
                         if (dupLower.docs.isNotEmpty && dupLower.docs.first.id != (current?.uid ?? '')) {
                           Get.snackbar(
-                            'ไม่สำเร็จ',
-                            'อีเมลนี้มีอยู่แล้วในระบบ',
+                            'failed'.tr,
+                            'email_already_exists'.tr,
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.red.withValues(alpha: 0.08),
                             colorText: Colors.red,
@@ -177,8 +177,8 @@ class ShellController extends GetxController {
                         }, SetOptions(merge: true));
                         Get.back();
                         Get.snackbar(
-                          'สำเร็จ',
-                          'บันทึกอีเมลเรียบร้อย',
+                          'success'.tr,
+                          'save_email_success'.tr,
                           snackPosition: SnackPosition.BOTTOM,
                           backgroundColor: Colors.green.withValues(alpha: 0.08),
                           colorText: Colors.green,
@@ -187,8 +187,8 @@ class ShellController extends GetxController {
                       } catch (e) {
 
                         Get.snackbar(
-                          'ไม่สำเร็จ',
-                          'บันทึกอีเมลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+                          'failed'.tr,
+                          'save_email_failed'.tr,
                           snackPosition: SnackPosition.BOTTOM,
                           backgroundColor: Colors.red.withValues(alpha: 0.08),
                           colorText: Colors.red,
@@ -202,7 +202,7 @@ class ShellController extends GetxController {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    child: const Text('บันทึกอีเมล'),
+                    child: Text('save_email'.tr),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -210,7 +210,7 @@ class ShellController extends GetxController {
                   width: double.infinity,
                   child: TextButton(
                     onPressed: () => Get.back(),
-                    child: const Text('ภายหลัง'),
+                    child: Text('later'.tr),
                   ),
                 ),
                 const SizedBox(height: 8),

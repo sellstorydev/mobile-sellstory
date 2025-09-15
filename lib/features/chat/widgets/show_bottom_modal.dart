@@ -19,7 +19,7 @@ import '../../../core/widgets/dialog_utils.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 
-const _accent = Color(0xFFFF7A00); // โทมส้มตามภาพ
+const _accent = Color(0xFFFF7A00); // Orange tone as shown in the image
 
 class ShowBottomModal {
   static Future<void> open(
@@ -169,7 +169,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     try { Get.closeAllSnackbars(); } catch (_) {}
 
     Get.snackbar(
-      isError ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน',
+      isError ? 'error_occurred'.tr : 'notification'.tr,
       message,
       margin: const EdgeInsets.all(12),
       snackPosition: SnackPosition.TOP,
@@ -226,24 +226,24 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       final newName = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('เปลี่ยนชื่อแชท'),
+          title: Text('chat_rename_title'.tr),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(hintText: 'กรอกชื่อใหม่'),
+            decoration: InputDecoration(hintText: 'chat_rename_hint'.tr),
             autofocus: true,
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('cancel'.tr)),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: const Text('บันทึก'),
+              child: Text('save'.tr),
             ),
           ],
         ),
       );
       if (newName == null) return;
       if (newName.isEmpty) {
-        _showTopSnack('ชื่อห้ามว่าง', isError: true);
+        _showTopSnack('chat_name_cannot_be_empty'.tr, isError: true);
         return;
       }
       if (newName == currentName) return;
@@ -258,10 +258,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }
       await _chatroomDoc.set(updates, SetOptions(merge: true));
       if (!mounted) return;
-      _showTopSnack('บันทึกชื่อแชทเรียบร้อย');
+      _showTopSnack('chat_name_saved_success'.tr);
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('เปลี่ยนชื่อไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('chat_rename_failed'.tr + ': $e', isError: true);
     }
   }
 
@@ -271,15 +271,15 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       final original = (data['original_name'] ?? data['who_name'] ?? data['displayName'] ?? data['customerName'] ?? data['name'])
           ?.toString() ?? '';
       if (original.isEmpty) {
-        _showTopSnack('ไม่พบชื่อเดิมสำหรับรีเซ็ต', isError: true);
+        _showTopSnack('chat_original_name_not_found'.tr, isError: true);
         return;
       }
       await _chatroomDoc.set({'name': original}, SetOptions(merge: true));
       if (!mounted) return;
-      _showTopSnack('รีเซ็ตชื่อแชทเรียบร้อย');
+      _showTopSnack('chat_name_reset_success'.tr);
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('รีเซ็ตไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('chat_reset_failed'.tr + ': $e', isError: true);
     }
   }
 
@@ -336,7 +336,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     // Ensure we have a linked customer to save into
     final cid = _currentCustomerId?.trim() ?? '';
     if (cid.isEmpty) {
-      _showTopSnack('โปรดเชื่อมลูกค้าก่อนบันทึกแฮชแท็ก', isError: true);
+      _showTopSnack('chat_link_customer_before_hashtag'.tr, isError: true);
       return;
     }
     try {
@@ -381,10 +381,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         _selectedHashtagIds = List<String>.from(ids);
         _pendingHashtagIds = List<String>.from(ids);
       });
-      _showTopSnack('อัปเดตแฮชแท็กเรียบร้อย');
+      _showTopSnack('chat_hashtag_updated_success'.tr);
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('อัปเดตแฮชแท็กไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('chat_hashtag_update_failed'.tr + ': $e', isError: true);
     }
   }
 
@@ -412,7 +412,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('cancel'.tr)),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('เพิ่ม')),
         ],
       ),
@@ -451,10 +451,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         setState(() => _pendingHashtagIds = [..._pendingHashtagIds, newId]);
       }
       if (!mounted) return;
-      _showTopSnack('เพิ่มแฮชแท็กใหม่แล้ว (กดยืนยันเพื่อบันทึกกับลูกค้า)');
+      _showTopSnack('chat_hashtag_created_confirm_to_save'.tr);
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('สร้างแฮชแท็กไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('chat_hashtag_create_failed'.tr + ': $e', isError: true);
     } finally {
       if (mounted) setState(() => _creatingHashtag = false);
     }
@@ -632,10 +632,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     if (pickedUid != null && pickedUid.isNotEmpty) {
       final ok = await DialogUtils.showConfirmDialog(
         context: context,
-        title: 'ยืนยันการผูกเซล',
-        content: 'ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?',
-        cancelText: 'ยกเลิก',
-        confirmText: 'ยืนยัน',
+        title: 'chat_confirm_assign_sale'.tr,
+        content: 'chat_confirm_assign_sale_message'.tr,
+        cancelText: 'cancel'.tr,
+        confirmText: 'confirm'.tr,
       );
       if (ok == true) {
         try {
@@ -667,11 +667,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบเซล'),
-        content: Text('ยืนยันลบ ${user.displayName} ออกจากผู้ดูแลหรือไม่?'),
+        title: Text('confirm_remove_assignee'.tr),
+        content: Text('confirm_remove_assignee_message'.tr.replaceAll('{name}', user.displayName)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ลบ')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('delete'.tr)),
         ],
       ),
     );
@@ -1146,13 +1146,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                                     onPressed: () {
                                       setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
                                     },
-                                    child: const Text('ยกเลิก'),
+                                    child: Text('cancel'.tr),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: ElevatedButton(
                                       onPressed: () => _persistCustomerHashtags(_pendingHashtagIds),
-                                      child: const Text('ยืนยัน'),
+                                      child: Text('confirm'.tr),
                                     ),
                                   ),
                                 ],

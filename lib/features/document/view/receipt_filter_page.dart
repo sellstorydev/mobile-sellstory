@@ -77,16 +77,16 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
   @override
   Widget build(BuildContext context) {
     final statusOptions = [
-      {'value': 'COMPLETED', 'label': 'เสร็จสิ้น', 'icon': Icons.check_circle},
-      {'value': 'VOID', 'label': 'ยกเลิก', 'icon': Icons.block},
+      {'value': 'COMPLETED', 'label': 'completed'.tr, 'icon': Icons.check_circle},
+      {'value': 'VOID', 'label': 'void'.tr, 'icon': Icons.block},
     ];
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'ตัวกรอง',
-          style: TextStyle(
+        title: Text(
+          'filter'.tr,
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
             fontFamily: AppFont.family,
@@ -109,9 +109,9 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
                 tempSelectedStatuses.clear();
               });
             },
-            child: const Text(
-              'ล้างตัวกรอง',
-              style: TextStyle(
+            child: Text(
+              'clear_filter'.tr,
+              style: const TextStyle(
                 color: AppTheme.primaryOrange,
                 fontSize: AppTheme.fontSize14,
                 fontFamily: AppFont.family,
@@ -127,7 +127,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Seller Filter Section
-            _buildSectionTitle('เซล'),
+            _buildSectionTitle('seller'.tr),
             const SizedBox(height: AppTheme.spacing12),
 
             // Seller selection using AssigneesInputField
@@ -137,8 +137,8 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
                   : [],
               availableMembers: _availableMembers,
               onAssigneesChanged: _onAssigneesChanged,
-              label: 'เลือกเซล',
-              hintText: 'เลือกเซลที่ต้องการกรอง',
+              label: 'select_seller'.tr,
+              hintText: 'select_seller_hint'.tr,
               isLoading: _isLoadingMembers,
               allowMultipleSelection: false, // Single selection for filtering
             )),
@@ -146,7 +146,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
             const SizedBox(height: AppTheme.spacing24),
 
             // Date Filter Section
-            _buildSectionTitle('วันที่'),
+            _buildSectionTitle('date'.tr),
             const SizedBox(height: AppTheme.spacing12),
 
             Container(
@@ -166,7 +166,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
               child: Column(
                 children: [
                   // Date range options
-                  _buildDateOption('ทั้งหมด', null, Icons.all_inclusive, () {
+                  _buildDateOption('all'.tr, null, Icons.all_inclusive, () {
                     setState(() {
                       widget.controller.selectedDateRange.value = null;
                       widget.controller.selectedCustomDateRange.value = null;
@@ -176,7 +176,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
 
                   const SizedBox(height: AppTheme.spacing8),
 
-                  _buildDateOption('วันนี้', 'today', Icons.today, () {
+                  _buildDateOption('today'.tr, 'today', Icons.today, () {
                     setState(() {
                       widget.controller.selectedDateRange.value = 'today';
                       widget.controller.applyFilters();
@@ -186,7 +186,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'สัปดาห์นี้',
+                    'this_week'.tr,
                     'this_week',
                     Icons.view_week,
                     () {
@@ -200,7 +200,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'เดือนนี้',
+                    'this_month'.tr,
                     'this_month',
                     Icons.calendar_view_month,
                     () {
@@ -215,7 +215,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'เลือกช่วงวันที่เอง',
+                    'custom_date_range'.tr,
                     'custom',
                     Icons.date_range,
                     () async {
@@ -292,7 +292,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
             // Status Filter Section
             Row(
               children: [
-                _buildSectionTitle('สถานะ'),
+                _buildSectionTitle('status'.tr),
                 const SizedBox(width: AppTheme.spacing8),
                 if (tempSelectedStatuses.isNotEmpty)
                   Container(
@@ -317,7 +317,7 @@ class _ReceiptFilterPageState extends State<ReceiptFilterPage> {
                         fontFamily: AppFont.family,
                         fontWeight: FontWeight.w500,
                       ),
-                      'เลือกแล้ว ${tempSelectedStatuses.length} รายการ',
+                      'selected_count'.tr.replaceFirst('{count}', tempSelectedStatuses.length.toString()),
                     ),
                   ),
               ],

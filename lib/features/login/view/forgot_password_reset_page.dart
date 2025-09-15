@@ -13,7 +13,7 @@ class ForgotPasswordResetPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ตั้งรหัสผ่านใหม่'),
+        title: Text('reset_password_title'.tr),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -50,7 +50,7 @@ class ForgotPasswordResetPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'ยืนยันรหัสผ่านใหม่',
+                  'confirm_new_password'.tr,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
@@ -109,7 +109,7 @@ class ForgotPasswordResetPage extends StatelessWidget {
                                 height: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
                               )
-                            : const Text('ยืนยันการเปลี่ยนรหัสผ่าน'),
+                            : Text('confirm_password_change'.tr),
                       ),
                     )),
               ],

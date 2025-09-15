@@ -284,9 +284,9 @@ class _HashtagInputFieldState extends State<HashtagInputField> {
                          borderRadius: BorderRadius.circular(6),
                        ),
                      ),
-                     child: const Text(
-                       'ยืนยัน',
-                       style: TextStyle(color: Colors.white, fontSize: 12),
+                     child: Text(
+                       'confirm'.tr,
+                       style: const TextStyle(color: Colors.white, fontSize: 12),
                      ),
                    ),
                  ),

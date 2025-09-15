@@ -391,7 +391,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(dCtx).pop(),
-                            child: const Text('ยกเลิก'),
+                            child: Text('cancel'.tr),
                           ),
                           TextButton(
                             onPressed: () {

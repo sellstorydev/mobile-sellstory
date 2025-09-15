@@ -124,8 +124,8 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
-                const Text(
-                  'เลือก Workspace และ Board',
+                Text(
+                  'select_workspace_and_board'.tr,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -149,8 +149,8 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Workspace ปัจจุบัน',
+                            Text(
+                              'current_workspace'.tr,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
@@ -159,7 +159,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                             Obx(() => Text(
                                   ctrl.currentWorkspaceName.value.isNotEmpty
                                       ? ctrl.currentWorkspaceName.value
-                                      : 'ไม่มีชื่อ',
+                                      : 'no_name'.tr,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -198,8 +198,8 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'เลือก Board',
+                      Text(
+                        'select_board'.tr,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -210,7 +210,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                           Navigator.of(context).pop();
                           Get.toNamed('/board-management');
                         },
-                        child: const Text('จัดการ Board'),
+                        child: Text('manage_board'.tr),
                       ),
                     ],
                   ),
@@ -274,8 +274,8 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                 // Workspaces section
                 if (ctrl.availableWorkspaces.isNotEmpty) ...[
                   if (ctrl.availableWorkspaces.length > 1) ...[
-                    const Text(
-                      'เปลี่ยน Workspace',
+                    Text(
+                      'change_workspace'.tr,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -380,14 +380,14 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                       margin: const EdgeInsets.only(left: 16, bottom: 8),
                                       padding: const EdgeInsets.symmetric(vertical: 8),
                                       child: Row(
-                                        children: const [
+                                        children: [
                                           SizedBox(
                                             width: 16,
                                             height: 16,
                                             child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryOrange),
                                           ),
                                           SizedBox(width: 8),
-                                          Text('กำลังโหลดบอร์ด...'),
+                                          Text('loading_boards'.tr),
                                         ],
                                       ),
                                     );
@@ -469,7 +469,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                         children: [
                                           Icon(Icons.info_outline, color: Colors.grey[600], size: 18),
                                           const SizedBox(width: 8),
-                                          const Expanded(child: Text('ยังไม่มีบอร์ดใน Workspace นี้')),
+                                          Expanded(child: Text('no_boards_in_workspace'.tr)),
                                           TextButton.icon(
                                             onPressed: () async {
                                               Navigator.of(context).pop();
@@ -477,7 +477,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                               Get.toNamed('/board-management');
                                             },
                                             icon: const Icon(Icons.add, size: 18),
-                                            label: const Text('จัดการบอร์ด'),
+                                            label: Text('manage_board'.tr),
                                           )
                                         ],
                                       ),
@@ -510,9 +510,9 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                             size: 24,
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'คุณมีเพียง Workspace เดียว\nสร้าง Workspace ใหม่เพื่อสลับได้',
+                              'single_workspace_message'.tr,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.black87,
@@ -536,7 +536,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                           Get.toNamed('/card-view-settings');
                         },
                         icon: const Icon(Icons.view_agenda, size: 20),
-                        label: const Text('ตั้งค่าการ์ด'),
+                        label: Text('card_settings'.tr),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey[100],
                           foregroundColor: Colors.black87,
@@ -570,7 +570,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                           print('🔄 Manual refresh completed');
                         },
                         icon: const Icon(Icons.refresh, size: 20),
-                        label: const Text('รีเฟรช'),
+                        label: Text('refresh'.tr),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey[100],
                           foregroundColor: Colors.black87,
@@ -593,7 +593,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                   child: ElevatedButton.icon(
                     onPressed: widget.onCreateWorkspace ?? _defaultOnCreateWorkspace,
                     icon: const Icon(Icons.add, size: 20),
-                    label: const Text('สร้าง Workspace ใหม่'),
+                    label: Text('create_new_workspace'.tr),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryOrange,
                       foregroundColor: Colors.white,
@@ -787,7 +787,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                     size: 20,
                   ),
                 ),
-                tooltip: 'สร้าง Workspace',
+                tooltip: 'create_workspace'.tr,
                 splashRadius: 20,
               ),
             );

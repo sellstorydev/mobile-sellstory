@@ -84,22 +84,22 @@ class _CustomersPageState extends State<CustomersPage> {
                       }
                     }
                   },
-                  itemBuilder: (context) => const [
+                  itemBuilder: (context) => [
                     PopupMenuItem<String>(
                       value: 'individual',
-                      child: Text('บุคคลธรรมดา'),
+                      child: Text('individual'.tr),
                     ),
                     PopupMenuItem<String>(
                       value: 'company',
-                      child: Text('นิติบุคคล'),
+                      child: Text('corporate'.tr),
                     ),
                   ],
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Text(
-                        'บุคคลธรรมดา',
-                        style: TextStyle(
+                        'individual'.tr,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
@@ -118,9 +118,9 @@ class _CustomersPageState extends State<CustomersPage> {
 
       body: PermissionGuard(
         anyOf: const ['customer:view:all', 'customer:view:assigned'],
-        fallback: const Center(
+        fallback: Center(
           child: Text(
-            'คุณไม่มีสิทธิ์ดูรายชื่อลูกค้า',
+            'no_permission_view_customers'.tr,
             style: TextStyle(color: AppTheme.textSecondary),
           ),
         ),
@@ -156,7 +156,7 @@ class _CustomersPageState extends State<CustomersPage> {
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
                   hintText:
-                  'ชื่อลูกค้า,บริษัท,เบอร์โทร,อีเมล,เลขประจำตัวผู้เสียภาษี',
+                  'search_placeholder_customers'.tr,
                   hintStyle: const TextStyle(color: AppTheme.textSecondary),
                   border: InputBorder.none,
                   prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
@@ -164,7 +164,7 @@ class _CustomersPageState extends State<CustomersPage> {
                     final showClear = _controller.searchQuery.value.isNotEmpty;
                     return showClear
                         ? IconButton(
-                      tooltip: 'ล้างคำค้น',
+                      tooltip: 'clear_search'.tr,
                       icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
                       onPressed: () {
                         _searchController.clear();
@@ -214,7 +214,7 @@ class _CustomersPageState extends State<CustomersPage> {
                   color: AppTheme.textPrimary,
                 ),
                 children: [
-                  const TextSpan(text: 'จำนวน '),
+                  TextSpan(text: '${'total_count'.tr} '),
                   TextSpan(
                     text: '$count',
                     style: const TextStyle(
@@ -222,7 +222,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const TextSpan(text: ' คน'),
+                  TextSpan(text: ' ${'people'.tr}'),
                 ],
               ),
             );
@@ -238,7 +238,7 @@ class _CustomersPageState extends State<CustomersPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               icon: const Icon(Icons.person_add_alt_1, size: 18),
-              label: const Text('เพิ่มลูกค้า'),
+              label: Text('add_customer'.tr),
               onPressed: () {
                 guardAction(context, 'customer:create', () {
                   Navigator.push(
@@ -283,10 +283,10 @@ class _CustomersPageState extends State<CustomersPage> {
         final isSearching = _controller.searchQuery.value.isNotEmpty;
         return _EmptyState(
           icon: isSearching ? Icons.search_off : Icons.people_outline,
-          title: isSearching ? 'ไม่พบลูกค้าที่ค้นหา' : 'ไม่มีลูกค้า',
+          title: isSearching ? 'customer_not_found'.tr : 'no_customers'.tr,
           subtitle: isSearching
-              ? 'ลองค้นหาด้วยคำอื่น'
-              : 'เริ่มต้นเพิ่มลูกค้าคนแรกของคุณ',
+              ? 'try_different_search'.tr
+              : 'start_adding_first_customer'.tr,
         );
       }
 
@@ -386,8 +386,8 @@ class _ErrorState extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 64, color: AppTheme.textSecondary),
             const SizedBox(height: 12),
-            const Text(
-              'เกิดข้อผิดพลาด',
+            Text(
+              'error_occurred'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -397,7 +397,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 6),
             getLotStr(message),
             const SizedBox(height: 14),
-            OutlinedButton(onPressed: onRetry, child: const Text('ลองใหม่')),
+            OutlinedButton(onPressed: onRetry, child: Text('try_again'.tr)),
           ],
         ),
       ),

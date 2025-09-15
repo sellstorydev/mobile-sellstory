@@ -5209,9 +5209,9 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'ยืนยัน',
-                    style: TextStyle(
+                  child: Text(
+                    'confirm'.tr,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

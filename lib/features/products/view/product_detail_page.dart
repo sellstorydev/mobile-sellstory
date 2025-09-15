@@ -63,8 +63,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   void _showDeleteConfirmation() async {
     final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      title: 'ยืนยันการลบสินค้า',
-      content: 'คุณต้องการลบสินค้า "${_currentProduct.name}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้',
+      title: 'confirm_delete_product'.tr,
+      content: 'delete_product_confirmation'.tr.replaceFirst('{name}', _currentProduct.name),
     );
 
     if (confirmed == true) {
@@ -86,8 +86,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       if (workspaceId.isEmpty) {
         Navigator.of(context).pop();
         Get.snackbar(
-          'ข้อผิดพ��าด',
-          'ไม่สามารถลบสินค้าได้: ไม่พบ Workspace',
+          'error'.tr,
+          'cannot_delete_product_no_workspace'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -102,16 +102,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         Get.find<ProductsController>().refreshProducts();
         Get.back();
         Get.snackbar(
-          'สำเร็จ',
-          'ลบสินค้าเรียบร้อยแล้ว',
+          'success'.tr,
+          'product_deleted_successfully'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
       } else {
         Get.snackbar(
-          'ข้อผิดพลาด',
-          'ไม่สามารถลบสินค้าได้',
+          'error'.tr,
+          'cannot_delete_product'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -120,8 +120,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } catch (e) {
       Navigator.of(context).pop();
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'เกิดข้อผิดพลาดในการลบสินค้า: $e',
+        'error'.tr,
+        'error_deleting_product'.tr.replaceFirst('{error}', e.toString()),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -287,9 +287,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       child: IgnorePointer(
                         child: Container(
                           color: Colors.black.withValues(alpha: 0.6),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'ยังไม่เปิดขาย',
+                              'not_on_sale'.tr,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 24,
@@ -426,7 +426,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Text(
-                      '฿${_currentProduct.price.toStringAsFixed(2)}',
+                      '${'currency_symbol'.tr}${_currentProduct.price.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: AppTheme.fontSize20,
                         fontWeight: FontWeight.bold,
@@ -437,8 +437,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 16),
 
                   if (_currentProduct.description.isNotEmpty) ...[
-                    const Text(
-                      'รายละเอียด',
+                    Text(
+                      'details'.tr,
                       style: TextStyle(
                         fontSize: AppTheme.fontSize16,
                         fontWeight: FontWeight.bold,
@@ -457,8 +457,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     const SizedBox(height: 16),
                   ],
 
-                  const Text(
-                    'ข้อมูลสินค้า',
+                  Text(
+                    'product_info'.tr,
                     style: TextStyle(
                       fontSize: AppTheme.fontSize16,
                       fontWeight: FontWeight.bold,
@@ -471,32 +471,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 8),
 
                   if (_currentProduct.unit.isNotEmpty) ...[
-                    _buildDetailRow('หน่วย', _currentProduct.unit),
+                    _buildDetailRow('unit'.tr, _currentProduct.unit),
                     const SizedBox(height: 8),
                   ],
 
                   if (_currentProduct.barcode.isNotEmpty) ...[
-                    _buildDetailRow('บาร์โค้ด', _currentProduct.barcode),
+                    _buildDetailRow('barcode'.tr, _currentProduct.barcode),
                     const SizedBox(height: 8),
                   ],
 
                   if (_currentProduct.category.isNotEmpty) ...[
-                    _buildDetailRow('หมวดหมู่', _currentProduct.category),
+                    _buildDetailRow('category'.tr, _currentProduct.category),
                     const SizedBox(height: 8),
                   ],
 
-                  _buildDetailRow('ต้นทุน', '฿${_currentProduct.costPrice.toStringAsFixed(2)}'),
+                  _buildDetailRow('cost_price'.tr, '${'currency_symbol'.tr}${_currentProduct.costPrice.toStringAsFixed(2)}'),
                   const SizedBox(height: 8),
 
-                  _buildDetailRow('สต็อกเริ่มต้น', _currentProduct.initialStock.toString()),
+                  _buildDetailRow('initial_stock'.tr, _currentProduct.initialStock.toString()),
                   const SizedBox(height: 8),
 
-                  _buildDetailRow('สถานะ', _getStatusText(_currentProduct.status)),
+                  _buildDetailRow('status'.tr, _getStatusText(_currentProduct.status)),
                   const SizedBox(height: 16),
 
                   if (_currentProduct.hashtags.isNotEmpty) ...[
-                    const Text(
-                      'แท็ก',
+                    Text(
+                      'tags'.tr,
                       style: TextStyle(
                         fontSize: AppTheme.fontSize16,
                         fontWeight: FontWeight.bold,
@@ -572,11 +572,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String _getStatusText(String status) {
     switch (status) {
       case 'active':
-        return 'เปิดขาย';
+        return 'on_sale'.tr;
       case 'draft':
-        return 'ร่าง';
+        return 'draft'.tr;
       case 'discontinued':
-        return 'ยังไม่เปิดขาย';
+        return 'not_on_sale'.tr;
       default:
         return status;
     }

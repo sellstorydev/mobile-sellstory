@@ -235,7 +235,7 @@ class ChatService extends GetxService {
 
     if ((p == 'facebook' || p == 'instagram') && replyText != null && replyText.isNotEmpty) {
       // Format as per request for FB/IG
-      finalText = 'ข้อความ $text\nตอบกลับ : $replyText';
+      finalText = '${'message'.tr} $text\n${'reply_to'.tr} : $replyText';
     } else if (p == 'line' && replyText != null && replyText.isNotEmpty) {
       // Hint for server to perform proper quote reply for LINE (server-side implementation)
       msg['quoteText'] = replyText;

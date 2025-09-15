@@ -1,5 +1,6 @@
 // widgets/conversation_tile.dart
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -275,7 +276,7 @@ class ConversationTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          lastMsg.isEmpty ? 'ส่งรูปภาพ' : lastMsg,
+                          lastMsg.isEmpty ? 'chat_sent_image'.tr : lastMsg,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: Colors.grey.shade800, fontSize: 14),
@@ -472,7 +473,7 @@ class ConversationTile extends StatelessWidget {
                     final chips = <Widget>[];
 
                     if ((customerId ?? '').isNotEmpty) {
-                      final text = customerName.isNotEmpty ? customerName : 'ลูกค้า: $customerId';
+                      final text = customerName.isNotEmpty ? customerName : '${'customer'.tr}: $customerId';
                       chips.add(
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -562,7 +563,7 @@ class ConversationTile extends StatelessWidget {
                   const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 22),
                   const SizedBox(height: 4),
                   Text(
-                    isBotEnabled ? 'ปิดบอท' : 'เปิดบอท',
+                    isBotEnabled ? 'chat_bot_disable'.tr : 'chat_bot_enable'.tr,
                     style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -582,7 +583,7 @@ class ConversationTile extends StatelessWidget {
                   const Icon(Icons.push_pin, color: Colors.white, size: 22),
                   const SizedBox(height: 4),
                   Text(
-                    isPinned ? 'ยกเลิก' : 'ปักหมุด',
+                    isPinned ? 'unpin'.tr : 'pin'.tr,
                     style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                 ],

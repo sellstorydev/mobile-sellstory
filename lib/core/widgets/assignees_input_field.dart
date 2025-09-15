@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../theme/app_theme.dart';
 import '../services/workspace_members_service.dart';
 
@@ -17,8 +18,8 @@ class AssigneesInputField extends StatefulWidget {
     required this.selectedAssignees,
     required this.availableMembers,
     required this.onAssigneesChanged,
-    this.label = 'เซลที่รับผิดชอบ',
-    this.hintText = 'เลือกเซลที่รับผิดชอบ',
+    this.label = 'responsible_sales',
+    this.hintText = 'select_responsible_sales',
     this.isLoading = false,
     this.allowMultipleSelection = true,
     this.showBorder = true,
@@ -83,7 +84,7 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
         children: [
           if (widget.showBorder)
             Text(
-              widget.label,
+              widget.label.tr,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -149,8 +150,8 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
                         const SizedBox(width: 8),
                         Text(
                           widget.allowMultipleSelection
-                              ? 'เลือกผู้รับผิดชอบ'
-                              : 'เลือกผู้รับผิดชอบ',
+                              ? 'select_assignee_hint'.tr
+                              : 'select_assignee_hint'.tr,
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 14,
@@ -308,7 +309,7 @@ class _AssigneesInputFieldState extends State<AssigneesInputField> {
           selectedAssignees: List.from(widget.selectedAssignees),
           availableMembers: widget.availableMembers,
           onAssigneesChanged: widget.onAssigneesChanged,
-          label: widget.label,
+          label: widget.label.tr,
           allowMultipleSelection: widget.allowMultipleSelection,
         ),
       ),
@@ -409,7 +410,7 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
         title: Text(
-          widget.label,
+          widget.label.tr,
           style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 18,
@@ -444,7 +445,7 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'ค้นหาสมาชิก...',
+                hintText: 'search_members'.tr,
                 hintStyle: TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 14,
@@ -644,9 +645,9 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'ยกเลิก',
-                  style: TextStyle(
+                child: Text(
+                  'cancel'.tr,
+                  style: const TextStyle(
                     color: AppTheme.textSecondary,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
@@ -665,9 +666,9 @@ class _AssigneesSelectionPageState extends State<AssigneesSelectionPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'ยืนยัน',
-                  style: TextStyle(
+                child: Text(
+                  'confirm'.tr,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,

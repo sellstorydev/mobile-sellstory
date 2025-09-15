@@ -58,7 +58,7 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
-          tooltip: 'ยกเลิก',
+          tooltip: 'cancel'.tr,
         ),
       ),
       body: Column(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ChatSearchBar extends StatelessWidget {
   final TextEditingController controller;
@@ -23,7 +24,7 @@ class ChatSearchBar extends StatelessWidget {
               controller: controller,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'ค้นหาด้วย ชื่อ นามสกุล ชื่อบริษัท หรือ ข้อความแชท hashtag เซล',
+                hintText: 'chat_search_hint'.tr,
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
                 fillColor: Colors.white,

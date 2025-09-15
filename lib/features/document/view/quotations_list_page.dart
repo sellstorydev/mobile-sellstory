@@ -44,9 +44,9 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'ใบเสนอราคา',
-          style: TextStyle(
+        title: Text(
+          'quotations'.tr,
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
             fontFamily: AppFont.family,
@@ -105,7 +105,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
             controller: controller.searchController,
             onChanged: controller.onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'ค้นหาใบเสนอราคา...',
+              hintText: 'search_quotations'.tr,
               hintStyle: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: AppTheme.fontSize14,
@@ -200,15 +200,15 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
     final filters = <String>[];
 
     if (controller.selectedSeller.value != null) {
-      filters.add('เซล: ${controller.selectedSeller.value!.displayName}');
+      filters.add('${'seller_filter'.tr.replaceFirst('{name}', controller.selectedSeller.value!.displayName)}');
     }
 
     if (controller.selectedDateRange.value != null) {
-      filters.add('วันที่: ${_getDateRangeDisplayText(controller)}');
+      filters.add('${'date_filter'.tr.replaceFirst('{range}', _getDateRangeDisplayText(controller))}');
     }
 
     if (controller.selectedStatuses.isNotEmpty) {
-      filters.add('สถานะ: ${controller.selectedStatuses.length} รายการ');
+      filters.add('${'status_filter'.tr.replaceFirst('{count}', controller.selectedStatuses.length.toString())}');
     }
 
     return filters.join(' • ');
@@ -216,25 +216,25 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
 
   String _getDateRangeDisplayText(QuotationsListController controller) {
     if (controller.selectedDateRange.value == null) {
-      return 'ทั้งหมด';
+      return 'all'.tr;
     }
 
     switch (controller.selectedDateRange.value) {
       case 'today':
-        return 'วันนี้';
+        return 'today'.tr;
       case 'this_week':
-        return 'สัปดาห์นี้';
+        return 'this_week'.tr;
       case 'this_month':
-        return 'เดือนนี้';
+        return 'this_month'.tr;
       case 'custom':
         if (controller.selectedCustomDateRange.value != null) {
           final startDate = controller.selectedCustomDateRange.value!.start;
           final endDate = controller.selectedCustomDateRange.value!.end;
           return '${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month}';
         }
-        return 'เลือกช่วงวันที่';
+        return 'select_date_range'.tr;
       default:
-        return 'ทั้งหมด';
+        return 'all'.tr;
     }
   }
 
@@ -479,35 +479,35 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
     switch (status) {
       case 'DRAFT':
         color = AppTheme.textSecondary;
-        text = 'ร่าง';
+        text = 'draft'.tr;
         break;
       case 'SENT':
         color = const Color(0xFF2196F3);
-        text = 'ส่งแล้ว';
+        text = 'sent'.tr;
         break;
       case 'PENDING_APPROVAL':
         color = const Color(0xFFFF9800);
-        text = 'รออนุมัติ';
+        text = 'pending_approval'.tr;
         break;
       case 'APPROVED':
         color = const Color(0xFF4CAF50);
-        text = 'อนุมัติแล้ว';
+        text = 'approved'.tr;
         break;
       case 'REJECTED':
         color = const Color(0xFFF44336);
-        text = 'ปฏิเสธ';
+        text = 'rejected'.tr;
         break;
       case 'VOID':
         color = AppTheme.textSecondary;
-        text = 'ยกเลิก';
+        text = 'void'.tr;
         break;
       case 'INVOICED':
         color = const Color(0xFF9C27B0);
-        text = 'ออกใบแจ้งหนี้แล้ว';
+        text = 'invoiced'.tr;
         break;
       case 'FULLY_PAID':
         color = const Color(0xFF4CAF50);
-        text = 'ชำระแล้ว';
+        text = 'fully_paid'.tr;
         break;
       default:
         color = AppTheme.textSecondary;
@@ -555,7 +555,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
           ),
           const SizedBox(height: AppTheme.spacing24),
           Text(
-            'ไม่พบใบเสนอราคา',
+            'no_quotations_found'.tr,
             style: TextStyle(
               color: AppTheme.textPrimary,
               fontSize: AppTheme.fontSize18,
@@ -565,7 +565,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
           ),
           const SizedBox(height: AppTheme.spacing8),
           Text(
-            'เริ่มต้นสร้างใบเสนอราคาแรกของคุณ',
+            'start_creating_first_quotation'.tr,
             style: TextStyle(
               color: AppTheme.textSecondary,
               fontSize: AppTheme.fontSize14,
@@ -577,7 +577,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
           ElevatedButton.icon(
             onPressed: () => controller.createNewQuotation(),
             icon: const Icon(Icons.add),
-            label: const Text('สร้างใบเสนอราคา'),
+            label: Text('create_quotation'.tr),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,
@@ -635,7 +635,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
             
             // Title
             Text(
-              'ตัวเลือก',
+              'options'.tr,
               style: TextStyle(
                 fontSize: AppTheme.fontSize18,
                 fontWeight: FontWeight.w600,
@@ -660,7 +660,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
                 ),
               ),
               title: Text(
-                'สร้างใบแจ้งหนี้',
+                'create_invoice'.tr,
                 style: TextStyle(
                   fontSize: AppTheme.fontSize16,
                   fontWeight: FontWeight.w500,
@@ -669,7 +669,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
                 ),
               ),
               subtitle: Text(
-                'สร้างใบแจ้งหนี้จากใบเสนอราคานี้',
+                'create_invoice_from_quotation'.tr,
                 style: TextStyle(
                   fontSize: AppTheme.fontSize14,
                   fontFamily: AppFont.family,

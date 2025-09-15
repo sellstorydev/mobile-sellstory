@@ -330,7 +330,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           ),
           Expanded(
             child: Text(
-              value.isNotEmpty ? value : 'ไม่ระบุ',
+              value.isNotEmpty ? value : 'not_specified'.tr,
               style: const TextStyle(
                 fontSize: 14,
                 color: AppTheme.textPrimary,
@@ -345,15 +345,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildEmailsDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidEmails()) {
-      return _buildInfoRow('อีเมล', 'ไม่ระบุ');
+      return _buildInfoRow('email'.tr, 'not_specified'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'อีเมล',
-          style: TextStyle(
+        Text(
+          'email'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
