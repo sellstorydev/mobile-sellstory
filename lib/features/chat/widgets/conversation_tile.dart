@@ -36,7 +36,13 @@ class ConversationTile extends StatelessWidget {
 
   String _detectPlatform(Map<String, dynamic> c) {
     final conn = c['connection'];
+
+    print("----------------");
+    print(conn);
+    print("----------------");
     final nestedPlatform = (conn is Map ? conn['platform'] : null)?.toString().toLowerCase();
+
+
     // Prefer explicit platform/source fields first, then fallbacks
     final candidates = <String?>[
       nestedPlatform,
@@ -54,6 +60,15 @@ class ConversationTile extends StatelessWidget {
 
     final raw = candidates.isNotEmpty ? candidates.first : '';
 
+    print("platfrom : "+raw);
+
+    // New channels detection
+    if (raw.contains('lazada')) return 'lazada';
+    if (raw.contains('unknown')) return 'unknown';
+    if (raw.contains('shopee')) return 'shopee';
+    if (raw.contains('tiktok')) return 'tiktok';
+    if (raw.contains('whatsapp') || raw.contains('whatsapp')) return 'whatsapp';
+
     if (raw.contains('facebook') || raw == 'fb') return 'facebook';
     if (raw.contains('instagram') || raw == 'ig') return 'instagram';
     if (raw.contains('line')) return 'line';
@@ -61,6 +76,9 @@ class ConversationTile extends StatelessWidget {
     if ((c['pageId'] ?? '').toString().isNotEmpty) return 'facebook';
     if ((c['igUserId'] ?? '').toString().isNotEmpty) return 'instagram';
     if ((c['channelId'] ?? c['botId'] ?? '').toString().isNotEmpty) return 'line';
+    if ((c['tiktokUserId'] ?? '').toString().isNotEmpty) return 'tiktok';
+    if ((c['lazadaShopId'] ?? '').toString().isNotEmpty) return 'lazada';
+    if ((c['shopeeShopId'] ?? '').toString().isNotEmpty) return 'shopee';
     return 'unknown';
   }
 
@@ -79,6 +97,7 @@ class ConversationTile extends StatelessWidget {
   }
 
   (_PlatformIconColor, IconData) _platformStyle(String platform) {
+    print("platform :  "+platform);
     switch (platform) {
       case 'facebook':
         return ((_PlatformIconColor(const Color(0xFF1877F2))), FontAwesomeIcons.facebook);
@@ -86,6 +105,14 @@ class ConversationTile extends StatelessWidget {
         return ((_PlatformIconColor(const Color(0xFFE1306C))), FontAwesomeIcons.instagram);
       case 'line':
         return ((_PlatformIconColor(const Color(0xFF00C300))), FontAwesomeIcons.line);
+      case 'whatsapp': // WhatsApp like channel
+        return ((_PlatformIconColor(const Color(0xFF25D366))), FontAwesomeIcons.whatsapp);
+      case 'tiktok':
+        return ((_PlatformIconColor(const Color(0xFF010101))), FontAwesomeIcons.tiktok);
+      case 'lazada':
+        return ((_PlatformIconColor(const Color(0xFFFF5C00))), Icons.shopping_bag_outlined);
+      case 'shopee':
+        return ((_PlatformIconColor(const Color(0xFFFA5300))), Icons.storefront_outlined);
       default:
         return ((_PlatformIconColor(Colors.grey.shade600)), Icons.chat_bubble_outline);
     }
@@ -100,6 +127,14 @@ class ConversationTile extends StatelessWidget {
         return 'Instagram';
       case 'line':
         return 'LINE';
+      case 'whatsapp':
+        return 'Whatsapp';
+      case 'tiktok':
+        return 'TikTok';
+      case 'lazada':
+        return 'Lazada';
+      case 'shopee':
+        return 'Shopee';
       default:
         return '';
     }
@@ -152,16 +187,23 @@ class ConversationTile extends StatelessWidget {
     // final topTitle = pageTitle.isNotEmpty ? pageTitle : _platformLabel(platform);
 
     String timeText = '';
-    if (updatedAt is DateTime) {
-      timeText = DateFormat('HH:mm').format(updatedAt);
-    } else if (updatedAt is int) {
-      timeText = DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(updatedAt));
-    } else if (updatedAt is String && updatedAt.isNotEmpty) {
-      final dt = DateTime.tryParse(updatedAt);
-      if (dt != null) {
-        timeText = DateFormat('HH:mm').format(dt);
+    // Normalize updatedAt to UTC then shift to Thai time (UTC+7)
+    DateTime? _asUtc(dynamic v) {
+      if (v == null) return null;
+      if (v is DateTime) return v.isUtc ? v : v.toUtc();
+      if (v is int) return DateTime.fromMillisecondsSinceEpoch(v, isUtc: true);
+      if (v is String && v.isNotEmpty) {
+        final parsed = DateTime.tryParse(v);
+        if (parsed != null) return parsed.isUtc ? parsed : parsed.toUtc();
       }
+      return null;
     }
+    final utc = _asUtc(updatedAt);
+    if (utc != null) {
+      final thai = utc.add(const Duration(hours: 7)); // UTC+7
+      timeText = DateFormat('HH:mm').format(thai);
+    }
+
 
     final content = InkWell(
       onTap: onTap,
@@ -175,7 +217,7 @@ class ConversationTile extends StatelessWidget {
               imageUrl: conversation['avatarUrl'],
               platformIcon: platformIcon,
               platformColor: platformColor,
-              showPlatform: true,
+              showPlatform: platform != 'unknown', // hide icon if platform not recognized
             ),
             const SizedBox(width: 12),
             Expanded(

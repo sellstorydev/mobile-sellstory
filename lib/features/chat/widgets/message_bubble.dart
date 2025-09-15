@@ -216,16 +216,6 @@ class MessageBubble extends StatelessWidget {
             ),
           ),
 
-        if ((messageData['text'] ?? '').toString().isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: highlight && (highlightQuery?.isNotEmpty ?? false)
-                ? _buildHighlightedText(messageData['text'], highlightQuery!, isFromCurrentUser)
-                : Text(
-                    messageData['text'],
-                    style: TextStyle(color: isFromCurrentUser ? Colors.white : Colors.black87, fontSize: 14),
-                  ),
-          ),
       ],
     );
   }
