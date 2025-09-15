@@ -290,6 +290,18 @@ class _EditCardPageState extends State<EditCardPage> {
     {'value': 'Cancelled', 'label': 'Cancelled', 'icon': Icons.close},
   ];
 
+  // Document status options for Related Documents
+  final List<Map<String, dynamic>> _documentStatusOptions = [
+    {'value': 'DRAFT', 'label': 'ร่าง'},
+    {'value': 'APPROVED', 'label': 'อนุมัติแล้ว'},
+    {'value': 'PENDING_APPROVAL', 'label': 'รออนุมัติ'},
+    {'value': 'SENT_FOR_APPROVAL', 'label': 'ส่งอนุมัติ'},
+    {'value': 'CANCELLED', 'label': 'ยกเลิก'},
+    {'value': 'REJECTED', 'label': 'ปฏิเสธ'},
+    {'value': 'INVOICED', 'label': 'ออกใบแจ้งหนี้แล้ว'},
+    {'value': 'FULLY_PAID', 'label': 'ชำระครบแล้ว'},
+  ];
+
   // Customer Interest options (same as create page)
   final List<String> _customerInterestOptions = [
     'เริ่มต้น',
@@ -347,12 +359,10 @@ class _EditCardPageState extends State<EditCardPage> {
     // Initialize attachments
     _attachments = List<Map<String, dynamic>>.from(widget.card.attachments);
 
-    // Initialize related documents list
-    _relatedDocuments = List<Map<String, dynamic>>.from(
-      widget.card.relatedDocuments,
-    );
+    // Initialize related documents list as empty, will be loaded from Firestore
+    _relatedDocuments = [];
 
-    // Load detailed related documents information
+    // Load detailed related documents information from Firestore
     await _loadRelatedDocumentsDetails();
 
     // Initialize product items from Firestore subcollection expenses first; fallback to embedded card.expenses
@@ -1800,140 +1810,525 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Widget _buildRelatedDocumentsSection() {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(Icons.description, color: Colors.blue, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Related Documents',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
+            const Spacer(),
+            // Create Quotation Button
+            ElevatedButton.icon(
+              onPressed: _createDocument,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Create Quotation'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
-                const Spacer(),
-                // Create Quotation Button
-                ElevatedButton.icon(
-                  onPressed: _createDocument,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Create Quotation'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    textStyle: const TextStyle(fontSize: 12),
+                textStyle: const TextStyle(fontSize: 12),
+                elevation: 2,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        if (_isLoadingRelatedDocuments)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_relatedDocuments.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No related documents yet',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            if (_relatedDocuments.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+          )
+        else
+          // Documents Table
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      'No related documents yet',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Table Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[300]!),
                     ),
-                  ],
-                ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _relatedDocuments.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final relatedDoc = _relatedDocuments[index];
-                  final docData =
-                      relatedDoc['data'] as Map<String, dynamic>? ?? {};
-                  final docType = relatedDoc['type'] ?? '';
-                  final docId = relatedDoc['id'] ?? '';
-                  final createdAt = relatedDoc['createdAt'] ?? '';
-
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: Row(
-                      children: [
-                        _getDocumentIcon(docType),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _getDocumentTitle(docType, docData),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'ID: $docId',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                              if (createdAt.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Created: ${_formatDateTime(createdAt)}',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                              if (docData['totalAmount'] != null) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Amount: ฿${_formatNumber(docData['totalAmount'])}',
-                                  style: TextStyle(
-                                    color: Colors.green[700],
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ],
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 50,
+                        child: Text(
+                          'Doc No.',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
                           ),
                         ),
-                        Icon(Icons.visibility, color: Colors.blue, size: 20),
-                      ],
-                    ),
-                  );
-                },
-              ),
-          ],
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Type',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          'Job Card',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Seller',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Date',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Valid Until',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Amount',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Status',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 40,
+                        child: Text(
+                          '',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Table Rows
+                ...List.generate(_relatedDocuments.length, (index) {
+                  return _buildDocumentRow(_relatedDocuments[index], index);
+                }),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDocumentRow(Map<String, dynamic> document, int index) {
+    final documentData = document['data'] as Map<String, dynamic>? ?? {};
+    final documentId = document['id'] ?? '';
+    final documentType = document['type'] ?? 'QT'; // Default to QT from backup data
+    final createdAt = document['createdAt'] ?? '';
+    
+    // Extract data from document based on actual structure
+    final docNumber = document['docNo'] ?? documentData['docNo'] ?? documentId.substring(0, 8);
+    final jobCardId = widget.card.customId;
+    
+    // Handle seller information - check multiple possible fields
+    String seller = 'N/A';
+    if (documentData['seller'] != null) {
+      if (documentData['seller'] is Map) {
+        seller = documentData['seller']['displayName'] ?? 
+                documentData['seller']['name'] ?? 
+                documentData['sellerName'] ?? 'N/A';
+      }
+    } else {
+      seller = documentData['sellerName'] ?? 
+              documentData['createdBy'] ?? 
+              documentData['createdByDisplayName'] ?? 'N/A';
+    }
+    
+    // Handle total amount - check multiple possible fields
+    final totalAmount = documentData['grandTotal'] ?? 
+                       documentData['netTotal'] ?? 
+                       documentData['totalAmount'] ?? 
+                       documentData['total'] ?? 0;
+    
+    final status = documentData['status'] ?? 'DRAFT';
+    final validUntil = documentData['validUntil'] ?? documentData['dueDate'] ?? '';
+    
+    // Convert timestamps to readable format
+    String createdDate = '';
+    if (createdAt != null && createdAt != '') {
+      try {
+        if (createdAt is int) {
+          final date = DateTime.fromMillisecondsSinceEpoch(createdAt);
+          createdDate = '${date.day}/${date.month}/${date.year}';
+        } else if (createdAt is String && createdAt.isNotEmpty) {
+          final date = DateTime.parse(createdAt);
+          createdDate = '${date.day}/${date.month}/${date.year}';
+        }
+      } catch (e) {
+        createdDate = createdAt.toString();
+      }
+    }
+    
+    String validUntilDate = '';
+    if (validUntil != null && validUntil != '') {
+      try {
+        if (validUntil is int) {
+          final date = DateTime.fromMillisecondsSinceEpoch(validUntil);
+          validUntilDate = '${date.day}/${date.month}/${date.year}';
+        } else if (validUntil is String && validUntil.isNotEmpty) {
+          final date = DateTime.parse(validUntil);
+          validUntilDate = '${date.day}/${date.month}/${date.year}';
+        }
+      } catch (e) {
+        validUntilDate = validUntil.toString();
+      }
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: index < _relatedDocuments.length - 1 
+              ? BorderSide(color: Colors.grey[200]!)
+              : BorderSide.none,
         ),
       ),
+      child: Row(
+        children: [
+          // Doc No.
+          SizedBox(
+            width: 50,
+            child: Text(
+              docNumber,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Type
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                _getDocumentIcon(documentType),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    _getDocumentTypeLabel(documentType),
+                    style: const TextStyle(fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Job Card
+          Expanded(
+            flex: 3,
+            child: Text(
+              jobCardId,
+              style: const TextStyle(fontSize: 12, color: Colors.blue),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Seller
+          Expanded(
+            flex: 2,
+            child: Text(
+              seller,
+              style: const TextStyle(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Date
+          Expanded(
+            flex: 2,
+            child: Text(
+              createdDate,
+              style: const TextStyle(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Valid Until
+          Expanded(
+            flex: 2,
+            child: Text(
+              validUntilDate,
+              style: const TextStyle(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Amount
+          Expanded(
+            flex: 2,
+            child: Text(
+              '฿${_formatNumber(totalAmount)}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.green,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Status Dropdown
+          Expanded(
+            flex: 2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getDocumentStatusColor(status).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: _getDocumentStatusColor(status),
+                  width: 1,
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: status,
+                  isDense: true,
+                  isExpanded: true,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: _getDocumentStatusColor(status),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 14,
+                    color: _getDocumentStatusColor(status),
+                  ),
+                  items: _documentStatusOptions.map((option) {
+                    return DropdownMenuItem<String>(
+                      value: option['value'],
+                      child: Text(
+                        option['label'],
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: _getDocumentStatusColor(option['value']),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (newStatus) {
+                    if (newStatus != null && newStatus != status) {
+                      _updateDocumentStatus(documentId, newStatus);
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // More Menu
+          SizedBox(
+            width: 40,
+            child: PopupMenuButton<String>(
+              icon: Icon(Icons.more_horiz, size: 18, color: Colors.grey[600]),
+              onSelected: (value) {
+                switch (value) {
+                  case 'download':
+                    _downloadDocument(document);
+                    break;
+                  case 'duplicate':
+                    _duplicateDocument(document);
+                    break;
+                  case 'edit':
+                    _editDocument(document);
+                    break;
+                  case 'delete':
+                    _deleteDocument(document);
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'download',
+                  child: Row(
+                    children: [
+                      Icon(Icons.download, size: 16, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text('ดาวน์โหลด', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'duplicate',
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy, size: 16, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('คัดลอก', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, size: 16, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, size: 16, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('ลบ', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  String _getDocumentTypeLabel(String type) {
+    switch (type) {
+      case 'quotation':
+      case 'QT': // Support QT type from backup data
+        return 'ใบเสนอราคา';
+      case 'invoice':
+      case 'INV':
+        return 'ใบแจ้งหนี้';
+      case 'receipt':
+      case 'REC':
+        return 'ใบเสร็จ';
+      case 'purchase_order':
+      case 'PO':
+        return 'ใบสั่งซื้อ';
+      default:
+        return 'เอกสาร';
+    }
   }
 
   Widget _getDocumentIcon(String docType) {
@@ -1942,18 +2337,22 @@ class _EditCardPageState extends State<EditCardPage> {
 
     switch (docType) {
       case 'quotation':
+      case 'QT': // Support QT type from backup data
         iconData = Icons.request_quote;
         iconColor = Colors.orange;
         break;
       case 'invoice':
+      case 'INV':
         iconData = Icons.receipt;
         iconColor = Colors.green;
         break;
       case 'receipt':
+      case 'REC':
         iconData = Icons.receipt_long;
         iconColor = Colors.blue;
         break;
       case 'purchase_order':
+      case 'PO':
         iconData = Icons.shopping_cart;
         iconColor = Colors.purple;
         break;
@@ -1963,30 +2362,6 @@ class _EditCardPageState extends State<EditCardPage> {
     }
 
     return Icon(iconData, color: iconColor, size: 24);
-  }
-
-  String _getDocumentTitle(String docType, Map<String, dynamic> docData) {
-    switch (docType) {
-      case 'quotation':
-        return 'Quotation #${docData['number'] ?? 'N/A'}';
-      case 'invoice':
-        return 'Invoice #${docData['number'] ?? 'N/A'}';
-      case 'receipt':
-        return 'Receipt #${docData['number'] ?? 'N/A'}';
-      case 'purchase_order':
-        return 'Purchase Order #${docData['number'] ?? 'N/A'}';
-      default:
-        return 'Document';
-    }
-  }
-
-  String _formatDateTime(String isoString) {
-    try {
-      final dateTime = DateTime.parse(isoString);
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    } catch (e) {
-      return isoString;
-    }
   }
 
   String _formatNumber(dynamic number) {
@@ -5088,54 +5463,266 @@ class _EditCardPageState extends State<EditCardPage> {
   // Load related documents details
   Future<void> _loadRelatedDocumentsDetails() async {
     try {
-      final repository = Get.find<FirestoreRepository>();
+      setState(() {
+        _isLoadingRelatedDocuments = true;
+      });
+
+      final firestore = FirebaseFirestore.instance;
+      final workspaceId = widget.card.workspaceId;
+
+      if (workspaceId.isEmpty) {
+        print('⚠️ Missing workspaceId for loading related documents');
+        return;
+      }
+
+      // Get relatedDocuments from the card's field (not subcollection)
+      final cardRelatedDocuments = widget.card.relatedDocuments;
+      
+      if (cardRelatedDocuments.isEmpty) {
+        print('ℹ️ No related documents found in card field');
+        setState(() {
+          _relatedDocuments = [];
+          _isLoadingRelatedDocuments = false;
+        });
+        return;
+      }
+
       List<Map<String, dynamic>> detailedDocuments = [];
 
-      for (var doc in _relatedDocuments) {
-        String docType = doc['type'] ?? '';
-        String docId = doc['id'] ?? '';
+      // Loop through each related document ID and fetch detailed data
+      for (var relatedDoc in cardRelatedDocuments) {
+        try {
+          final documentId = relatedDoc['id'] ?? '';
+          final docNo = relatedDoc['docNo'] ?? '';
+          final docType = relatedDoc['type'] ?? 'QT';
 
-        if (docType.isNotEmpty && docId.isNotEmpty) {
-          try {
-            Map<String, dynamic>? docData;
-
-            // Get documents from the workspace documents collection based on type and id
-            // Since all documents are stored in the workspace documents collection,
-            // we need to get the document by its ID and verify its type
-            final workspaceId = widget.card.workspaceId;
-            final documents = await repository.getDocuments(
-              workspaceId: workspaceId,
-            );
-
-            // Find the specific document by ID and type
-            final foundDoc = documents.firstWhere(
-              (document) =>
-                  document['id'] == docId && document['type'] == docType,
-              orElse: () => <String, dynamic>{},
-            );
-
-            if (foundDoc.isNotEmpty) {
-              docData = foundDoc;
-
-              detailedDocuments.add({
-                'type': docType,
-                'id': docId,
-                'data': docData,
-                'createdAt':
-                    doc['createdAt'] ?? DateTime.now().toIso8601String(),
-              });
-            }
-          } catch (e) {
-            print('Error loading document $docType:$docId - $e');
+          if (documentId.isEmpty) {
+            print('⚠️ Missing document ID in related document');
+            continue;
           }
+
+          print('🔍 Loading document: $documentId ($docNo)');
+
+          // Get detailed document data from workspace documents collection
+          final documentSnapshot = await firestore
+              .collection('workspaces')
+              .doc(workspaceId)
+              .collection('documents')
+              .doc(documentId)
+              .get();
+
+          if (documentSnapshot.exists) {
+            final documentData = documentSnapshot.data()!;
+            
+            detailedDocuments.add({
+              'id': documentId,
+              'type': docType,
+              'docNo': docNo,
+              'data': documentData,
+              'createdAt': documentData['createdAt'] ?? DateTime.now().toIso8601String(),
+            });
+            
+            print('✅ Loaded document: $docNo (${documentData['type'] ?? docType})');
+          } else {
+            print('⚠️ Document $documentId not found in workspace documents');
+            
+            // Add placeholder data for missing documents
+            detailedDocuments.add({
+              'id': documentId,
+              'type': docType,
+              'docNo': docNo,
+              'data': {
+                'status': 'NOT_FOUND',
+                'docNo': docNo,
+                'type': docType,
+              },
+              'createdAt': DateTime.now().toIso8601String(),
+            });
+          }
+        } catch (e) {
+          print('❌ Error loading document: $e');
         }
       }
 
       setState(() {
         _relatedDocuments = detailedDocuments;
+        _isLoadingRelatedDocuments = false;
       });
+
+      print('✅ Loaded ${detailedDocuments.length} related documents');
     } catch (e) {
-      print('Error loading related documents: $e');
+      print('❌ Error loading related documents: $e');
+      setState(() {
+        _isLoadingRelatedDocuments = false;
+      });
+    }
+  }
+
+  // Related Documents management methods
+  Future<void> _updateDocumentStatus(String documentId, String newStatus) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final workspaceId = widget.card.workspaceId;
+
+      // Update status in documents collection
+      await firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('documents')
+          .doc(documentId)
+          .update({
+        'status': newStatus,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      // Reload related documents to reflect changes
+      await _loadRelatedDocumentsDetails();
+
+      Get.snackbar(
+        'Success',
+        'Document status updated successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to update document status: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  void _downloadDocument(Map<String, dynamic> document) {
+    // TODO: Implement download functionality
+    Get.snackbar(
+      'Download',
+      'Download functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _duplicateDocument(Map<String, dynamic> document) {
+    // TODO: Implement duplicate functionality
+    Get.snackbar(
+      'Duplicate',
+      'Duplicate functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _editDocument(Map<String, dynamic> document) {
+    // TODO: Implement edit functionality
+    Get.snackbar(
+      'Edit',
+      'Edit functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _deleteDocument(Map<String, dynamic> document) {
+    final documentId = document['id'] ?? '';
+    final docNo = document['docNo'] ?? 'N/A';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ลบเอกสาร'),
+        content: Text('คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _performDeleteDocument(documentId, ''); // Pass empty relatedDocId since we don't use subcollection
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('ลบ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDeleteDocument(String documentId, String relatedDocId) async {
+    try {
+      // Since relatedDocuments is stored in the card field (not subcollection),
+      // we need to update the card's relatedDocuments field by removing the specified document
+      
+      // Get current relatedDocuments from the card
+      final currentRelatedDocs = List<Map<String, dynamic>>.from(widget.card.relatedDocuments);
+      
+      // Remove the document with matching ID
+      currentRelatedDocs.removeWhere((doc) => doc['id'] == documentId);
+      
+      // Update the card with the new relatedDocuments list
+      final updatedCard = widget.card.copyWith(
+        relatedDocuments: currentRelatedDocs,
+        updatedAt: DateTime.now(),
+      );
+      
+      await _controller.updateCard(updatedCard);
+
+      // Reload related documents to reflect changes
+      await _loadRelatedDocumentsDetails();
+
+      Get.snackbar(
+        'Success',
+        'Document removed successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to delete document: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  Color _getDocumentStatusColor(String status) {
+    switch (status) {
+      case 'DRAFT':
+        return Colors.grey;
+      case 'APPROVED':
+        return Colors.green;
+      case 'PENDING_APPROVAL':
+        return Colors.orange;
+      case 'SENT_FOR_APPROVAL':
+        return Colors.blue;
+      case 'CANCELLED':
+        return Colors.red;
+      case 'REJECTED':
+        return Colors.red;
+      case 'INVOICED':
+        return Colors.purple;
+      case 'FULLY_PAID':
+        return Colors.green.shade700;
+      default:
+        return Colors.grey;
     }
   }
 

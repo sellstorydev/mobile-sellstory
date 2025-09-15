@@ -185,7 +185,7 @@
           "product": 2,
           "company": 3,
           "jobCard": 58,
-          "quotation": 12
+          "quotation": 27
         }
       },
       "subCollection": {
@@ -748,10 +748,8 @@
             "createdAt": 1756975589247,
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedByDisplayName": "bew kiw",
             "startDate": 1756918800000,
             "descriptionMentions": [],
-            "withholdingTaxPercentage": 3,
             "id": "AhzmaDyKm4wwcMntM3hO",
             "isVatEnabled": true,
             "additionalDiscount": {
@@ -769,23 +767,6 @@
                 "color": "#eab308",
                 "id": "bew1234455",
                 "text": "Bew1234455"
-              }
-            ],
-            "description": "<p><strong><p><strong><p><strong><p><strong><p><strong><p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Details</u></em></strong></span></p></strong></p></strong></p></strong></p></strong></p></strong></p>",
-            "todos": [
-              {
-                "completed": false,
-                "dueDate": 1756918860000,
-                "id": "todo-todo-todo-todo-todo-todo-1756975522376",
-                "mentions": [],
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
-              },
-              {
-                "completed": false,
-                "dueDate": 1756918860000,
-                "id": "todo-todo-todo-todo-todo-todo-1756975523853",
-                "mentions": [],
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
               }
             ],
             "hashtag": "#Bew1234455",
@@ -865,80 +846,117 @@
             "order": 0,
             "customerInterest": "เริ่มต้น",
             "laneId": "qesjwQS3saV9h3wzyYMz",
-            "amount": 0,
-            "quotationTemplateId": "Fv9OBceNChku4n8jmx1P",
             "formatDataExpense": {
               "subTotal": 11264331.2,
               "totalAfterDiscount": 337929.94,
               "grandTotal": 361585.03,
               "netTotal": 351447.13
             },
-            "updatedAt": 1757837435224,
+            "quotationTemplateId": "v9GCzC6qLDd473ZCdIeD",
             "expenses": [
               {
-                "discount": 20,
-                "discountType": "percentage",
+                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
+                "quantity": 1,
                 "description": "",
                 "customInputs": {
+                  "zJ1Gk75NoiV4WxZT1yEZN": "test01",
                   "nWnGJtH7SjOyYsBeK5LhX": "1112",
                   "BZp1ilY7pFssB5cVhH_RP": "1150",
-                  "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku1"
                 },
+                "name": "Example html",
                 "pricePerUnit": 51234,
-                "quantity": 1,
-                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
                 "unit": "item",
                 "productId": "34N6d2Az4sYF7ZHvyFHN",
-                "name": "Example html"
+                "discountType": "percentage",
+                "discount": 20
               },
               {
-                "name": "test1",
-                "discountType": "amount",
                 "description": "",
-                "pricePerUnit": 11223344,
-                "customInputs": {
-                  "BZp1ilY7pFssB5cVhH_RP": "1150",
-                  "nWnGJtH7SjOyYsBeK5LhX": "1112",
-                  "zJ1Gk75NoiV4WxZT1yEZN": "test01"
-                },
-                "id": "exp-1756975564459-RwedKMymVqN8W3nFYbJP",
-                "quantity": 1,
-                "discount": 0,
                 "unit": "item",
-                "productId": "RwedKMymVqN8W3nFYbJP"
+                "quantity": 1,
+                "discountType": "amount",
+                "productId": "RwedKMymVqN8W3nFYbJP",
+                "customInputs": {
+                  "nWnGJtH7SjOyYsBeK5LhX": "1112",
+                  "zJ1Gk75NoiV4WxZT1yEZN": "test01",
+                  "BZp1ilY7pFssB5cVhH_RP": "1150",
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku2"
+                },
+                "pricePerUnit": 11223344,
+                "discount": 0,
+                "id": "exp-1756975564459-RwedKMymVqN8W3nFYbJP",
+                "name": "test1"
               }
             ],
+            "updatedByDisplayName": "BewLnwZa",
+            "amount": 0,
+            "withholdingTaxPercentage": 3,
+            "description": "<p><strong><p><strong><p><strong><p><strong><p><strong><p><strong><p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Details</u></em></strong></span></p></strong></p></strong></p></strong></p></strong></p></strong></p></strong></p>",
+            "todos": [
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-1756975522376",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
+              },
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-1756975523853",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
+              }
+            ],
+            "updatedAt": 1757921196331,
             "relatedDocuments": [
               {
-                "createdAt": "2025-09-12T02:38:23.718194",
-                "docNo": "EST-250912-0004",
-                "id": "4otgqHWFI7eom6vve3W6",
-                "type": "QT"
-              },
-              {
-                "createdAt": "2025-09-12T13:45:20.349740",
-                "docNo": "EST-250912-0008",
-                "id": "mWXSx6p97k82xcnJGdUh",
-                "type": "QT"
-              },
-              {
-                "createdAt": "2025-09-12T14:20:53.863745",
-                "docNo": "EST-250912-0010",
-                "id": "sfo8VwYrLjS1DA2RCG4a",
-                "type": "QT"
-              },
-              {
-                "createdAt": "2025-09-12T14:44:20.372738",
-                "docNo": "EST-250912-0011",
-                "id": "ENw26tPNGwfbv2WaBCHc",
-                "type": "QT"
-              },
-              {
-                "id": "vBMO5H4gUiNiHHGVwb3D",
-                "docNo": "EST-250915-0012",
+                "id": "AhBZcFx2DtzL7PF7lgjy",
+                "docNo": "EST-250915-0027",
                 "type": "QT"
               }
-            ]
+            ],
+            "subCollection": {
+              "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/expenses": {
+                "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN": {
+                  "customInputs": {
+                    "BZp1ilY7pFssB5cVhH_RP": "1150",
+                    "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                    "nWnGJtH7SjOyYsBeK5LhX": "1112",
+                    "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                  },
+                  "description": "",
+                  "discount": 20,
+                  "discountType": "percentage",
+                  "name": "Example html",
+                  "order": 0,
+                  "pricePerUnit": 51234,
+                  "productId": "34N6d2Az4sYF7ZHvyFHN",
+                  "quantity": 1,
+                  "unit": "item",
+                  "updatedAt": 1757921197447
+                },
+                "exp-1756975564459-RwedKMymVqN8W3nFYbJP": {
+                  "customInputs": {
+                    "BZp1ilY7pFssB5cVhH_RP": "1150",
+                    "Ww9jjpqJA3_-4QBgWvXXP": "sku2",
+                    "nWnGJtH7SjOyYsBeK5LhX": "1112",
+                    "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                  },
+                  "description": "",
+                  "discount": 0,
+                  "discountType": "amount",
+                  "name": "test1",
+                  "order": 1,
+                  "pricePerUnit": 11223344,
+                  "productId": "RwedKMymVqN8W3nFYbJP",
+                  "quantity": 1,
+                  "unit": "item",
+                  "updatedAt": 1757921197507
+                }
+              }
+            }
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/companies": {
@@ -1098,8 +1116,8 @@
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/documents": {
-          "vBMO5H4gUiNiHHGVwb3D": {
-            "docNo": "EST-250915-0012",
+          "AhBZcFx2DtzL7PF7lgjy": {
+            "docNo": "EST-250915-0027",
             "type": "QT",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
             "status": "DRAFT",
@@ -1123,38 +1141,38 @@
             "jobCardBoardId": "Mop2RUYjlM9kRoXGa001",
             "items": [
               {
-                "unit": "item",
-                "productId": "34N6d2Az4sYF7ZHvyFHN",
-                "quantity": 1,
                 "name": "Example html",
-                "discountType": "percentage",
+                "unit": "item",
                 "discount": 20,
-                "pricePerUnit": 51234,
-                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
                 "customInputs": {
-                  "zJ1Gk75NoiV4WxZT1yEZN": "test01",
-                  "nWnGJtH7SjOyYsBeK5LhX": "1112",
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
                   "BZp1ilY7pFssB5cVhH_RP": "1150",
-                  "Ww9jjpqJA3_-4QBgWvXXP": "test"
+                  "zJ1Gk75NoiV4WxZT1yEZN": "test01",
+                  "nWnGJtH7SjOyYsBeK5LhX": "1112"
                 },
-                "description": ""
+                "discountType": "percentage",
+                "quantity": 1,
+                "description": "",
+                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "pricePerUnit": 51234
               },
               {
-                "description": "",
                 "discountType": "amount",
-                "discount": 0,
-                "quantity": 1,
+                "pricePerUnit": 11223344,
                 "customInputs": {
                   "nWnGJtH7SjOyYsBeK5LhX": "1112",
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku2",
                   "zJ1Gk75NoiV4WxZT1yEZN": "test01",
-                  "BZp1ilY7pFssB5cVhH_RP": "1150",
-                  "Ww9jjpqJA3_-4QBgWvXXP": "test"
+                  "BZp1ilY7pFssB5cVhH_RP": "1150"
                 },
-                "name": "test1",
-                "pricePerUnit": 11223344,
-                "id": "exp-1756975564459-RwedKMymVqN8W3nFYbJP",
                 "unit": "item",
-                "productId": "RwedKMymVqN8W3nFYbJP"
+                "discount": 0,
+                "name": "test1",
+                "productId": "RwedKMymVqN8W3nFYbJP",
+                "quantity": 1,
+                "id": "exp-1756975564459-RwedKMymVqN8W3nFYbJP",
+                "description": ""
               }
             ],
             "subtotal": 11264331.2,
@@ -1165,18 +1183,18 @@
             "withholdingTaxPercentage": 3,
             "netTotal": 351447.1334400007,
             "isVatEnabled": true,
-            "validUntil": 1760507582184,
-            "createdAt": 1757915582184,
-            "updatedAt": 1757915582184,
+            "validUntil": 1760522813041,
+            "createdAt": 1757930813041,
+            "updatedAt": 1757930813041,
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "activityLog": [
               {
-                "timestamp": 1757915582184,
+                "timestamp": 1757930813041,
                 "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
                 "userDisplayName": "BewLnwZa",
                 "action": "Created",
-                "details": "Created quotation EST-250915-0012 from job card JB-250904-00431234"
+                "details": "Created quotation EST-250915-0027 from job card JB-250904-00431234"
               }
             ],
             "templateId": "v9GCzC6qLDd473ZCdIeD"
@@ -1757,64 +1775,80 @@
             "body": {
               "components": [
                 {
-                  "y": 120,
                   "id": "comp-ms-customer",
+                  "height": 60,
                   "style": {
                     "zIndex": 1
                   },
                   "type": "text",
+                  "y": 120,
                   "width": 300,
-                  "content": "<p style=\"color:#666;\">Prepared for:</p><h2 style=\"font-size: 16px; font-weight: bold;\">{customer.name}</h2>",
                   "x": 40,
-                  "height": 60
+                  "content": "<p style=\"color:#666;\">Prepared for:</p><h2 style=\"font-size: 16px; font-weight: bold;\">{customer.name}</h2>"
                 },
                 {
-                  "y": 200,
-                  "type": "table",
-                  "id": "comp-ms-table",
-                  "content": "",
-                  "height": 500,
                   "x": 40,
-                  "width": 710,
+                  "height": 500,
                   "style": {
-                    "zIndex": 1,
                     "textColor": "#ffffff",
                     "headerColor": "#4f46e5",
-                    "headerHeight": 40
+                    "headerHeight": 40,
+                    "zIndex": 1
                   },
+                  "id": "comp-ms-table",
+                  "width": 710,
+                  "type": "table",
+                  "y": 200,
+                  "content": "",
                   "columns": [
                     {
-                      "id": "Ww9jjpqJA3_-4QBgWvXXP",
                       "prefillSourceField": "sku",
+                      "isVisible": true,
                       "order": 5,
                       "type": "user_input",
-                      "isVisible": true,
                       "label": "SKU",
-                      "isEditable": true
+                      "isEditable": true,
+                      "id": "Ww9jjpqJA3_-4QBgWvXXP"
+                    },
+                    {
+                      "id": "x5CGZ5H50xV6Dj4iCI2ea",
+                      "label": "Test01234",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 1
+                    },
+                    {
+                      "id": "hDN5ufHcsU0plBqbdLq_o",
+                      "label": "New Column",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 2
                     }
                   ]
                 },
                 {
+                  "summaryFields": {
+                    "vat": true,
+                    "grandTotal": true,
+                    "subtotal": true,
+                    "discount": true
+                  },
                   "style": {
                     "zIndex": 1
                   },
-                  "height": 150,
-                  "summaryFields": {
-                    "discount": true,
-                    "subtotal": true,
-                    "vat": true,
-                    "grandTotal": true
-                  },
-                  "content": "",
+                  "y": 720,
                   "width": 300,
-                  "type": "summary",
-                  "x": 450,
                   "id": "comp-ms-summary",
-                  "y": 720
+                  "type": "summary",
+                  "content": "",
+                  "x": 450,
+                  "height": 150
                 }
               ]
             },
-            "updatedAt": 1757915556695
+            "updatedAt": 1757918450286
           }
         }
       }
