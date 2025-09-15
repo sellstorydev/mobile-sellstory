@@ -1,4 +1,4 @@
-import '../../../domain/entities/job_card.dart';
+import '../../domain/entities/job_card.dart';
 
 class LaneTotalCalculator {
   static double _r2(num v) => (v * 100).round() / 100.0;

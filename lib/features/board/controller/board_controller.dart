@@ -11,7 +11,7 @@ import '../presenter/board_presenter.dart';
 import '../contract/board_view.dart';
 import '../state/board_state.dart';
 import '../../../data/services/mobile_permissions_service.dart';
-import '../controllers/lane_display_controller.dart';
+import 'lane_display_controller.dart';
 
 class BoardController extends GetxController implements BoardView {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();

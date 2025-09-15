@@ -1,12 +1,13 @@
 import 'package:get/get.dart';
-import '../enums/lane_display_mode.dart';
+import 'package:sellstory/core/enums/lane_display_mode.dart';
 
 class LaneDisplayController extends GetxController {
   // Local storage for each lane's display mode
   final Map<String, LaneDisplayMode> _laneDisplayModes = {};
-  
+
   // Observable for UI updates
-  final RxMap<String, LaneDisplayMode> laneDisplayModes = <String, LaneDisplayMode>{}.obs;
+  final RxMap<String, LaneDisplayMode> laneDisplayModes =
+      <String, LaneDisplayMode>{}.obs;
 
   LaneDisplayMode getDisplayMode(String laneId) {
     return laneDisplayModes[laneId] ?? LaneDisplayMode.totalBeforeDiscount;

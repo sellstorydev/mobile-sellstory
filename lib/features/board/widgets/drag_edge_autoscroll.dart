@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../config/drag_config.dart';
+import '../../../core/config/drag_config.dart';
 
 class DragEdgeAutoScroll extends StatefulWidget {
   final Widget child;

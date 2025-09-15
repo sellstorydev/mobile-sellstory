@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../config/drag_config.dart';
+import '../../../core/config/drag_config.dart';
 
 class BoardAutoScrollWrapper extends StatefulWidget {
   final Widget child;

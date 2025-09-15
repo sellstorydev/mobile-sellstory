@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sellstory/core/enums/lane_display_mode.dart';
 import '../../../domain/entities/job_card.dart';
-import '../enums/lane_display_mode.dart';
-import '../utils/lane_total_calculator.dart';
+import '../../../core/utils/lane_total_calculator.dart';
 
 class StatusSummaryCards extends StatelessWidget {
   // cards: รายการการ์ดที่ผ่านการกรอง/ค้นหาจาก board แล้ว
