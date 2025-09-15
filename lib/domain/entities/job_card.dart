@@ -39,6 +39,7 @@ class JobCard {
   final num withholdingTaxPercentage; // Add withholding tax percentage field
   final List<Map<String, dynamic>> attachments; // Add attachments field
   final List<Map<String, dynamic>> relatedDocuments; // Add related documents field
+  final String? quotationTemplateId; // Add quotation template ID field
 
   JobCard({
     required this.id,
@@ -79,6 +80,7 @@ class JobCard {
     this.withholdingTaxPercentage = 0,
     this.attachments = const [],
     this.relatedDocuments = const [],
+    this.quotationTemplateId,
   });
 
   JobCard copyWith({
@@ -120,6 +122,7 @@ class JobCard {
     num? withholdingTaxPercentage,
     List<Map<String, dynamic>>? attachments,
     List<Map<String, dynamic>>? relatedDocuments,
+    String? quotationTemplateId,
   }) {
     return JobCard(
       id: id ?? this.id,
@@ -160,6 +163,7 @@ class JobCard {
       withholdingTaxPercentage: withholdingTaxPercentage ?? this.withholdingTaxPercentage,
       attachments: attachments ?? this.attachments,
       relatedDocuments: relatedDocuments ?? this.relatedDocuments,
+      quotationTemplateId: quotationTemplateId ?? this.quotationTemplateId,
     );
   }
 
@@ -203,6 +207,7 @@ class JobCard {
       'withholdingTaxPercentage': withholdingTaxPercentage,
       'attachments': attachments,
       'relatedDocuments': relatedDocuments,
+      'quotationTemplateId': quotationTemplateId,
     };
   }
 
@@ -336,6 +341,7 @@ class JobCard {
       withholdingTaxPercentage: map['withholdingTaxPercentage'] ?? 0,
       attachments: List<Map<String, dynamic>>.from(map['attachments'] ?? const []),
       relatedDocuments: List<Map<String, dynamic>>.from(map['relatedDocuments'] ?? const []),
+      quotationTemplateId: _nullableStringFrom(map['quotationTemplateId']),
     );
   }
 

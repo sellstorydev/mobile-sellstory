@@ -46,12 +46,20 @@ class CreateDocumentFromCardController extends GetxController {
     }
   }
 
+  // Initialize with job card and optional template ID
+  Future<void> initializeWithJobCard(JobCard jobCard, {String? templateId}) async {
+    await _initializeUserAndWorkspace();
+    // Additional initialization logic can be added here if needed
+  }
+
   void _setLoading(bool loading) {
     _isLoading.value = loading;
   }
 
   /// สร้าง quotation จาก job card โดยอัตโนมัติ
-  Future<String?> createQuotationFromJobCard(JobCard jobCard) async {
+  Future<String?> createQuotationFromJobCard(JobCard jobCard, {String? templateId}) async {
+    print('🎯 CreateDocumentFromCardController - received templateId: $templateId');
+    
     if (_currentUserId == null || _currentWorkspaceId == null) {
       Get.snackbar('Error', 'User or workspace not found');
       return null;
@@ -69,8 +77,9 @@ class CreateDocumentFromCardController extends GetxController {
       // Get current user info
       final currentUserInfo = await _repository.getCurrentUserInfo(_currentUserId!);
       
-      // Get default template ID
-      final defaultTemplateId = await _getDefaultQuotationTemplateId();
+      // Get template ID (use provided templateId or get default)
+      final finalTemplateId = templateId ?? await _getDefaultQuotationTemplateId();
+      print('🎯 Final templateId to use: $finalTemplateId');
 
       // Calculate totals from job card expenses
       final calculations = _calculateTotalsFromJobCard(jobCard);
@@ -142,7 +151,7 @@ class CreateDocumentFromCardController extends GetxController {
         ],
         
         // Template ID
-        'templateId': defaultTemplateId,
+        'templateId': finalTemplateId,
       };
 
       // Save document to Firestore
