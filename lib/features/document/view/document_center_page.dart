@@ -15,9 +15,9 @@ class DocumentCenterPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'เอกสาร',
-          style: TextStyle(
+        title: Text(
+          'documents'.tr,
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
             fontFamily: AppFont.family,
@@ -91,9 +91,9 @@ class DocumentCenterPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'ระบบเอกสาร',
-                      style: TextStyle(
+                    Text(
+                      'document_system'.tr,
+                      style: const TextStyle(
                         color: AppTheme.textPrimary,
                         fontSize: AppTheme.fontSize18,
                         fontFamily: AppFont.family,
@@ -102,8 +102,8 @@ class DocumentCenterPage extends StatelessWidget {
                     ),
                     const SizedBox(height: AppTheme.spacing4),
                     Text(
-                      'จัดการใบเสนอราคา, ใบแจ้งหนี้, ใบแจ้งหนี้',
-                      style: TextStyle(
+                      'manage_quotations_invoices_receipts'.tr,
+                      style: const TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: AppTheme.fontSize14,
                         fontFamily: AppFont.family,
@@ -124,8 +124,8 @@ class DocumentCenterPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'ประเภทเอกสาร',
+        Text(
+          'document_type'.tr,
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize16,
@@ -143,28 +143,28 @@ class DocumentCenterPage extends StatelessWidget {
           childAspectRatio: 1.2,
           children: [
             _buildDocumentTypeCard(
-              title: 'ใบเสนอราคา',
+              title: 'quotations'.tr,
               subtitle: 'Quotations',
               icon: Icons.receipt_long_outlined,
               color: const Color(0xFF4CAF50),
               onTap: () => controller.navigateToQuotations(),
             ),
             _buildDocumentTypeCard(
-              title: 'ใบแจ้งหนี้',
+              title: 'invoices'.tr,
               subtitle: 'Invoices',
               icon: Icons.description_outlined,
               color: const Color(0xFF2196F3),
               onTap: () => controller.navigateToInvoices(),
             ),
             _buildDocumentTypeCard(
-              title: 'ใบเสร็จรับเงิน',
+              title: 'create_receipt'.tr,
               subtitle: 'Receipts',
               icon: Icons.payment_outlined,
               color: const Color(0xFFFF9800),
               onTap: () => controller.navigateToReceipts(),
             ),
                          _buildDocumentTypeCard(
-               title: 'สร้างใหม่',
+               title: 'create_new'.tr,
                subtitle: 'Create New',
                icon: Icons.add_circle_outline,
                color: AppTheme.primaryOrange,
@@ -254,8 +254,8 @@ class DocumentCenterPage extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.spacing12),
           ),
-          title: const Text(
-            'เลือกประเภทเอกสาร',
+          title: Text(
+            'select_document_type'.tr,
             style: TextStyle(
               color: AppTheme.textPrimary,
               fontSize: AppTheme.fontSize18,
@@ -268,7 +268,7 @@ class DocumentCenterPage extends StatelessWidget {
             children: [
               _buildDocumentTypeOption(
                 context,
-                title: 'ใบเสนอราคา',
+                title: 'quotations'.tr,
                 subtitle: 'Quotation',
                 icon: Icons.receipt_long_outlined,
                 color: const Color(0xFF4CAF50),
@@ -280,7 +280,7 @@ class DocumentCenterPage extends StatelessWidget {
               const SizedBox(height: AppTheme.spacing12),
               _buildDocumentTypeOption(
                 context,
-                title: 'ใบแจ้งหนี้',
+                title: 'invoices'.tr,
                 subtitle: 'Invoice',
                 icon: Icons.description_outlined,
                 color: const Color(0xFF2196F3),
@@ -292,7 +292,7 @@ class DocumentCenterPage extends StatelessWidget {
               const SizedBox(height: AppTheme.spacing12),
               _buildDocumentTypeOption(
                 context,
-                title: 'ใบแจ้งหนี้',
+                title: 'create_receipt'.tr,
                 subtitle: 'Receipt',
                 icon: Icons.payment_outlined,
                 color: const Color(0xFFFF9800),
@@ -312,7 +312,7 @@ class DocumentCenterPage extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                'ยกเลิก',
+                'cancel'.tr,
                 style: TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: AppTheme.fontSize14,

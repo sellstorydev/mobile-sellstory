@@ -16,7 +16,7 @@ class ProductsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
-        title: const Text('สินค้า'),
+        title: Text('products'.tr),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
@@ -31,9 +31,9 @@ class ProductsPage extends StatelessWidget {
                 });
               },
               icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
-              label: const Text(
-                'เพิ่มสินค้า',
-                style: TextStyle(
+              label: Text(
+                'add_product'.tr,
+                style: const TextStyle(
                   fontSize: 16,
                   color: AppTheme.primaryOrange,
                   fontWeight: FontWeight.w600,
@@ -47,7 +47,7 @@ class ProductsPage extends StatelessWidget {
         permission: 'product:view',
         fallback: Center(
           child: Text(
-            'คุณไม่มีสิทธิ์ดูรายการสินค้า',
+            'no_permission_view_products'.tr,
             style: const TextStyle(color: AppTheme.textSecondary),
           ),
         ),
@@ -60,7 +60,7 @@ class ProductsPage extends StatelessWidget {
               child: TextField(
                 onChanged: controller.searchProducts,
                 decoration: InputDecoration(
-                  hintText: 'ค้นหาสินค้า...',
+                  hintText: 'search_products'.tr,
                   prefixIcon: const Icon(Icons.search, color: AppTheme.textGrey),
                   suffixIcon: Obx(() => controller.searchQuery.value.isNotEmpty
                       ? IconButton(
@@ -98,7 +98,7 @@ class ProductsPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Obx(() => Text(
-                    'สินค้าทั้งหมด ${controller.productsCount.value} รายการ',
+                    'all_products_count'.tr.replaceFirst('{count}', controller.productsCount.value.toString()),
                     style: const TextStyle(
                       fontSize: AppTheme.fontSize14,
                       color: AppTheme.textSecondary,
@@ -114,7 +114,7 @@ class ProductsPage extends StatelessWidget {
                         });
                       },
                       icon: const Icon(Icons.add, size: 18),
-                      label: const Text('เพิ่มสินค้า'),
+                      label: Text('add_product'.tr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryOrange,
                         foregroundColor: Colors.white,
@@ -158,7 +158,7 @@ class ProductsPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'เกิดข้อผิดพลาด',
+                          'error_occurred'.tr,
                           style: const TextStyle(
                             fontSize: AppTheme.fontSize18,
                             fontWeight: FontWeight.bold,
@@ -177,7 +177,7 @@ class ProductsPage extends StatelessWidget {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: controller.refreshProducts,
-                          child: const Text('ลองใหม่'),
+                          child: Text('try_again'.tr),
                         ),
                       ],
                     ),
@@ -197,8 +197,8 @@ class ProductsPage extends StatelessWidget {
                         const SizedBox(height: 16),
             Text(
                           controller.searchQuery.value.isEmpty
-                              ? 'ไม่มีสินค้า'
-                              : 'ไม่พบสินค้าที่ค้นหา',
+                              ? 'no_products'.tr
+                              : 'no_products_found'.tr,
                           style: const TextStyle(
                             fontSize: AppTheme.fontSize18,
                 fontWeight: FontWeight.bold,
@@ -208,8 +208,8 @@ class ProductsPage extends StatelessWidget {
                         const SizedBox(height: 8),
             Text(
                           controller.searchQuery.value.isEmpty
-                              ? 'เริ่มต้นเพิ่มสินค้าแรกของคุณ'
-                              : 'ลองค้นหาด้วยคำอื่น',
+                              ? 'start_adding_first_product'.tr
+                              : 'try_different_search'.tr,
                           style: const TextStyle(
                             fontSize: AppTheme.fontSize14,
                 color: AppTheme.textSecondary,
@@ -230,7 +230,7 @@ class ProductsPage extends StatelessWidget {
                                         });
                                       },
                                       icon: const Icon(Icons.add),
-                                      label: const Text('เพิ่มสินค้า  '),
+                                      label: Text('add_product'.tr),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppTheme.primaryOrange,
                                         foregroundColor: Colors.white,

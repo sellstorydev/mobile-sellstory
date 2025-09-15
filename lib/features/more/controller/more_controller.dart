@@ -70,7 +70,7 @@ class MoreController extends GetxController {
         actions: [
           TextButton(
             onPressed: () => Get.back(result: false),
-            child: const Text('ยกเลิก'),
+            child: Text('cancel'.tr),
           ),
           TextButton(
             onPressed: () => Get.back(result: true),

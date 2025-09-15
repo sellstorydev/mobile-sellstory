@@ -92,7 +92,7 @@ class ChatScreenController extends GetxController {
         switch (data['type']) {
           case 'text':
             if (data['text'] == null || data['text'].toString().trim().isEmpty) {
-              data['text'] = '[ข้อความเปล่า]';
+              data['text'] = '[${'empty_message'.tr}]';
             }
             break;
           case 'image':
@@ -231,8 +231,8 @@ class ChatScreenController extends GetxController {
 
       // TODO: Update pin status in Firestore
       Get.snackbar(
-        'ปักหมุด',
-        isPinned ? 'ยกเลิกปักหมุดแล้ว' : 'ปักหมุดแล้ว',
+        'pin'.tr,
+        isPinned ? 'chat_unpin_success'.tr : 'chat_pin_success'.tr,
         snackPosition: SnackPosition.BOTTOM,
       );
     }
@@ -241,8 +241,8 @@ class ChatScreenController extends GetxController {
   void toggleMute() {
     _logger.info('Toggle mute requested');
     Get.snackbar(
-      'การแจ้งเตือน',
-      'ปิด/เปิดการแจ้งเตือนแล้ว',
+      'notifications'.tr,
+      'chat_notification_toggle_success'.tr,
       snackPosition: SnackPosition.BOTTOM,
     );
   }

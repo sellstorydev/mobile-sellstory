@@ -227,7 +227,7 @@ class LoginController extends GetxController {
     }
     try {
       isLoading.value = true;
-      await _authService.signInWithAppleFirebase();
+      // await _authService.signInWithAppleFirebase();
 
       // Ensure dependencies are properly setup after login
       Locator.setup();

@@ -331,9 +331,9 @@ class ReceiptListController extends GetxController {
     final yesterday = today.subtract(const Duration(days: 1));
     
     if (date.isAfter(yesterday) && date.isBefore(today.add(const Duration(days: 1)))) {
-      return 'วันนี้';
+      return 'today'.tr;
     } else if (date.isAfter(yesterday.subtract(const Duration(days: 1))) && date.isBefore(today)) {
-      return 'เมื่อวาน';
+      return 'yesterday'.tr;
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

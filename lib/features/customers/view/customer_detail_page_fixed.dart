@@ -295,7 +295,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           ),
           Expanded(
             child: Text(
-              value.isNotEmpty ? value : 'ไม่ระบุ',
+              value.isNotEmpty ? value : 'not_specified'.tr,
               style: const TextStyle(
                 fontSize: 14,
                 color: AppTheme.textPrimary,
@@ -310,15 +310,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildEmailsDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidEmails()) {
-      return _buildInfoRow('อีเมล', 'ไม่ระบุ');
+      return _buildInfoRow('email'.tr, 'not_specified'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'อีเมล',
-          style: TextStyle(
+        Text(
+          'email'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -349,15 +349,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildPhonesDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidPhones()) {
-      return _buildInfoRow('เบอร์โทร', 'ไม่ระบุ');
+      return _buildInfoRow('phone'.tr, 'not_specified'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'เบอร์โทร',
-          style: TextStyle(
+        Text(
+          'phone'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -388,15 +388,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildCompanyNamesDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidCompanies()) {
-      return _buildInfoRow('บริษัท', 'ไม่ระบุ');
+      return _buildInfoRow('company'.tr, 'not_specified'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'บริษัท',
-          style: TextStyle(
+        Text(
+          'company'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -436,15 +436,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildHashtagDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidHashtags()) {
-      return _buildInfoRow('แฮชแท็ก', 'ไม่มี');
+      return _buildInfoRow('customer_hashtags'.tr, 'none'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'แฮชแท็ก',
-          style: TextStyle(
+        Text(
+          'customer_hashtags'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -485,15 +485,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildAssigneesDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidAssignees()) {
-      return _buildInfoRow('ผู้รับผิดชอบ', 'ไม่มี');
+      return _buildInfoRow('customer_assignees'.tr, 'none'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'ผู้รับผิดชอบ',
-          style: TextStyle(
+        Text(
+          'customer_assignees'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -659,13 +659,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       ),
       child: Row(
         children: [
-          cell('จำนวนการซื้อซ้ำ', '0 ครั้ง'),
+          cell('purchase_count'.tr, 'purchase_count_zero'.tr),
           Container(
             width: 0.5,
             height: 60,
             color: const Color(0xFFE5E7EB),
           ),
-          cell('ยอดชำระรวม', '฿0.00', valueColor: const Color(0xFF10B981)),
+          cell('total_payment'.tr, 'total_payment_zero'.tr, valueColor: const Color(0xFF10B981)),
         ],
       ),
     );
@@ -713,8 +713,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
               color: AppTheme.primaryOrange.withAlpha(25),
               borderRadius: BorderRadius.circular(999),
             ),
-            child: const Text(
-              'ลูกค้า',
+            child: Text(
+              'customer'.tr,
               style: TextStyle(
                 fontSize: 10,
                 color: AppTheme.primaryOrange,
@@ -769,7 +769,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           const SizedBox(width: 6),
           Flexible(
             child: Text(
-              'รหัสลูกค้า: ${customer.customId}',
+              '${'customer_id'.tr}: ${customer.customId}',
               style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
               overflow: TextOverflow.ellipsis,
             ),
@@ -837,12 +837,12 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       appBar: AppBar(
         elevation: 0,
         title: Text(
-          customer.name.isNotEmpty ? customer.name : 'รายละเอียดลูกค้า',
+          customer.name.isNotEmpty ? customer.name : 'customer_details'.tr,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
-            tooltip: 'แก้ไข',
+            tooltip: 'edit'.tr,
             icon: const Icon(Icons.edit, color: AppTheme.primaryOrange),
             onPressed: () async {
               guardAction(context, 'customer:edit:all', () async {
@@ -907,18 +907,18 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                           const SizedBox(height: 16),
                           
                           // Customer Information
-                          _buildInfoSection('ข้อมูลลูกค้า', [
-                            _buildInfoRow('รหัสลูกค้า', _currentCustomer!.customId),
-                            _buildInfoRow('ชื่อ', '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
-                            _buildInfoRow('เพศ', _currentCustomer!.gender),
-                            _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
-                            _buildInfoRow('ประเภท', _currentCustomer!.customerType),
+                          _buildInfoSection('customer_info'.tr, [
+                            _buildInfoRow('customer_id'.tr, _currentCustomer!.customId),
+                            _buildInfoRow('name'.tr, '${_currentCustomer!.prefix} ${_currentCustomer!.name}'),
+                            _buildInfoRow('gender'.tr, _currentCustomer!.gender),
+                            _buildInfoRow('age'.tr, '${_currentCustomer!.age} ${'years'.tr}'),
+                            _buildInfoRow('customer_type'.tr, _currentCustomer!.customerType),
                           ]),
                           
                           const SizedBox(height: 16),
                           
                           // Contact Information
-                          _buildInfoSection('ข้อมูลติดต่อ', [
+                          _buildInfoSection('contact_info'.tr, [
                             _buildEmailsDisplay(),
                             _buildPhonesDisplay(),
                           ]),
@@ -927,20 +927,20 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                           
                           // Company Information
                           if (_hasValidCompanies()) ...[
-                            _buildInfoSection('ข้อมูลบริษัท', [
+                            _buildInfoSection('company_info'.tr, [
                               _buildCompanyNamesDisplay(),
                             ]),
                             const SizedBox(height: 16),
                           ],
                           
                           // Additional Information
-                          _buildInfoSection('ข้อมูลเพิ่มเติม', [
+                          _buildInfoSection('additional_info'.tr, [
                             if (_currentCustomer!.nationalId.isNotEmpty)
-                              _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
+                              _buildInfoRow('national_id'.tr, _currentCustomer!.nationalId),
                             if (_currentCustomer!.address.isNotEmpty)
-                              _buildInfoRow('ที่อยู่', _currentCustomer!.address),
+                              _buildInfoRow('address'.tr, _currentCustomer!.address),
                             if (_currentCustomer!.source.isNotEmpty)
-                              _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
+                              _buildInfoRow('source'.tr, _currentCustomer!.source),
                             _buildHashtagDisplay(), // Always show hashtag section
                             if (_hasValidAssignees())
                                _buildAssigneesDisplay(),
@@ -949,9 +949,9 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                           const SizedBox(height: 16),
                           
                           // System Information
-                          _buildInfoSection('ข้อมูลระบบ', [
-                            _buildInfoRow('สร้างเมื่อ', _formatDate(_currentCustomer!.createdAt)),
-                            _buildInfoRow('อัปเดตล่าสุด', _formatDate(_currentCustomer!.updatedAt)),
+                          _buildInfoSection('system_info'.tr, [
+                            _buildInfoRow('created_at'.tr, _formatDate(_currentCustomer!.createdAt)),
+                            _buildInfoRow('updated_at'.tr, _formatDate(_currentCustomer!.updatedAt)),
                           ]),
                         ],
                       ),
@@ -977,11 +977,11 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                             indicatorWeight: 3,
                             tabs: [
                               Tab(text: 'Job card ($_jobCardCount)'),
-                              Tab(text: 'สิ่งที่ต้องทำ ($_todoCount)'),
-                              Tab(text: 'ประวัติ (0)'),
-                              Tab(text: 'คลังเอกสาร (0)'),
-                              Tab(text: 'โน๊ต (0)'),
-                              Tab(text: 'เอกสารการขาย (0)'),
+                              Tab(text: '${'todos'.tr} ($_todoCount)'),
+                              Tab(text: '${'history'.tr} (0)'),
+                              Tab(text: '${'document_library'.tr} (0)'),
+                              Tab(text: '${'notes'.tr} (0)'),
+                              Tab(text: '${'sales_documents'.tr} (0)'),
                             ],
                           ),
                         ),
@@ -1041,7 +1041,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
             ),
             const SizedBox(height: 16),
             Text(
-              'ยังไม่มี Job Card สำหรับลูกค้านี้',
+              'no_job_card_for_customer'.tr,
               style: TextStyle(
                 fontSize: 16,
                 color: AppTheme.textSecondary,
@@ -1141,7 +1141,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                       if (jobCard.assignedTo.isNotEmpty) ...[
                         _buildJobCardDetailRow(
                           Icons.person_outline,
-                          'ผู้รับผิดชอบ',
+                          'assignee'.tr,
                           _getAssigneeName(jobCard.assignedTo),
                         ),
                         const SizedBox(height: 4),
@@ -1149,7 +1149,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                       if (jobCard.customerInterest?.isNotEmpty == true) ...[
                         _buildJobCardDetailRow(
                           Icons.favorite_outline,
-                          'ความสนใจ',
+                          'interest'.tr,
                           jobCard.customerInterest!,
                         ),
                         const SizedBox(height: 4),
@@ -1157,7 +1157,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                       if (jobCard.dueDate != null) ...[
                         _buildJobCardDetailRow(
                           Icons.calendar_today_outlined,
-                          'กำหนดส่ง',
+                          'due_date'.tr,
                           _formatDate(jobCard.dueDate!),
                         ),
                       ],
@@ -1290,7 +1290,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
             ),
             const SizedBox(height: 16),
             Text(
-              'ยังไม่มี To-Do สำหรับลูกค้านี้',
+              'no_todos_for_customer'.tr,
               style: TextStyle(
                 fontSize: 16,
                 color: AppTheme.textSecondary,
@@ -1395,7 +1395,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'จาก Job Card: $jobCardCustomId',
+                      '${'from_job_card'.tr}: $jobCardCustomId',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,
@@ -1426,7 +1426,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isCompleted ? 'เสร็จแล้ว' : 'ยังไม่เสร็จ',
+                  isCompleted ? 'completed'.tr : 'not_completed'.tr,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
@@ -1463,7 +1463,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'กำหนดส่ง: ${_formatDate(todoDate)}',
+                  '${'due_date_prefix'.tr}: ${_formatDate(todoDate)}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.textSecondary,
@@ -1482,7 +1482,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       color: AppTheme.backgroundGrey,
       child: Center(
         child: Text(
-          'ประวัติ\n(Coming Soon)',
+          '${'history'.tr}\n(${'coming_soon'.tr})',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -1498,7 +1498,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       color: AppTheme.backgroundGrey,
       child: Center(
         child: Text(
-          'คลังเอกสาร\n(Coming Soon)',
+          '${'document_library'.tr}\n(${'coming_soon'.tr})',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -1514,7 +1514,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       color: AppTheme.backgroundGrey,
       child: Center(
         child: Text(
-          'โน๊ต\n(Coming Soon)',
+          '${'notes'.tr}\n(${'coming_soon'.tr})',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -1530,7 +1530,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       color: AppTheme.backgroundGrey,
       child: Center(
         child: Text(
-          'เอกสารการขาย\n(Coming Soon)',
+          '${'sales_documents'.tr}\n(${'coming_soon'.tr})',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,

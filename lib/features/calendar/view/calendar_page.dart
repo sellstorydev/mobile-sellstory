@@ -45,9 +45,9 @@ class _CalendarPageState extends State<CalendarPage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'ปฏิทิน',
-          style: TextStyle(
+        title: Text(
+          'calendar'.tr,
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
             fontFamily: AppFont.family,
@@ -126,18 +126,18 @@ class _CalendarPageState extends State<CalendarPage> {
           _buildViewModeButton(
             controller,
             'month',
-            'เดือน',
+            'month'.tr,
             Icons.calendar_view_month,
           ),
           const SizedBox(width: AppTheme.spacing8),
           _buildViewModeButton(
             controller,
             '2week',
-            '2 สัปดาห์',
+            '2week'.tr,
             Icons.view_week,
           ),
           const SizedBox(width: AppTheme.spacing8),
-          _buildViewModeButton(controller, 'week', 'สัปดาห์', Icons.view_week),
+          _buildViewModeButton(controller, 'week', 'week'.tr, Icons.view_week),
         ],
       ),
     );
@@ -221,7 +221,7 @@ class _CalendarPageState extends State<CalendarPage> {
               _buildFilterTypeButton(
                 controller,
                 'all',
-                'ทั้งหมด',
+                'all'.tr,
                 Icons.all_inclusive,
               ),
               const SizedBox(width: AppTheme.spacing8),
@@ -251,8 +251,8 @@ class _CalendarPageState extends State<CalendarPage> {
                 )
                 .toList(),
             onAssigneesChanged: controller.setSelectedAssignees,
-            label: 'เลือกผู้รับผิดชอบ',
-            hintText: 'เลือกผู้รับผิดชอบที่ต้องการดู',
+            label: 'select_assignee'.tr,
+            hintText: 'select_assignee_hint'.tr,
             isLoading: false,
             allowMultipleSelection: true,
             showBorder: false,
@@ -394,34 +394,34 @@ class _CalendarPageState extends State<CalendarPage> {
 
   String _getCalendarTitle(CalendarController controller) {
     final date = controller.selectedDate.value;
-    final thaiMonths = [
-      'มกราคม',
-      'กุมภาพันธ์',
-      'มีนาคม',
-      'เมษายน',
-      'พฤษภาคม',
-      'มิถุนายน',
-      'กรกฎาคม',
-      'สิงหาคม',
-      'กันยายน',
-      'ตุลาคม',
-      'พฤศจิกายน',
-      'ธันวาคม',
+  final months = [
+      'january'.tr,
+      'february'.tr,
+      'march'.tr,
+      'april'.tr,
+      'may'.tr,
+      'june'.tr,
+      'july'.tr,
+      'august'.tr,
+      'september'.tr,
+      'october'.tr,
+      'november'.tr,
+      'december'.tr,
     ];
 
     switch (controller.selectedViewMode.value) {
       case 'month':
-        return '${thaiMonths[date.month - 1]} ${date.year + 543}';
+        return '${months[date.month - 1]} ${date.year + 543}';
       case 'week':
         final startOfWeek = date.subtract(Duration(days: date.weekday - 1));
         final endOfWeek = startOfWeek.add(const Duration(days: 6));
-        return '${startOfWeek.day} ${thaiMonths[startOfWeek.month - 1]} - ${endOfWeek.day} ${thaiMonths[endOfWeek.month - 1]} ${endOfWeek.year + 543}';
+        return '${startOfWeek.day} ${months[startOfWeek.month - 1]} - ${endOfWeek.day} ${months[endOfWeek.month - 1]} ${endOfWeek.year + 543}';
       case '2week':
         final startOf2Week = date.subtract(Duration(days: date.weekday - 1));
         final endOf2Week = startOf2Week.add(const Duration(days: 13));
-        return '${startOf2Week.day} ${thaiMonths[startOf2Week.month - 1]} - ${endOf2Week.day} ${thaiMonths[endOf2Week.month - 1]} ${endOf2Week.year + 543}';
+        return '${startOf2Week.day} ${months[startOf2Week.month - 1]} - ${endOf2Week.day} ${months[endOf2Week.month - 1]} ${endOf2Week.year + 543}';
       default:
-        return '${date.day} ${thaiMonths[date.month - 1]} ${date.year + 543}';
+        return '${date.day} ${months[date.month - 1]} ${date.year + 543}';
     }
   }
 
@@ -466,27 +466,27 @@ class _CalendarPageState extends State<CalendarPage> {
       children: [
         // Weekday headers
         Row(
-          children: ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
-              .map(
-                (day) => Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppTheme.spacing8,
-                    ),
-                    child: Text(
-                      day,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: AppTheme.fontSize12,
-                        fontFamily: AppFont.family,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+          children: [
+            'sun'.tr, 'mon'.tr, 'tue'.tr, 'wed'.tr, 'thu'.tr, 'fri'.tr, 'sat'.tr
+          ].map(
+            (day) => Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppTheme.spacing8,
+                ),
+                child: Text(
+                  day,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: AppTheme.fontSize12,
+                    fontFamily: AppFont.family,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              )
-              .toList(),
+              ),
+            ),
+          ).toList(),
         ),
 
         // Calendar grid
@@ -673,7 +673,7 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
               const SizedBox(width: AppTheme.spacing8),
               Text(
-                'กิจกรรมในวันที่ ${controller.formatDate(controller.selectedDate.value.millisecondsSinceEpoch)}',
+                '${'events_on_date'.tr} ${controller.formatDate(controller.selectedDate.value.millisecondsSinceEpoch)}',
                 style: TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: AppTheme.fontSize18,
@@ -692,7 +692,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   borderRadius: BorderRadius.circular(AppTheme.spacing8),
                 ),
                 child: Text(
-                  '${events.length} รายการ',
+                  '${events.length} ${'items'.tr}',
                   style: TextStyle(
                     color: AppTheme.primaryOrange,
                     fontSize: AppTheme.fontSize12,
@@ -767,7 +767,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 } else {
                   Get.snackbar(
                     'Error',
-                    'ไม่พบข้อมูลงาน',
+                    'job_data_not_found'.tr,
                     snackPosition: SnackPosition.BOTTOM,
                     backgroundColor: Colors.red,
                     colorText: Colors.white,
@@ -776,7 +776,7 @@ class _CalendarPageState extends State<CalendarPage> {
               } else {
                 Get.snackbar(
                   'Error',
-                  'ไม่พบข้อมูลงาน',
+                  'job_data_not_found'.tr,
                   snackPosition: SnackPosition.BOTTOM,
                   backgroundColor: Colors.red,
                   colorText: Colors.white,
@@ -793,7 +793,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 } else {
                   Get.snackbar(
                     'Error',
-                    'ไม่พบข้อมูลงานหลัก',
+                    'parent_job_data_not_found'.tr,
                     snackPosition: SnackPosition.BOTTOM,
                     backgroundColor: Colors.red,
                     colorText: Colors.white,
@@ -802,7 +802,7 @@ class _CalendarPageState extends State<CalendarPage> {
               } else {
                 Get.snackbar(
                   'Error',
-                  'ไม่พบข้อมูลงานหลัก',
+                  'parent_job_data_not_found'.tr,
                   snackPosition: SnackPosition.BOTTOM,
                   backgroundColor: Colors.red,
                   colorText: Colors.white,
@@ -812,7 +812,7 @@ class _CalendarPageState extends State<CalendarPage> {
               // For unknown event types, show info
               Get.snackbar(
                 'Info',
-                'ไม่รองรับประเภทกิจกรรมนี้',
+                'activity_type_not_supported'.tr,
                 snackPosition: SnackPosition.BOTTOM,
               );
             }
@@ -864,7 +864,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           if (type == 'todo' && parentCardTitle != null) ...[
                             const SizedBox(height: AppTheme.spacing4),
                             Text(
-                              'จาก: $parentCardTitle',
+                              '${'from'.tr}: $parentCardTitle',
                               style: TextStyle(
                                 color: AppTheme.textSecondary,
                                 fontSize: AppTheme.fontSize12,
@@ -1020,7 +1020,7 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
           const SizedBox(height: AppTheme.spacing24),
           Text(
-            'ไม่มีกิจกรรมในวันที่เลือก',
+            'no_events_on_selected_date'.tr,
             style: TextStyle(
               color: AppTheme.textPrimary,
               fontSize: AppTheme.fontSize18,
@@ -1030,7 +1030,7 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
           const SizedBox(height: AppTheme.spacing8),
           Text(
-            'ลองเปลี่ยนวันที่หรือตัวกรองเพื่อดูกิจกรรมอื่นๆ',
+            'calendar_try_change_date_filter'.tr,
             style: TextStyle(
               color: AppTheme.textSecondary,
               fontSize: AppTheme.fontSize14,
@@ -1082,7 +1082,7 @@ class _CalendarPageState extends State<CalendarPage> {
              ),
              const SizedBox(width: AppTheme.spacing4),
              Text(
-               'งานย่อย (${todosForCard.length})',
+               '${'calendar_subtasks'.tr} (${todosForCard.length})',
                style: TextStyle(
                  color: AppTheme.textSecondary,
                  fontSize: AppTheme.fontSize12,
@@ -1227,13 +1227,13 @@ class _CalendarPageState extends State<CalendarPage> {
    String _getPriorityText(String priority) {
      switch (priority.toLowerCase()) {
        case 'high':
-         return 'สูง';
+         return 'priority_high'.tr;
        case 'medium':
-         return 'ปานกลาง';
+         return 'priority_medium'.tr;
        case 'low':
-         return 'ต่ำ';
+         return 'priority_low'.tr;
        default:
-         return 'ไม่ระบุ';
+         return 'priority_unknown'.tr;
      }
    }
 
@@ -1253,13 +1253,13 @@ class _CalendarPageState extends State<CalendarPage> {
    String _getStatusText(String status) {
      switch (status.toUpperCase()) {
        case 'COMPLETED':
-         return 'เสร็จแล้ว';
+         return 'status_completed'.tr;
        case 'IN_PROGRESS':
-         return 'กำลังทำ';
+         return 'status_in_progress'.tr;
        case 'TODO':
-         return 'รอดำเนินการ';
+         return 'status_todo'.tr;
        default:
-         return 'ไม่ระบุ';
+         return 'status_unknown'.tr;
      }
    }
 }

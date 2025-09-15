@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ChatFilterChips extends StatelessWidget {
   final String activeFilter;
@@ -19,9 +20,9 @@ class ChatFilterChips extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         children: [
           // _buildChip('ทั้งหมด', 'all'),
-          _buildChip('ยังไม่ได้อ่าน', 'unread'),
-          _buildChip('ใหม่', 'new'),
-          _buildChip('ปักหมุด', 'pinned', icon: Icons.push_pin),
+          _buildChip('unread'.tr, 'unread'),
+          _buildChip('new'.tr, 'new'),
+          _buildChip('pinned'.tr, 'pinned', icon: Icons.push_pin),
           _buildChip('Group Chat', 'groupOnly', icon: Icons.groups),
           // _buildChip('LINE', 'line', icon: Icons.chat),
         ],

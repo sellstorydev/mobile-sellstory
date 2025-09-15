@@ -77,30 +77,30 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
   @override
   Widget build(BuildContext context) {
     final statusOptions = [
-      {'value': 'DRAFT', 'label': 'ร่าง', 'icon': Icons.edit_outlined},
-      {'value': 'SENT', 'label': 'ส่งแล้ว', 'icon': Icons.send},
+      {'value': 'DRAFT', 'label': 'draft'.tr, 'icon': Icons.edit_outlined},
+      {'value': 'SENT', 'label': 'sent'.tr, 'icon': Icons.send},
       {
         'value': 'PENDING_APPROVAL',
-        'label': 'รออนุมัติ',
+        'label': 'pending_approval'.tr,
         'icon': Icons.pending,
       },
-      {'value': 'APPROVED', 'label': 'อนุมัติแล้ว', 'icon': Icons.check_circle},
-      {'value': 'REJECTED', 'label': 'ปฏิเสธ', 'icon': Icons.cancel},
-      {'value': 'VOID', 'label': 'ยกเลิก', 'icon': Icons.block},
+      {'value': 'APPROVED', 'label': 'approved'.tr, 'icon': Icons.check_circle},
+      {'value': 'REJECTED', 'label': 'rejected'.tr, 'icon': Icons.cancel},
+      {'value': 'VOID', 'label': 'void'.tr, 'icon': Icons.block},
       {
         'value': 'INVOICED',
-        'label': 'ออกใบแจ้งหนี้แล้ว',
+        'label': 'invoiced_already'.tr,
         'icon': Icons.receipt,
       },
-      {'value': 'FULLY_PAID', 'label': 'ชำระแล้ว', 'icon': Icons.payment},
+      {'value': 'FULLY_PAID', 'label': 'fully_paid'.tr, 'icon': Icons.payment},
     ];
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'ตัวกรอง',
-          style: TextStyle(
+        title: Text(
+          'filter'.tr,
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
             fontFamily: AppFont.family,
@@ -123,9 +123,9 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
                 tempSelectedStatuses.clear();
               });
             },
-            child: const Text(
-              'ล้างตัวกรอง',
-              style: TextStyle(
+            child: Text(
+              'clear_filter'.tr,
+              style: const TextStyle(
                 color: AppTheme.primaryOrange,
                 fontSize: AppTheme.fontSize14,
                 fontFamily: AppFont.family,
@@ -141,7 +141,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Seller Filter Section
-            _buildSectionTitle('เซล'),
+            _buildSectionTitle('sales'.tr),
             const SizedBox(height: AppTheme.spacing12),
 
             // Seller selection using AssigneesInputField
@@ -151,8 +151,8 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
                   : [],
               availableMembers: _availableMembers,
               onAssigneesChanged: _onAssigneesChanged,
-              label: 'เลือกเซล',
-              hintText: 'เลือกเซลที่ต้องการกรอง',
+              label: 'select_sales',
+              hintText: 'select_sales_filter_hint',
               isLoading: _isLoadingMembers,
               allowMultipleSelection: false, // Single selection for filtering
             )),
@@ -160,7 +160,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
             const SizedBox(height: AppTheme.spacing24),
 
             // Date Filter Section
-            _buildSectionTitle('วันที่'),
+            _buildSectionTitle('date'.tr),
             const SizedBox(height: AppTheme.spacing12),
 
             Container(
@@ -180,7 +180,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
               child: Column(
                 children: [
                   // Date range options
-                  _buildDateOption('ทั้งหมด', null, Icons.all_inclusive, () {
+                  _buildDateOption('all'.tr, null, Icons.all_inclusive, () {
                     setState(() {
                       widget.controller.selectedDateRange.value = null;
                       widget.controller.selectedCustomDateRange.value = null;
@@ -190,7 +190,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
 
                   const SizedBox(height: AppTheme.spacing8),
 
-                  _buildDateOption('วันนี้', 'today', Icons.today, () {
+                  _buildDateOption('today'.tr, 'today', Icons.today, () {
                     setState(() {
                       widget.controller.selectedDateRange.value = 'today';
                       widget.controller.applyFilters();
@@ -200,7 +200,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'สัปดาห์นี้',
+                    'this_week'.tr,
                     'this_week',
                     Icons.view_week,
                     () {
@@ -214,7 +214,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'เดือนนี้',
+                    'this_month'.tr,
                     'this_month',
                     Icons.calendar_view_month,
                     () {
@@ -229,7 +229,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
                   const SizedBox(height: AppTheme.spacing8),
 
                   _buildDateOption(
-                    'เลือกช่วงวันที่เอง',
+                    'select_custom_date_range'.tr,
                     'custom',
                     Icons.date_range,
                     () async {
@@ -306,7 +306,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
             // Status Filter Section
             Row(
               children: [
-                _buildSectionTitle('สถานะ'),
+                _buildSectionTitle('status'.tr),
                 const SizedBox(width: AppTheme.spacing8),
                 if (tempSelectedStatuses.isNotEmpty)
                   Container(
@@ -331,7 +331,7 @@ class _QuotationsFilterPageState extends State<QuotationsFilterPage> {
                         fontFamily: AppFont.family,
                         fontWeight: FontWeight.w500,
                       ),
-                      'เลือกแล้ว ${tempSelectedStatuses.length} รายการ',
+                      '${'selected'.tr} ${tempSelectedStatuses.length} ${'items'.tr}',
                     ),
                   ),
               ],
