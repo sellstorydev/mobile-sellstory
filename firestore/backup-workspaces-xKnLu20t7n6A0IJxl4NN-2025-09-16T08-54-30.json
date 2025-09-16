@@ -185,7 +185,7 @@
           "product": 2,
           "company": 3,
           "jobCard": 58,
-          "quotation": 27
+          "quotation": 40
         }
       },
       "subCollection": {
@@ -909,14 +909,14 @@
                 "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
               }
             ],
-            "updatedAt": 1757921196331,
             "relatedDocuments": [
               {
-                "id": "AhBZcFx2DtzL7PF7lgjy",
-                "docNo": "EST-250915-0027",
+                "docNo": "EST-250916-0038",
+                "id": "Ec62t81oSWgbd5vs6myt",
                 "type": "QT"
               }
             ],
+            "updatedAt": 1758012782186,
             "subCollection": {
               "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/expenses": {
                 "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN": {
@@ -1113,91 +1113,6 @@
               }
             ],
             "updatedAt": 1756797511482
-          }
-        },
-        "workspaces/xKnLu20t7n6A0IJxl4NN/documents": {
-          "AhBZcFx2DtzL7PF7lgjy": {
-            "docNo": "EST-250915-0027",
-            "type": "QT",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "status": "DRAFT",
-            "customer": {
-              "id": "WNF9tUB8pFM6QKQw9Fj3",
-              "name": "Bew"
-            },
-            "seller": {
-              "uid": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-              "displayName": "BewLnwZa",
-              "photoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1757477615778-image_picker_ECC7211D-6E2F-4BFD-BF60-26E5C3832B13-18863-000000163018BDCE.jpg?alt=media&token=f34d4f45-4453-4bd5-b5e7-1c214c36fee2"
-            },
-            "sellerName": "BewLnwZa",
-            "jobName": "Job Card Title1234",
-            "jobCardId": "AhzmaDyKm4wwcMntM3hO",
-            "project": {
-              "name": "",
-              "refId": ""
-            },
-            "jobcardCustomId": "JB-250904-00431234",
-            "jobCardBoardId": "Mop2RUYjlM9kRoXGa001",
-            "items": [
-              {
-                "name": "Example html",
-                "unit": "item",
-                "discount": 20,
-                "customInputs": {
-                  "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
-                  "BZp1ilY7pFssB5cVhH_RP": "1150",
-                  "zJ1Gk75NoiV4WxZT1yEZN": "test01",
-                  "nWnGJtH7SjOyYsBeK5LhX": "1112"
-                },
-                "discountType": "percentage",
-                "quantity": 1,
-                "description": "",
-                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
-                "productId": "34N6d2Az4sYF7ZHvyFHN",
-                "pricePerUnit": 51234
-              },
-              {
-                "discountType": "amount",
-                "pricePerUnit": 11223344,
-                "customInputs": {
-                  "nWnGJtH7SjOyYsBeK5LhX": "1112",
-                  "Ww9jjpqJA3_-4QBgWvXXP": "sku2",
-                  "zJ1Gk75NoiV4WxZT1yEZN": "test01",
-                  "BZp1ilY7pFssB5cVhH_RP": "1150"
-                },
-                "unit": "item",
-                "discount": 0,
-                "name": "test1",
-                "productId": "RwedKMymVqN8W3nFYbJP",
-                "quantity": 1,
-                "id": "exp-1756975564459-RwedKMymVqN8W3nFYbJP",
-                "description": ""
-              }
-            ],
-            "subtotal": 11264331.2,
-            "discount": 10926401.263999999,
-            "vatAmount": 23655.09552000005,
-            "grandTotal": 361585.0315200007,
-            "whtAmount": 10137.89808000002,
-            "withholdingTaxPercentage": 3,
-            "netTotal": 351447.1334400007,
-            "isVatEnabled": true,
-            "validUntil": 1760522813041,
-            "createdAt": 1757930813041,
-            "updatedAt": 1757930813041,
-            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "activityLog": [
-              {
-                "timestamp": 1757930813041,
-                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-                "userDisplayName": "BewLnwZa",
-                "action": "Created",
-                "details": "Created quotation EST-250915-0027 from job card JB-250904-00431234"
-              }
-            ],
-            "templateId": "v9GCzC6qLDd473ZCdIeD"
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/lanes": {

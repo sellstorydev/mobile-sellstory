@@ -5758,6 +5758,7 @@ class _EditCardPageState extends State<EditCardPage> {
   Future<void> _performDeleteDocument(String documentId, String relatedDocId) async {
     try {
       final workspaceId = _controller.currentWorkspaceId.value;
+      final cardId = widget.card.id;
       
       // Check if this document has NOT_FOUND status
       final document = _relatedDocuments.firstWhere(
@@ -5767,29 +5768,56 @@ class _EditCardPageState extends State<EditCardPage> {
       final documentData = document['data'] as Map<String, dynamic>? ?? {};
       final status = documentData['status'] ?? 'DRAFT';
       
-      // Only try to delete from Firestore if document exists (not NOT_FOUND)
+      print('🗑️ Deleting document: $documentId, Status: $status');
+      
+      // Step 1: Delete from documents collection (if document exists)
       if (status != 'NOT_FOUND') {
+        print('🗑️ Deleting from /documents collection...');
         await _repository.deleteDocument(
           workspaceId: workspaceId,
           documentId: documentId,
         );
+        print('✅ Deleted from /documents collection');
+      } else {
+        print('ℹ️ Skipping /documents deletion - document has NOT_FOUND status');
       }
       
-      // Remove the document reference from the card's relatedDocuments field
-      final currentRelatedDocs = List<Map<String, dynamic>>.from(widget.card.relatedDocuments);
+      // Step 2: Update card's relatedDocuments field in Firestore directly
+      print('🗑️ Removing reference from card relatedDocuments...');
       
-      // Remove the document with matching ID
-      currentRelatedDocs.removeWhere((doc) => doc['id'] == documentId);
+      final firestore = FirebaseFirestore.instance;
+      final cardRef = firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('cards')
+          .doc(cardId);
       
-      // Update the card with the new relatedDocuments list
-      final updatedCard = widget.card.copyWith(
-        relatedDocuments: currentRelatedDocs,
-        updatedAt: DateTime.now(),
-      );
-      
-      await _controller.updateCard(updatedCard);
+      // Get current card data
+      final cardSnapshot = await cardRef.get();
+      if (cardSnapshot.exists) {
+        final cardData = cardSnapshot.data()!;
+        final currentRelatedDocs = List<Map<String, dynamic>>.from(
+          cardData['relatedDocuments'] ?? []
+        );
+        
+        // Remove the document with matching ID
+        final originalCount = currentRelatedDocs.length;
+        currentRelatedDocs.removeWhere((doc) => doc['id'] == documentId);
+        final newCount = currentRelatedDocs.length;
+        
+        print('🗑️ Removed ${originalCount - newCount} reference(s) from relatedDocuments');
+        
+        // Update the card in Firestore
+        await cardRef.update({
+          'relatedDocuments': currentRelatedDocs,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        
+        print('✅ Updated card relatedDocuments in Firestore');
+      }
 
-      // Reload related documents to reflect changes
+      // Step 3: Reload related documents to reflect changes
+      print('🔄 Reloading related documents...');
       await _loadRelatedDocumentsDetails();
 
       Get.snackbar(
