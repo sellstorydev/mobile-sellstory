@@ -36,6 +36,8 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
   // Local expansion state has moved into the modal using StatefulBuilder
   // Cache boards for non-current workspaces when expanded
   final Map<String, List<Map<String, dynamic>>> _workspaceBoardsCache = <String, List<Map<String, dynamic>>>{};
+  // Cache card counts for boards in other workspaces
+  final Map<String, int> _boardCardCounts = <String, int>{};
   // Track loading state per workspace during board fetch
   final Set<String> _loadingWorkspaceBoards = <String>{};
   // Track which workspaces have attempted load (to show empty state)
@@ -246,13 +248,32 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Text(
-                                    board.name,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected ? AppTheme.primaryOrange : Colors.black87,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        board.name,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: isSelected ? AppTheme.primaryOrange : Colors.black87,
+                                        ),
+                                      ),
+                                      Obx(() {
+                                        // Count cards in this board
+                                        final boardCards = ctrl.lanes
+                                            .where((lane) => lane.boardId == board.id)
+                                            .expand((lane) => lane.cards)
+                                            .length;
+                                        return Text(
+                                          'Job Card ของคุณ $boardCards ใบ',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        );
+                                      }),
+                                    ],
                                   ),
                                 ),
                                 if (isSelected)
@@ -301,10 +322,25 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                               if (mounted) setModalState(() {});
                               try {
                                 final boards = await ctrl.getBoardsForWorkspace(id);
-                                _workspaceBoardsCache[id] = boards.map((b) => {
+                                final boardsData = boards.map((b) => {
                                   'id': b.id,
                                   'name': b.name,
                                 }).toList();
+                                
+                                // Get card counts for each board
+                                for (final boardData in boardsData) {
+                                  final boardId = boardData['id'] as String;
+                                  try {
+                                    final lanes = await ctrl.getLanesByBoardId(boardId);
+                                    final cardCount = lanes.expand((lane) => lane.cards).length;
+                                    _boardCardCounts[boardId] = cardCount;
+                                  } catch (e) {
+                                    print('Error counting cards for board $boardId: $e');
+                                    _boardCardCounts[boardId] = 0;
+                                  }
+                                }
+                                
+                                _workspaceBoardsCache[id] = boardsData;
                               } catch (_) {
                                 _workspaceBoardsCache[id] = const [];
                               } finally {
@@ -435,13 +471,25 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                                       ),
                                                       const SizedBox(width: 8),
                                                       Expanded(
-                                                        child: Text(
-                                                          board['name'] as String,
-                                                          style: TextStyle(
-                                                            fontSize: 15,
-                                                            fontWeight: FontWeight.w500,
-                                                            color: Colors.black87,
-                                                          ),
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              board['name'] as String,
+                                                              style: TextStyle(
+                                                                fontSize: 15,
+                                                                fontWeight: FontWeight.w500,
+                                                                color: Colors.black87,
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              'Job Card ของคุณ ${_boardCardCounts[board['id']] ?? 0} ใบ',
+                                                              style: TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors.grey[600],
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
                                                       ),
                                                       Icon(Icons.chevron_right, color: AppTheme.primaryOrange, size: 22),
