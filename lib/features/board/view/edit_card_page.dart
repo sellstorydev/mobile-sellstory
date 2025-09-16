@@ -5706,7 +5706,7 @@ class _EditCardPageState extends State<EditCardPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('ลบเอกสาร'),
-        content: Text('คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?'),
+        content: Text('คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -5715,7 +5715,7 @@ class _EditCardPageState extends State<EditCardPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _performDeleteDocument(documentId, ''); // Pass empty relatedDocId since we don't use subcollection
+              _performDeleteDocument(documentId, '');
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('ลบ'),
@@ -5727,10 +5727,15 @@ class _EditCardPageState extends State<EditCardPage> {
 
   Future<void> _performDeleteDocument(String documentId, String relatedDocId) async {
     try {
-      // Since relatedDocuments is stored in the card field (not subcollection),
-      // we need to update the card's relatedDocuments field by removing the specified document
+      final workspaceId = _controller.currentWorkspaceId.value;
       
-      // Get current relatedDocuments from the card
+      // First, delete the actual document from the documents subcollection
+      await _repository.deleteDocument(
+        workspaceId: workspaceId,
+        documentId: documentId,
+      );
+      
+      // Then, remove the document reference from the card's relatedDocuments field
       final currentRelatedDocs = List<Map<String, dynamic>>.from(widget.card.relatedDocuments);
       
       // Remove the document with matching ID
@@ -5749,7 +5754,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
       Get.snackbar(
         'Success',
-        'Document removed successfully',
+        'Document deleted successfully',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,

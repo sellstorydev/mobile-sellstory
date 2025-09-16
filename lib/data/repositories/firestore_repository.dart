@@ -2105,4 +2105,31 @@ class FirestoreRepository {
       rethrow;
     }
   }
+
+  // Delete document from documents subcollection
+  Future<void> deleteDocument({
+    required String workspaceId,
+    required String documentId,
+  }) async {
+    try {
+      _logger.methodEntry('FirestoreRepository.deleteDocument', {
+        'workspaceId': workspaceId,
+        'documentId': documentId,
+      });
+
+      print('🔄 FirestoreRepository.deleteDocument:');
+      print('  - Workspace ID: $workspaceId');
+      print('  - Document ID: $documentId');
+
+      final documentRef = _firestoreService.getDocumentReference(workspaceId, documentId);
+      await _firestoreService.deleteDocument(documentRef);
+
+      print('✅ Document deleted successfully');
+      _logger.methodExit('FirestoreRepository.deleteDocument');
+    } catch (e) {
+      print('❌ Failed to delete document: $e');
+      _logger.error('Failed to delete document', e);
+      rethrow;
+    }
+  }
 }
