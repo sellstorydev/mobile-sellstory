@@ -8,6 +8,7 @@ import 'dart:io';
 import '../../../core/theme/app_theme.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../data/repositories/firestore_repository.dart';
+import '../controller/more_controller.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -37,9 +38,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String? _currentWorkspaceName;
   String? _currentWorkspaceRole;
 
+  // MoreController to get current display name like in more_page
+  late MoreController _moreController;
+
   @override
   void initState() {
     super.initState();
+    _moreController = Get.find<MoreController>();
     _initializeUserData();
     _loadWorkspaceInfo();
     _loadUserDataFromFirestore();
@@ -387,7 +392,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             onTap: _showImagePickerDialog,
                             child: Stack(
                               children: [
-                                CircleAvatar(
+                                Obx(() => CircleAvatar(
                                   radius: 50,
                                   backgroundColor: AppTheme.primaryOrange,
                                   backgroundImage: _selectedImageFile != null
@@ -397,9 +402,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                           : null) as ImageProvider?,
                                   child: (_selectedImageFile == null && _currentPhotoURL == null)
                                       ? Text(
-                                          _displayNameController.text.isNotEmpty
-                                              ? _displayNameController.text[0].toUpperCase()
-                                              : 'U',
+                                          _getDisplayInitial(),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 32,
@@ -407,7 +410,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                           ),
                                         )
                                       : null,
-                                ),
+                                )),
                                 Positioned(
                                   bottom: 0,
                                   right: 0,
@@ -737,5 +740,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
       default:
         return role;
     }
+  }
+
+  // Get display initial letter for avatar
+  String _getDisplayInitial() {
+    // ใช้ displayName จาก MoreController เหมือนกับหน้า more_page
+    final displayName = _moreController.displayName;
+    
+    if (displayName.isNotEmpty && displayName != 'Guest' && displayName != 'User') {
+      return displayName[0].toUpperCase();
+    }
+    
+    return 'U';
   }
 }
