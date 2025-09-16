@@ -14,6 +14,7 @@ import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../document/view/create_document_from_card_page.dart';
+import '../../document/view/add_edit_document_page.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -2081,31 +2082,33 @@ class _EditCardPageState extends State<EditCardPage> {
       }
     }
     
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: index < _relatedDocuments.length - 1 
-              ? BorderSide(color: Colors.grey[200]!)
-              : BorderSide.none,
-        ),
-      ),
-      child: Row(
-        children: [
-          // Doc No.
-          SizedBox(
-            width: 50,
-            child: Text(
-              docNumber,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+    return InkWell(
+      onTap: () => viewDocument(document),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: index < _relatedDocuments.length - 1 
+                ? BorderSide(color: Colors.grey[200]!)
+                : BorderSide.none,
           ),
-          const SizedBox(width: 8),
+        ),
+        child: Row(
+          children: [
+            // Doc No.
+            SizedBox(
+              width: 50,
+              child: Text(
+                docNumber,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
           
           // Type
           Expanded(
@@ -2309,9 +2312,10 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
-
+  
   String _getDocumentTypeLabel(String type) {
     switch (type) {
       case 'quotation':
@@ -5652,15 +5656,46 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   void _editDocument(Map<String, dynamic> document) {
-    // TODO: Implement edit functionality
-    Get.snackbar(
-      'Edit',
-      'Edit functionality will be available soon',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 2),
-    );
+    final documentId = document['id'] as String?;
+    final documentType = document['type'] ?? 'QT';
+    
+    if (documentId != null && documentId.isNotEmpty) {
+      Get.to(() => AddEditDocumentPage(
+        documentType: documentType,
+        documentId: documentId,
+      ));
+    } else {
+      Get.snackbar(
+        'Error',
+        'Cannot open document: Invalid document ID',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  /// View document in edit page (similar to quotation_list_page.dart)
+  void viewDocument(Map<String, dynamic> document) {
+    final documentId = document['id'] as String?;
+    final documentType = document['type'] ?? 'QT';
+    
+    if (documentId != null && documentId.isNotEmpty) {
+      Get.to(() => AddEditDocumentPage(
+        documentType: documentType,
+        documentId: documentId,
+      ));
+    } else {
+      Get.snackbar(
+        'Error',
+        'Cannot open document: Invalid document ID',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    }
   }
 
   void _deleteDocument(Map<String, dynamic> document) {
