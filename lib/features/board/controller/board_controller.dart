@@ -12,6 +12,7 @@ import '../contract/board_view.dart';
 import '../state/board_state.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../controllers/lane_display_controller.dart';
+import '../../../core/services/quota_usage_service.dart';
 
 class BoardController extends GetxController implements BoardView {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -219,7 +220,7 @@ class BoardController extends GetxController implements BoardView {
           print('✅ Using first workspace: $selectedWorkspaceName ($selectedWorkspaceId)');
         }
         
-  currentWorkspaceId.value = selectedWorkspaceId ?? '';
+  currentWorkspaceId.value = selectedWorkspaceId!;
   currentWorkspaceName.value = selectedWorkspaceName ?? '';
         
         // Prefetch permissions for selected workspace
@@ -872,6 +873,9 @@ class BoardController extends GetxController implements BoardView {
       );
       print('✅ Board created successfully with ID: $boardId');
       
+      // Increment boards usage
+      try { await QuotaUsageService.incrementUsed(currentWorkspaceId.value, 'boards', delta: 1); } catch (_) {}
+
       // Refresh boards list
       await getBoards();
       
@@ -916,6 +920,9 @@ class BoardController extends GetxController implements BoardView {
       await _repository.deleteBoard(currentWorkspaceId.value, boardId);
       print('✅ Board deleted successfully');
       
+      // Decrement boards usage
+      try { await QuotaUsageService.decrementUsed(currentWorkspaceId.value, 'boards', delta: 1); } catch (_) {}
+
       // Refresh boards list
       await getBoards();
     } catch (e) {
@@ -1000,8 +1007,8 @@ class BoardController extends GetxController implements BoardView {
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
     final hasInterestFilter = selectedInterests.isNotEmpty;
-    final hasDateFilter = selectedDateFilterTypes.isNotEmpty;
     final hasStatusFilter = selectedStatuses.isNotEmpty;
+    final hasDateFilter = selectedDateFilterTypes.isNotEmpty;
     final hasSearchQuery = searchQuery.value.isNotEmpty;
     
     if (hasSearchQuery && (hasAssigneeFilter || hasCustomerFilter || hasHashtagFilter || hasInterestFilter || hasStatusFilter || hasDateFilter)) {

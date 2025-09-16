@@ -7,6 +7,7 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../../../data/services/firestore_service.dart';
 import '../../../domain/entities/customer.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/services/quota_usage_service.dart';
 
 class CustomersController extends GetxController {
   final CustomerRepository _customerRepository;
@@ -20,6 +21,12 @@ class CustomersController extends GetxController {
   final RxString errorMessage = ''.obs;
   final RxList<String> customerSources = <String>[].obs;
 
+  // Quota (cached from workspace subscription)
+  final RxInt customersQuotaUsed = 0.obs;
+  final RxInt customersQuotaLimit = (-2).obs; // -1 unlimited, -2 unknown
+  final RxInt usersQuotaUsed = 0.obs; // new users quota
+  final RxInt usersQuotaLimit = (-2).obs;
+
   // User and workspace management
   final RxString currentUserId = ''.obs;
   final RxString currentWorkspaceId = ''.obs;
@@ -28,6 +35,7 @@ class CustomersController extends GetxController {
   // Companies index for search (companyId -> { name, taxId })
   final Map<String, Map<String, String>> _companyIndex = {};
   StreamSubscription<List<Customer>>? _customersSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _workspaceQuotaSub;
 
   CustomersController(this._customerRepository);
 
@@ -41,6 +49,7 @@ class CustomersController extends GetxController {
     ever(searchQuery, (_) => _filterCustomers());
 
     // Initialize with current user
+    print('[CustomersController] onInit');
     _initializeWithCurrentUser();
   }
 
@@ -134,25 +143,29 @@ class CustomersController extends GetxController {
 
   // Load customers for a workspace
   Future<void> loadCustomers(String workspaceId) async {
-    print(workspaceId);
+    print('[CustomersController] loadCustomers workspaceId=$workspaceId');
     // Cancel any previous subscription to avoid leaks/duplicates
     await _customersSub?.cancel();
+    _subscribeWorkspaceQuota(workspaceId); // ensure quota subscription
     isLoading.value = true;
     errorMessage.value = '';
     try {
       _customersSub = _customerRepository.getCustomersStream(workspaceId).listen(
         (customersList) {
+          print('[CustomersController] customers stream update count=${customersList.length}');
           customers.value = customersList;
           _filterCustomers();
           isLoading.value = false;
         },
         onError: (e) {
+          print('[CustomersController] customers stream error: $e');
           errorMessage.value = 'Failed to load customers: $e';
           isLoading.value = false;
         },
         cancelOnError: false,
       );
     } catch (e) {
+      print('[CustomersController] loadCustomers exception: $e');
       errorMessage.value = 'Failed to load customers: $e';
       isLoading.value = false;
     }
@@ -375,6 +388,7 @@ class CustomersController extends GetxController {
     }
   }
 
+
   // Add new customer
   Future<void> addCustomer(String workspaceId, Customer customer) async {
     if (!_can('customer:create')) {
@@ -394,6 +408,9 @@ class CustomersController extends GetxController {
         customerDocId: newId,
         companyNames: customer.companyNames,
       );
+
+      // Increment customers usage (shared pool)
+      try { await QuotaUsageService.incrementUsed(workspaceId, 'customers', delta: 1); } catch (_) {}
     } catch (e) {
       errorMessage.value = 'Failed to add customer: $e';
     } finally {
@@ -471,6 +488,9 @@ class CustomersController extends GetxController {
           );
         }
       } catch (_) {}
+
+      // Decrement customers usage (shared pool)
+      try { await QuotaUsageService.decrementUsed(workspaceId, 'customers', delta: 1); } catch (_) {}
     } catch (e) {
       errorMessage.value = 'Failed to delete customer: $e';
     } finally {
@@ -509,9 +529,113 @@ class CustomersController extends GetxController {
     }
   }
 
+  void _subscribeWorkspaceQuota(String workspaceId) {
+    print('[CustomersController] subscribe quota for workspaceId=$workspaceId');
+    if (workspaceId.isEmpty) {
+      customersQuotaUsed.value = 0;
+      customersQuotaLimit.value = -2; // unknown
+      usersQuotaUsed.value = 0;
+      usersQuotaLimit.value = -2;
+      return;
+    }
+    _workspaceQuotaSub?.cancel();
+    _workspaceQuotaSub = FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .snapshots()
+        .listen((snap) {
+      print('[CustomersController] quota snapshot received exists=${snap.exists}');
+      if (!snap.exists) {
+        customersQuotaUsed.value = 0;
+        customersQuotaLimit.value = -2; // unknown
+        usersQuotaUsed.value = 0;
+        usersQuotaLimit.value = -2;
+        return;
+      }
+      final data = snap.data() ?? {};
+      final quotaRaw = data['quota'];
+      if (quotaRaw is! Map<String, dynamic>) {
+        print('[CustomersController] quota missing or not a map: $quotaRaw');
+        customersQuotaUsed.value = 0;
+        customersQuotaLimit.value = -2; // unknown
+        usersQuotaUsed.value = 0;
+        usersQuotaLimit.value = -2;
+        return;
+      }
+      final quota = quotaRaw;
+
+      int parseInt(dynamic v, {int fallback = 0}) {
+        if (v is int) return v;
+        if (v is double) return v.toInt();
+        if (v is String) return int.tryParse(v) ?? fallback;
+        return fallback;
+      }
+
+      Map<String, int> extract(String key) {
+        int used = 0; int limit = -1; // unlimited default
+        final entry = quota[key];
+        if (entry is Map) {
+          used = parseInt(entry['used']);
+          limit = parseInt(entry['limit'] ?? entry['max'], fallback: -1);
+          if ((entry['limit'] ?? entry['max']) == null) limit = -1;
+        } else if (entry is int || entry is double || entry is String) {
+          limit = parseInt(entry, fallback: -1);
+        }
+        final usedContainer = quota['used'];
+        if (usedContainer is Map) {
+          final alt = usedContainer[key];
+            used = alt == null ? used : parseInt(alt, fallback: used);
+        }
+        if (used < 0) used = 0;
+        return {'used': used, 'limit': limit};
+      }
+
+      final customersData = extract('customers');
+      final usersData = extract('users');
+      customersQuotaUsed.value = customersData['used']!;
+      customersQuotaLimit.value = customersData['limit']!;
+      usersQuotaUsed.value = usersData['used']!;
+      usersQuotaLimit.value = usersData['limit']!;
+      print('[CustomersController] quota customers used=${customersQuotaUsed.value} limit=${customersQuotaLimit.value}');
+      print('[CustomersController] quota users used=${usersQuotaUsed.value} limit=${usersQuotaLimit.value}');
+    }, onError: (e) {
+      print('⚠️ Quota subscription error: $e');
+    });
+  }
+
+  int get customersDisplayUsed {
+    // If Firestore quota used seems stale (lower than actual loaded customers), prefer the higher value.
+    final repoUsed = customersQuotaUsed.value;
+    final actual = customerCount;
+    if (repoUsed < actual) return actual;
+    return repoUsed;
+  }
+
+  double get customersQuotaProgress {
+    final limit = customersQuotaLimit.value;
+    final used = customersQuotaUsed.value;
+    if (limit <= 0) return 0; // unlimited/unknown
+    return (used / limit).clamp(0, 1).toDouble();
+  }
+
+  bool get isCustomersQuotaFull {
+    final limit = customersQuotaLimit.value;
+    if (limit == -1) return false; // unlimited
+    if (limit <= 0) return false; // unknown
+    return customersQuotaUsed.value >= limit;
+  }
+
+  bool get isUsersQuotaFull {
+    final limit = usersQuotaLimit.value;
+    if (limit == -1) return false;
+    if (limit <= 0) return false;
+    return usersQuotaUsed.value >= limit;
+  }
+
   @override
   void onClose() {
     _customersSub?.cancel();
+    _workspaceQuotaSub?.cancel();
     super.onClose();
   }
 }

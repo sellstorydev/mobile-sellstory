@@ -9,6 +9,7 @@ import '../../../core/widgets/permission_guard.dart';
 import '../../board/widgets/workspace_app_bar.dart';
 import '../../board/controller/board_controller.dart';
 import '../../shell/shell_controller.dart';
+import '../../../core/services/quota_guard.dart';
 
 class CompanyCenterPage extends StatefulWidget {
   const CompanyCenterPage({super.key});
@@ -206,7 +207,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
     );
   }
 
-  // === UI: Header "จำนวน XX บริษัท" + ปุ่มเพิ่มบริษัท ===
+  // === UI: Header "จำนวน XX บริษัท" + ปุ่มเพิ่มบริษัท + quota ===
   Widget _buildHeaderSection(BuildContext context) {
     return Container(
       color: AppTheme.backgroundWhite,
@@ -215,49 +216,85 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
         children: [
           Obx(() {
             final count = _controller.filteredCompanyCount;
-            return RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textPrimary,
-                ),
-                children: [
-                  const TextSpan(text: 'จำนวน '),
-                  TextSpan(
-                    text: '$count',
-                    style: const TextStyle(
-                      color: AppTheme.primaryOrange,
-                      fontWeight: FontWeight.w700,
+            final used = _controller.customersDisplayUsed;
+            final limit = _controller.customersQuotaLimit.value;
+            final isUnlimited = limit == -1;
+            final isOver = !isUnlimited && limit > 0 && used > limit;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: const TextSpan(
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
                     ),
+                    children: [
+                      TextSpan(text: 'จำนวน '),
+                      // count will be injected below via WidgetSpan
+                    ],
                   ),
-                  const TextSpan(text: ' บริษัท'),
-                ],
-              ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      '$count',
+                      style: const TextStyle(
+                        color: AppTheme.primaryOrange,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Text(' บริษัท', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(Icons.storage_rounded, size: 14, color: AppTheme.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      isUnlimited ? 'การใช้งาน: $used / ∞' : 'การใช้งาน: $used / $limit',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isOver ? Colors.red : AppTheme.textSecondary,
+                        fontWeight: isOver ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             );
           }),
           const Spacer(),
           PermissionGuard(
             permission: 'company:create',
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryOrange,
-                side: const BorderSide(color: AppTheme.primaryOrange, width: 1),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              icon: const Icon(Icons.business, size: 18),
-              label: const Text('เพิ่มบริษัท'),
-              onPressed: () {
-                guardAction(context, 'company:create', () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AddEditCompanyPage(),
-                    ),
-                  );
-                });
-              },
-            ),
+            child: Obx(() {
+              final isFull = _controller.isCustomersQuotaFull;
+              return OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isFull ? AppTheme.textSecondary : AppTheme.primaryOrange,
+                  side: BorderSide(color: isFull ? AppTheme.textSecondary : AppTheme.primaryOrange, width: 1),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.business, size: 18),
+                label: Text(isFull ? 'โควต้าเต็ม' : 'เพิ่มบริษัท'),
+                onPressed: () async {
+                  final wsId = _controller.currentWorkspaceId.value;
+                  final ok = await QuotaGuard.ensureCanCreate(context, wsId, 'customers');
+                  if (!ok) return;
+                  guardAction(context, 'company:create', () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AddEditCompanyPage(),
+                      ),
+                    );
+                  });
+                },
+              );
+            }),
           ),
         ],
       ),

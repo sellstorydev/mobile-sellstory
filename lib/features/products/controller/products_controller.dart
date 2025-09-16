@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/product.dart';
@@ -19,6 +20,8 @@ class ProductsController extends GetxController {
   final RxString errorMessage = ''.obs;
   final RxString searchQuery = ''.obs;
   final RxInt productsCount = 0.obs;
+  final RxInt productsQuotaUsed = 0.obs; // firestore reported used
+  final RxInt productsQuotaLimit = (-2).obs; // -1 unlimited, -2 unknown
 
   // User and workspace data
   String _currentUserId = '';
@@ -86,12 +89,8 @@ class ProductsController extends GetxController {
         }
         
         _currentWorkspaceId = selectedWorkspaceId;
-        
-        _logger.methodEntry('ProductsController._initializeUserAndWorkspace', {
-          'workspaceId': _currentWorkspaceId,
-          'workspaceName': selectedWorkspaceName,
-        });
-        
+        // Subscribe quota before loading products
+        _subscribeWorkspaceQuota(_currentWorkspaceId);
         // Load products
         await loadProducts();
       } else {
@@ -294,5 +293,73 @@ class ProductsController extends GetxController {
       _logger.error('Error deleting product: $e');
       return false;
     }
+  }
+
+  void _subscribeWorkspaceQuota(String workspaceId) {
+    if (workspaceId.isEmpty) {
+      productsQuotaUsed.value = 0;
+      productsQuotaLimit.value = -2; // unknown
+      return;
+    }
+    FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .snapshots()
+        .listen((snap) {
+      if (!snap.exists) {
+        productsQuotaUsed.value = 0;
+        productsQuotaLimit.value = -2;
+        return;
+      }
+      final data = snap.data() ?? {};
+      final quotaRaw = data['quota'];
+      if (quotaRaw is! Map<String, dynamic>) {
+        productsQuotaUsed.value = 0;
+        productsQuotaLimit.value = -2;
+        return;
+      }
+      final quota = quotaRaw;
+      int used = 0; int limit = -1; // unlimited default
+      final entry = quota['products'];
+      if (entry is Map) {
+        final ru = entry['used'];
+        final rl = entry['limit'] ?? entry['max'];
+        if (ru is int) used = ru; else if (ru is String) used = int.tryParse(ru) ?? used;
+        if (rl is int) limit = rl; else if (rl is String) limit = int.tryParse(rl) ?? limit;
+      } else if (entry is int) {
+        limit = entry;
+      } else if (entry is String) {
+        limit = int.tryParse(entry) ?? -1;
+      }
+      final usedContainer = quota['used'];
+      if (usedContainer is Map) {
+        final alt = usedContainer['products'];
+        if (alt is int) used = alt; else if (alt is String) used = int.tryParse(alt) ?? used;
+      }
+      if (used < 0) used = 0;
+      productsQuotaUsed.value = used;
+      productsQuotaLimit.value = limit;
+    }, onError: (e) {
+      // Keep previous values
+    });
+  }
+
+  int get productsDisplayUsed {
+    final repoUsed = productsQuotaUsed.value;
+    final actual = products.length; // live list length
+    return repoUsed < actual ? actual : repoUsed;
+  }
+
+  double get productsQuotaProgress {
+    final limit = productsQuotaLimit.value;
+    if (limit <= 0) return 0; // unlimited/unknown
+    return (productsDisplayUsed / limit).clamp(0, 1).toDouble();
+  }
+
+  bool get isProductsQuotaFull {
+    final limit = productsQuotaLimit.value;
+    if (limit == -1) return false; // unlimited
+    if (limit <= 0) return false; // unknown
+    return productsDisplayUsed >= limit;
   }
 }

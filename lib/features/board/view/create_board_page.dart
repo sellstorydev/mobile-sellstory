@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controller/board_controller.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/services/quota_guard.dart';
 
 class CreateBoardPage extends StatefulWidget {
   final String? workspaceId;
@@ -45,13 +46,15 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    // Quota pre-check (fail-open if any error inside guard)
+    final wsId = _controller.currentWorkspaceId.value;
+    final canProceed = await QuotaGuard.ensureCanCreate(context, wsId, 'boards');
+    if (!canProceed) return; // dialog already shown
+
+    setState(() { _isLoading = true; });
 
     try {
       await _controller.createBoard(name);
-      
       Get.snackbar(
         'Success',
         'Board created successfully',
@@ -59,14 +62,18 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
-
       Get.back();
     } catch (e) {
-      _showError('Failed to create board: ${e.toString()}');
+      final msg = e.toString();
+      if (msg.contains('quota_exceeded:boards')) {
+        QuotaGuard.handleQuotaException(context, e);
+      } else {
+        _showError('Failed to create board: ${e.toString()}');
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
     }
   }
 

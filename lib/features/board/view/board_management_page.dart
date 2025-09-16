@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../controller/board_controller.dart';
 import '../../../domain/entities/board.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/widgets/permission_guard.dart';
+import '../../../core/services/quota_guard.dart';
 
 class BoardManagementPage extends StatefulWidget {
   final String? workspaceId;
@@ -20,9 +23,21 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   final BoardController _controller = Get.find<BoardController>();
   bool _isLoading = false;
 
+  // Quota state for boards
+  int _boardsUsed = 0;
+  int _boardsLimit = -2; // -1 unlimited, -2 unknown
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _quotaSub;
+  StreamSubscription<String>? _wsIdSub;
+
   bool get _canManageBoards {
     final svc = MobilePermissionsService.to;
     return svc.isOwner || svc.can('settings:board:manage');
+  }
+
+  bool get _isBoardsQuotaFull {
+    if (_boardsLimit == -1) return false; // unlimited
+    if (_boardsLimit <= 0) return false; // unknown -> fail-open
+    return _boardsUsed >= _boardsLimit;
   }
 
   void _denySnack() {
@@ -35,6 +50,87 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   void initState() {
     super.initState();
     _loadBoards();
+    // Subscribe to workspace changes and quota
+    _subscribeWorkspaceListener();
+    // Also try initial subscribe if ws id is present
+    final initWs = widget.workspaceId ?? _controller.currentWorkspaceId.value;
+    if (initWs.isNotEmpty) _subscribeQuota(initWs);
+  }
+
+  @override
+  void dispose() {
+    _quotaSub?.cancel();
+    _wsIdSub?.cancel();
+    super.dispose();
+  }
+
+  void _subscribeWorkspaceListener() {
+    try {
+      _wsIdSub = _controller.currentWorkspaceId.listen((wsId) {
+        if (wsId.isNotEmpty) {
+          _subscribeQuota(wsId);
+        }
+      });
+    } catch (_) {}
+  }
+
+  void _subscribeQuota(String workspaceId) {
+    _quotaSub?.cancel();
+    setState(() {
+      _boardsUsed = 0;
+      _boardsLimit = -2;
+    });
+    _quotaSub = FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .snapshots()
+        .listen((snap) {
+      if (!mounted) return;
+      if (!snap.exists) {
+        setState(() {
+          _boardsUsed = 0;
+          _boardsLimit = -2;
+        });
+        return;
+      }
+      final data = snap.data() ?? {};
+      final quota = (data['quota'] ?? {}) as Map<String, dynamic>;
+
+      int asInt(dynamic v, {int fallback = 0}) {
+        if (v is int) return v;
+        if (v is double) return v.toInt();
+        if (v is String) return int.tryParse(v) ?? fallback;
+        return fallback;
+      }
+
+      int used = 0;
+      int limit = -1;
+      dynamic entry = quota['boards'];
+      if (entry is Map) {
+        used = asInt(entry['used']);
+        final rawLimit = entry['limit'] ?? entry['max'];
+        limit = rawLimit == null ? -1 : asInt(rawLimit, fallback: -1);
+      } else if (entry is int || entry is double || entry is String) {
+        limit = asInt(entry, fallback: -1);
+      }
+      final usedContainer = quota['used'];
+      if (usedContainer is Map) {
+        final alt = usedContainer['boards'];
+        if (alt != null) used = asInt(alt, fallback: used);
+      }
+      if (used < 0) used = 0;
+
+      setState(() {
+        _boardsUsed = used;
+        _boardsLimit = limit;
+      });
+    }, onError: (_) {
+      if (!mounted) return;
+      setState(() {
+        _boardsUsed = 0;
+        _boardsLimit = -2;
+      });
+    });
   }
 
   Future<void> _loadBoards() async {
@@ -59,14 +155,65 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
     }
   }
 
-  void _navigateToCreateBoard() {
+  Future<void> _navigateToCreateBoard() async {
     if (!_canManageBoards) return _denySnack();
+    final wsId = widget.workspaceId ?? _controller.currentWorkspaceId.value;
+    final ok = await QuotaGuard.ensureCanCreate(context, wsId, 'boards');
+    if (!ok) return;
     Get.toNamed('/create-board');
   }
 
   void _navigateToEditBoard(Board board) {
     if (!_canManageBoards) return _denySnack();
     Get.toNamed('/edit-board', arguments: {'board': board});
+  }
+
+  // Usage header
+  Widget _buildUsageHeader(int totalBoards) {
+    final isUnlimited = _boardsLimit == -1;
+    final isOver = !isUnlimited && _boardsLimit > 0 && _boardsUsed > _boardsLimit;
+    return Container(
+      width: double.infinity,
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Text('Total: ', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+                Text('$totalBoards', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primaryOrange)),
+                const Text(' boards', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+              ]),
+              const SizedBox(height: 2),
+              Row(children: [
+                const Icon(Icons.storage_rounded, size: 14, color: AppTheme.textSecondary),
+                const SizedBox(width: 4),
+                Text(
+                  isUnlimited ? 'Usage: $_boardsUsed / ∞' : 'Usage: $_boardsUsed / $_boardsLimit',
+                  style: TextStyle(fontSize: 12, color: isOver ? Colors.red : AppTheme.textSecondary, fontWeight: isOver ? FontWeight.w600 : FontWeight.w400),
+                ),
+              ]),
+            ],
+          ),
+          const Spacer(),
+          PermissionGuard(
+            permission: 'settings:board:manage',
+            hideIfUnauthorized: true,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _isBoardsQuotaFull ? AppTheme.textSecondary : AppTheme.primaryOrange,
+                side: BorderSide(color: _isBoardsQuotaFull ? AppTheme.textSecondary : AppTheme.primaryOrange, width: 1),
+              ),
+              onPressed: _navigateToCreateBoard,
+              icon: const Icon(Icons.add),
+              label: Text(_isBoardsQuotaFull ? 'Quota full' : 'Create Board'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showBoardMenu(BuildContext context, Board board) {
@@ -161,95 +308,101 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
           ? const Center(child: CircularProgressIndicator())
           : Obx(() {
               final boards = _controller.boards;
-              
-              if (boards.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.dashboard_outlined,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'No boards found',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Create your first board to get started',
-                        style: TextStyle(
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      PermissionGuard(
-                        permission: 'settings:board:manage',
-                        hideIfUnauthorized: true,
-                        child: ElevatedButton.icon(
-                          onPressed: _navigateToCreateBoard,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Create Board'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryOrange,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
+              final total = boards.length;
 
-              return RefreshIndicator(
-                onRefresh: _loadBoards,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: boards.length,
-                  itemBuilder: (context, index) {
-                    final board = boards[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: AppTheme.primaryOrange,
-                          child: Icon(
-                            Icons.dashboard,
-                            color: Colors.white,
+              return Column(
+                children: [
+                  _buildUsageHeader(total),
+                  Expanded(
+                    child: boards.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.dashboard_outlined,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'No boards found',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Create your first board to get started',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                PermissionGuard(
+                                  permission: 'settings:board:manage',
+                                  hideIfUnauthorized: true,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _navigateToCreateBoard,
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Create Board'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.primaryOrange,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadBoards,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: boards.length,
+                              itemBuilder: (context, index) {
+                                final board = boards[index];
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  child: ListTile(
+                                    leading: const CircleAvatar(
+                                      backgroundColor: AppTheme.primaryOrange,
+                                      child: Icon(
+                                        Icons.dashboard,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      board.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Lanes: ${board.lanes.length}')
+                                        ,Text('Members: ${board.memberUids.length}'),
+                                        Text('Created: ${_formatDate(board.createdAt)}'),
+                                      ],
+                                    ),
+                                    trailing: PermissionGuard(
+                                      permission: 'settings:board:manage',
+                                      child: IconButton(
+                                        onPressed: () => _showBoardMenu(context, board),
+                                        icon: const Icon(Icons.more_vert),
+                                      ),
+                                    ),
+                                    onTap: () => _canManageBoards ? _navigateToEditBoard(board) : _denySnack(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        title: Text(
-                          board.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Lanes: ${board.lanes.length}')
-                            ,Text('Members: ${board.memberUids.length}'),
-                            Text('Created: ${_formatDate(board.createdAt)}'),
-                          ],
-                        ),
-                        trailing: PermissionGuard(
-                          permission: 'settings:board:manage',
-                          child: IconButton(
-                            onPressed: () => _showBoardMenu(context, board),
-                            icon: const Icon(Icons.more_vert),
-                          ),
-                        ),
-                        onTap: () => _canManageBoards ? _navigateToEditBoard(board) : _denySnack(),
-                      ),
-                    );
-                  },
-                ),
+                  ),
+                ],
               );
             }),
       floatingActionButton: PermissionGuard(

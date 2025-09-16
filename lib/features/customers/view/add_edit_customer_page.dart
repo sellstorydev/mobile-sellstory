@@ -163,6 +163,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     }
   }
 
+
   Future<void> _loadHashtags() async {
     try {
       final controller = Get.find<CustomersController>();

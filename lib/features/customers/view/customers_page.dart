@@ -9,6 +9,8 @@ import '../../../core/widgets/permission_guard.dart';
 import '../../board/widgets/workspace_app_bar.dart';
 import '../../board/controller/board_controller.dart';
 import '../../shell/shell_controller.dart';
+import '../../../core/services/quota_guard.dart';
+
 
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
@@ -207,51 +209,90 @@ class _CustomersPageState extends State<CustomersPage> {
         children: [
           Obx(() {
             final count = _controller.filteredCustomerCount;
-            return RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textPrimary,
-                ),
-                children: [
-                  TextSpan(text: '${'total_count'.tr} '),
-                  TextSpan(
-                    text: '$count',
+            final used = _controller.customersDisplayUsed; // prefer actual if higher
+            final limit = _controller.customersQuotaLimit.value;
+            final isUnlimited = limit == -1;
+            final isOver = !isUnlimited && limit > 0 && used > limit;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
                     style: const TextStyle(
-                      color: AppTheme.primaryOrange,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
                     ),
+                    children: [
+                      TextSpan(text: '${'total_count'.tr} '),
+                      TextSpan(
+                        text: '$count',
+                        style: const TextStyle(
+                          color: AppTheme.primaryOrange,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      TextSpan(text: ' ${'people'.tr}'),
+                    ],
                   ),
-                  TextSpan(text: ' ${'people'.tr}'),
-                ],
-              ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.storage_rounded, size: 14, color: AppTheme.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      isUnlimited
+                          ? '${'usage'.tr}: $used / ∞'
+                          : '${'usage'.tr}: $used / $limit',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isOver ? Colors.red : AppTheme.textSecondary,
+                        fontWeight: isOver ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             );
           }),
           const Spacer(),
           PermissionGuard(
             permission: 'customer:create',
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryOrange,
-                side: const BorderSide(color: AppTheme.primaryOrange, width: 1),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              icon: const Icon(Icons.person_add_alt_1, size: 18),
-              label: Text('add_customer'.tr),
-              onPressed: () {
-                guardAction(context, 'customer:create', () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AddEditCustomerPage(
-                        customerSources: _controller.customerSources,
-                      ),
-                    ),
-                  );
-                });
-              },
-            ),
+            child: Obx(() {
+              final isFull = _controller.isCustomersQuotaFull;
+              return OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isFull ? AppTheme.textSecondary : AppTheme.primaryOrange,
+                  side: BorderSide(color: isFull ? AppTheme.textSecondary : AppTheme.primaryOrange, width: 1),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.person_add_alt_1, size: 18),
+                label: Text(isFull ? 'quota_full'.trParams({'resource': 'customers'.tr}) : 'add_customer'.tr),
+                onPressed: isFull
+                    ? () async {
+                        // If full, still show an explanatory dialog using guard
+                        final wsId = _controller.currentWorkspaceId.value;
+                        await QuotaGuard.ensureCanCreate(context, wsId, 'customers');
+                      }
+                    : () async {
+                        // Guard quota at action time too (recheck latest server state)
+                        final wsId = _controller.currentWorkspaceId.value;
+                        final ok = await QuotaGuard.ensureCanCreate(context, wsId, 'customers');
+                        if (!ok) return;
+                        guardAction(context, 'customer:create', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddEditCustomerPage(
+                                customerSources: _controller.customerSources,
+                              ),
+                            ),
+                          );
+                        });
+                      },
+              );
+            }),
           ),
         ],
       ),

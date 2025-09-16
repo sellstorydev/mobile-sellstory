@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/services/quota_usage_service.dart';
 import '../../../domain/entities/company.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/id_generation_service.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+
 
 class CompaniesController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -18,8 +22,28 @@ class CompaniesController extends GetxController {
   final RxString errorMessage = ''.obs;
   final RxString currentWorkspaceId = ''.obs;
 
+  // Quota (use customers key to cover both individual and company records)
+  final RxInt customersQuotaUsed = 0.obs;
+  final RxInt customersQuotaLimit = (-2).obs; // -1 unlimited, -2 unknown
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _workspaceQuotaSub;
+
   // Getters
   int get filteredCompanyCount => filteredCompanies.length;
+  int get companyCount => companies.length;
+
+  int get customersDisplayUsed {
+    final repoUsed = customersQuotaUsed.value;
+    final actual = companyCount; // prefer actual if higher for UX
+    if (repoUsed < actual) return actual;
+    return repoUsed;
+  }
+
+  bool get isCustomersQuotaFull {
+    final limit = customersQuotaLimit.value;
+    if (limit == -1) return false; // unlimited
+    if (limit <= 0) return false; // unknown -> fail-open
+    return customersQuotaUsed.value >= limit;
+  }
 
   @override
   void onInit() {
@@ -39,6 +63,61 @@ class CompaniesController extends GetxController {
     }
   }
 
+  void _subscribeWorkspaceQuota(String workspaceId) {
+    try {
+      _workspaceQuotaSub?.cancel();
+    } catch (_) {}
+    customersQuotaUsed.value = 0;
+    customersQuotaLimit.value = -2;
+    if (workspaceId.isEmpty) return;
+
+    _workspaceQuotaSub = FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .snapshots()
+        .listen((snap) {
+      if (!snap.exists) {
+        customersQuotaUsed.value = 0;
+        customersQuotaLimit.value = -2;
+        return;
+      }
+      final data = snap.data() ?? {};
+      final quota = (data['quota'] ?? {}) as Map<String, dynamic>;
+
+      int asInt(dynamic v, {int fallback = 0}) {
+        if (v is int) return v;
+        if (v is double) return v.toInt();
+        if (v is String) return int.tryParse(v) ?? fallback;
+        return fallback;
+      }
+
+      Map<String, int> extractCustomers() {
+        int used = 0; int limit = -1;
+        dynamic entry = quota['customers'];
+        if (entry is Map) {
+          used = asInt(entry['used']);
+          final rawLimit = entry['limit'] ?? entry['max'];
+          limit = rawLimit == null ? -1 : asInt(rawLimit, fallback: -1);
+        } else if (entry is int || entry is double || entry is String) {
+          limit = asInt(entry, fallback: -1);
+        }
+        final usedContainer = quota['used'];
+        if (usedContainer is Map) {
+          final alt = usedContainer['customers'];
+          if (alt != null) used = asInt(alt, fallback: used);
+        }
+        if (used < 0) used = 0;
+        return {'used': used, 'limit': limit};
+      }
+
+      final cu = extractCustomers();
+      customersQuotaUsed.value = cu['used'] ?? 0;
+      customersQuotaLimit.value = cu['limit'] ?? -1;
+    }, onError: (_) {
+      // fail-open
+    });
+  }
+
   /// Load companies for a specific workspace
   Future<void> loadCompanies(String workspaceId) async {
     if (workspaceId.isEmpty) return;
@@ -47,6 +126,8 @@ class CompaniesController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
       currentWorkspaceId.value = workspaceId;
+
+      _subscribeWorkspaceQuota(workspaceId);
 
       final result = await _repository.getCompanies(workspaceId);
       companies.value = result;
@@ -148,6 +229,9 @@ class CompaniesController extends GetxController {
       // Reload companies
       await loadCompanies(currentWorkspaceId.value);
 
+      // Increment customers shared usage (companies share the customers pool)
+      try { await QuotaUsageService.incrementUsed(currentWorkspaceId.value, 'customers', delta: 1); } catch (_) {}
+
       return true;
     } catch (e) {
       errorMessage.value = 'ไม่สามารถสร้างบริษัทได้: ${e.toString()}';
@@ -227,6 +311,9 @@ class CompaniesController extends GetxController {
       // Remove from local list
       companies.removeWhere((c) => c.id == companyId);
 
+      // Decrement customers shared usage
+      try { await QuotaUsageService.decrementUsed(currentWorkspaceId.value, 'customers', delta: 1); } catch (_) {}
+
       return true;
     } catch (e) {
       errorMessage.value = 'ไม่สามารถลบบริษัทได้: ${e.toString()}';
@@ -296,8 +383,14 @@ class CompaniesController extends GetxController {
       await loadCompanies(currentWorkspaceId.value);
       return true;
     } catch (e) {
-      errorMessage.value = 'ไม่สามารถยกเลิกการเชื่อมโยงลูกค้ากับบริษัทได��: ${e.toString()}';
+      errorMessage.value = 'ไม่สามารถยกเลิกการเชื่อมโยงลูกค้ากับบริษัทได้: ${e.toString()}';
       return false;
     }
+  }
+
+  @override
+  void onClose() {
+    _workspaceQuotaSub?.cancel();
+    super.onClose();
   }
 }
