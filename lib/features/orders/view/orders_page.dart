@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 
 class OrdersPage extends StatelessWidget {
@@ -9,31 +10,31 @@ class OrdersPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
-        title: const Text('รายการคำสั่งซื้อ'),
+        title: Text('order_list'.tr),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
       ),
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.description_outlined,
               size: 64,
               color: AppTheme.textSecondary,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'รายการคำสั่งซื้อ',
-              style: TextStyle(
+              'order_list'.tr,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textPrimary,
               ),
             ),
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               'Coming soon...',
               style: TextStyle(
                 fontSize: 16,

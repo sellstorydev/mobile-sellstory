@@ -53,13 +53,19 @@ class CustomerTile extends StatelessWidget {
                 // Profile Image
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-                  child: Icon(
-                    Icons.person,
-                    size: 24,
-                    color: AppTheme.primaryOrange,
-                  ),
+                  backgroundColor: AppTheme.primaryOrange.withAlpha(25),
+                  backgroundImage: (customer.profileImageUrl.isNotEmpty)
+                      ? NetworkImage(customer.profileImageUrl)
+                      : null,
+                  child: (customer.profileImageUrl.isEmpty)
+                      ? Icon(
+                          Icons.person,
+                          size: 24,
+                          color: AppTheme.primaryOrange,
+                        )
+                      : null,
                 ),
+
                 const SizedBox(width: 16),
                 // Customer Info
                 Expanded(
@@ -127,8 +133,8 @@ class CustomerTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: customer.customerType == 'Customer' 
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.orange.withOpacity(0.1),
+                        ? Colors.green.withAlpha(25)
+                        : Colors.orange.withAlpha(25),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -158,5 +164,3 @@ class CustomerTile extends StatelessWidget {
     );
   }
 }
-
-

@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../controller/more_controller.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../core/widgets/permission_guard.dart';
+import '../../../translation/widgets/language_switcher_widget.dart';
 
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
@@ -16,7 +17,7 @@ class MorePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text('อื่น ๆ'),
+        title: Text('others_nav'.tr),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
@@ -73,7 +74,7 @@ class MorePage extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
+                              const Row(
                               children: [
                                 Icon(
                                   Icons.person_outline,
@@ -118,6 +119,15 @@ class MorePage extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
+                    // Language Settings
+                    _buildMenuItem(
+                      icon: Icons.language_outlined,
+                      title: 'language'.tr,
+                      onTap: () {
+                        LanguageSelectionSheet.show(context);
+                      },
+                    ),
+                    _buildDivider(),
                     // PermissionGuard(
                     //   anyOf: const ['settings:board:manage'],
                     //   child: _buildMenuItem(
@@ -135,11 +145,11 @@ class MorePage extends StatelessWidget {
                     // _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.people_outline,
-                      title: 'บริหารจัดการเซล',
+                      title: 'sales_management'.tr,
                       onTap: () {
                         Get.snackbar(
                           'Info',
-                          'Sales Management coming soon',
+                          'sales_management_coming_soon'.tr,
                           snackPosition: SnackPosition.BOTTOM,
                         );
                       },
@@ -147,7 +157,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.archive_outlined,
-                      title: 'Archive',
+                      title: 'archive'.tr,
                       onTap: () {
                         Get.toNamed('/archive');
                       },
@@ -157,7 +167,7 @@ class MorePage extends StatelessWidget {
                       anyOf: const ['settings:catalog:manage'],
                       child: _buildMenuItem(
                         icon: Icons.tag_outlined,
-                        title: 'Hashtag Center',
+                        title: 'hashtag_center'.tr,
                         onTap: () {
                           final workspaceId =
                               boardController.currentWorkspaceId.value;
@@ -166,7 +176,7 @@ class MorePage extends StatelessWidget {
                           } else {
                             Get.snackbar(
                               'Error',
-                              'No workspace selected',
+                              'no_workspace_selected'.tr,
                               snackPosition: SnackPosition.BOTTOM,
                               backgroundColor: Get.theme.colorScheme.error
                                   .withValues(alpha: 0.1),
@@ -208,7 +218,7 @@ class MorePage extends StatelessWidget {
                       anyOf: const ['settings:company:manage'],
                       child: _buildMenuItem(
                         icon: Icons.business_outlined,
-                        title: 'ตั้งค่าบริษัท',
+                        title: 'company_settings'.tr,
                         onTap: () {
                           final workspaceId =
                               boardController.currentWorkspaceId.value;
@@ -217,7 +227,7 @@ class MorePage extends StatelessWidget {
                           } else {
                             Get.snackbar(
                               'Error',
-                              'No workspace selected',
+                              '',
                               snackPosition: SnackPosition.BOTTOM,
                               backgroundColor: Get.theme.colorScheme.error
                                   .withValues(alpha: 0.1),
@@ -232,7 +242,7 @@ class MorePage extends StatelessWidget {
                       anyOf: const ['settings:board:manage'],
                       child: _buildMenuItem(
                         icon: Icons.dashboard_outlined,
-                        title: 'ตั้งค่า Board',
+                        title: 'board_settings'.tr,
                         onTap: () {
                           final workspaceId =
                               boardController.currentWorkspaceId.value;
@@ -241,7 +251,7 @@ class MorePage extends StatelessWidget {
                           } else {
                             Get.snackbar(
                               'Error',
-                              'No workspace selected',
+                              '',
                               snackPosition: SnackPosition.BOTTOM,
                               backgroundColor: Get.theme.colorScheme.error
                                   .withValues(alpha: 0.1),
@@ -254,7 +264,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.notifications_outlined,
-                      title: 'ตั้งค่าการแจ้งเตือน',
+                      title: 'notification_settings'.tr,
                       onTap: () {
                         final workspaceId =
                             boardController.currentWorkspaceId.value;
@@ -263,7 +273,7 @@ class MorePage extends StatelessWidget {
                         } else {
                           Get.snackbar(
                             'Error',
-                            'No workspace selected',
+                            '',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Get.theme.colorScheme.error
                                 .withValues(alpha: 0.1),
@@ -275,7 +285,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.message_outlined,
-                      title: 'ข้อความต้อนรับ',
+                      title: 'welcome_message'.tr,
                       onTap: () {
                         final workspaceId =
                             boardController.currentWorkspaceId.value;
@@ -284,7 +294,7 @@ class MorePage extends StatelessWidget {
                         } else {
                           Get.snackbar(
                             'Error',
-                            'No workspace selected',
+                            '',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Get.theme.colorScheme.error
                                 .withValues(alpha: 0.1),
@@ -296,7 +306,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.smart_toy_outlined,
-                      title: 'ตั้งค่า Chatbot',
+                      title: 'chatbot_settings'.tr,
                       onTap: () {
                         final workspaceId =
                             boardController.currentWorkspaceId.value;
@@ -305,7 +315,7 @@ class MorePage extends StatelessWidget {
                         } else {
                           Get.snackbar(
                             'Error',
-                            'No workspace selected',
+                            '',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Get.theme.colorScheme.error
                                 .withValues(alpha: 0.1),
@@ -317,7 +327,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.rule_outlined,
-                      title: 'กฎการสร้าง ID',
+                      title: 'id_generation_rules'.tr,
                       onTap: () {
                         final workspaceId =
                             boardController.currentWorkspaceId.value;
@@ -326,7 +336,7 @@ class MorePage extends StatelessWidget {
                         } else {
                           Get.snackbar(
                             'Error',
-                            'No workspace selected',
+                            '',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Get.theme.colorScheme.error
                                 .withValues(alpha: 0.1),
@@ -338,7 +348,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.security_outlined,
-                      title: 'บทบาทและสิทธิ์',
+                      title: 'roles_permissions'.tr,
                       onTap: () {
                         final workspaceId =
                             boardController.currentWorkspaceId.value;
@@ -347,7 +357,7 @@ class MorePage extends StatelessWidget {
                         } else {
                           Get.snackbar(
                             'Error',
-                            'No workspace selected',
+                            '',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Get.theme.colorScheme.error
                                 .withValues(alpha: 0.1),
@@ -359,7 +369,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.approval_outlined,
-                      title: 'เงื่อนไขการอนุมัติ',
+                      title: 'approval_conditions'.tr,
                       onTap: () {
                         final workspaceId =
                             boardController.currentWorkspaceId.value;
@@ -368,7 +378,7 @@ class MorePage extends StatelessWidget {
                         } else {
                           Get.snackbar(
                             'Error',
-                            'No workspace selected',
+                            '',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Get.theme.colorScheme.error
                                 .withValues(alpha: 0.1),
@@ -380,7 +390,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.description_outlined,
-                      title: 'ตั้งค่าเอกสาร',
+                      title: 'document_settings'.tr,
                       onTap: () {
                         final workspaceId =
                             boardController.currentWorkspaceId.value;
@@ -389,7 +399,7 @@ class MorePage extends StatelessWidget {
                         } else {
                           Get.snackbar(
                             'Error',
-                            'No workspace selected',
+                            '',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Get.theme.colorScheme.error
                                 .withValues(alpha: 0.1),
@@ -401,7 +411,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.inventory_2_outlined,
-                      title: 'ตั้งค่าแคตตาล็อก',
+                      title: 'catalog_settings'.tr,
                       onTap: () {
                         final workspaceId =
                             boardController.currentWorkspaceId.value;
@@ -410,7 +420,7 @@ class MorePage extends StatelessWidget {
                         } else {
                           Get.snackbar(
                             'Error',
-                            'No workspace selected',
+                            '',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Get.theme.colorScheme.error
                                 .withValues(alpha: 0.1),
@@ -437,11 +447,11 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.privacy_tip_outlined,
-                      title: 'การยินยอมเปิดเผยข้อมูล',
+                      title: 'data_disclosure_consent'.tr,
                       onTap: () {
                         Get.snackbar(
                           'Info',
-                          'Data Disclosure Consent coming soon',
+                          'data_disclosure_coming_soon'.tr,
                           snackPosition: SnackPosition.BOTTOM,
                         );
                       },
@@ -449,7 +459,7 @@ class MorePage extends StatelessWidget {
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.logout,
-                      title: 'Logout',
+                      title: 'logout'.tr,
                       isLogout: true,
                       onTap: controller.logout,
                     ),
@@ -465,13 +475,13 @@ class MorePage extends StatelessWidget {
                   onPressed: () {
                     Get.snackbar(
                       'Info',
-                      'Delete Account feature coming soon',
+                      'delete_account_coming_soon'.tr,
                       snackPosition: SnackPosition.BOTTOM,
                     );
                   },
-                  child: const Text(
-                    'ลบบัญชี ยกเลิกการใช้งาน',
-                    style: TextStyle(color: Colors.red, fontSize: 14),
+                  child: Text(
+                    'delete_account'.tr,
+                    style: const TextStyle(color: Colors.red, fontSize: 14),
                   ),
                 ),
               ),

@@ -38,7 +38,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     // Dismiss existing to avoid stacking many
     try { Get.closeAllSnackbars(); } catch (_) {}
     Get.snackbar(
-      isError ? 'เกิดข้อผิดพลาด' : 'แจ้งเตือน',
+      isError ? 'error_occurred'.tr : 'notification'.tr,
       message,
       margin: const EdgeInsets.all(12),
       snackPosition: SnackPosition.TOP,
@@ -94,7 +94,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       iconTheme: const IconThemeData(color: Colors.black),
       actions: [
         IconButton(
-          tooltip: 'รีเฟรช',
+          tooltip: 'refresh'.tr,
           icon: const Icon(Icons.refresh),
           onPressed: () => _controller.refresh(),
           color: Colors.black87,
@@ -117,7 +117,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final chatId = (conversation['id'] ?? '').toString();
     if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
       _logger.warning('No workspace/chatroom id for add hashtag');
-      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
+      _showTopSnack('chat_workspace_or_chatroom_not_found'.tr, isError: true);
       return;
     }
 
@@ -176,10 +176,10 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       );
 
       if (!mounted) return;
-      _showTopSnack('อัปเดต Hashtag แล้ว (${names.length})');
+      _showTopSnack('chat_hashtag_updated'.tr + ' (${names.length})');
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('อัปเดต Hashtag ไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('chat_hashtag_update_failed'.tr + ': $e', isError: true);
     }
 
   }
@@ -188,7 +188,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final wsId = _controller.getCurrentWorkspaceId();
     final chatId = (conversation['id'] ?? '').toString();
     if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
-      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
+      _showTopSnack('chat_workspace_or_chatroom_not_found'.tr, isError: true);
       return;
     }
 
@@ -214,11 +214,11 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการผูกเซล'),
-        content: const Text('ต้องการผูกผู้ใช้นี้เข้ากับแชท/ลูกค้าหรือไม่?'),
+        title: Text('chat_confirm_assign_sale'.tr),
+        content: Text('chat_confirm_assign_sale_message'.tr),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ยืนยัน')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('confirm'.tr)),
         ],
       ),
     );
@@ -260,9 +260,9 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       if (displayName.isEmpty) displayName = pickedUid;
       _controller.addAssigneeLocal(chatId, pickedUid, displayName);
 
-      _showTopSnack('ผูกเซลเรียบร้อย');
+      _showTopSnack('chat_assign_sale_success'.tr);
     } catch (e) {
-      _showTopSnack('ผูกเซลไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('chat_assign_sale_failed'.tr + ': $e', isError: true);
     }
   }
 
@@ -271,7 +271,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final ref = _chatroomRef(conversation);
     if (ref == null) {
       _logger.warning('No workspace/chatroom id for status');
-      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
+      _showTopSnack('chat_workspace_or_chatroom_not_found'.tr, isError: true);
       return;
     }
 
@@ -285,15 +285,15 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('สถานะแชท', style: TextStyle(fontWeight: FontWeight.w700))),
+            ListTile(title: Text('chat_status'.tr, style: const TextStyle(fontWeight: FontWeight.w700))),
             ListTile(
               leading: const Icon(Icons.play_arrow, color: Colors.blue),
-              title: const Text('กำลังดำเนินการ'),
+              title: Text('chat_status_in_progress'.tr),
               onTap: () => Navigator.pop(ctx, 'IN_PROGRESS'),
             ),
             ListTile(
               leading: const Icon(Icons.check_circle, color: Colors.green),
-              title: const Text('เสร็จสิ้น'),
+              title: Text('chat_status_done'.tr),
               onTap: () => Navigator.pop(ctx, 'DONE'),
             ),
             const SizedBox(height: 8),
@@ -305,10 +305,10 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
 
     try {
       await ref.set({'chatroom_status': choice}, SetOptions(merge: true));
-      final label = choice == 'DONE' ? 'เสร็จสิ้น' : 'กำลังดำเนินการ';
-      _showTopSnack('อัปเดตสถานะ: $label');
+      final label = choice == 'DONE' ? 'chat_status_done'.tr : 'chat_status_in_progress'.tr;
+      _showTopSnack('chat_status_updated'.tr + ': $label');
     } catch (e) {
-      _showTopSnack('อัปเดตสถานะไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('chat_status_update_failed'.tr + ': $e', isError: true);
     }
   }
 
@@ -324,12 +324,12 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.lock_outline, size: 56, color: Colors.grey),
-                SizedBox(height: 12),
-                Text('คุณไม่มีสิทธิ์เข้าถึง Chat Center',
+              children: [
+                const Icon(Icons.lock_outline, size: 56, color: Colors.grey),
+                const SizedBox(height: 12),
+                Text('chat_center_no_permission'.tr,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey)),
+                    style: const TextStyle(fontSize: 16, color: Colors.grey)),
               ],
             ),
           ),
@@ -391,7 +391,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => _controller.refresh(),
-                child: const Text('ลองใหม่'),
+                child: Text('try_again'.tr),
               ),
             ],
           ),
@@ -399,14 +399,14 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       }
 
       if (conversations.isEmpty) {
-        return const Center(
+        return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
               SizedBox(height: 16),
               Text(
-                'ไม่มีแชทที่ตรงกับเงื่อนไข',
+                '${'no_chats_found'.tr}',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             ],
@@ -461,7 +461,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final wsId = _controller.getCurrentWorkspaceId();
     final chatId = (conversation['id'] ?? '').toString();
     if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
-      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
+      _showTopSnack('chat_workspace_or_chatroom_not_found'.tr, isError: true);
       return;
     }
     // Current state
@@ -484,7 +484,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
 
     try {
       await _chatRepo.setBotStatus(workspaceId: wsId, chatroomId: chatId, enabled: next);
-      _showTopSnack(next ? 'เปิดตอบกลับอัตโนมัติ' : 'ปิดตอบกลับอัตโนมัติ');
+      _showTopSnack(next ? 'bot_enabled'.tr : 'bot_disabled'.tr);
     } catch (e) {
       // Revert on failure
       try {
@@ -496,7 +496,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
           list.refresh();
         }
       } catch (_) {}
-      _showTopSnack('อัปเดตบอทไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('bot_update_failed'.tr + ': $e', isError: true);
     }
   }
 
@@ -504,7 +504,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     final wsId = _controller.getCurrentWorkspaceId();
     final chatId = (conversation['id'] ?? '').toString();
     if (wsId == null || wsId.isEmpty || chatId.isEmpty) {
-      _showTopSnack('ไม่พบ workspace หรือ chatroom', isError: true);
+      _showTopSnack('chat_workspace_or_chatroom_not_found'.tr, isError: true);
       return;
     }
 
@@ -525,7 +525,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
 
     try {
       await _chatRepo.setPinned(workspaceId: wsId, chatroomId: chatId, pinned: nextPinned);
-      _showTopSnack(nextPinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล��ว');
+      _showTopSnack(nextPinned ? 'chat_pinned'.tr : 'chat_unpinned'.tr);
     } catch (e) {
       // Revert on failure
       try {
@@ -537,7 +537,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
           list.refresh();
         }
       } catch (_) {}
-      _showTopSnack('อัปเดตปักหมุดไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('pin_update_failed'.tr + ': $e', isError: true);
     }
   }
 

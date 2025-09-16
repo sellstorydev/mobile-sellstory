@@ -639,12 +639,27 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
                         color: AppTheme.primaryOrange.withAlpha(25),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.person,
-                        color: AppTheme.primaryOrange,
-                        size: 16,
-                      ),
+                      child: customer.profileImageUrl.isNotEmpty
+                          ? ClipOval(
+                              child: Image.network(
+                                customer.profileImageUrl,
+                                width: 32,
+                                height: 32,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Icon(
+                                  Icons.person,
+                                  color: AppTheme.primaryOrange,
+                                  size: 16,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.person,
+                              color: AppTheme.primaryOrange,
+                              size: 16,
+                            ),
                     ),
+
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

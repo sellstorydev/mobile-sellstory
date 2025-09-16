@@ -25,8 +25,9 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
   final _postalCodeController = TextEditingController();
   final _countryController = TextEditingController();
 
-  final CompaniesController _controller = Get.find<CompaniesController>();
+  late final CompaniesController _controller; // was direct Get.find, now late + safe init
   final ThaiLocationService _locationService = ThaiLocationService();
+
 
   // Thai Location dropdowns
   List<Map<String, dynamic>> _provinces = [];
@@ -49,6 +50,12 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
   @override
   void initState() {
     super.initState();
+    // Safe controller acquisition
+    if (Get.isRegistered<CompaniesController>()) {
+      _controller = Get.find<CompaniesController>();
+    } else {
+      _controller = Get.put(CompaniesController());
+    }
     _loadProvinces();
     _initializeForm();
   }

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/customer.dart';
 import '../services/firestore_service.dart';
+import '../services/mobile_permissions_service.dart';
 
 class CustomerRepository {
   final FirestoreService _firestoreService;
@@ -10,9 +12,22 @@ class CustomerRepository {
   // Get customers for a specific workspace
   Future<List<Customer>> getCustomers(String workspaceId) async {
     try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('customer:view:all');
+      final bool canViewAssigned = perms.can('customer:view:assigned');
+
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
-      final querySnapshot = await customersCollection.get();
-      
+
+      Query<Map<String, dynamic>> query = customersCollection;
+      if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+        // Reduce data by server-side filtering when only assigned
+        query = query.where('assignees', arrayContains: uid);
+      }
+
+      final querySnapshot = await query.get();
+
       final List<Customer> customers = [];
       
       for (final doc in querySnapshot.docs) {
@@ -21,32 +36,32 @@ class CustomerRepository {
           customers.add(customer);
         } catch (e) {
           // Log detailed information about the parsing error
-                      print('=== Customer Parsing Error ===');
-            print('Customer ID: ${doc.id}');
-            print('Error Type: ${e.runtimeType}');
-            print('Error Message: $e');
-            print('Raw Data: ${doc.data()}');
-            print('Data Keys: ${doc.data().keys.toList()}');
-            
-            // Try to extract basic information even if parsing fails
-            try {
-              final data = doc.data();
-              final basicCustomer = Customer(
-                id: doc.id,
-                name: data['name']?.toString() ?? 'Unknown Customer',
-                prefix: data['prefix']?.toString() ?? '',
-                gender: data['gender']?.toString() ?? '',
-                age: data['age']?.toString() ?? '',
-                customerType: data['customerType']?.toString() ?? 'Customer',
-                emails: Customer.parseEmailsFromMap(data['emails']),
-                phones: Customer.parsePhonesFromMap(data['phones']),
-                companyNames: Customer.parseCompanyNamesFromMap(data['companyNames']),
-                nationalId: data['nationalId']?.toString() ?? '',
-                address: data['address']?.toString() ?? '',
-                source: data['source']?.toString() ?? '',
-                hashtags: [], // Empty hashtags to avoid parsing issues
-                assignees: Customer.parseAssigneesFromMap(data['assignees']),
-                customId: data['customId']?.toString() ?? doc.id,
+          print('=== Customer Parsing Error ===');
+          print('Customer ID: ${doc.id}');
+          print('Error Type: ${e.runtimeType}');
+          print('Error Message: $e');
+          print('Raw Data: ${doc.data()}');
+          print('Data Keys: ${doc.data().keys.toList()}');
+
+          // Try to extract basic information even if parsing fails
+          try {
+            final data = doc.data();
+            final basicCustomer = Customer(
+              id: doc.id,
+              name: data['name']?.toString() ?? 'Unknown Customer',
+              prefix: data['prefix']?.toString() ?? '',
+              gender: data['gender']?.toString() ?? '',
+              age: data['age'] ?? 0,
+              customerType: data['customerType']?.toString() ?? 'Customer',
+              emails: Customer.parseEmailsFromMap(data['emails']),
+              phones: Customer.parsePhonesFromMap(data['phones']),
+              companyNames: Customer.parseCompanyNamesFromMap(data['companyNames']),
+              nationalId: data['nationalId']?.toString() ?? '',
+              address: data['address']?.toString() ?? '',
+              source: data['source']?.toString() ?? '',
+              hashtags: [], // Empty hashtags to avoid parsing issues
+              assignees: Customer.parseAssigneesFromMap(data['assignees']),
+              customId: data['customId']?.toString() ?? doc.id,
               workspaceId: data['workspaceId']?.toString() ?? workspaceId,
               createdAt: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
               updatedAt: DateTime.tryParse(data['updatedAt']?.toString() ?? '') ?? DateTime.now(),
@@ -63,6 +78,14 @@ class CustomerRepository {
         }
       }
       
+      // If still need to enforce assigned-only in-memory (in case the server query couldn't be applied), do it here
+      if (!(isOwner || canViewAll)) {
+        if (canViewAssigned && uid.isNotEmpty) {
+          return customers.where((c) => c.assignees.contains(uid)).toList();
+        }
+        return <Customer>[];
+      }
+
       return customers;
     } catch (e) {
       throw Exception('Failed to fetch customers: $e');
@@ -72,8 +95,20 @@ class CustomerRepository {
   // Get customers stream for real-time updates
   Stream<List<Customer>> getCustomersStream(String workspaceId) {
     try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('customer:view:all');
+      final bool canViewAssigned = perms.can('customer:view:assigned');
+
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
-      return customersCollection.snapshots().map((snapshot) {
+
+      Query<Map<String, dynamic>> base = customersCollection;
+      if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+        base = base.where('assignees', arrayContains: uid);
+      }
+
+      return base.snapshots().map((QuerySnapshot<Map<String, dynamic>> snapshot) {
         final List<Customer> customers = [];
         
         for (final doc in snapshot.docs) {
@@ -97,7 +132,7 @@ class CustomerRepository {
                 name: data['name']?.toString() ?? 'Unknown Customer',
                 prefix: data['prefix']?.toString() ?? '',
                 gender: data['gender']?.toString() ?? '',
-                age: data['age']?.toString() ?? '',
+                age: data['age'] ?? 0,
                 customerType: data['customerType']?.toString() ?? 'Customer',
                 emails: Customer.parseEmailsFromMap(data['emails']),
                 phones: Customer.parsePhonesFromMap(data['phones']),
@@ -124,6 +159,13 @@ class CustomerRepository {
           }
         }
         
+        if (!(isOwner || canViewAll)) {
+          if (canViewAssigned && uid.isNotEmpty) {
+            return customers.where((c) => c.assignees.contains(uid)).toList();
+          }
+          return <Customer>[];
+        }
+
         return customers;
       });
     } catch (e) {
@@ -187,12 +229,25 @@ class CustomerRepository {
   // Search customers by name
   Future<List<Customer>> searchCustomers(String workspaceId, String searchTerm) async {
     try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('customer:view:all');
+      final bool canViewAssigned = perms.can('customer:view:assigned');
+
       final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
-      final querySnapshot = await customersCollection
+
+      Query<Map<String, dynamic>> query = customersCollection
           .where('name', isGreaterThanOrEqualTo: searchTerm)
-          .where('name', isLessThan: searchTerm + '\uf8ff')
-          .get();
-      
+          .where('name', isLessThan: searchTerm + '\uf8ff');
+
+      if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+        // Firestore cannot combine range and array-contains on different fields without index; try post-filter if needed
+        // So we won't add arrayContains here to avoid index complexity; we'll filter in-memory later
+      }
+
+      final querySnapshot = await query.get();
+
       final List<Customer> customers = [];
       
       for (final doc in querySnapshot.docs) {
@@ -207,7 +262,8 @@ class CustomerRepository {
           print('Error Message: $e');
           print('Raw Data: ${doc.data()}');
           print('Data Keys: ${doc.data().keys.toList()}');
-          
+
+
           // Try to extract basic information even if parsing fails
           try {
             final data = doc.data();
@@ -216,7 +272,7 @@ class CustomerRepository {
               name: data['name']?.toString() ?? 'Unknown Customer',
               prefix: data['prefix']?.toString() ?? '',
               gender: data['gender']?.toString() ?? '',
-              age: data['age']?.toString() ?? '',
+              age: data['age'] ?? '',
               customerType: data['customerType']?.toString() ?? 'Customer',
               emails: Customer.parseEmailsFromMap(data['emails']),
               phones: Customer.parsePhonesFromMap(data['phones']),
@@ -243,6 +299,13 @@ class CustomerRepository {
         }
       }
       
+      if (!(isOwner || canViewAll)) {
+        if (canViewAssigned && uid.isNotEmpty) {
+          return customers.where((c) => c.assignees.contains(uid)).toList();
+        }
+        return <Customer>[];
+      }
+
       return customers;
     } catch (e) {
       throw Exception('Failed to search customers: $e');
@@ -267,5 +330,3 @@ class CustomerRepository {
     }
   }
 }
-
-

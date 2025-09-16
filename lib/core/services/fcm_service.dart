@@ -6,7 +6,11 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
+import 'package:sellstory/app/routes.dart';
+import 'package:sellstory/features/board/controller/board_controller.dart';
+import 'package:sellstory/features/shell/shell_controller.dart';
 
+import '../../domain/entities/job_card.dart';
 import 'logger_service.dart';
 import '../../data/services/firebase_auth_service.dart';
 
@@ -85,21 +89,14 @@ class FcmService extends GetxService {
       }
     });
 
-    // Foreground message handler
+    // Foreground message handler (log only; navigation happens on tap)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      // LoggerService.to.firebase('FCM onMessage: ${message.messageId} data=${message.data}');
       LoggerService.to.addFcmLog('onMessage', data: {
         'id': message.messageId,
         'title': message.notification?.title,
         'body': message.notification?.body,
         'data': message.data,
       });
-      final title = message.notification?.title ?? 'New Notification';
-      final body = message.notification?.body ?? '';
-      if (Get.isRegistered<LoggerService>()) {
-        // Also show a non-intrusive in-app banner
-        // Get.snackbar(title, body, snackPosition: SnackPosition.TOP);
-      }
     });
 
     // App opened from a notification (background -> foreground)
@@ -111,7 +108,8 @@ class FcmService extends GetxService {
         'body': message.notification?.body,
         'data': message.data,
       });
-      // TODO: Deep link to a page based on message.data if needed
+
+      _handleRemoteMessageNavigation(message);
     });
 
     // App launched by tapping a notification (terminated state)
@@ -124,7 +122,7 @@ class FcmService extends GetxService {
         'body': initialMessage.notification?.body,
         'data': initialMessage.data,
       });
-      // TODO: Handle deep link on cold start
+      _handleRemoteMessageNavigation(initialMessage);
     }
 
     _isInitialized.value = true;
@@ -365,6 +363,77 @@ class FcmService extends GetxService {
     } catch (e) {
       LoggerService.to.failure('Failed to save FCM token to Firestore', e);
       LoggerService.to.addFcmLog('token_save_error', data: {'error': e.toString()});
+    }
+  }
+
+  void _handleRemoteMessageNavigation(RemoteMessage message) {
+    final data = message.data;
+    final link = data['link'] as String? ?? data['url'] as String?;
+    final type = data['type'] as String?;
+
+    LoggerService.to.addFcmLog('navigate_attempt', data: {
+      'type': type,
+      'link': link,
+    });
+
+    if (link == null || link.isEmpty) return;
+
+    // Route by link
+    if (link.startsWith('/?')) {
+      _openBoardCardFromQuery(link, data);
+      return;
+    }
+
+    // Fallback: open shell (dashboard)
+    Get.offAllNamed(AppRoutes.shell);
+  }
+
+  Future<void> _openBoardCardFromQuery(String link, Map<String, dynamic> data) async {
+    try {
+      final uri = Uri.parse('app://sellstory$link');
+      final cardId = uri.queryParameters['cardId'];
+      final boardId = uri.queryParameters['boardId'];
+      if (cardId == null || boardId == null) return;
+
+      // Ensure we are on Shell and Board tab
+      if (Get.currentRoute != AppRoutes.shell) {
+        await Get.offAllNamed(AppRoutes.shell);
+      }
+      // Switch to Board tab
+      if (Get.isRegistered<ShellController>()) {
+        Get.find<ShellController>().onTabTapped(0);
+      }
+
+      // Ensure BoardController is ready
+      final boardCtrl = Get.find<BoardController>();
+      // If not on desired board, switch
+      if (boardCtrl.currentBoardId.value != boardId) {
+        await boardCtrl.switchBoard(boardId);
+      }
+
+      // Try to find the card in loaded lanes
+      JobCard? found;
+      for (final lane in boardCtrl.lanes) {
+        final c = lane.cards.firstWhereOrNull((x) => x.id == cardId);
+        if (c != null) { found = c; break; }
+      }
+
+      // If found, navigate to card view
+      if (found != null) {
+        Get.toNamed(AppRoutes.cardView, arguments: found);
+      } else {
+        // Fallback: trigger refresh then try again shortly
+        await boardCtrl.refresh();
+        for (final lane in boardCtrl.lanes) {
+          final c = lane.cards.firstWhereOrNull((x) => x.id == cardId);
+          if (c != null) { found = c; break; }
+        }
+        if (found != null) {
+          Get.toNamed(AppRoutes.cardView, arguments: found);
+        }
+      }
+    } catch (e) {
+      LoggerService.to.warning('Deep link navigation failed: $e');
     }
   }
 }

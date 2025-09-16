@@ -348,7 +348,7 @@ class _BoardPageState extends State<BoardPage> {
                             letterSpacing: 0.0,
                           ),
                           decoration: InputDecoration(
-                            hintText: 'รหัส Job Card ชื่อ-นามสกุล ลูกค้าและเซล',
+                            hintText: 'job_card_search_hint'.tr,
                             hintStyle: TextStyle(
                               color: Colors.grey[500],
                               fontSize: 14,
@@ -1619,7 +1619,7 @@ class _BoardPageState extends State<BoardPage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('ยกเลิก'),
+            child: Text('cancel'.tr),
           ),
           ElevatedButton(
             onPressed: () {

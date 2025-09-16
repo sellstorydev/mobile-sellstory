@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/user_picker_sheet.dart';
 import '../widgets/hashtag_picker_sheet.dart';
@@ -207,7 +208,7 @@ class _ChatFilterSheetState extends State<ChatFilterSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'ค้นหา',
+                      'search'.tr,
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -236,30 +237,30 @@ class _ChatFilterSheetState extends State<ChatFilterSheet> {
                         ),
                       );
                     },
-                    child: const Text('ล้างค่า'),
+                    child: Text('clear_value'.tr),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
 
-              const Text('ช่องทาง', style: TextStyle(fontWeight: FontWeight.w700)),
-              platformCheckbox('facebook', 'ช่องทาง Facebook'),
-              platformCheckbox('instagram', 'ช่องทาง Instagram'),
-              platformCheckbox('line', 'ช่องทาง LINE'),
+              Text('channel'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
+              platformCheckbox('facebook', 'facebook_channel'.tr),
+              platformCheckbox('instagram', 'instagram_channel'.tr),
+              platformCheckbox('line', 'line_channel'.tr),
 
               const SizedBox(height: 8),
-              const Text('สถานะ', style: TextStyle(fontWeight: FontWeight.w700)),
-              statusRadio('NEW', 'ใหม่'),
-              statusRadio('IN_PROGRESS', 'กำลังดำเนินการ'),
-              statusRadio('DONE', 'เสร็จสิ้น'),
+              Text('status'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
+              statusRadio('NEW', 'new'.tr),
+              statusRadio('IN_PROGRESS', 'in_progress'.tr),
+              statusRadio('DONE', 'done'.tr),
 
               const SizedBox(height: 8),
-              const Text('Hashtag', style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('Hashtag', style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               pickerTile(
                 icon: Icons.tag,
                 label: '',
-                placeholder: 'เลือก Hashtag',
+                placeholder: 'select_hashtag'.tr,
                 value: _selectedHashtagNames.isNotEmpty ? _selectedHashtagNames.map((n) => '#$n').join(', ') : null,
                 onTap: () async {
                   if (widget.wsId.isEmpty) return;
@@ -293,12 +294,12 @@ class _ChatFilterSheetState extends State<ChatFilterSheet> {
               ),
 
               const SizedBox(height: 12),
-              const Text('เซล', style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('sales'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               pickerTile(
                 icon: Icons.person_outline,
                 label: '',
-                placeholder: 'เลือกเซลผู้รับผิดชอบ',
+                placeholder: 'select_responsible_sales'.tr,
                 value: _salesName,
                 onTap: () async {
                   if (widget.wsId.isEmpty) return;
@@ -325,12 +326,12 @@ class _ChatFilterSheetState extends State<ChatFilterSheet> {
               ),
 
               const SizedBox(height: 12),
-              const Text('ลูกค้า', style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('customer'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               pickerTile(
                 icon: Icons.people_outline,
                 label: '',
-                placeholder: 'เลือกลูกค้า',
+                placeholder: 'select_customer'.tr,
                 value: _customerName,
                 onTap: () async {
                   if (widget.wsId.isEmpty) return;
@@ -373,7 +374,7 @@ class _ChatFilterSheetState extends State<ChatFilterSheet> {
                       ),
                     );
                   },
-                  child: const Text('ยืนยัน'),
+                  child: Text('confirm'.tr),
                 ),
               ),
             ],

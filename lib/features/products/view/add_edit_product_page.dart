@@ -94,12 +94,12 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
     if (widget.remainingQuantity == null) return null;
     
     if (value == null || value.trim().isEmpty) {
-      return 'กรุณากรอกจำนวน';
+      return 'please_enter_quantity'.tr;
     }
     
     final inputQuantity = double.tryParse(value);
     if (inputQuantity == null || inputQuantity < 0) {
-      return 'กรุณากรอกตัวเลขที่ถูกต้อง';
+      return 'please_enter_valid_number'.tr;
     }
     
     if (inputQuantity > widget.remainingQuantity!) {
@@ -107,7 +107,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
       final displayQty = maxQty.truncateToDouble() == maxQty 
           ? maxQty.toInt().toString() 
           : maxQty.toStringAsFixed(2);
-      return 'จำนวนต้องไม่เกิน $displayQty';
+      return 'quantity_exceeds_limit'.tr.replaceFirst('{limit}', displayQty);
     }
     
     return null;
@@ -233,18 +233,18 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('เลือกแหล่งที่มาของรูปภาพ'),
+            title: Text('choose_image_source'.tr),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
                   leading: const Icon(Icons.photo_library),
-                  title: const Text('แกลเลอรี่'),
+                  title: Text('gallery'.tr),
                   onTap: () => Navigator.of(context).pop(ImageSource.gallery),
                 ),
                 ListTile(
                   leading: const Icon(Icons.camera_alt),
-                  title: const Text('กล้อง'),
+                  title: Text('camera'.tr),
                   onTap: () => Navigator.of(context).pop(ImageSource.camera),
                 ),
               ],
@@ -273,10 +273,9 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
           _coverImageUrl = imageUrl;
           _isUploadingCover = false;
         });
-
         Get.snackbar(
-          'สำเร็จ',
-          'อัปโหลดรูปภาพหลัก��รียบร้อยแล้ว',
+          'success'.tr,
+          'main_image_uploaded'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -287,8 +286,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         _isUploadingCover = false;
       });
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถอัปโหลดรูปภาพได้: $e',
+        'error'.tr,
+        'cannot_upload_image'.tr.replaceFirst('{error}', e.toString()),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -303,18 +302,18 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('เลือกแหล่งที่มาของรูปภาพ'),
+            title: Text('choose_image_source'.tr),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
                   leading: const Icon(Icons.photo_library),
-                  title: const Text('แกลเลอรี่'),
+                  title: Text('gallery'.tr),
                   onTap: () => Navigator.of(context).pop(ImageSource.gallery),
                 ),
                 ListTile(
                   leading: const Icon(Icons.camera_alt),
-                  title: const Text('กล้อง'),
+                  title: Text('camera'.tr),
                   onTap: () => Navigator.of(context).pop(ImageSource.camera),
                 ),
               ],
@@ -345,8 +344,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         });
 
         Get.snackbar(
-          'สำเร็จ',
-          'อัปโหลดรูปภาพเพิ่มเติมเรียบร้อยแล้ว',
+          'success'.tr,
+          'additional_image_uploaded'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -357,8 +356,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         _isUploadingAdditional = false;
       });
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถอัปโหลดรูปภาพได้: $e',
+        'error'.tr,
+        'cannot_upload_image'.tr.replaceFirst('{error}', e.toString()),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -373,7 +372,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
       final userId = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
       
       if (workspaceId.isEmpty) {
-        throw Exception('ไม่พบ Workspace ID');
+        throw Exception('workspace_id_not_found'.tr);
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -390,7 +389,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
       return downloadUrl;
     } catch (e) {
       print('Error uploading image: $e');
-      throw Exception('ไม่สามารถอัปโหลดรูปภาพได้: $e');
+      throw Exception('cannot_upload_image'.tr.replaceFirst('{error}', e.toString()));
     }
   }
 
@@ -399,8 +398,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
       _imageSet.removeAt(index);
     });
     Get.snackbar(
-      'สำเร็จ',
-      'ลบรูปภาพเรียบร้อยแล้ว',
+      'success'.tr,
+      'image_deleted_successfully'.tr,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.orange,
       colorText: Colors.white,
@@ -425,7 +424,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
-        title: Text(widget.product != null ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า'),
+        title: Text(widget.product != null ? 'edit_product'.tr : 'add_product'.tr),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
@@ -435,8 +434,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
               final needed = widget.product != null ? 'product:edit:all' : 'product:create';
               guardAction(context, needed, _saveProduct);
             },
-            child: const Text(
-              'บันทึก',
+            child: Text(
+              'save'.tr,
               style: TextStyle(
                 color: AppTheme.primaryOrange,
                 fontWeight: FontWeight.w600,
@@ -454,7 +453,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
             children: [
               // Cover Image
               _buildImageSection(
-                'รูปภาพหลัก',
+                'main_image'.tr,
                 _coverImageUrl,
                 (url) => setState(() => _coverImageUrl = url),
                 isRequired: true,
@@ -468,12 +467,12 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
               const SizedBox(height: 16),
 
               // Product Name
-              _buildTextField('ชื่อสินค้า', _nameController, isRequired: true),
+              _buildTextField('product_name'.tr, _nameController, isRequired: true),
               const SizedBox(height: 16),
 
               // Status
               _buildDropdownField(
-                'สถานะ',
+                'status'.tr,
                 _selectedStatus,
                 _statusOptions,
                 (value) => setState(() => _selectedStatus = value!),
@@ -489,12 +488,12 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
               const SizedBox(height: 16),
 
               // Unit
-              _buildTextField('หน่วย', _unitController),
+              _buildTextField('unit'.tr, _unitController),
               const SizedBox(height: 16),
 
               // Description
               _buildTextField(
-                'รายละเอียด',
+                'details'.tr,
                 _descriptionController,
                 maxLines: 4,
               ),
@@ -512,8 +511,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                       _selectedHashtags = hashtags;
                     });
                   },
-                  label: 'แฮชแท็ก',
-                  hintText: 'เลือกแฮชแท็ก',
+                  label: 'hashtags'.tr,
+                  hintText: 'select_hashtags'.tr,
                 ),
               const SizedBox(height: 16),
 
@@ -522,18 +521,18 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
               const SizedBox(height: 16),
 
               // Barcode
-              _buildTextField('บาร์โค���ด', _barcodeController),
+              _buildTextField('barcode'.tr, _barcodeController),
               const SizedBox(height: 16),
 
               // Quantity (only if template has quantity column)
               if (_hasQuantityColumn()) ...[
                 _buildTextField(
-                  'จำนวน',
+                  'quantity'.tr,
                   _quantityController,
                   isRequired: true,
                   keyboardType: TextInputType.number,
                   helperText: widget.remainingQuantity != null 
-                      ? 'สูงสุด: ${widget.remainingQuantity!.truncateToDouble() == widget.remainingQuantity! ? widget.remainingQuantity!.toInt() : widget.remainingQuantity!.toStringAsFixed(2)}'
+                      ? 'maximum_limit'.tr.replaceFirst('{limit}', '${widget.remainingQuantity!.truncateToDouble() == widget.remainingQuantity! ? widget.remainingQuantity!.toInt() : widget.remainingQuantity!.toStringAsFixed(2)}')
                       : null,
                   customValidator: _getQuantityError,
                 ),
@@ -542,7 +541,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
 
               // Show in Online Catalog
               _buildSwitchField(
-                'แสดงในแคตตาล็อกออนไลน์',
+                'show_in_online_catalog'.tr,
                 _showInCatalog,
                 (value) => setState(() => _showInCatalog = value),
               ),
@@ -550,7 +549,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
 
               // Selling Price
               _buildTextField(
-                'ราคาขาย',
+                'sale_price'.tr,
                 _priceController,
                 isRequired: true,
                 keyboardType: TextInputType.number,
@@ -560,7 +559,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
 
               // Cost Price
               _buildTextField(
-                'ต้นทุน',
+                'cost_price'.tr,
                 _costPriceController,
                 keyboardType: TextInputType.number,
                 prefix: '฿',
@@ -583,8 +582,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'หมวดหมู่',
+          Text(
+            'category'.tr,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -594,15 +593,15 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: _selectedCategory.isEmpty ? null : _selectedCategory,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              hintText: 'เลือกหมวดหมู่',
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              hintText: 'select_category'.tr,
             ),
             items: [
-              const DropdownMenuItem<String>(
+              DropdownMenuItem<String>(
                 value: '',
-                child: Text('ไม่ร���บุหมวดหมู่'),
+                child: Text('no_category'.tr),
               ),
               ..._availableCategories.map((category) {
                 return DropdownMenuItem<String>(
@@ -675,7 +674,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
             validator: isRequired
                 ? (value) {
                     if (value == null || value.isEmpty) {
-                      return 'กรุณาเลือก $label';
+                      return 'please_select'.tr.replaceFirst('{label}', label);
                     }
                     return null;
                   }
@@ -701,8 +700,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         children: [
           Row(
             children: [
-              const Text(
-                'SKU',
+              Text(
+                'product_sku'.tr,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -721,7 +720,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'อัตโนมัติ',
+                    'auto_generate'.tr,
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.orange.shade700,
@@ -744,7 +743,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
               ),
               filled: !isEditMode, // Only fill background when disabled
               fillColor: isEditMode ? null : Colors.grey.shade100,
-              hintText: isEditMode ? null : 'จะถูกสร้างอัตโนมัติ',
+              hintText: isEditMode ? null : 'auto_generate_sku'.tr,
             ),
           ),
         ],
@@ -808,12 +807,12 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
             validator: customValidator ?? (isRequired
                 ? (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'กรุณากรอก $label';
+                      return 'please_enter_field'.tr.replaceFirst('{label}', label);
                     }
                     if (keyboardType == TextInputType.number) {
                       final number = double.tryParse(value);
                       if (number == null || number < 0) {
-                        return 'กรุณากรอกตัวเลขที่ถูกต้อง';
+                        return 'please_enter_valid_number_field'.tr;
                       }
                     }
                     return null;
@@ -903,19 +902,19 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
             child: isUploading
                 ? Container(
                     color: AppTheme.backgroundGrey,
-                    child: const Center(
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(
+                          const CircularProgressIndicator(
                             valueColor: AlwaysStoppedAnimation<Color>(
                               AppTheme.primaryOrange,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            'กำลังอัปโหลด...',
-                            style: TextStyle(
+                            'uploading'.tr,
+                            style: const TextStyle(
                               color: AppTheme.textGrey,
                               fontSize: 14,
                             ),
@@ -997,7 +996,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'เพิ่มรูปภาพ',
+                              'add_image'.tr,
                               style: TextStyle(
                                 color: AppTheme.textGrey,
                                 fontSize: 14,
@@ -1014,7 +1013,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                 child: OutlinedButton.icon(
                   onPressed: isUploading ? null : onUpload,
                   icon: const Icon(Icons.upload, size: 16),
-                  label: const Text('อัปโหลด'),
+                  label: Text('upload'.tr),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -1025,7 +1024,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                 child: OutlinedButton.icon(
                   onPressed: isUploading ? null : onUpload,
                   icon: const Icon(Icons.camera_alt, size: 16),
-                  label: const Text('ถ่ายภาพ'),
+                  label: Text('take_photo'.tr),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -1051,8 +1050,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         children: [
           Row(
             children: [
-              const Text(
-                'รูปภาพเพิ่มเติม',
+              Text(
+                'additional_images'.tr,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -1075,7 +1074,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                 IconButton(
                   onPressed: _pickAndUploadAdditionalImage,
                   icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
-                  tooltip: 'เพิ่มรูปภาพ',
+                  tooltip: 'add_image'.tr,
                 ),
             ],
           ),
@@ -1090,9 +1089,9 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  'ไม่มีรูปภาพเพิ่มเติม',
+                  'no_additional_images'.tr,
                   style: TextStyle(color: AppTheme.textGrey, fontSize: 14),
                 ),
               ),
@@ -1178,11 +1177,11 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
   String _getStatusText(String status) {
     switch (status) {
       case 'active':
-        return 'เปิดขาย';
+        return 'active'.tr;
       case 'draft':
-        return 'ร่าง';
+        return 'draft'.tr;
       case 'discontinued':
-        return 'ยังไม่เปิดขาย';
+        return 'discontinued'.tr;
       default:
         return status;
     }
@@ -1225,8 +1224,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
 
         if (workspaceId.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไม่สามารถบันทึกข้อมูลได้: ไม่พบ Workspace'),
+            SnackBar(
+              content: Text('cannot_save_no_workspace'.tr),
               backgroundColor: Colors.red,
             ),
           );
@@ -1288,7 +1287,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         if (!success) {
           final msg = controller.errorMessage.value.isNotEmpty
               ? controller.errorMessage.value
-              : 'ไม่สามารถบันทึกสินค้าได้';
+              : 'cannot_save_product'.tr;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red),
           );
@@ -1300,8 +1299,8 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
           SnackBar(
             content: Text(
               widget.product != null
-                  ? 'อัปเดตข้อมูลสินค้าเรียบร้อยแล้ว'
-                  : 'เพิ่มสินค้าใหม่เรียบร้อยแล้ว',
+                  ? 'product_updated_successfully'.tr
+                  : 'product_added_successfully'.tr,
             ),
             backgroundColor: Colors.green,
           ),
@@ -1316,7 +1315,7 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
+            content: Text('error_occurred_details'.tr.replaceFirst('{error}', e.toString())),
             backgroundColor: Colors.red,
           ),
         );

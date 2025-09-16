@@ -129,7 +129,85 @@ class _ChatInputState extends State<ChatInput> {
     );
   }
 
-  Future<void> _pickImage() async {
+
+  // New helper for selecting multiple images from gallery
+  Future<void> _pickImages() async {
+    try {
+      if (mounted) setState(() => _isPicking = true);
+      final ImagePicker picker = ImagePicker();
+      final List<XFile> images = await picker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (images.isEmpty) return; // user canceled
+
+      if (images.length == 1) {
+        // Fallback to single existing flow
+        await _uploadAndSendImage(File(images.first.path));
+      } else {
+        await _uploadAndSendMultipleImages(images.map((x) => File(x.path)).toList());
+      }
+      _toggleAttachmentOptions();
+    } catch (e) {
+      _showErrorDialog('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
+  // Sequential multi-image upload with aggregated progress
+  Future<void> _uploadAndSendMultipleImages(List<File> files) async {
+    if (files.isEmpty) return;
+    setState(() {
+      _isUploading = true;
+      _uploadProgress = 0.0;
+      _uploadStatus = 'กำลังอัพโหลดรูปภาพ (0/${files.length})...';
+    });
+
+    try {
+      for (int i = 0; i < files.length; i++) {
+        final file = files[i];
+        double lastInnerProgress = 0.0;
+        final imageUrl = await _uploadService.uploadImage(
+          file: file,
+          workspaceId: widget.workspaceId,
+            chatroomId: widget.chatroomId,
+          onProgress: (p) {
+            // overall progress: (completedFiles + currentProgress)/total
+            lastInnerProgress = p;
+            final overall = (i + p) / files.length;
+            if (mounted) {
+              setState(() {
+                _uploadProgress = overall;
+                _uploadStatus = 'กำลังอัพโหลดรูปภาพ (${i + 1}/${files.length}) ${( (overall * 100).clamp(0,100) ).toInt()}%';
+              });
+            }
+          },
+        );
+        // Ensure status shows finished for this file if inner progress didn't reach 1.0 due to rounding
+        if (lastInnerProgress < 0.999 && mounted) {
+          setState(() {
+            _uploadProgress = (i + 1) / files.length;
+          });
+        }
+        // Send after each successful upload
+        widget.onSendImage(imageUrl);
+      }
+    } catch (e) {
+      _showErrorDialog('อัพโหลดรูปภาพไม่สำเร็จ: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _uploadProgress = 0.0;
+          _uploadStatus = '';
+        });
+      }
+    }
+  }
+
+  Future<void> _pickImage() async { // legacy single-image picker kept for compatibility (camera uses separate method)
     try {
       if (mounted) setState(() => _isPicking = true);
       final ImagePicker picker = ImagePicker();
@@ -398,7 +476,7 @@ class _ChatInputState extends State<ChatInput> {
                       ),
                       _RoundIcon(
                         icon: Icons.image_outlined,
-                        onTap: () async => await _pickImage(),
+                        onTap: () async => await _pickImages(), // updated to multi-image picker
                       ),
 
                       // ช่องพิมพ์ “Aa”

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_assets.dart';
 
@@ -59,9 +60,9 @@ class HeaderWidget extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                const Text(
-                                  'ชื่อบอร์ด 1',
-                                  style: TextStyle(
+                                Text(
+                                  'board_name_1'.tr,
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w400,
@@ -134,7 +135,7 @@ class HeaderWidget extends StatelessWidget {
                           ),
                           child: TextField(
                             decoration: InputDecoration(
-                              hintText: 'รหัส Job Card ชื่อ-นามสกุล ลูกค้าและเซล',
+                              hintText: 'job_card_search_hint'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
@@ -167,7 +168,7 @@ class HeaderWidget extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    'ตัวกรอง',
+                                    'filter'.tr,
                                     style: Theme.of(context).textTheme.titleLarge,
                                   ),
                                   const SizedBox(height: 20),
@@ -196,7 +197,7 @@ class HeaderWidget extends StatelessWidget {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'ตัวกรอง',
+                                'filter'.tr,
                                 style: TextStyle(
                                   color: Colors.grey[700],
                                   fontSize: 14,

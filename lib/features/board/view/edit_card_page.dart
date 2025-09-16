@@ -15,6 +15,7 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../document/view/create_document_from_card_page.dart';
 import '../../document/view/add_edit_document_page.dart';
+import '../../../core/services/notifications_service.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -2821,6 +2822,11 @@ class _EditCardPageState extends State<EditCardPage> {
         _isLoading = true;
       });
 
+      // Determine old/new lane names for notification context
+      final oldLaneId = widget.card.laneId;
+      final oldLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == oldLaneId)?['name'] ?? oldLaneId;
+      final newLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == targetLaneId)?['name'] ?? targetLaneId;
+
       // Update card with new boardId and laneId before moving
       final updatedCard = widget.card.copyWith(
         boardId: targetBoardId,
@@ -2838,6 +2844,23 @@ class _EditCardPageState extends State<EditCardPage> {
         toLaneId: targetLaneId,
         toIndex: 0, // Move to top of target lane
       );
+
+      // Notify watchers/collaborators/assignee about lane change
+      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      if (recipients.isNotEmpty) {
+        try {
+          await NotificationsService.to.notifyStatusChange(
+            userIds: recipients,
+            cardId: widget.card.id,
+            boardId: targetBoardId,
+            oldStatus: oldLaneName,
+            newStatus: newLaneName,
+            workspaceId: _controller.currentWorkspaceId.value,
+            workspaceName: _controller.currentWorkspaceName.value,
+            createdBy: _currentUserInfo?['uid'],
+          );
+        } catch (_) {}
+      }
 
       Get.snackbar(
         'Success',
@@ -2875,7 +2898,7 @@ class _EditCardPageState extends State<EditCardPage> {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 1),
@@ -3323,6 +3346,22 @@ class _EditCardPageState extends State<EditCardPage> {
         newComment,
       );
       print('✅ Comment saved to Firestore successfully');
+
+      // Notify watchers/collaborators/assignee
+      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      if (recipients.isNotEmpty) {
+        try {
+          await NotificationsService.to.notifyComment(
+            userIds: recipients,
+            commenterName: _currentUserInfo?['displayName'] ?? 'Someone',
+            cardId: widget.card.id,
+            boardId: widget.card.boardId,
+            workspaceId: _controller.currentWorkspaceId.value,
+            workspaceName: _controller.currentWorkspaceName.value,
+            createdBy: _currentUserInfo?['uid'],
+          );
+        } catch (_) {}
+      }
     } catch (e) {
       print('❌ Failed to save comment to Firestore: $e');
       // Remove from local state if failed
@@ -3372,6 +3411,22 @@ class _EditCardPageState extends State<EditCardPage> {
         newReply,
       );
       print('✅ Reply saved to Firestore successfully');
+
+      // Notify watchers/collaborators/assignee
+      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      if (recipients.isNotEmpty) {
+        try {
+          await NotificationsService.to.notifyComment(
+            userIds: recipients,
+            commenterName: _currentUserInfo?['displayName'] ?? 'Someone',
+            cardId: widget.card.id,
+            boardId: widget.card.boardId,
+            workspaceId: _controller.currentWorkspaceId.value,
+            workspaceName: _controller.currentWorkspaceName.value,
+            createdBy: _currentUserInfo?['uid'],
+          );
+        } catch (_) {}
+      }
     } catch (e) {
       print('❌ Failed to save reply to Firestore: $e');
       // Remove from local state if failed
@@ -3396,7 +3451,7 @@ class _EditCardPageState extends State<EditCardPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
+            color: Colors.grey.withValues(alpha: 0.3),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, -2),
@@ -3450,6 +3505,22 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
+
+  List<String> _collectNotifyRecipients({String? excludeUserId}) {
+    final set = <String>{};
+    if (_selectedAssignee.isNotEmpty) set.add(_selectedAssignee);
+    for (final c in _selectedCollaborators) {
+      if (c.isNotEmpty) set.add(c);
+    }
+    for (final w in _selectedWatchers) {
+      if (w.isNotEmpty) set.add(w);
+    }
+    if (excludeUserId != null && excludeUserId.isNotEmpty) {
+      set.remove(excludeUserId);
+    }
+    return set.toList();
+  }
+
   Future<void> _saveChanges() async {
     if (!_canEditAny) {
       _showNoPermission();
@@ -3471,7 +3542,13 @@ class _EditCardPageState extends State<EditCardPage> {
     });
 
     try {
-      // Get assignee details
+      // Determine original vs new values for notifications
+      final originalAssignee = widget.card.assignedTo;
+      final originalStatus = widget.card.status;
+      final originalLaneId = widget.card.laneId;
+      final originalLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == originalLaneId)?['name'] ?? originalLaneId;
+
+      // Get assignee details for updatedByDisplayName
       String assigneeDisplayName = '';
       if (_selectedAssignee.isNotEmpty) {
         final selectedUser = _availableAssignees.firstWhereOrNull(
@@ -5302,7 +5379,7 @@ class _EditCardPageState extends State<EditCardPage> {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -5315,7 +5392,7 @@ class _EditCardPageState extends State<EditCardPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -6611,9 +6688,12 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'ยืนยัน',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  child: Text(
+                    'confirm'.tr,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

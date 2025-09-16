@@ -84,7 +84,7 @@ dependencies:
   http: ^1.1.0
 
   # Image picker for chat attachments
-  image_picker: ^1.0.4
+  image_picker: ^1.0.7
 
   # File picker for chat attachments
   file_picker: ^8.0.0+1

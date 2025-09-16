@@ -20,6 +20,9 @@ import '../features/board/view/card_view_setting_page.dart';
 import '../features/archive/view/archive_page.dart';
 import '../features/customers/view/customers_page.dart';
 import '../features/companies/view/company_center_page.dart';
+import '../features/login/view/forgot_password_email_page.dart' as fpe;
+import '../features/login/view/forgot_password_otp_page.dart' as fpo;
+import '../features/login/view/forgot_password_reset_page.dart' as fpr;
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -43,6 +46,11 @@ class AppRoutes {
   static const String archive = '/archive';
   static const String customers = '/customers';
   static const String companies = '/companies';
+
+  // Forgot password flow
+  static const String forgotPasswordEmail = '/forgot-password-email';
+  static const String forgotPasswordOtp = '/forgot-password-otp';
+  static const String forgotPasswordReset = '/forgot-password-reset';
 
   static final routes = [
     GetPage(
@@ -152,6 +160,19 @@ class AppRoutes {
     GetPage(
       name: companies,
       page: () => const CompanyCenterPage(),
+    ),
+    // Forgot password pages
+    GetPage(
+      name: forgotPasswordEmail,
+      page: () => const fpe.ForgotPasswordEmailPage(),
+    ),
+    GetPage(
+      name: forgotPasswordOtp,
+      page: () => const fpo.ForgotPasswordOtpPage(),
+    ),
+    GetPage(
+      name: forgotPasswordReset,
+      page: () => const fpr.ForgotPasswordResetPage(),
     ),
   ];
 }

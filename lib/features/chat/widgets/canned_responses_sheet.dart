@@ -271,8 +271,8 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
             maxLines: null,
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('บันทึก')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('cancel'.tr)),
+            FilledButton(onPressed: () => Navigator.pop(ctx, controller.text), child: Text('save'.tr)),
           ],
         );
       },
@@ -283,11 +283,11 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยัน'),
+        title: Text('confirm'.tr),
         content: Text(message),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ยกเลิก')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ตกลง')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text('ok'.tr)),
         ],
       ),
     );

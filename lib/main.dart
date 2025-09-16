@@ -7,7 +7,7 @@ import 'package:sellstory/scripts/import_thai_locations.dart';
 import 'firebase_options.dart';
 import 'app/app.dart';
 import 'core/theme/theme_controller.dart';
-import 'core/i18n/locale_controller.dart';
+import 'translation/translation_controller.dart';
 import 'core/services/logger_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -84,11 +84,12 @@ void main() async {
     // });
   }
 
-  // Register theme and locale controllers
+  // Register theme and translation controllers
   try {
     Get.put(ThemeController(), permanent: true);
-    Get.put(LocaleController(), permanent: true);
-    //LoggerService.to.config('Theme and locale controllers registered');
+    // Register the enhanced translation controller
+    Get.put(TranslationController(), permanent: true);
+    //LoggerService.to.config('Theme and translation controllers registered');
   } catch (e) {
     //LoggerService.to.failure('Failed to register controllers', e);
   }

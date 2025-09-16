@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../controller/more_controller.dart';
+import '../../../app/routes.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -342,6 +343,168 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  Future<void> _showChangePasswordSheet() async {
+    final formKey = GlobalKey<FormState>();
+    final newPwController = TextEditingController();
+    final confirmPwController = TextEditingController();
+    bool isBusy = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: StatefulBuilder(
+            builder: (ctx, setSheetState) {
+              Future<void> submit() async {
+                if (!formKey.currentState!.validate()) return;
+                try {
+                  setSheetState(() => isBusy = true);
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user == null) throw Exception('Not authenticated');
+
+                  final newPw = newPwController.text.trim();
+                  await user.updatePassword(newPw);
+
+                  Get.snackbar(
+                    'สำเร็จ',
+                    'เปลี่ยนรหัสผ่านเรียบร้อย',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.green.withValues(alpha: 0.08),
+                    colorText: Colors.green,
+                  );
+                  if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+                } on FirebaseAuthException catch (e) {
+                  if (e.code == 'requires-recent-login') {
+                    // Suggest OTP reset flow
+                    final email = _currentUser?.email ?? '';
+                    await showDialog(
+                      context: ctx,
+                      builder: (dCtx) => AlertDialog(
+                        title: const Text('ต้องยืนยันตัวตนอีกครั้ง'),
+                        content: const Text('กรุณาเข้าสู่ระบบใหม่ หรือรีเซ็ตรหัสผ่านด้วย OTP'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(dCtx).pop(),
+                            child: Text('cancel'.tr),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dCtx).pop();
+                              if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+                              Get.toNamed(AppRoutes.forgotPasswordEmail, parameters: email.isNotEmpty ? {'email': email} : {});
+                            },
+                            child: const Text('รีเซ็ตด้วย OTP'),
+                          ),
+                        ],
+                      ),
+                    );
+                  } else {
+                    Get.snackbar(
+                      'ไม่สำเร็จ',
+                      'เปลี่ยนรหัสผ่านไม่สำเร็จ: ${e.code}',
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: Colors.red.withValues(alpha: 0.08),
+                      colorText: Colors.red,
+                    );
+                  }
+                } catch (e) {
+                  Get.snackbar(
+                    'ไม่สำเร็จ',
+                    'เปลี่ยนรหัสผ่านไม่สำเร็จ',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.red.withValues(alpha: 0.08),
+                    colorText: Colors.red,
+                  );
+                } finally {
+                  if (mounted) setSheetState(() => isBusy = false);
+                }
+              }
+
+              String? validatePw(String? v) {
+                final val = (v ?? '').trim();
+                if (val.isEmpty) return 'กรุณาใส่รหัสผ่านใหม่';
+                if (val.length < 8) return 'รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร';
+                return null;
+              }
+
+              return Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'เปลี่ยนรหัสผ่าน',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: newPwController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'รหัสผ่านใหม่',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                      validator: validatePw,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: confirmPwController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'ยืนยันรหัสผ่านใหม่',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.lock_reset_outlined),
+                      ),
+                      validator: (v) {
+                        final err = validatePw(v);
+                        if (err != null) return err;
+                        if (v!.trim() != newPwController.text.trim()) return 'รหัสผ่านไม่ตรงกัน';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isBusy ? null : submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryOrange,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: isBusy
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
+                              )
+                            : const Text('บันทึกรหัสผ่านใหม่'),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -356,7 +519,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             TextButton(
               onPressed: _saveProfile,
               child: const Text(
-                'บันทึก',
+                'บันท���ก',
                 style: TextStyle(
                   color: AppTheme.primaryOrange,
                   fontWeight: FontWeight.w600,
@@ -501,7 +664,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               ),
                               
                               const SizedBox(height: 20),
-                              
+
+
                               TextFormField(
                                 controller: _phoneNumberController,
                                 decoration: const InputDecoration(
@@ -519,6 +683,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   }
                                   return null;
                                 },
+                              ),
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: _showChangePasswordSheet,
+                                  style: TextButton.styleFrom(foregroundColor: AppTheme.primaryOrange),
+                                  icon: const Icon(Icons.lock_reset_outlined),
+                                  label: const Text('เปลี่ยนรหัสผ่าน'),
+                                ),
                               ),
                             ],
                           ),

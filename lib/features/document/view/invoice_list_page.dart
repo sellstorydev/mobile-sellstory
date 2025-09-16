@@ -44,9 +44,9 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'ใบแจ้งหนี้',
-          style: TextStyle(
+        title: Text(
+          'invoices'.tr,
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: AppTheme.fontSize18,
             fontFamily: AppFont.family,
@@ -105,7 +105,7 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
             controller: controller.searchController,
             onChanged: controller.onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'ค้นหาใบแจ้งหนี้...',
+              hintText: 'search_invoices'.tr,
               hintStyle: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: AppTheme.fontSize14,
@@ -200,15 +200,15 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
     final filters = <String>[];
 
     if (controller.selectedSeller.value != null) {
-      filters.add('เซล: ${controller.selectedSeller.value!.displayName}');
+      filters.add('seller_filter'.tr.replaceFirst('{name}', controller.selectedSeller.value!.displayName));
     }
 
     if (controller.selectedDateRange.value != null) {
-      filters.add('วันที่: ${_getDateRangeDisplayText(controller)}');
+      filters.add('date_filter'.tr.replaceFirst('{range}', _getDateRangeDisplayText(controller)));
     }
 
     if (controller.selectedStatuses.isNotEmpty) {
-      filters.add('สถานะ: ${controller.selectedStatuses.length} รายการ');
+      filters.add('status_filter'.tr.replaceFirst('{count}', controller.selectedStatuses.length.toString()));
     }
 
     return filters.join(' • ');
@@ -216,25 +216,25 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
 
   String _getDateRangeDisplayText(InvoiceListController controller) {
     if (controller.selectedDateRange.value == null) {
-      return 'ทั้งหมด';
+      return 'all'.tr;
     }
 
     switch (controller.selectedDateRange.value) {
       case 'today':
-        return 'วันนี้';
+        return 'today'.tr;
       case 'this_week':
-        return 'สัปดาห์นี้';
+        return 'this_week'.tr;
       case 'this_month':
-        return 'เดือนนี้';
+        return 'this_month'.tr;
       case 'custom':
         if (controller.selectedCustomDateRange.value != null) {
           final startDate = controller.selectedCustomDateRange.value!.start;
           final endDate = controller.selectedCustomDateRange.value!.end;
           return '${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month}';
         }
-        return 'เลือกช่วงวันที่';
+        return 'select_date_range'.tr;
       default:
-        return 'ทั้งหมด';
+        return 'all'.tr;
     }
   }
 
@@ -410,7 +410,7 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '฿${grandTotal.toStringAsFixed(2)}',
+                        '${'currency_symbol'.tr}${grandTotal.toStringAsFixed(2)}',
                         style: const TextStyle(
                           color: AppTheme.textPrimary,
                           fontSize: AppTheme.fontSize14,
@@ -447,27 +447,27 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
     switch (status) {
       case 'DRAFT':
         color = AppTheme.textSecondary;
-        text = 'ร่าง';
+        text = 'draft'.tr;
         break;
       case 'SENT':
         color = const Color(0xFF2196F3);
-        text = 'ส่งแล้ว';
+        text = 'sent'.tr;
         break;
       case 'PARTIAL_PAID':
         color = const Color(0xFFFF9800);
-        text = 'ชำระบางส่วน';
+        text = 'partial_paid'.tr;
         break;
       case 'PAID':
         color = const Color(0xFF4CAF50);
-        text = 'ชำระแล้ว';
+        text = 'paid'.tr;
         break;
       case 'OVERDUE':
         color = const Color(0xFFF44336);
-        text = 'เกินกำหนด';
+        text = 'overdue'.tr;
         break;
       case 'VOID':
         color = AppTheme.textSecondary;
-        text = 'ยกเลิก';
+        text = 'void'.tr;
         break;
       default:
         color = AppTheme.textSecondary;
@@ -515,7 +515,7 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
           ),
           const SizedBox(height: AppTheme.spacing24),
           Text(
-            'ไม่พบใบแจ้งหนี้',
+            'no_invoices_found'.tr,
             style: TextStyle(
               color: AppTheme.textPrimary,
               fontSize: AppTheme.fontSize18,
@@ -525,7 +525,7 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
           ),
           const SizedBox(height: AppTheme.spacing8),
           Text(
-            'เริ่มต้นสร้างใบแจ้งหนี้แรกของคุณ',
+            'start_creating_first_invoice'.tr,
             style: TextStyle(
               color: AppTheme.textSecondary,
               fontSize: AppTheme.fontSize14,
@@ -537,7 +537,7 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
           ElevatedButton.icon(
             onPressed: () => Get.to(() => const AddEditDocumentPage(documentType: 'INV')),
             icon: const Icon(Icons.add),
-            label: const Text('สร้างใบแจ้งหนี้'),
+            label: Text('create_invoice'.tr),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,

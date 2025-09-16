@@ -42,30 +42,44 @@ class FirebaseAuthService {
     }
   }
 
-  // Apple Sign-In (iOS)
-  Future<UserCredential> signInWithApple() async {
-    try {
-      final rawNonce = _generateNonce();
-      final nonce = _sha256ofString(rawNonce);
+  final _rand = Random.secure();
+  String _randomNonce([int length = 32]) {
+    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    return List.generate(length, (_) => charset[_rand.nextInt(charset.length)]).join();
+  }
 
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+  Future<void> signInWithAppleFirebase() async {
+    final rawNonce = _randomNonce();
+    final nonce = _sha256ofString(rawNonce); // <- ต้องส่งตัวนี้ไปกับ request
+
+
+      final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
-        nonce: nonce,
       );
-
-      final oauthCredential = OAuthProvider('apple.com').credential(
-        idToken: appleCredential.identityToken,
-        rawNonce: rawNonce,
+    // 2) ดึง idToken จาก Apple
+    final idToken = credential.identityToken;
+    if (idToken == null) {
+      throw FirebaseAuthException(
+        code: 'ERROR_MISSING_ID_TOKEN',
+        message: 'Apple identityToken is null',
       );
-
-      return await _auth.signInWithCredential(oauthCredential);
-    } catch (e) {
-      throw Exception('Apple sign in failed: $e');
     }
+      final oAuthCredential = OAuthProvider("apple.com").credential(
+        idToken: credential.identityToken,
+        accessToken: credential.authorizationCode,
+      );
+    // 4) Sign in กับ Firebase
+    await FirebaseAuth.instance.signInWithCredential(oAuthCredential);
   }
+
 
   // Password Reset
   Future<void> sendPasswordResetEmail(String email) async {
@@ -87,16 +101,5 @@ class FirebaseAuthService {
   // Check if user is signed in
   bool get isSignedIn => _auth.currentUser != null;
 
-  // ===== Helpers for Apple Sign-In =====
-  String _generateNonce([int length = 32]) {
-    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-    final random = Random.secure();
-    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
-  }
 
-  String _sha256ofString(String input) {
-    final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
 }
