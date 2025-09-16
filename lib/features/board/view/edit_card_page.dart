@@ -2083,7 +2083,7 @@ class _EditCardPageState extends State<EditCardPage> {
     }
     
     return InkWell(
-      onTap: () => viewDocument(document),
+      onTap: status == 'NOT_FOUND' ? null : () => viewDocument(document),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -2207,40 +2207,51 @@ class _EditCardPageState extends State<EditCardPage> {
                   width: 1,
                 ),
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: status,
-                  isDense: true,
-                  isExpanded: true,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: _getDocumentStatusColor(status),
-                    fontWeight: FontWeight.w500,
-                  ),
-                  icon: Icon(
-                    Icons.keyboard_arrow_down,
-                    size: 14,
-                    color: _getDocumentStatusColor(status),
-                  ),
-                  items: _documentStatusOptions.map((option) {
-                    return DropdownMenuItem<String>(
-                      value: option['value'],
-                      child: Text(
-                        option['label'],
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: _getDocumentStatusColor(option['value']),
-                        ),
+              child: status == 'NOT_FOUND' 
+                ? Center(
+                    child: Text(
+                      'ไม่พบเอกสาร',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: _getDocumentStatusColor(status),
+                        fontWeight: FontWeight.w500,
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (newStatus) {
-                    if (newStatus != null && newStatus != status) {
-                      _updateDocumentStatus(documentId, newStatus);
-                    }
-                  },
-                ),
-              ),
+                    ),
+                  )
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: status,
+                      isDense: true,
+                      isExpanded: true,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: _getDocumentStatusColor(status),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      icon: Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 14,
+                        color: _getDocumentStatusColor(status),
+                      ),
+                      items: _documentStatusOptions.map((option) {
+                        return DropdownMenuItem<String>(
+                          value: option['value'],
+                          child: Text(
+                            option['label'],
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: _getDocumentStatusColor(option['value']),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (newStatus) {
+                        if (newStatus != null && newStatus != status) {
+                          _updateDocumentStatus(documentId, newStatus);
+                        }
+                      },
+                    ),
+                  ),
             ),
           ),
           const SizedBox(width: 8),
@@ -2266,48 +2277,61 @@ class _EditCardPageState extends State<EditCardPage> {
                     break;
                 }
               },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'download',
-                  child: Row(
-                    children: [
-                      Icon(Icons.download, size: 16, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('ดาวน์โหลด', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'duplicate',
-                  child: Row(
-                    children: [
-                      Icon(Icons.copy, size: 16, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text('คัดลอก', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit, size: 16, color: Colors.green),
-                      SizedBox(width: 8),
-                      Text('แก้ไข', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete, size: 16, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('ลบ', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
+              itemBuilder: (context) => status == 'NOT_FOUND' 
+                ? [
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 16, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('ลบอ้างอิง', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ]
+                : [
+                    const PopupMenuItem(
+                      value: 'download',
+                      child: Row(
+                        children: [
+                          Icon(Icons.download, size: 16, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('ดาวน์โหลด', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'duplicate',
+                      child: Row(
+                        children: [
+                          Icon(Icons.copy, size: 16, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('คัดลอก', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 16, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 16, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('ลบ', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
             ),
           ),
         ],
@@ -5701,12 +5725,18 @@ class _EditCardPageState extends State<EditCardPage> {
   void _deleteDocument(Map<String, dynamic> document) {
     final documentId = document['id'] ?? '';
     final docNo = document['docNo'] ?? 'N/A';
+    final documentData = document['data'] as Map<String, dynamic>? ?? {};
+    final status = documentData['status'] ?? 'DRAFT';
+    
+    final isNotFound = status == 'NOT_FOUND';
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ลบเอกสาร'),
-        content: Text('คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้'),
+        title: Text(isNotFound ? 'ลบอ้างอิงเอกสาร' : 'ลบเอกสาร'),
+        content: Text(isNotFound 
+          ? 'คุณแน่ใจหรือไม่ที่จะลบอ้างอิงเอกสาร $docNo?\n\nเอกสารนี้ไม่พบในระบบแล้ว จะลบเฉพาะอ้างอิงออกจากการ์ดนี้'
+          : 'คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -5718,7 +5748,7 @@ class _EditCardPageState extends State<EditCardPage> {
               _performDeleteDocument(documentId, '');
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('ลบ'),
+            child: Text(isNotFound ? 'ลบอ้างอิง' : 'ลบ'),
           ),
         ],
       ),
@@ -5729,13 +5759,23 @@ class _EditCardPageState extends State<EditCardPage> {
     try {
       final workspaceId = _controller.currentWorkspaceId.value;
       
-      // First, delete the actual document from the documents subcollection
-      await _repository.deleteDocument(
-        workspaceId: workspaceId,
-        documentId: documentId,
+      // Check if this document has NOT_FOUND status
+      final document = _relatedDocuments.firstWhere(
+        (doc) => doc['id'] == documentId,
+        orElse: () => {},
       );
+      final documentData = document['data'] as Map<String, dynamic>? ?? {};
+      final status = documentData['status'] ?? 'DRAFT';
       
-      // Then, remove the document reference from the card's relatedDocuments field
+      // Only try to delete from Firestore if document exists (not NOT_FOUND)
+      if (status != 'NOT_FOUND') {
+        await _repository.deleteDocument(
+          workspaceId: workspaceId,
+          documentId: documentId,
+        );
+      }
+      
+      // Remove the document reference from the card's relatedDocuments field
       final currentRelatedDocs = List<Map<String, dynamic>>.from(widget.card.relatedDocuments);
       
       // Remove the document with matching ID
@@ -5754,7 +5794,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
       Get.snackbar(
         'Success',
-        'Document deleted successfully',
+        status == 'NOT_FOUND' ? 'Document reference removed successfully' : 'Document deleted successfully',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -5790,6 +5830,8 @@ class _EditCardPageState extends State<EditCardPage> {
         return Colors.purple;
       case 'FULLY_PAID':
         return Colors.green.shade700;
+      case 'NOT_FOUND':
+        return Colors.red.shade300;
       default:
         return Colors.grey;
     }
