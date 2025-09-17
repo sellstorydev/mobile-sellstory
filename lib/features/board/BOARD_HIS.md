@@ -6,7 +6,11 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 
-
+##
+Topic: Integrate HTML Editor for Content and Details Sections in create_card_page.dart
+Step
+1. change textfield to html editor.
+2. When save card pressed,store description data to "/workspaces/{workspaces uid}/cards/{card uid}/description"
 
 ##
 Topic: Fix error text htmleditor 

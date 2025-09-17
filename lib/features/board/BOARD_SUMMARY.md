@@ -33,8 +33,24 @@
 - Eliminated race condition between editor loading and content setting
 - Simplified initialization flow by using built-in HtmlEditorOptions
 
+### HTML Editor Integration for create_card_page.dart
+
+**Completed:**
+1. Added html_editor_enhanced import to create_card_page.dart
+2. Added HtmlEditorController to state management
+3. Replaced existing toolbar + TextField in _buildDetailsSection() with HtmlEditor widget
+4. Updated _createCard() to get content from HTML editor using await _htmlEditorController.getText()
+5. Configured HTML editor with same toolbar options as edit_card_page.dart
+
+**Implementation Details:**
+- Replaced manual toolbar with HtmlEditor built-in toolbar
+- Content saving: `await _htmlEditorController.getText()` in _createCard()
+- Data mapping: Creates card with description field for "/workspaces/{workspace_uid}/cards/{card_uid}/description"
+- Consistent configuration between create and edit pages
+
 **Notes:**
-- Focused only on edit_card_page.dart as requested
+- Focused only on edit_card_page.dart and create_card_page.dart as requested
 - Did not modify other features to avoid conflicts
 - HTML editor height set to 200px with 150px internal editor height
 - Error handling improved to prevent JS evaluation exceptions
+- Both pages now use same HTML editor implementation for consistency

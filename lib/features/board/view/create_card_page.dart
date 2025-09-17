@@ -7,6 +7,7 @@ import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../data/services/firestore_service.dart';
+import 'package:html_editor_enhanced/html_editor.dart';
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -35,6 +36,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _assigneeController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
+
+  // HTML Editor controller
+  final HtmlEditorController _htmlEditorController = HtmlEditorController();
 
   
   // Hashtag state
@@ -568,10 +572,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
         'mentions': [],
       }).toList();
 
-      // Format description as HTML
+      // Format description as HTML from HTML editor
       String htmlDescription = '';
-      if (_detailsController.text.trim().isNotEmpty) {
-        htmlDescription = '<p><strong>${_detailsController.text.trim()}</strong></p>';
+      final editorContent = await _htmlEditorController.getText();
+      if (editorContent.isNotEmpty) {
+        htmlDescription = editorContent;
       }
 
       final card = JobCard(
@@ -1892,49 +1897,35 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ),
         const SizedBox(height: 8),
         Container(
+          height: 200,
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
           ),
-          child: Column(
-            children: [
-              // Toolbar
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-                ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      IconButton(icon: const Icon(Icons.format_bold), onPressed: () {}),
-                      IconButton(icon: const Icon(Icons.format_italic), onPressed: () {}),
-                      IconButton(icon: const Icon(Icons.format_underline), onPressed: () {}),
-                      IconButton(icon: const Icon(Icons.format_strikethrough), onPressed: () {}),
-                      const VerticalDivider(),
-                      IconButton(icon: const Icon(Icons.format_align_left), onPressed: () {}),
-                      IconButton(icon: const Icon(Icons.format_align_center), onPressed: () {}),
-                      IconButton(icon: const Icon(Icons.format_align_right), onPressed: () {}),
-                      const VerticalDivider(),
-                      IconButton(icon: const Icon(Icons.format_list_bulleted), onPressed: () {}),
-                      IconButton(icon: const Icon(Icons.format_list_numbered), onPressed: () {}),
-                    ],
-                  ),
-                ),
-              ),
-              // Text area
-              TextField(
-                controller: _detailsController,
-                maxLines: 8,
-                decoration: const InputDecoration(
-                  hintText: 'Captured screenshot',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(12),
-                ),
-              ),
-            ],
+          child: HtmlEditor(
+            controller: _htmlEditorController,
+            htmlEditorOptions: const HtmlEditorOptions(
+              hint: 'Enter description...',
+              shouldEnsureVisible: true,
+              initialText: '',
+            ),
+            htmlToolbarOptions: const HtmlToolbarOptions(
+              toolbarPosition: ToolbarPosition.aboveEditor,
+              toolbarType: ToolbarType.nativeScrollable,
+              defaultToolbarButtons: [
+                StyleButtons(style: false),
+                FontSettingButtons(fontName: false, fontSize: false, fontSizeUnit: false),
+                FontButtons(bold: true, italic: true, underline: true, clearAll: false, strikethrough: false, superscript: false, subscript: false),
+                ColorButtons(foregroundColor: false, highlightColor: false),
+                ListButtons(ul: true, ol: true, listStyles: false),
+                ParagraphButtons(textDirection: false, lineHeight: false, caseConverter: false),
+                InsertButtons(link: false, picture: false, audio: false, video: false, hr: false, table: false),
+                OtherButtons(fullscreen: false, codeview: false, undo: true, redo: true, help: false),
+              ],
+            ),
+            otherOptions: const OtherOptions(
+              height: 150,
+            ),
           ),
         ),
       ],
