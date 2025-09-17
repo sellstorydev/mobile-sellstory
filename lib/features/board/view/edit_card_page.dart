@@ -335,12 +335,12 @@ class _EditCardPageState extends State<EditCardPage> {
     _jobIdController.text = widget.card.customId;
     _titleController.text = widget.card.title;
     _detailsController.text = widget.card.description;
-    
+
     // Wait for HTML editor to be ready before setting content
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     // Remove manual setText since initialText in HtmlEditorOptions handles it
-    
+
     _selectedLane = widget.card.laneId;
     _selectedAssignee = widget.card.assignedTo;
     _selectedCustomer =
@@ -359,7 +359,17 @@ class _EditCardPageState extends State<EditCardPage> {
     _selectedHashtags = List<Map<String, dynamic>>.from(widget.card.hashtags);
 
     // Initialize todos
-    _todoItems = List<Map<String, dynamic>>.from(widget.card.todos);
+    _todoItems = List<Map<String, dynamic>>.from(widget.card.todos.map((todo) {
+      return {
+        'id': todo['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        'text': todo['text'] ?? '',
+        'isCompleted': todo['isCompleted'] ?? false,
+        'dueDate': todo['dueDate'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['dueDate']) : null,
+        'duration': todo['duration'],
+        'endTime': todo['endTime'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['endTime']) : null,
+        'controller': TextEditingController(text: todo['text'] ?? ''),
+      };
+    }));
 
     // Initialize collaborators and watchers
     _selectedCollaborators = List<String>.from(widget.card.collaborators);
@@ -1389,6 +1399,15 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
             const SizedBox(height: 24),
 
+            // Content & Tasks Section  
+            _buildSectionCard(
+              title: 'Content & Tasks',
+              icon: Icons.task_alt,
+              color: Colors.purple,
+              children: [_buildTodoListSection()],
+            ),
+            const SizedBox(height: 24),
+
             // Timeline & Status Section
             _buildSectionCard(
               title: 'Timeline & Status',
@@ -2204,7 +2223,7 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ),
           const SizedBox(width: 8),
-          
+
           // Status Dropdown
           Expanded(
             flex: 2,
@@ -2218,7 +2237,7 @@ class _EditCardPageState extends State<EditCardPage> {
                   width: 1,
                 ),
               ),
-              child: status == 'NOT_FOUND' 
+              child: status == 'NOT_FOUND'
                 ? Center(
                     child: Text(
                       'ไม่พบเอกสาร',
@@ -2350,7 +2369,7 @@ class _EditCardPageState extends State<EditCardPage> {
     ),
   );
   }
-  
+
   String _getDocumentTypeLabel(String type) {
     switch (type) {
       case 'quotation':
@@ -4338,6 +4357,559 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
+  Widget _buildTodoListSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'To-Do List',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: _showTodoTemplates,
+              icon: const Icon(Icons.description, size: 16),
+              label: const Text('Apply Template'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[300],
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _addTodoItem,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add Item'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        // Todo items list
+        if (_todoItems.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Center(
+              child: Text(
+                'No to-do items yet. Add one to get started!',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          )
+        else
+          Column(
+            children: _todoItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final todo = entry.value;
+              return _buildTodoItem(index, todo);
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTodoItem(int index, Map<String, dynamic> todo) {
+    final TextEditingController controller = todo['controller'];
+    final DateTime? dueDate = todo['dueDate'];
+    final DateTime? endTime = todo['endTime'];
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Checkbox for todo completion
+              Checkbox(
+                value: todo['isCompleted'] ?? false,
+                onChanged: (bool? value) {
+                  setState(() {
+                    todo['isCompleted'] = value ?? false;
+                  });
+                },
+                activeColor: AppTheme.primaryOrange,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              
+              // Input field
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter todo item...',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                  onChanged: (value) {
+                    todo['text'] = value;
+                  },
+                  style: TextStyle(
+                    decoration: (todo['isCompleted'] ?? false) 
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
+                    color: (todo['isCompleted'] ?? false) 
+                      ? Colors.grey[600] 
+                      : Colors.black87,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              
+              // Set time button with indicator
+              Container(
+                decoration: BoxDecoration(
+                  color: (dueDate != null || endTime != null) 
+                    ? Colors.green 
+                    : Colors.blue,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: IconButton(
+                  onPressed: () => _setTodoTime(index),
+                  icon: Icon(
+                    (dueDate != null || endTime != null) 
+                      ? Icons.schedule_send 
+                      : Icons.access_time, 
+                    color: Colors.white, 
+                    size: 20
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ),
+              const SizedBox(width: 8),
+              
+              // Delete button
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: IconButton(
+                  onPressed: () => _removeTodoItem(index),
+                  icon: const Icon(Icons.delete, color: Colors.white, size: 20),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ),
+            ],
+          ),
+          
+          // Show time information if any is set
+          if (dueDate != null || endTime != null)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              child: Column(
+                children: [
+                  // Due date
+                  if (dueDate != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.blue[200]!),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.today, size: 16, color: Colors.blue[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Due: ${_formatDateTime(dueDate)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  // Duration/End Time
+                  if (endTime != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.green[200]!),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.timer, size: 16, color: Colors.green[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'End: ${_formatDateTime(endTime)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Todo methods
+  void _addTodoItem() {
+    setState(() {
+      _todoItems.add({
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'text': '',
+        'isCompleted': false,
+        'dueDate': null,
+        'duration': null,
+        'endTime': null,
+        'controller': TextEditingController(),
+      });
+    });
+  }
+
+  void _removeTodoItem(int index) {
+    setState(() {
+      // Dispose controller to prevent memory leaks
+      _todoItems[index]['controller']?.dispose();
+      _todoItems.removeAt(index);
+    });
+  }
+
+  void _setTodoTime(int index) async {
+    if (!mounted) return;
+    
+    // Show options dialog first
+    final String? timeOption = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Todo Time'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Current time status
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current: ${_getCurrentTimeType(index)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _getCurrentTimeValue(index),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Time options
+            ListTile(
+              leading: Icon(
+                Icons.today, 
+                color: _todoItems[index]['dueDate'] != null ? Colors.green : Colors.blue
+              ),
+              title: Text(
+                'Set Due Date & Time',
+                style: TextStyle(
+                  fontWeight: _todoItems[index]['dueDate'] != null ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              subtitle: _todoItems[index]['dueDate'] != null 
+                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
+                : null,
+              onTap: () => Navigator.of(context).pop('datetime'),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.schedule, 
+                color: _todoItems[index]['endTime'] != null ? Colors.green : Colors.green
+              ),
+              title: Text(
+                'Set Duration',
+                style: TextStyle(
+                  fontWeight: _todoItems[index]['endTime'] != null ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              subtitle: _todoItems[index]['endTime'] != null 
+                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
+                : null,
+              onTap: () => Navigator.of(context).pop('duration'),
+            ),
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              const Divider(),
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              ListTile(
+                leading: const Icon(Icons.clear, color: Colors.red),
+                title: const Text('Clear All Times'),
+                onTap: () => Navigator.of(context).pop('clear'),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (timeOption != null && mounted) {
+      switch (timeOption) {
+        case 'datetime':
+          _clearAllTimes(index);
+          await _setDueDateTime(index);
+          break;
+        case 'duration':
+          _clearAllTimes(index);
+          await _setDuration(index);
+          break;
+        case 'clear':
+          _clearAllTimes(index);
+          break;
+      }
+    }
+  }
+
+  Future<void> _setDueDateTime(int index) async {
+    if (!mounted) return;
+    
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _todoItems[index]['dueDate'] ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (pickedDate != null && mounted) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: _todoItems[index]['dueDate'] != null 
+          ? TimeOfDay.fromDateTime(_todoItems[index]['dueDate'])
+          : TimeOfDay.now(),
+      );
+
+      if (pickedTime != null && mounted) {
+        setState(() {
+          _todoItems[index]['dueDate'] = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      }
+    }
+  }
+
+  Future<void> _setDuration(int index) async {
+    if (!mounted) return;
+    
+    final DateTime now = DateTime.now();
+    final int? currentDuration = _todoItems[index]['duration'];
+    final DateTime? endTime = currentDuration != null 
+      ? now.add(Duration(minutes: currentDuration))
+      : null;
+    
+    final TextEditingController durationController = TextEditingController(
+      text: currentDuration?.toString() ?? '',
+    );
+    
+    final int? duration = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Duration'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (endTime != null)
+              Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule, size: 16, color: Colors.green[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'End time: ${_formatDateTime(endTime)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            TextField(
+              controller: durationController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Duration (minutes)',
+                hintText: 'Enter duration in minutes',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Quick select:',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                _buildDurationChip('15 min', 15, durationController, now),
+                _buildDurationChip('30 min', 30, durationController, now),
+                _buildDurationChip('1 hour', 60, durationController, now),
+                _buildDurationChip('2 hours', 120, durationController, now),
+                _buildDurationChip('4 hours', 240, durationController, now),
+                _buildDurationChip('8 hours', 480, durationController, now),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = int.tryParse(durationController.text);
+              Navigator.of(context).pop(value);
+            },
+            child: const Text('Set'),
+          ),
+        ],
+      ),
+    );
+
+    durationController.dispose();
+
+    if (duration != null && mounted) {
+      setState(() {
+        _todoItems[index]['duration'] = duration;
+        _todoItems[index]['endTime'] = now.add(Duration(minutes: duration));
+      });
+    }
+  }
+
+  Widget _buildDurationChip(String label, int minutes, TextEditingController controller, DateTime now) {
+    final DateTime endTime = now.add(Duration(minutes: minutes));
+    return ActionChip(
+      label: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          Text(
+            '→ ${_formatDateTime(endTime)}',
+            style: const TextStyle(fontSize: 10),
+          ),
+        ],
+      ),
+      onPressed: () {
+        controller.text = minutes.toString();
+      },
+      backgroundColor: Colors.blue[50],
+      labelStyle: TextStyle(color: Colors.blue[700]),
+    );
+  }
+
+  void _clearAllTimes(int index) {
+    setState(() {
+      _todoItems[index]['dueDate'] = null;
+      _todoItems[index]['duration'] = null;
+      _todoItems[index]['endTime'] = null;
+    });
+  }
+
+  String _getCurrentTimeType(int index) {
+    if (_todoItems[index]['dueDate'] != null) {
+      return 'Due Date & Time';
+    } else if (_todoItems[index]['endTime'] != null) {
+      return 'Duration';
+    }
+    return 'None';
+  }
+
+  String _getCurrentTimeValue(int index) {
+    if (_todoItems[index]['dueDate'] != null) {
+      return _formatDateTime(_todoItems[index]['dueDate']);
+    } else if (_todoItems[index]['endTime'] != null) {
+      return _formatDateTime(_todoItems[index]['endTime']);
+    }
+    return '';
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _showTodoTemplates() {
+    // Implementation for todo templates
+  }
+
   Widget _buildProductSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -5680,7 +6252,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
           if (documentSnapshot.exists) {
             final documentData = documentSnapshot.data()!;
-            
+
             detailedDocuments.add({
               'id': documentId,
               'type': docType,

@@ -48,9 +48,25 @@
 - Data mapping: Creates card with description field for "/workspaces/{workspace_uid}/cards/{card_uid}/description"
 - Consistent configuration between create and edit pages
 
-**Notes:**
-- Focused only on edit_card_page.dart and create_card_page.dart as requested
-- Did not modify other features to avoid conflicts
-- HTML editor height set to 200px with 150px internal editor height
-- Error handling improved to prevent JS evaluation exceptions
-- Both pages now use same HTML editor implementation for consistency
+### Todo Integration for edit_card_page.dart
+
+**Completed:**
+1. Copied todo structure from create_card_page.dart to edit_card_page.dart
+2. Added todo state variables and methods to edit_card_page.dart:
+   - `_todos` list for storing todo items
+   - `_addTodo()` method for adding new todos
+   - `_removeTodo()` method for removing todos
+   - `_toggleTodo()` method for marking todos complete/incomplete
+3. Added `_buildTodoSection()` widget method copied from create_card_page.dart
+4. Integrated todo section into main form layout in build method
+5. Added todo data mapping in `_initializeData()` to load existing todos from card data
+6. Updated `_saveChanges()` method to save todos data to Firestore path "/workspaces/{workspace_uid}/cards/{card_uid}/todos[]"
+
+**Technical Changes:**
+- Todo data structure: List<Map<String, dynamic>> with fields: text, isCompleted, id
+- UI components: TextField for new todo input, ListView for todo display, Checkbox for completion state
+- Data persistence: Todos included in card.copyWith() call and saved to main card document
+- Initialization: Todos loaded from existing card data in _initializeData()
+
+
+
