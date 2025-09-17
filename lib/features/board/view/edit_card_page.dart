@@ -16,6 +16,7 @@ import '../../../data/services/mobile_permissions_service.dart';
 import '../../document/view/create_document_from_card_page.dart';
 import '../../document/view/add_edit_document_page.dart';
 import '../../../core/services/notifications_service.dart';
+import 'package:html_editor_enhanced/html_editor.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -228,6 +229,9 @@ class _EditCardPageState extends State<EditCardPage> {
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
 
+  // HTML Editor controller
+  final HtmlEditorController _htmlEditorController = HtmlEditorController();
+
   // Current user information
   Map<String, dynamic>? _currentUserInfo;
 
@@ -331,6 +335,12 @@ class _EditCardPageState extends State<EditCardPage> {
     _jobIdController.text = widget.card.customId;
     _titleController.text = widget.card.title;
     _detailsController.text = widget.card.description;
+    
+    // Wait for HTML editor to be ready before setting content
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Remove manual setText since initialText in HtmlEditorOptions handles it
+    
     _selectedLane = widget.card.laneId;
     _selectedAssignee = widget.card.assignedTo;
     _selectedCustomer =
@@ -3583,11 +3593,11 @@ class _EditCardPageState extends State<EditCardPage> {
           )
           .toList();
 
-      // Format description as HTML
+      // Format description as HTML from HTML editor
       String htmlDescription = '';
-      if (_detailsController.text.trim().isNotEmpty) {
-        htmlDescription =
-            '<p><strong>${_detailsController.text.trim()}</strong></p>';
+      final editorContent = await _htmlEditorController.getText();
+      if (editorContent.isNotEmpty) {
+        htmlDescription = editorContent;
       }
 
       // Prepare expenses data from product items
@@ -4292,13 +4302,36 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: _detailsController,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            hintText: 'Enter job details',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: HtmlEditor(
+            controller: _htmlEditorController,
+            htmlEditorOptions: HtmlEditorOptions(
+              hint: 'Enter job details...',
+              shouldEnsureVisible: true,
+              initialText: widget.card.description.isNotEmpty ? widget.card.description : '',
+            ),
+            htmlToolbarOptions: const HtmlToolbarOptions(
+              toolbarPosition: ToolbarPosition.aboveEditor,
+              toolbarType: ToolbarType.nativeScrollable,
+              defaultToolbarButtons: [
+                StyleButtons(style: false),
+                FontSettingButtons(fontName: false, fontSize: false, fontSizeUnit: false),
+                FontButtons(bold: true, italic: true, underline: true, clearAll: false, strikethrough: false, superscript: false, subscript: false),
+                ColorButtons(foregroundColor: false, highlightColor: false),
+                ListButtons(ul: true, ol: true, listStyles: false),
+                ParagraphButtons(textDirection: false, lineHeight: false, caseConverter: false),
+                InsertButtons(link: false, picture: false, audio: false, video: false, hr: false, table: false),
+                OtherButtons(fullscreen: false, codeview: false, undo: true, redo: true, help: false),
+              ],
+            ),
+            otherOptions: const OtherOptions(
+              height: 150,
+            ),
           ),
         ),
       ],

@@ -98,6 +98,9 @@ dependencies:
   # WebView support
   webview_flutter: ^4.7.0
 
+  # HTML Editor for rich text editing
+  html_editor_enhanced: ^2.5.1
+
   # Image processing for resizing
   image: ^4.1.3
 
