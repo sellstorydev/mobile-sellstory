@@ -36,14 +36,8 @@ class ConversationTile extends StatelessWidget {
 
   String _detectPlatform(Map<String, dynamic> c) {
     final conn = c['connection'];
-
-    // print("----------------");
-    // print(c["source_type"]);
-    // print("----------------");
     final nestedPlatform = (conn is Map ? conn['platform'] : null)?.toString().toLowerCase();
 
-
-    // Prefer explicit platform/source fields first, then fallbacks
     final candidates = <String?>[
       nestedPlatform,
       c['platform']?.toString(),
@@ -58,21 +52,31 @@ class ConversationTile extends StatelessWidget {
         .where((s) => s.isNotEmpty)
         .toList();
 
-    final raw = (candidates.isNotEmpty ? candidates.first : '' ) + c["source_type"];
+    final sourceType = (c['source_type'] ?? '').toString().toLowerCase();
+    final raw = ((candidates.isNotEmpty ? candidates.first : '') + sourceType).toLowerCase();
 
-    // print("platfrom : "+raw);
+    // Normalize common WA variants early
+    if (raw.contains('whatsapp') ||
+        raw.contains('whats_app') ||
+        raw == 'wa' ||
+        raw.contains('wa_business') ||
+        raw.contains('waba') ||
+        raw.contains('wa-b') ||
+        raw.contains('wa_business_api')) {
+      return 'whatsapp';
+    }
 
-    // New channels detection
     if (raw.contains('lazada')) return 'lazada';
     if (raw.contains('unknown')) return 'unknown';
     if (raw.contains('shopee')) return 'shopee';
     if (raw.contains('tiktok')) return 'tiktok';
-    if (raw.contains('whatsapp') || raw.contains('whatsapp')) return 'whatsapp';
 
     if (raw.contains('facebook') || raw == 'fb') return 'facebook';
     if (raw.contains('instagram') || raw == 'ig') return 'instagram';
     if (raw.contains('line')) return 'line';
-    // Heuristics by available IDs
+
+    // Heuristics by available IDs (only if no explicit platform was inferred above)
+    if ((c['waNumber'] ?? c['whatsappNumber'] ?? '').toString().isNotEmpty) return 'whatsapp';
     if ((c['pageId'] ?? '').toString().isNotEmpty) return 'facebook';
     if ((c['igUserId'] ?? '').toString().isNotEmpty) return 'instagram';
     if ((c['channelId'] ?? c['botId'] ?? '').toString().isNotEmpty) return 'line';
@@ -128,7 +132,7 @@ class ConversationTile extends StatelessWidget {
       case 'line':
         return 'LINE';
       case 'whatsapp':
-        return 'Whatsapp';
+        return 'WhatsApp';
       case 'tiktok':
         return 'TikTok';
       case 'lazada':

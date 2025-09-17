@@ -64,5 +64,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Allow Dart VM Service discovery over mDNS on iOS 14+ for debug runs -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dartobservatory._tcp</string>
+		<string>_flutterobservatory._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app uses the local network to discover and connect to the Dart VM Service while debugging.</string>
 </dict>
 </plist>

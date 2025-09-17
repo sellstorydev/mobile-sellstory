@@ -15,6 +15,7 @@ class MessageBubble extends StatelessWidget {
   final String? highlightQuery;
   final bool focused; // emphasize currently focused match
   final VoidCallback? onLongPress; // for actions like Quote Reply
+  final void Function(String originalMessageId)? onTapReply; // new callback
 
   const MessageBubble({
     Key? key,
@@ -25,6 +26,7 @@ class MessageBubble extends StatelessWidget {
     this.highlightQuery,
     this.focused = false,
     this.onLongPress,
+    this.onTapReply,
   }) : super(key: key);
 
   @override
@@ -34,6 +36,34 @@ class MessageBubble extends StatelessWidget {
     final senderName = sender['name'] ?? 'Unknown';
     final senderAvatar = sender['avatar'];
     final timestamp = _parseTimestamp(messageData['timestamp']);
+
+
+    // Normalize reply block (support both reply and replyTo from backend)
+    Map<String, dynamic>? normalizedReply;
+    if (messageData['reply'] is Map && (messageData['reply']['id'] ?? '').toString().isNotEmpty) {
+      normalizedReply = {
+        'id': (messageData['reply']['id'] ?? '').toString(),
+        'text': (messageData['reply']['text'] ?? '').toString(),
+        'type': (messageData['reply']['type'] ?? '').toString(),
+        'senderName': (messageData['reply']['senderName'] ?? messageData['replyTo']?['senderName'] ?? '').toString(),
+        'avatar': messageData['reply']['avatar'],
+      };
+    } else if (messageData['replyTo'] is Map && (messageData['replyTo']['messageId'] ?? '').toString().isNotEmpty) {
+      final rt = messageData['replyTo'] as Map<String, dynamic>;
+      normalizedReply = {
+        'id': (rt['messageId'] ?? rt['quotedMessageId'] ?? '').toString(),
+        'text': (rt['messageText'] ?? '').toString(),
+        'type': (rt['type'] ?? '').toString(),
+        'senderName': (rt['senderName'] ?? '').toString(),
+        'avatar': rt['senderAvatar'],
+      };
+    }
+
+
+    // Determine bubble base color (different shade if reply present for non-self)
+    final Color bubbleColor = isFromCurrentUser
+        ? const Color(0xFFFF7A00)
+        : Colors.grey[200]!;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -75,7 +105,8 @@ class MessageBubble extends StatelessWidget {
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isFromCurrentUser ? const Color(0xFFFF7A00) : Colors.grey[200],
+                      color: bubbleColor,
+                      border: focused ? Border.all(color: Colors.amberAccent, width: 2) : null,
                       borderRadius: BorderRadius.circular(16).copyWith(
                         bottomLeft: isFromCurrentUser ? const Radius.circular(16) : const Radius.circular(4),
                         bottomRight: isFromCurrentUser ? const Radius.circular(4) : const Radius.circular(16),
@@ -90,7 +121,13 @@ class MessageBubble extends StatelessWidget {
                             ]
                           : null,
                     ),
-                    child: _buildMessageContent(context, messageType),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (normalizedReply != null) _buildRichReplyHeader(context, normalizedReply),
+                        _buildMessageContent(context, messageType),
+                      ],
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
@@ -373,5 +410,103 @@ class MessageBubble extends StatelessWidget {
         await launchUrl(uri);
       }
     } catch (_) {}
+  }
+
+  String _fallbackLabel(String type) {
+    switch (type) {
+      case 'image':
+        return '[รูปภาพ]';
+      case 'video':
+        return '[วิดีโอ]';
+      case 'audio':
+        return '[เสียง]';
+      case 'file':
+        return '[ไฟล์]';
+      case 'sticker':
+        return '[สติ๊กเกอร์]';
+      default:
+        return '[ข้อความ]';
+    }
+  }
+
+  Widget _buildRichReplyHeader(BuildContext context, Map<String, dynamic> reply) {
+    final id = (reply['id'] ?? '').toString();
+    final nameRaw = (reply['senderName'] ?? '').toString();
+    final name = nameRaw.toUpperCase();
+    final text = (reply['text'] ?? '').toString();
+    final type = (reply['type'] ?? '').toString();
+    final avatar = reply['avatar'];
+    final snippet = text.isNotEmpty ? text : _fallbackLabel(type);
+    final tap = () { if (onTapReply != null && id.isNotEmpty) onTapReply!(id); };
+
+    final dividerColor = Colors.black.withValues(alpha: 0.12);
+
+    return InkWell(
+      onTap: tap,
+      borderRadius: BorderRadius.circular(10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // CircleAvatar(
+              //   radius: 14,
+              //   backgroundImage: (avatar != null && avatar.toString().isNotEmpty)
+              //       ? NetworkImage(avatar)
+              //       : null,
+              //   backgroundColor: (avatar == null || avatar.toString().isEmpty)
+              //       ? Colors.black.withValues(alpha: 0.08)
+              //       : null,
+              //   child: (avatar == null || avatar.toString().isEmpty)
+              //       ? Text(
+              //           name.isNotEmpty ? name.substring(0, 1) : '?',
+              //           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.black87),
+              //         )
+              //       : null,
+              // ),
+              //
+              // const SizedBox(width: 6),
+              Text(
+                "ตอบกลับ "+ (name.isNotEmpty ? name : 'UNKNOWN'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black87,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+
+          ),
+          const SizedBox(height: 2),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 240),
+            child: Text(
+              snippet,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.15,
+                color: Colors.black.withValues(alpha: 0.75),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Divider only as wide as content (avatar + name). Use LayoutBuilder to measure row width; simpler approximate with intrinsic by wrapping in Align+SizedBox.expand? We'll just limit to snippet width.
+          SizedBox(
+            width: 200,
+            child: Divider(height: 1, thickness: 0.6, color: dividerColor),
+          ),
+          const SizedBox(height: 6),
+        ],
+      ),
+    );
   }
 }

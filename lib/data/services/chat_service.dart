@@ -189,6 +189,20 @@ class ChatService extends GetxService {
     Map<String, dynamic>? sender,
   }) async {
     try {
+      // The mobile API expects `replyTo` at the TOP LEVEL (see docs/mobile-send-message-api.md)
+      // but current helper methods were embedding it inside the `message` map.
+      // Extract and move it so the backend can process quote / reply correctly.
+      Map<String, dynamic>? topLevelReplyTo;
+      if (message.containsKey('replyTo')) {
+        final v = message['replyTo'];
+        if (v is Map<String, dynamic>) {
+          topLevelReplyTo = Map<String, dynamic>.from(v);
+        }
+        // Avoid sending duplicate / incorrect nesting
+        message = Map<String, dynamic>.from(message);
+        message.remove('replyTo');
+      }
+
       final response = await http.post(
         Uri.parse('$_baseApiUrl/api/mobile/send-message'),
         headers: {
@@ -199,6 +213,7 @@ class ChatService extends GetxService {
           'chatroomId': chatroomId,
           'platform': platform,
           'message': message,
+          if (topLevelReplyTo != null) 'replyTo': topLevelReplyTo,
           if (sender != null) 'sender': sender,
         }),
       );
@@ -224,7 +239,11 @@ class ChatService extends GetxService {
     required String chatroomId,
     required String platform,
     required String text,
-    String? replyText, // optional quoted text
+    String? replyText, // optional quoted text (snippet)
+    String? replyToMessageId,
+    String? replyToMessageType,
+    String? replyOriginalSenderName,
+    String? replyQuoteToken, // NEW
     Map<String, dynamic>? sender,
   }) {
     final p = platform.toLowerCase();
@@ -233,15 +252,31 @@ class ChatService extends GetxService {
       'type': 'text',
     };
 
+
     if ((p == 'facebook' || p == 'instagram') && replyText != null && replyText.isNotEmpty) {
-      // Format as per request for FB/IG
+      // Keep legacy formatting for FB/IG
       finalText = '${'message'.tr} $text\n${'reply_to'.tr} : $replyText';
     } else if (p == 'line' && replyText != null && replyText.isNotEmpty) {
-      // Hint for server to perform proper quote reply for LINE (server-side implementation)
+      // Server side may use quoteText for LINE
       msg['quoteText'] = replyText;
     }
 
     msg['text'] = finalText;
+
+    if (replyToMessageId != null && replyToMessageId.isNotEmpty) {
+      msg['reply'] = {
+        'id': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'text': replyText,
+        if (replyToMessageType != null && replyToMessageType.isNotEmpty) 'type': replyToMessageType,
+      };
+      msg['replyTo'] = {
+        'messageId': replyToMessageId,
+        'quotedMessageId': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'messageText': replyText,
+        if (replyOriginalSenderName != null && replyOriginalSenderName.isNotEmpty) 'senderName': replyOriginalSenderName,
+        if (replyQuoteToken != null && replyQuoteToken.isNotEmpty) 'quoteToken': replyQuoteToken,
+      };
+    }
 
     return sendMessage(
       workspaceId: workspaceId,
@@ -258,17 +293,37 @@ class ChatService extends GetxService {
     required String platform,
     required String imageUrl,
     String? text,
+    String? replyText,
+    String? replyToMessageId,
+    String? replyToMessageType,
+    String? replyOriginalSenderName,
+    String? replyQuoteToken, // NEW
     Map<String, dynamic>? sender,
   }) {
+    final msg = <String, dynamic>{
+      'type': 'image',
+      'imageUrl': imageUrl,
+      if (text != null && text.isNotEmpty) 'text': text,
+    };
+    if (replyToMessageId != null && replyToMessageId.isNotEmpty) {
+      msg['reply'] = {
+        'id': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'text': replyText,
+        if (replyToMessageType != null && replyToMessageType.isNotEmpty) 'type': replyToMessageType,
+      };
+      msg['replyTo'] = {
+        'messageId': replyToMessageId,
+        'quotedMessageId': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'messageText': replyText,
+        if (replyOriginalSenderName != null && replyOriginalSenderName.isNotEmpty) 'senderName': replyOriginalSenderName,
+        if (replyQuoteToken != null && replyQuoteToken.isNotEmpty) 'quoteToken': replyQuoteToken,
+      };
+    }
     return sendMessage(
       workspaceId: workspaceId,
       chatroomId: chatroomId,
       platform: platform,
-      message: {
-        'type': 'image',
-        'imageUrl': imageUrl,
-        if (text != null && text.isNotEmpty) 'text': text,
-      },
+      message: msg,
       sender: sender,
     );
   }
@@ -279,17 +334,37 @@ class ChatService extends GetxService {
     required String platform,
     required String videoUrl,
     String? text,
+    String? replyText,
+    String? replyToMessageId,
+    String? replyToMessageType,
+    String? replyOriginalSenderName,
+    String? replyQuoteToken, // NEW
     Map<String, dynamic>? sender,
   }) {
+    final msg = <String, dynamic>{
+      'type': 'video',
+      'videoUrl': videoUrl,
+      if (text != null && text.isNotEmpty) 'text': text,
+    };
+    if (replyToMessageId != null && replyToMessageId.isNotEmpty) {
+      msg['reply'] = {
+        'id': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'text': replyText,
+        if (replyToMessageType != null && replyToMessageType.isNotEmpty) 'type': replyToMessageType,
+      };
+      msg['replyTo'] = {
+        'messageId': replyToMessageId,
+        'quotedMessageId': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'messageText': replyText,
+        if (replyOriginalSenderName != null && replyOriginalSenderName.isNotEmpty) 'senderName': replyOriginalSenderName,
+        if (replyQuoteToken != null && replyQuoteToken.isNotEmpty) 'quoteToken': replyQuoteToken,
+      };
+    }
     return sendMessage(
       workspaceId: workspaceId,
       chatroomId: chatroomId,
       platform: platform,
-      message: {
-        'type': 'video',
-        'videoUrl': videoUrl,
-        if (text != null && text.isNotEmpty) 'text': text,
-      },
+      message: msg,
       sender: sender,
     );
   }
@@ -299,16 +374,36 @@ class ChatService extends GetxService {
     required String chatroomId,
     required String platform,
     required String audioUrl,
+    String? replyText,
+    String? replyToMessageId,
+    String? replyToMessageType,
+    String? replyOriginalSenderName,
+    String? replyQuoteToken, // NEW
     Map<String, dynamic>? sender,
   }) {
+    final msg = <String, dynamic>{
+      'type': 'audio',
+      'audioUrl': audioUrl,
+    };
+    if (replyToMessageId != null && replyToMessageId.isNotEmpty) {
+      msg['reply'] = {
+        'id': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'text': replyText,
+        if (replyToMessageType != null && replyToMessageType.isNotEmpty) 'type': replyToMessageType,
+      };
+      msg['replyTo'] = {
+        'messageId': replyToMessageId,
+        'quotedMessageId': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'messageText': replyText,
+        if (replyOriginalSenderName != null && replyOriginalSenderName.isNotEmpty) 'senderName': replyOriginalSenderName,
+        if (replyQuoteToken != null && replyQuoteToken.isNotEmpty) 'quoteToken': replyQuoteToken,
+      };
+    }
     return sendMessage(
       workspaceId: workspaceId,
       chatroomId: chatroomId,
       platform: platform,
-      message: {
-        'type': 'audio',
-        'audioUrl': audioUrl,
-      },
+      message: msg,
       sender: sender,
     );
   }
@@ -319,17 +414,37 @@ class ChatService extends GetxService {
     required String platform,
     required String fileUrl,
     required String fileName,
+    String? replyText,
+    String? replyToMessageId,
+    String? replyToMessageType,
+    String? replyOriginalSenderName,
+    String? replyQuoteToken, // NEW
     Map<String, dynamic>? sender,
   }) {
+    final msg = <String, dynamic>{
+      'type': 'file',
+      'fileUrl': fileUrl,
+      'fileName': fileName,
+    };
+    if (replyToMessageId != null && replyToMessageId.isNotEmpty) {
+      msg['reply'] = {
+        'id': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'text': replyText,
+        if (replyToMessageType != null && replyToMessageType.isNotEmpty) 'type': replyToMessageType,
+      };
+      msg['replyTo'] = {
+        'messageId': replyToMessageId,
+        'quotedMessageId': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'messageText': replyText,
+        if (replyOriginalSenderName != null && replyOriginalSenderName.isNotEmpty) 'senderName': replyOriginalSenderName,
+        if (replyQuoteToken != null && replyQuoteToken.isNotEmpty) 'quoteToken': replyQuoteToken,
+      };
+    }
     return sendMessage(
       workspaceId: workspaceId,
       chatroomId: chatroomId,
       platform: platform,
-      message: {
-        'type': 'file',
-        'fileUrl': fileUrl,
-        'fileName': fileName,
-      },
+      message: msg,
       sender: sender,
     );
   }
@@ -340,21 +455,42 @@ class ChatService extends GetxService {
     required String platform,
     required String stickerId,
     required String stickerPackageId,
+    String? replyText,
+    String? replyToMessageId,
+    String? replyToMessageType,
+    String? replyOriginalSenderName,
+    String? replyQuoteToken, // NEW
     Map<String, dynamic>? sender,
   }) {
     if (platform.toLowerCase() != 'line') {
       throw Exception('Stickers are only supported on LINE platform');
     }
 
+    final msg = <String, dynamic>{
+      'type': 'sticker',
+      'stickerId': stickerId,
+      'stickerPackageId': stickerPackageId,
+    };
+    if (replyToMessageId != null && replyToMessageId.isNotEmpty) {
+      msg['reply'] = {
+        'id': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'text': replyText,
+        if (replyToMessageType != null && replyToMessageType.isNotEmpty) 'type': replyToMessageType,
+      };
+      msg['replyTo'] = {
+        'messageId': replyToMessageId,
+        'quotedMessageId': replyToMessageId,
+        if (replyText != null && replyText.isNotEmpty) 'messageText': replyText,
+        if (replyOriginalSenderName != null && replyOriginalSenderName.isNotEmpty) 'senderName': replyOriginalSenderName,
+        if (replyQuoteToken != null && replyQuoteToken.isNotEmpty) 'quoteToken': replyQuoteToken,
+      };
+    }
+
     return sendMessage(
       workspaceId: workspaceId,
       chatroomId: chatroomId,
       platform: platform,
-      message: {
-        'type': 'sticker',
-        'stickerId': stickerId,
-        'stickerPackageId': stickerPackageId,
-      },
+      message: msg,
       sender: sender,
     );
   }

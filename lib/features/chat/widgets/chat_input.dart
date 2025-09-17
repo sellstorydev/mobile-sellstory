@@ -14,7 +14,9 @@ class ChatInput extends StatefulWidget {
   final String workspaceId;
   final String chatroomId;
   final String? replyPreview; // preview text for quote reply
+  final String? replyToMessageId; // id of original message for focusing
   final VoidCallback? onCancelReply; // cancel quote reply
+  final VoidCallback? onTapReplyPreview; // tap to focus original
 
   const ChatInput({
     Key? key,
@@ -25,12 +27,16 @@ class ChatInput extends StatefulWidget {
     required this.chatroomId,
     this.enabled = true,
     this.replyPreview,
+    this.replyToMessageId,
     this.onCancelReply,
+    this.onTapReplyPreview,
   }) : super(key: key);
 
   @override
   State<ChatInput> createState() => _ChatInputState();
 }
+
+
 
 class _ChatInputState extends State<ChatInput> {
   final TextEditingController _textController = TextEditingController();
@@ -218,6 +224,7 @@ class _ChatInputState extends State<ChatInput> {
         imageQuality: 85,
       );
 
+
       if (image != null) {
         await _uploadAndSendImage(File(image.path));
         _toggleAttachmentOptions();
@@ -384,44 +391,48 @@ class _ChatInputState extends State<ChatInput> {
               children: [
                 // Reply preview bar
                 if (widget.replyPreview != null && widget.replyPreview!.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    margin: const EdgeInsets.only(top: 6, left: 8, right: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3E0), // light orange
-                      border: Border(
-                        left: BorderSide(color: const Color(0xFFFF7A00), width: 3),
+                  GestureDetector(
+                    onTap: widget.onTapReplyPreview,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.only(top: 6, left: 8, right: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0), // light orange
+                        border: Border(
+                          left: BorderSide(color: const Color(0xFFFF7A00), width: 3),
+                        ),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.reply, size: 18, color: Color(0xFFFF7A00)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('ตอบกลับ', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                              Text(
-                                widget.replyPreview!,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600),
-                              ),
-                            ],
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.reply, size: 18, color: Color(0xFFFF7A00)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('ตอบกลับ', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                                Text(
+                                  widget.replyPreview!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        InkWell(
-                          onTap: widget.onCancelReply,
-                          child: const Padding(
-                            padding: EdgeInsets.all(4.0),
-                            child: Icon(Icons.close, size: 18, color: Colors.black45),
+                          InkWell(
+                            onTap: widget.onCancelReply,
+                            child: const Padding(
+                              padding: EdgeInsets.all(4.0),
+                              child: Icon(Icons.close, size: 18, color: Colors.black45),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
 
@@ -479,6 +490,7 @@ class _ChatInputState extends State<ChatInput> {
                         onTap: () async => await _pickImages(), // updated to multi-image picker
                       ),
 
+
                       // ช่องพิมพ์ “Aa”
                       Expanded(
                         child: Container(
@@ -501,7 +513,11 @@ class _ChatInputState extends State<ChatInput> {
                               hintText: 'Aa',
                               hintStyle: TextStyle(color: Color(0xFF9E9E9E), fontSize: 16),
                               border: InputBorder.none,
-                              isCollapsed: true,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none, isCollapsed: true,
                               contentPadding: EdgeInsets.symmetric(vertical: 12),
                             ),
                             onChanged: _handleTextChanged,

@@ -117,7 +117,7 @@ dependencies:
   font_awesome_flutter:
 
   # Apple Sign-In
-  sign_in_with_apple: ^5.0.0
+  sign_in_with_apple: ^6.1.0
 
   # Crypto for SHA256 (Apple nonce)
   crypto: ^3.0.3
