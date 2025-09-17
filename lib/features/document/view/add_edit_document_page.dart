@@ -291,7 +291,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                            return Column(
                              children: [
                                _buildSectionHeader(
-                                 '${'product_service_list'.tr} (${'items_count'.trParams({'count': controller.products.length.toString()})})',
+                                 '${'product_service_list'.tr}',
                                  Icons.inventory,
                                  'product',
                                ),
@@ -1421,14 +1421,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          'คำนวณจาก: $formula',
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppTheme.textSecondary,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
       ],
     );
   }
@@ -2371,14 +2363,14 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     );
   }
 
-       void _showProductSelectionDialog(AddEditDocumentController controller) {
-     // Use real product data from controller
-     final availableProducts = controller.availableProducts;
+  void _showProductSelectionDialog(AddEditDocumentController controller) {
+    // Use real product data from controller
+    final availableProducts = controller.availableProducts;
 
     if (availableProducts.isEmpty) {
       Get.snackbar(
-        'ข้อมูล',
-        'ไม่พบสินค้าในระบบ กรุณาเพิ่มสินค้าก่อน',
+        'no_products_found'.tr,
+        'no_products_found'.tr,
         backgroundColor: Colors.orange,
         colorText: Colors.white,
       );
@@ -2387,12 +2379,27 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
     // Move tempSelected outside StatefulBuilder to persist selections
     List<Map<String, dynamic>> tempSelected = [];
+    String searchQuery = '';
 
     Get.dialog(
       StatefulBuilder(
         builder: (context, setState) {
+          // Filter products based on search query
+          final filteredProducts = availableProducts.where((product) {
+            if (searchQuery.isEmpty) return true;
+            
+            final query = searchQuery.toLowerCase();
+            final name = product['name']?.toString().toLowerCase() ?? '';
+            final sku = product['sku']?.toString().toLowerCase() ?? '';
+            final description = product['description']?.toString().toLowerCase() ?? '';
+            
+            return name.contains(query) || 
+                   sku.contains(query) || 
+                   description.contains(query);
+          }).toList();
+          
           return AlertDialog(
-            title: const Text('เลือกสินค้าจากฐานข้อมูล'),
+            title: Text('select_products_from_database'.tr),
             content: SizedBox(
               width: double.maxFinite,
               height: 400,
@@ -2401,23 +2408,25 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                   // Search bar
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'ค้นหาสินค้า...',
+                      hintText: 'search_products'.tr,
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     onChanged: (value) {
-                      // TODO: Implement search functionality
+                      setState(() {
+                        searchQuery = value;
+                      });
                     },
                   ),
                   const SizedBox(height: 16),
                   // Product list
                   Expanded(
                     child: ListView.builder(
-                      itemCount: availableProducts.length,
+                      itemCount: filteredProducts.length,
                       itemBuilder: (context, index) {
-                        final product = availableProducts[index];
+                        final product = filteredProducts[index];
                         final isSelected = tempSelected.any(
                           (p) => p['id'] == product['id'],
                         );
@@ -2435,63 +2444,138 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                   : Colors.grey.shade300,
                             ),
                           ),
-                          child: CheckboxListTile(
-                            title: Text(
-                              product['name']?.toString() ?? '',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: isSelected
-                                    ? AppTheme.primaryOrange
-                                    : AppTheme.textPrimary,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(product['description']?.toString() ?? ''),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Text(
-                                      '฿${product['price']?.toString() ?? '0'}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.primaryOrange,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${product['unit']?.toString() ?? ''}',
-                                      style: TextStyle(
-                                        color: AppTheme.textSecondary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'SKU: ${product['sku']?.toString() ?? ''}',
-                                      style: TextStyle(
-                                        color: AppTheme.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            value: isSelected,
-                            onChanged: (bool? value) {
+                          child: InkWell(
+                            onTap: () {
                               setState(() {
-                                if (value == true) {
-                                  tempSelected.add(product);
-                                } else {
+                                if (isSelected) {
                                   tempSelected.removeWhere(
                                     (p) => p['id'] == product['id'],
                                   );
+                                } else {
+                                  tempSelected.add(product);
                                 }
                               });
                             },
-                            activeColor: AppTheme.primaryOrange,
-                            controlAffinity: ListTileControlAffinity.leading,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  // Checkbox
+                                  Checkbox(
+                                    value: isSelected,
+                                    onChanged: (bool? value) {
+                                      setState(() {
+                                        if (value == true) {
+                                          tempSelected.add(product);
+                                        } else {
+                                          tempSelected.removeWhere(
+                                            (p) => p['id'] == product['id'],
+                                          );
+                                        }
+                                      });
+                                    },
+                                    activeColor: AppTheme.primaryOrange,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Product image
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(6),
+                                      color: Colors.grey.shade100,
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: product['imageUrl'] != null && 
+                                             product['imageUrl'].toString().isNotEmpty
+                                        ? Image.network(
+                                            product['imageUrl'],
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Icon(
+                                                Icons.image_not_supported,
+                                                color: Colors.grey.shade400,
+                                                size: 24,
+                                              );
+                                            },
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) return child;
+                                              return Center(
+                                                child: SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                                      AppTheme.primaryOrange,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          )
+                                        : Icon(
+                                            Icons.image,
+                                            color: Colors.grey.shade400,
+                                            size: 24,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Product details
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product['name']?.toString() ?? '',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: isSelected
+                                                ? AppTheme.primaryOrange
+                                                : AppTheme.textPrimary,
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${product['sku']?.toString() ?? ''}',
+                                          style: TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              '฿${product['price']?.toString() ?? '0'}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: AppTheme.primaryOrange,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              '${product['unit']?.toString() ?? ''}',
+                                              style: TextStyle(
+                                                color: AppTheme.textSecondary,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         );
                       },
@@ -2505,7 +2589,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                 onPressed: () => Navigator.of(context).pop(),
                 child: Text('cancel'.tr),
               ),
-              ElevatedButton(
+              SizedBox(width: 100,
+              child: ElevatedButton(
                 onPressed: () {
                   if (tempSelected.isNotEmpty) {
                     controller.addProductsFromDatabase(tempSelected);
@@ -2514,8 +2599,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                     ).pop(); // Use Navigator.pop instead of Get.back()
                   } else {
                     Get.snackbar(
-                      'คำเตือน',
-                      'กรุณาเลือกสินค้าอย่างน้อย 1 รายการ',
+                      'warning'.tr,
+                      'please_select_at_least_one_product'.tr,
                       backgroundColor: Colors.orange,
                       colorText: Colors.white,
                     );
@@ -2524,8 +2609,10 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryOrange,
                 ),
-                child: const Text('เพิ่มสินค้า'),
+                child: Text('add_products'.tr),
               ),
+              ),
+              
             ],
           );
         },

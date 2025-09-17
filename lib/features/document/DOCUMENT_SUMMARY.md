@@ -196,6 +196,49 @@
   - Clear workflow progression from quotation to invoice
 - **Business Logic**: Maintains data consistency by automatically tracking the quotation-to-invoice conversion process
 
+### Search Functionality and Translation in Product Selection Dialog (Enhancement - September 17, 2025)
+
+**Enhancement Details**: Fixed search functionality and translated hardcoded Thai text in the product selection dialog for document creation.
+
+**File Updated**: `lib/features/document/view/add_edit_document_page.dart`
+
+**Changes Made**:
+
+1. **Search Functionality Implementation**:
+   - **Fixed Non-functional Search**: Replaced TODO comment with actual search implementation
+   - **Search State Management**: Added `searchQuery` variable to track search input
+   - **Real-time Filtering**: Products filter dynamically as user types
+   - **Multi-field Search**: Searches across product name, SKU, and description fields
+   - **Case-insensitive Search**: All searches converted to lowercase for better matching
+
+2. **Translation System Integration**:
+   - **Dialog Title**: Changed from hardcoded 'เลือกสินค้าจากฐานข้อมูล' to `'select_products_from_database'.tr`
+   - **Search Placeholder**: Changed from hardcoded 'ค้นหาสินค้า...' to `'search_products'.tr`
+   - **Error Messages**: Updated snackbar messages to use translation keys
+   - **Action Buttons**: Changed 'เพิ่มสินค้า' to `'add_products'.tr`
+
+3. **Translation Keys Added**:
+   - **English (en_US)**:
+     - `'warning': 'Warning'`
+     - `'please_select_at_least_one_product': 'Please select at least one product'`
+     - `'add_products': 'Add Products'`
+   - **Thai (th)**:
+     - `'warning': 'คำเตือน'`
+     - `'please_select_at_least_one_product': 'กรุณาเลือกสินค้าอย่างน้อย 1 รายการ'`
+     - `'add_products': 'เพิ่มสินค้า'`
+
+**Technical Implementation**:
+- **Search Algorithm**: Uses `String.contains()` with lowercase conversion for efficient searching
+- **State Management**: Proper StatefulBuilder implementation for real-time UI updates
+- **Performance**: Filtering happens in UI layer without backend calls
+- **User Experience**: Instant search results with no loading delays
+
+**Benefits**:
+- **Working Search**: Users can now actually search and filter products effectively
+- **Multilingual Support**: All text properly translated for English and Thai users
+- **Better UX**: Real-time search results improve product selection efficiency
+- **Maintainability**: All UI text centralized in translation system
+
 ### Invoice Quantity Validation (Security Enhancement - September 9, 2025)
 - **SECURITY FEATURE ADDED**: Maximum quantity validation for item-based invoice creation
 - **Feature Description**: 

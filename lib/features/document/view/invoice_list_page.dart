@@ -59,7 +59,26 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => Get.to(() => const AddEditDocumentPage(documentType: 'INV')),
+            onPressed: () async {
+              try {
+                print('📱 Navigating to AddEditDocumentPage with documentType: INV');
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddEditDocumentPage(documentType: 'INV'),
+                  ),
+                );
+                print('📱 Navigation completed, result: $result');
+              } catch (e) {
+                print('❌ Navigation error: $e');
+                Get.snackbar(
+                  'error'.tr,
+                  'Navigation error: $e',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
             icon: const Icon(Icons.add),
             color: AppTheme.primaryOrange,
           ),
@@ -535,7 +554,26 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
           ),
           const SizedBox(height: AppTheme.spacing24),
           ElevatedButton.icon(
-            onPressed: () => Get.to(() => const AddEditDocumentPage(documentType: 'INV')),
+            onPressed: () async {
+              try {
+                print('📱 Navigating to AddEditDocumentPage from empty state with documentType: INV');
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddEditDocumentPage(documentType: 'INV'),
+                  ),
+                );
+                print('📱 Navigation completed from empty state, result: $result');
+              } catch (e) {
+                print('❌ Navigation error from empty state: $e');
+                Get.snackbar(
+                  'error'.tr,
+                  'Navigation error: $e',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
             icon: const Icon(Icons.add),
             label: Text('create_invoice'.tr),
             style: ElevatedButton.styleFrom(
