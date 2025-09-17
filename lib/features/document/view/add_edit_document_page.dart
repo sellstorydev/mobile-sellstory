@@ -386,10 +386,19 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
   Widget _buildSectionHeader(String title, IconData icon, String sectionKey) {
     final isExpanded = _sectionExpanded[sectionKey] ?? false;
-    final isRequired =
-        sectionKey == 'customer' ||
+    final controller = Get.find<AddEditDocumentController>();
+    
+    // Check if section is required
+    bool isRequired = sectionKey == 'customer' ||
         sectionKey == 'seller' ||
         sectionKey == 'product';
+    
+    // Summary section is required when there are validation errors (like invalid discount)
+    if (sectionKey == 'summary') {
+      isRequired = controller.isEndOfBillDiscountEnabled && 
+                   !controller.validateEndOfBillDiscount(controller.endOfBillDiscountController.text);
+    }
+    
     final isComplete = _isSectionComplete(sectionKey);
 
     return Container(
@@ -504,7 +513,12 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
        case 'more':
          return true; // Optional section
        case 'summary':
-         return true; // Calculated section
+         // Validate end-of-bill discount if enabled
+         if (controller.isEndOfBillDiscountEnabled) {
+           final discountValue = controller.endOfBillDiscountController.text;
+           return controller.validateEndOfBillDiscount(discountValue);
+         }
+         return true; // If discount not enabled, summary is always valid
        default:
          return true;
      }
@@ -515,7 +529,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           final controller = Get.find<AddEditDocumentController>();
       return _isSectionComplete('customer') &&
           _isSectionComplete('seller') &&
-          _areAllProductsComplete(controller);
+          _areAllProductsComplete(controller) &&
+          _isSectionComplete('summary');
   }
 
   // Check if the last product has all required fields filled
@@ -703,29 +718,37 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ],
           const SizedBox(height: 16),
 
-          // Customer Company Selection
-          if (controller.selectedCustomer != null &&
-              controller.selectedCustomer!.companyNames.isNotEmpty) ...[
+          // Customer Company Selection - Always show when customer is selected
+          if (controller.selectedCustomer != null) ...[
             _buildDropdownField(
               label: 'customer_company'.tr,
               hint: 'select_company'.tr,
-              value: controller.selectedCompanyId,
-              items: controller.selectedCustomer!.companyNames
-                  .map((company) {
-                    final companyId = company['id'] as String?;
-                    if (companyId != null) {
-                      return DropdownMenuItem<String>(
-                        value: companyId,
-                        child: Text(controller.getCompanyDisplayName(company)),
-                      );
-                    }
-                    return DropdownMenuItem<String>(
-                      value: '',
-                      child: Text('Unknown Company'),
-                    );
-                  })
-                  .where((item) => item.value!.isNotEmpty)
-                  .toList(),
+              value: controller.selectedCompanyIdForUI,
+              items: [
+                // Add default "เลือกบุคคลธรรมดา" option first
+                DropdownMenuItem<String>(
+                  value: 'individual',
+                  child: Text('select_individual'.tr),
+                ),
+                // Add all company names if available
+                if (controller.selectedCustomer!.companyNames.isNotEmpty)
+                  ...controller.selectedCustomer!.companyNames
+                      .map((company) {
+                        final companyId = company['id'] as String?;
+                        if (companyId != null) {
+                          return DropdownMenuItem<String>(
+                            value: companyId,
+                            child: Text(controller.getCompanyDisplayName(company)),
+                          );
+                        }
+                        return DropdownMenuItem<String>(
+                          value: '',
+                          child: Text('Unknown Company'),
+                        );
+                      })
+                      .where((item) => item.value!.isNotEmpty)
+                      .toList(),
+              ],
               onChanged: controller.onCompanyChanged,
             ),
             const SizedBox(height: 16),
@@ -1796,13 +1819,27 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
 
           // End-of-bill discount input
           if (controller.isEndOfBillDiscountEnabled) ...[
-            _buildTextField(
-              label: 'discount_amount'.tr,
-              hint: '0',
-              controller: controller.endOfBillDiscountController,
-              keyboardType: TextInputType.number,
-              suffix: '฿',
-              onChanged: (value) => controller.update(),
+            GetBuilder<AddEditDocumentController>(
+              builder: (controller) {
+                final currentValue = controller.endOfBillDiscountController.text;
+                final isValid = controller.validateEndOfBillDiscount(currentValue);
+                final errorMessage = controller.getEndOfBillDiscountErrorMessage(currentValue);
+                
+                return _buildTextField(
+                  label: 'discount_amount'.tr,
+                  hint: '0',
+                  controller: controller.endOfBillDiscountController,
+                  keyboardType: TextInputType.number,
+                  suffix: '฿',
+                  hasError: !isValid,
+                  errorText: errorMessage,
+                  helperText: 'สูงสุด: ฿${controller.subtotal.toStringAsFixed(2)}',
+                  onChanged: (value) {
+                    // Validate and update
+                    controller.update();
+                  },
+                );
+              },
             ),
             const SizedBox(height: 12),
             

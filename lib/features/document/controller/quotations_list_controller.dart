@@ -325,7 +325,12 @@ class QuotationsListController extends GetxController {
 
   void viewQuotation(Map<String, dynamic> quotation) {
     final quotationId = quotation['id'] as String?;
-    Get.to(() => AddEditDocumentPage(documentType: 'QT', documentId: quotationId));
+    Navigator.push(
+      Get.context!,
+      MaterialPageRoute(
+        builder: (context) => AddEditDocumentPage(documentType: 'QT', documentId: quotationId),
+      ),
+    );
   }
 
   Future<void> reviseQuotationToInvoice(Map<String, dynamic> quotation) async {
@@ -398,7 +403,12 @@ class QuotationsListController extends GetxController {
       );
 
       // Navigate to the new invoice
-      Get.to(() => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId));
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId),
+        ),
+      );
 
     } catch (e) {
       Get.back(); // Close loading dialog

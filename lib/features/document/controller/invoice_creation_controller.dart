@@ -403,7 +403,12 @@ class InvoiceCreationController extends GetxController {
       );
 
       // Navigate to the new invoice
-      Get.to(() => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId));
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId),
+        ),
+      );
 
     } catch (e) {
       Get.back(); // Close loading dialog
@@ -536,7 +541,12 @@ class InvoiceCreationController extends GetxController {
       );
 
       // Navigate to the new invoice
-      Get.to(() => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId));
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId),
+        ),
+      );
 
     } catch (e) {
       Get.back(); // Close loading dialog
@@ -690,7 +700,12 @@ class InvoiceCreationController extends GetxController {
       );
 
       // Navigate to the new invoice
-      Get.to(() => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId));
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId),
+        ),
+      );
 
     } catch (e) {
       Get.back(); // Close loading dialog
