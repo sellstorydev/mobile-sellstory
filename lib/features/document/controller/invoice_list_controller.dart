@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../../../core/services/algolia_search_service.dart';
 import '../view/add_edit_document_page.dart';
 
 class InvoiceListController extends GetxController {
@@ -31,6 +32,9 @@ class InvoiceListController extends GetxController {
   
   // All invoices for filtering
   final allInvoices = <Map<String, dynamic>>[].obs;
+  
+  // Algolia search state
+  final useAlgoliaSearch = false.obs;
 
   @override
   void onInit() {
@@ -228,21 +232,17 @@ class InvoiceListController extends GetxController {
 
   void _applyFilters() {
     try {
-      List<Map<String, dynamic>> filtered = List.from(allInvoices);
+      final searchQuery = searchController.text.trim();
       
-      // Apply search filter
-      final searchQuery = searchController.text.toLowerCase();
+      // Use Algolia search when query is not empty
       if (searchQuery.isNotEmpty) {
-        filtered = filtered.where((invoice) {
-          final docNo = (invoice['docNo'] ?? '').toString().toLowerCase();
-          final customerName = (invoice['customer']?['name'] ?? '').toString().toLowerCase();
-          final sellerName = (invoice['seller']?['displayName'] ?? '').toString().toLowerCase();
-          
-          return docNo.contains(searchQuery) || 
-                 customerName.contains(searchQuery) ||
-                 sellerName.contains(searchQuery);
-        }).toList();
+        _searchWithAlgolia(searchQuery);
+        return;
       }
+      
+      // Reset to show all when no search query
+      useAlgoliaSearch.value = false;
+      List<Map<String, dynamic>> filtered = List.from(allInvoices);
       
       // Apply seller filter
       if (selectedSeller.value != null) {
@@ -308,8 +308,79 @@ class InvoiceListController extends GetxController {
     selectedCustomDateRange.value = null;
     selectedStatuses.clear();
     searchController.clear();
+    useAlgoliaSearch.value = false;
     invoices.value = List.from(allInvoices);
     filteredInvoices.value = List.from(allInvoices);
+  }
+
+  /// Search invoices using Algolia
+  void _searchWithAlgolia(String query) async {
+    try {
+      useAlgoliaSearch.value = true;
+      
+      // Build filters for Algolia
+      final filters = <String, dynamic>{};
+      
+      // Add seller filter
+      if (selectedSeller.value != null) {
+        filters['seller.uid'] = selectedSeller.value!.uid;
+      }
+      
+      // Add status filter
+      if (selectedStatuses.isNotEmpty) {
+        filters['status'] = selectedStatuses.toList();
+      }
+      
+      // Search with Algolia
+      final searchStream = AlgoliaSearchService.searchInvoices(
+        query: query,
+        workspaceId: currentWorkspaceId.value,
+        filters: filters,
+        hitsPerPage: 50,
+      );
+      
+      // Listen to search results
+      searchStream.listen(
+        (response) {
+          final hits = response.hits;
+          final results = hits.map((hit) {
+            final data = Map<String, dynamic>.from(hit);
+            data['id'] = hit['objectID'] ?? '';
+            return data;
+          }).toList();
+          
+          filteredInvoices.value = results;
+          print('🔍 Algolia search results: ${results.length} invoices found');
+        },
+        onError: (error) {
+          print('❌ Algolia search error: $error');
+          // Fallback to local search
+          useAlgoliaSearch.value = false;
+          _applyLocalSearch(query);
+        },
+      );
+      
+    } catch (e) {
+      print('❌ Failed to search with Algolia: $e');
+      useAlgoliaSearch.value = false;
+      _applyLocalSearch(query);
+    }
+  }
+
+  /// Fallback local search method
+  void _applyLocalSearch(String query) {
+    final searchQuery = query.toLowerCase();
+    final filtered = allInvoices.where((invoice) {
+      final docNo = (invoice['docNo'] ?? '').toString().toLowerCase();
+      final customerName = (invoice['customer']?['name'] ?? '').toString().toLowerCase();
+      final sellerName = (invoice['seller']?['displayName'] ?? '').toString().toLowerCase();
+      
+      return docNo.contains(searchQuery) || 
+             customerName.contains(searchQuery) ||
+             sellerName.contains(searchQuery);
+    }).toList();
+    
+    filteredInvoices.value = filtered;
   }
 
   void viewInvoice(Map<String, dynamic> invoice) {

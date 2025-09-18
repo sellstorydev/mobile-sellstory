@@ -6,6 +6,7 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/product.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/services/algolia_search_service.dart';
 
 class ProductsController extends GetxController {
   final ProductRepository _repository = Get.find<ProductRepository>();
@@ -26,6 +27,9 @@ class ProductsController extends GetxController {
   // User and workspace data
   String _currentUserId = '';
   String _currentWorkspaceId = '';
+  
+  // Algolia search state
+  final RxBool useAlgoliaSearch = false.obs;
 
   bool _can(String permission) =>
       MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can(permission);
@@ -139,12 +143,22 @@ class ProductsController extends GetxController {
 
   void searchProducts(String query) {
     searchQuery.value = query;
-    _filterProducts();
+    
+    // Use Algolia search when query is not empty
+    if (query.trim().isNotEmpty) {
+      _searchWithAlgolia(query.trim());
+    } else {
+      useAlgoliaSearch.value = false;
+      _filterProducts();
+    }
   }
 
   void _filterProducts() {
-    if (searchQuery.value.isEmpty) {
-      filteredProducts.value = products;
+    if (searchQuery.value.isEmpty || useAlgoliaSearch.value) {
+      // Don't filter when using Algolia search
+      if (!useAlgoliaSearch.value) {
+        filteredProducts.value = products;
+      }
     } else {
       final query = searchQuery.value.toLowerCase();
       filteredProducts.value = products.where((product) {
@@ -157,6 +171,51 @@ class ProductsController extends GetxController {
     }
   }
 
+  /// Search products using Algolia
+  void _searchWithAlgolia(String query) async {
+    try {
+      useAlgoliaSearch.value = true;
+      
+      // Search with Algolia
+      final searchStream = AlgoliaSearchService.searchProducts(
+        query: query,
+        workspaceId: _currentWorkspaceId,
+        hitsPerPage: 100,
+      );
+      
+      // Listen to search results
+      searchStream.listen(
+        (response) {
+          final hits = response.hits;
+          final results = hits.map((hit) {
+            try {
+              final data = Map<String, dynamic>.from(hit);
+              data['id'] = hit['objectID'] ?? '';
+              return Product.fromMap(data, data['id']);
+            } catch (e) {
+              _logger.error('Error parsing product from Algolia: $e');
+              return null;
+            }
+          }).where((product) => product != null).cast<Product>().toList();
+          
+          filteredProducts.value = results;
+          _logger.info('Algolia search results: ${results.length} products found');
+        },
+        onError: (error) {
+          _logger.error('Algolia search error: $error');
+          // Fallback to local search
+          useAlgoliaSearch.value = false;
+          _filterProducts();
+        },
+      );
+      
+    } catch (e) {
+      _logger.error('Failed to search with Algolia: $e');
+      useAlgoliaSearch.value = false;
+      _filterProducts();
+    }
+  }
+
   Future<void> _updateProductsCount() async {
     if (_currentWorkspaceId.isNotEmpty) {
       productsCount.value = await _repository.getProductsCount(_currentWorkspaceId);
@@ -165,6 +224,7 @@ class ProductsController extends GetxController {
 
   void clearSearch() {
     searchQuery.value = '';
+    useAlgoliaSearch.value = false;
     _filterProducts();
   }
 

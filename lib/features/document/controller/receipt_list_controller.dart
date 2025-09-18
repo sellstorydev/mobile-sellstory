@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../../../core/services/algolia_search_service.dart';
 
 class ReceiptListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -30,6 +31,9 @@ class ReceiptListController extends GetxController {
   
   // All receipts for filtering
   final allReceipts = <Map<String, dynamic>>[].obs;
+  
+  // Algolia search state
+  final useAlgoliaSearch = false.obs;
 
   @override
   void onInit() {
@@ -227,21 +231,17 @@ class ReceiptListController extends GetxController {
 
   void _applyFilters() {
     try {
-      List<Map<String, dynamic>> filtered = List.from(allReceipts);
+      final searchQuery = searchController.text.trim();
       
-      // Apply search filter
-      final searchQuery = searchController.text.toLowerCase();
+      // Use Algolia search when query is not empty
       if (searchQuery.isNotEmpty) {
-        filtered = filtered.where((receipt) {
-          final docNo = (receipt['docNo'] ?? '').toString().toLowerCase();
-          final customerName = (receipt['customer']?['name'] ?? '').toString().toLowerCase();
-          final sellerName = (receipt['seller']?['displayName'] ?? '').toString().toLowerCase();
-          
-          return docNo.contains(searchQuery) || 
-                 customerName.contains(searchQuery) ||
-                 sellerName.contains(searchQuery);
-        }).toList();
+        _searchWithAlgolia(searchQuery);
+        return;
       }
+      
+      // Reset to show all when no search query
+      useAlgoliaSearch.value = false;
+      List<Map<String, dynamic>> filtered = List.from(allReceipts);
       
       // Apply seller filter
       if (selectedSeller.value != null) {
@@ -307,8 +307,79 @@ class ReceiptListController extends GetxController {
     selectedCustomDateRange.value = null;
     selectedStatuses.clear();
     searchController.clear();
+    useAlgoliaSearch.value = false;
     receipts.value = List.from(allReceipts);
     filteredReceipts.value = List.from(allReceipts);
+  }
+
+  /// Search receipts using Algolia
+  void _searchWithAlgolia(String query) async {
+    try {
+      useAlgoliaSearch.value = true;
+      
+      // Build filters for Algolia
+      final filters = <String, dynamic>{};
+      
+      // Add seller filter
+      if (selectedSeller.value != null) {
+        filters['seller.uid'] = selectedSeller.value!.uid;
+      }
+      
+      // Add status filter
+      if (selectedStatuses.isNotEmpty) {
+        filters['status'] = selectedStatuses.toList();
+      }
+      
+      // Search with Algolia
+      final searchStream = AlgoliaSearchService.searchReceipts(
+        query: query,
+        workspaceId: currentWorkspaceId.value,
+        filters: filters,
+        hitsPerPage: 50,
+      );
+      
+      // Listen to search results
+      searchStream.listen(
+        (response) {
+          final hits = response.hits;
+          final results = hits.map((hit) {
+            final data = Map<String, dynamic>.from(hit);
+            data['id'] = hit['objectID'] ?? '';
+            return data;
+          }).toList();
+          
+          filteredReceipts.value = results;
+          print('🔍 Algolia search results: ${results.length} receipts found');
+        },
+        onError: (error) {
+          print('❌ Algolia search error: $error');
+          // Fallback to local search
+          useAlgoliaSearch.value = false;
+          _applyLocalSearch(query);
+        },
+      );
+      
+    } catch (e) {
+      print('❌ Failed to search with Algolia: $e');
+      useAlgoliaSearch.value = false;
+      _applyLocalSearch(query);
+    }
+  }
+
+  /// Fallback local search method
+  void _applyLocalSearch(String query) {
+    final searchQuery = query.toLowerCase();
+    final filtered = allReceipts.where((receipt) {
+      final docNo = (receipt['docNo'] ?? '').toString().toLowerCase();
+      final customerName = (receipt['customer']?['name'] ?? '').toString().toLowerCase();
+      final sellerName = (receipt['seller']?['displayName'] ?? '').toString().toLowerCase();
+      
+      return docNo.contains(searchQuery) || 
+             customerName.contains(searchQuery) ||
+             sellerName.contains(searchQuery);
+    }).toList();
+    
+    filteredReceipts.value = filtered;
   }
 
   void createNewReceipt() {
