@@ -29,22 +29,32 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     'summary': false,
   };
 
-  AddEditDocumentController? _controller;
-
   @override
   void initState() {
     super.initState();
     // Initialize controller once in initState to prevent recreation on rebuilds
-    _controller = AddEditDocumentController(
+    Get.put(AddEditDocumentController(
       documentId: widget.documentId,
       documentType: widget.documentType,
-    );
+    ));
+  }
+
+  @override
+  void dispose() {
+    // Properly dispose the controller when the widget is destroyed
+    try {
+      if (Get.isRegistered<AddEditDocumentController>()) {
+        Get.delete<AddEditDocumentController>();
+      }
+    } catch (e) {
+      print('Error disposing controller: $e');
+    }
+    super.dispose();
   }
 
     @override
   Widget build(BuildContext context) {
     return GetBuilder<AddEditDocumentController>(
-      init: _controller,
       builder: (controller) {
         return Scaffold(
           backgroundColor: AppTheme.backgroundGrey,
@@ -53,10 +63,14 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               widget.documentId == null
                   ? (widget.documentType == 'QT'
                         ? 'create_quotation'.tr
-                        : 'create_invoice'.tr)
+                        : widget.documentType == 'INV'
+                        ? 'create_invoice'.tr
+                        : 'create_receipt'.tr)
                   : (widget.documentType == 'QT'
                         ? 'edit_quotation'.tr
-                        : 'edit_invoice'.tr),
+                        : widget.documentType == 'INV'
+                        ? 'edit_invoice'.tr
+                        : 'edit_receipt'.tr),
               style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
@@ -100,7 +114,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                  builder: (controller) {
                    return TextButton(
                      onPressed:
-                         (controller.isLoading || !_areRequiredFieldsComplete())
+                         (controller.isLoading || !_areRequiredFieldsComplete(controller))
                          ? null
                          : controller.saveDocument,
                     child: controller.isLoading
@@ -117,7 +131,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                         : Text(
                             'save'.tr,
                             style: TextStyle(
-                              color: _areRequiredFieldsComplete()
+                              color: _areRequiredFieldsComplete(controller)
                                   ? AppTheme.primaryOrange
                                   : AppTheme.textGrey,
                               fontSize: 16,
@@ -151,6 +165,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                 'document_status_template'.tr,
                                 Icons.settings,
                                 'status_template',
+                                controller,
                                 ),
                                 const SizedBox(height: 12),
                               if (_sectionExpanded['status_template'] ??
@@ -254,6 +269,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                  'customer_data'.tr,
                                  Icons.person,
                                  'customer',
+                                 controller,
                                ),
                                const SizedBox(height: 12),
                                if (_sectionExpanded['customer'] ?? false) ...[
@@ -274,6 +290,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                  'seller_data'.tr,
                                  Icons.business,
                                  'seller',
+                                 controller,
                                ),
                                const SizedBox(height: 12),
                                if (_sectionExpanded['seller'] ?? false) ...[
@@ -294,10 +311,11 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                                  '${'product_service_list'.tr}',
                                  Icons.inventory,
                                  'product',
+                                 controller,
                                ),
                                const SizedBox(height: 12),
                                if (_sectionExpanded['product'] ?? false) ...[
-                                 _buildProductSection(controller),
+                                 _buildProductSection(controller, widget.documentId),
                                  const SizedBox(height: 24),
                                ],
                              ],
@@ -310,6 +328,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                          'additional_data'.tr,
                          Icons.settings,
                          'more',
+                         controller,
                        ),
                       const SizedBox(height: 12),
                       if (_sectionExpanded['more'] ?? false) ...[
@@ -322,6 +341,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                         'total_summary'.tr,
                         Icons.calculate,
                         'summary',
+                        controller,
                       ),
                       const SizedBox(height: 12),
                       if (_sectionExpanded['summary'] ?? false) ...[
@@ -384,9 +404,8 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     return items;
   }
 
-  Widget _buildSectionHeader(String title, IconData icon, String sectionKey) {
+  Widget _buildSectionHeader(String title, IconData icon, String sectionKey, AddEditDocumentController controller) {
     final isExpanded = _sectionExpanded[sectionKey] ?? false;
-    final controller = Get.find<AddEditDocumentController>();
     
     // Check if section is required
     bool isRequired = sectionKey == 'customer' ||
@@ -399,7 +418,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                    !controller.validateEndOfBillDiscount(controller.endOfBillDiscountController.text);
     }
     
-    final isComplete = _isSectionComplete(sectionKey);
+    final isComplete = _isSectionComplete(sectionKey, controller);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -486,11 +505,10 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
       ),
     );
   }
+  }
 
      // Check if section is complete based on required fields
-   bool _isSectionComplete(String sectionKey) {
-     final controller = Get.find<AddEditDocumentController>();
-
+   bool _isSectionComplete(String sectionKey, AddEditDocumentController controller) {
      switch (sectionKey) {
        case 'status':
         return controller
@@ -502,11 +520,10 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             .isNotEmpty; // Status is always complete if set
        case 'customer':
          return controller.selectedCustomerId != null &&
-             controller.selectedCustomerId!.isNotEmpty;
+             (controller.selectedCustomerId?.isNotEmpty == true);
        case 'seller':
          return controller.selectedSellerIds.isNotEmpty;
        case 'product':
-         final controller = Get.find<AddEditDocumentController>();
          return _areAllProductsComplete(
            controller,
          ); // Check if all products are complete
@@ -525,12 +542,11 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
    }
 
   // Check if all required fields are complete
-  bool _areRequiredFieldsComplete() {
-          final controller = Get.find<AddEditDocumentController>();
-      return _isSectionComplete('customer') &&
-          _isSectionComplete('seller') &&
+  bool _areRequiredFieldsComplete(AddEditDocumentController controller) {
+      return _isSectionComplete('customer', controller) &&
+          _isSectionComplete('seller', controller) &&
           _areAllProductsComplete(controller) &&
-          _isSectionComplete('summary');
+          _isSectionComplete('summary', controller);
   }
 
   // Check if the last product has all required fields filled
@@ -725,14 +741,14 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               hint: 'select_company'.tr,
               value: controller.selectedCompanyIdForUI,
               items: [
-                // Add default "เลือกบุคคลธรรมดา" option first
+                // Add default "บุคคลธรรมดา" option first
                 DropdownMenuItem<String>(
                   value: 'individual',
                   child: Text('select_individual'.tr),
                 ),
                 // Add all company names if available
-                if (controller.selectedCustomer!.companyNames.isNotEmpty)
-                  ...controller.selectedCustomer!.companyNames
+                if (controller.selectedCustomer?.companyNames.isNotEmpty == true)
+                  ...(controller.selectedCustomer?.companyNames ?? [])
                       .map((company) {
                         final companyId = company['id'] as String?;
                         if (companyId != null) {
@@ -746,7 +762,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                           child: Text('Unknown Company'),
                         );
                       })
-                      .where((item) => item.value!.isNotEmpty)
+                      .where((item) => item.value?.isNotEmpty == true)
                       .toList(),
               ],
               onChanged: controller.onCompanyChanged,
@@ -873,7 +889,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     );
   }
 
-  Widget _buildProductSection(AddEditDocumentController controller) {
+  Widget _buildProductSection(AddEditDocumentController controller, String? documentId) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -885,7 +901,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Template requirement warning
-          if (controller.selectedTemplateId == null && widget.documentId == null) ...[
+          if (controller.selectedTemplateId == null && documentId == null) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
@@ -910,7 +926,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ],
 
           // Warning for edit mode when template is missing
-          if (controller.selectedTemplateId == null && widget.documentId != null) ...[
+          if (controller.selectedTemplateId == null && documentId != null) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
@@ -940,7 +956,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: (controller.isLoadingProducts || 
-                              (controller.selectedTemplateId == null && widget.documentId == null))
+                              (controller.selectedTemplateId == null && documentId == null))
                       ? null
                       : () => _showProductSelectionDialog(controller),
                   icon: controller.isLoadingProducts
@@ -958,13 +974,13 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
                   label: Text(
                     controller.isLoadingProducts
                         ? 'กำลังโหลด...'
-                        : (controller.selectedTemplateId == null && widget.documentId == null)
+                        : (controller.selectedTemplateId == null && documentId == null)
                             ? 'เลือกเทมเพลตก่อน'
                         : 'เลือกจากฐานข้อมูล',
                     style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: (controller.selectedTemplateId == null && widget.documentId == null)
+                    backgroundColor: (controller.selectedTemplateId == null && documentId == null)
                         ? AppTheme.textGrey 
                         : AppTheme.primaryOrange,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -977,28 +993,28 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: (controller.selectedTemplateId == null && widget.documentId == null)
+                  onPressed: (controller.selectedTemplateId == null && documentId == null)
                       ? null
                       : controller.addProduct,
                   icon: Icon(
                     Icons.add,
-                    color: (controller.selectedTemplateId == null && widget.documentId == null)
+                    color: (controller.selectedTemplateId == null && documentId == null)
                         ? AppTheme.textGrey
                         : AppTheme.primaryOrange,
                   ),
                   label: Text(
-                    (controller.selectedTemplateId == null && widget.documentId == null)
+                    (controller.selectedTemplateId == null && documentId == null)
                         ? 'เลือกเทมเพลตก่อน'
                         : 'เพิ่มใหม่',
                     style: TextStyle(
-                      color: (controller.selectedTemplateId == null && widget.documentId == null)
+                      color: (controller.selectedTemplateId == null && documentId == null)
                           ? AppTheme.textGrey
                           : AppTheme.primaryOrange,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
-                      color: (controller.selectedTemplateId == null && widget.documentId == null)
+                      color: (controller.selectedTemplateId == null && documentId == null)
                           ? AppTheme.textGrey
                           : AppTheme.primaryOrange,
                     ),
@@ -1018,7 +1034,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             ...controller.products.asMap().entries.map((entry) {
               final index = entry.key;
               final product = entry.value;
-              return _buildProductItem(controller, index, product);
+              return _buildProductItem(controller, index, product, documentId);
             }).toList(),
             const SizedBox(height: 16),
           ],
@@ -1056,6 +1072,7 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     AddEditDocumentController controller,
     int index,
     Map<String, dynamic> product,
+    String? documentId,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1094,17 +1111,17 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           const SizedBox(height: 12),
 
           // Dynamic product fields based on template
-          _buildDynamicProductFields(controller, index),
+          _buildDynamicProductFields(controller, index, documentId),
         ],
       ),
     );
   }
   
-  Widget _buildDynamicProductFields(AddEditDocumentController controller, int index) {
+  Widget _buildDynamicProductFields(AddEditDocumentController controller, int index, String? documentId) {
     final fields = controller.templateProductFields;
     if (fields.isEmpty) {
       // In edit mode, show basic product fields even without template
-      if (widget.documentId != null) {
+      if (documentId != null) {
         return _buildBasicProductFields(controller, index);
       }
       return const Text('ไม่พบฟิลด์สินค้าในเทมเพลต');
@@ -1459,13 +1476,18 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Payment Methods
-          _buildMultiSelectField(
-            label: 'ช่องทางการชำระเงิน',
-            hint: 'เลือกช่องทางการชำระเงิน',
-            selectedItems: controller.selectedPaymentMethods,
-            availableItems: controller.availablePaymentMethods,
-            onChanged: controller.onPaymentMethodsChanged,
+          // Payment Method
+          _buildDropdownField(
+            label: 'payment_method'.tr,
+            hint: 'hint_payment_method'.tr,
+            value: controller.selectedPaymentMethod,
+            items: controller.availablePaymentMethods.map((method) => 
+              DropdownMenuItem<String>(
+                value: method,
+                child: Text(method),
+              )
+            ).toList(),
+            onChanged: controller.onPaymentMethodChanged,
           ),
           const SizedBox(height: 16),
 
@@ -2252,84 +2274,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
     );
   }
 
-  Widget _buildMultiSelectField({
-    required String label,
-    required String hint,
-    required List<String> selectedItems,
-    required List<String> availableItems,
-    required Function(List<String>) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () =>
-              _showMultiSelectDialog(availableItems, selectedItems, onChanged),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppTheme.borderGrey),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.payment, color: AppTheme.textSecondary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    selectedItems.isNotEmpty ? selectedItems.join(', ') : hint,
-                    style: TextStyle(
-                      color: selectedItems.isNotEmpty
-                          ? AppTheme.textPrimary
-                          : AppTheme.textGrey,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
-              ],
-            ),
-          ),
-        ),
-        if (selectedItems.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: selectedItems.map((item) {
-              return Chip(
-                label: Text(item),
-                backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-                labelStyle: const TextStyle(
-                  color: AppTheme.primaryOrange,
-                  fontSize: 12,
-                ),
-                deleteIcon: const Icon(
-                  Icons.close,
-                  color: AppTheme.primaryOrange,
-                  size: 16,
-                ),
-                onDeleted: () {
-                  final newItems = List<String>.from(selectedItems)
-                    ..remove(item);
-                  onChanged(newItems);
-                },
-              );
-            }).toList(),
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _buildSummaryRow(String label, String value, String currency) {
     return Row(
       children: [
@@ -2347,56 +2291,6 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
         ),
       ],
-    );
-  }
-
-  void _showMultiSelectDialog(
-    List<String> availableItems,
-    List<String> selectedItems,
-    Function(List<String>) onChanged,
-  ) {
-    List<String> tempSelected = List.from(selectedItems);
-
-    Get.dialog(
-      AlertDialog(
-        title: const Text('เลือกช่องทางการชำระเงิน'),
-        content: StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return SizedBox(
-              width: double.maxFinite,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: availableItems.map((item) {
-                  return CheckboxListTile(
-                    title: Text(item),
-                    value: tempSelected.contains(item),
-                    onChanged: (bool? value) {
-                      setState(() {
-                        if (value == true) {
-                          tempSelected.add(item);
-                        } else {
-                          tempSelected.remove(item);
-                        }
-                      });
-                    },
-                    activeColor: AppTheme.primaryOrange,
-                  );
-                }).toList(),
-              ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
-          ElevatedButton(
-            onPressed: () {
-              onChanged(tempSelected);
-              Get.back();
-            },
-            child: Text('confirm'.tr),
-          ),
-        ],
-      ),
     );
   }
 
@@ -4137,4 +4031,3 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
   //     ),
   //   );
   // }
-}

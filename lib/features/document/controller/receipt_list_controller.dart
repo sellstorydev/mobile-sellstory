@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../view/document_view_page.dart';
 
 class ReceiptListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -30,6 +31,9 @@ class ReceiptListController extends GetxController {
   
   // All receipts for filtering
   final allReceipts = <Map<String, dynamic>>[].obs;
+  
+  // Highlighting variables
+  final highlightedDocumentId = Rx<String?>(null);
 
   @override
   void onInit() {
@@ -318,8 +322,18 @@ class ReceiptListController extends GetxController {
 
   void viewReceipt(Map<String, dynamic> receipt) {
     final receiptId = receipt['id'] as String?;
-    // Implementation for viewing receipt
-    print('Viewing receipt: $receiptId');
+    if (receiptId != null) {
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => DocumentViewPage(
+            documentType: 'RT',
+            documentId: receiptId,
+            title: receipt['docNo'] as String?,
+          ),
+        ),
+      );
+    }
   }
 
   String formatDate(int timestamp) {
@@ -340,7 +354,24 @@ class ReceiptListController extends GetxController {
   }
 
   // Refresh data
-  Future<void> refreshData() async {
+  Future<void> refreshData({String? highlightDocumentId}) async {
+    // Set the document to highlight
+    if (highlightDocumentId != null) {
+      this.highlightedDocumentId.value = highlightDocumentId;
+      // Clear highlighting after 4 seconds for better visibility
+      Future.delayed(const Duration(seconds: 4), () {
+        if (this.highlightedDocumentId.value == highlightDocumentId) {
+          this.highlightedDocumentId.value = null;
+        }
+      });
+    }
+    
     await _loadReceipts();
+  }
+  
+  // Check if a document should be highlighted
+  bool isDocumentHighlighted(String? documentId) {
+    return highlightedDocumentId.value != null && 
+           highlightedDocumentId.value == documentId;
   }
 }

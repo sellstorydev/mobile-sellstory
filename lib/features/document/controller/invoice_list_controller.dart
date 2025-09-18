@@ -4,6 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../../../core/services/id_generation_service.dart';
+import '../../../core/theme/app_theme.dart';
+import '../view/document_view_page.dart';
 import '../view/add_edit_document_page.dart';
 
 class InvoiceListController extends GetxController {
@@ -31,6 +34,9 @@ class InvoiceListController extends GetxController {
   
   // All invoices for filtering
   final allInvoices = <Map<String, dynamic>>[].obs;
+  
+  // Highlighting variables
+  final highlightedDocumentId = Rx<String?>(null);
 
   @override
   void onInit() {
@@ -314,12 +320,18 @@ class InvoiceListController extends GetxController {
 
   void viewInvoice(Map<String, dynamic> invoice) {
     final invoiceId = invoice['id'] as String?;
-    Navigator.push(
-      Get.context!,
-      MaterialPageRoute(
-        builder: (context) => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId),
-      ),
-    );
+    if (invoiceId != null) {
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => DocumentViewPage(
+            documentType: 'INV',
+            documentId: invoiceId,
+            title: invoice['docNo'] as String?,
+          ),
+        ),
+      );
+    }
   }
 
   String formatDate(int timestamp) {
@@ -340,7 +352,122 @@ class InvoiceListController extends GetxController {
   }
 
   // Refresh data
-  Future<void> refreshData() async {
+  Future<void> refreshData({String? highlightDocumentId}) async {
+    // Set the document to highlight
+    if (highlightDocumentId != null) {
+      this.highlightedDocumentId.value = highlightDocumentId;
+      // Clear highlighting after 4 seconds for better visibility
+      Future.delayed(const Duration(seconds: 4), () {
+        if (this.highlightedDocumentId.value == highlightDocumentId) {
+          this.highlightedDocumentId.value = null;
+        }
+      });
+    }
+    
     await _loadInvoices();
+  }
+  
+  // Check if a document should be highlighted
+  bool isDocumentHighlighted(String? documentId) {
+    return highlightedDocumentId.value != null && 
+           highlightedDocumentId.value == documentId;
+  }
+
+  // Create receipt from invoice
+  Future<void> createReceiptFromInvoice(Map<String, dynamic> invoice) async {
+    try {
+      // Show loading dialog
+      Get.dialog(
+        Center(child: CircularProgressIndicator(color: AppTheme.primaryOrange)),
+        barrierDismissible: false,
+      );
+
+      if (currentWorkspaceId.value.isEmpty) {
+        throw Exception('No workspace available');
+      }
+
+      // Create receipt data by copying invoice data
+      final receiptData = Map<String, dynamic>.from(invoice);
+      
+      // Remove invoice-specific fields
+      receiptData.remove('id');
+      receiptData.remove('dueDate');
+      receiptData.remove('paymentStatus');
+      receiptData.remove('invoiceType');
+      receiptData.remove('relatedQuotationId');
+      receiptData.remove('installmentNumber');
+      receiptData.remove('totalInstallments');
+      receiptData.remove('totalAmountFromQuotation');
+      receiptData.remove('deductedDeposit');
+      
+      // Update fields for receipt
+      receiptData['type'] = 'RT';
+      receiptData['status'] = 'COMPLETED';
+      receiptData['relatedInvoiceId'] = invoice['id'];
+      receiptData['receiptFor'] = 'invoice';
+      receiptData['paymentDate'] = DateTime.now().millisecondsSinceEpoch;
+      receiptData['paymentMethod'] = ['transfer']; // Default payment method
+      
+      // Update timestamps and user info
+      final now = DateTime.now().millisecondsSinceEpoch;
+      receiptData['createdAt'] = now;
+      receiptData['updatedAt'] = now;
+      receiptData['createdBy'] = currentUserId.value;
+      receiptData['updatedBy'] = currentUserId.value;
+      
+      // Update activity log
+      receiptData['activityLog'] = [
+        {
+          'timestamp': now,
+          'userId': currentUserId.value,
+          'userDisplayName': receiptData['seller']?['email'] ?? 'Unknown',
+          'action': 'Created',
+          'details': 'Created receipt from invoice ${invoice['docNo']}',
+        }
+      ];
+
+      // Set notes
+      receiptData['notes'] = 'Receipt for Invoice ${invoice['docNo']}';
+
+      // Generate new document number
+      final idService = Get.find<IdGenerationService>();
+      receiptData['docNo'] = await idService.generateReceiptDocNo(currentWorkspaceId.value);
+
+      // Create receipt in Firestore
+      final receiptId = await _repository.createDocument(
+        workspaceId: currentWorkspaceId.value,
+        documentData: receiptData,
+      );
+
+      Get.back(); // Close loading dialog
+      
+      // Show success message and navigate to receipt
+      Get.snackbar(
+        'Success', 
+        'Receipt created from invoice ${invoice['docNo']}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.1),
+        colorText: Colors.green,
+      );
+
+      // Navigate to the new receipt
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => AddEditDocumentPage(documentType: 'RT', documentId: receiptId),
+        ),
+      );
+
+    } catch (e) {
+      Get.back(); // Close loading dialog
+      print('❌ Failed to create receipt from invoice: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to create receipt: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    }
   }
 }

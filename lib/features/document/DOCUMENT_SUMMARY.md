@@ -19,7 +19,87 @@
 - Result: Custom columns like `BewLnwZa001` / `Bew1150` display values from `expense.customInputs` when the selected template column IDs match the keys.
  - When switching templates in Edit Card, `customInputs` are remapped: only user_input ids defined in the new template are kept; matching ids retain values, missing ones prefill from `prefillSourceField` or become empty. This prevents stale values from previous templates.
 
-### 1. End-of-Bill Discount Validation Enhancement
+### Receipt Creation Support Implementation (Latest - September 18, 2025)
+- **Complete Receipt Support**: Full integration of receipt creation and editing in AddEditDocumentPage
+- **Features Implemented**:
+  - Receipt ID generation using `generateReceiptDocNo()` method with configurable prefix, date format, and sequence
+  - Document type 'RT' support with appropriate status options: 'COMPLETED' and 'VOID'
+  - Default status 'COMPLETED' for new receipts (different from 'DRAFT' for quotations/invoices)
+  - Type-specific document titles: 'Create Receipt' and 'Edit Receipt' with full translation support
+  - Navigation integration from Document Center to receipt creation
+- **Technical Implementation**:
+  - **ID Generation**: Added `generateReceiptDocNo()` method to `IdGenerationService` using 'receipt' entity type rules
+  - **Controller Updates**: Modified `AddEditDocumentController` with type-specific status lists and default initialization
+  - **UI Integration**: Updated `AddEditDocumentPage` with receipt-specific titles and workflows
+  - **Document Center**: Enabled receipt creation button (removed "coming soon" placeholder)
+- **Files Modified**:
+  - `lib/core/services/id_generation_service.dart`: Added receipt ID generation
+  - `lib/features/document/controller/add_edit_document_controller.dart`: Receipt type support and status handling
+  - `lib/features/document/view/add_edit_document_page.dart`: Receipt UI integration
+  - `lib/features/document/view/document_center_page.dart`: Enabled receipt creation navigation
+  - `lib/core/i18n/app_translations.dart`: Added 'edit_receipt' translations
+- **Status Management**: Receipts use 'COMPLETED'/'VOID' status system as per business requirements
+- **Impact**: Complete receipt lifecycle support from creation to editing, consistent with quotation and invoice workflows
+
+### Document View Page Implementation (September 18, 2025)
+- **Created**: New `DocumentViewPage` widget for viewing documents in webview
+- **Features**:
+  - Displays documents at URL pattern: `http://localhost:3000/doc/{type}/{uid}`
+  - Supports all document types: quotations (QT), invoices (INV), receipts (RT)
+  - Full-screen webview with loading indicators and error handling
+  - Edit button that navigates to document edit page and refreshes view on return
+  - Floating action button for quick edit access
+  - Menu options for reload, open in browser, and share
+  - Document type-specific titles using translations
+- **Navigation Flow**: Document List → Document View → Document Edit
+- **URL Examples**:
+  - `http://localhost:3000/doc/quotation/0xCzVTaGbEeHdaeyJDUt`
+  - `http://localhost:3000/doc/invoice/{invoiceId}`
+  - `http://localhost:3000/doc/receipt/{receiptId}`
+- **Controllers Updated**:
+  - `QuotationsListController.viewQuotation()` now navigates to DocumentViewPage
+  - `InvoiceListController.viewInvoice()` now navigates to DocumentViewPage  
+  - `ReceiptListController.viewReceipt()` now navigates to DocumentViewPage
+- **Files Created/Modified**:
+  - `lib/features/document/view/document_view_page.dart` (new)
+  - `lib/features/document/controller/quotations_list_controller.dart` (modified)
+  - `lib/features/document/controller/invoice_list_controller.dart` (modified)
+  - `lib/features/document/controller/receipt_list_controller.dart` (modified)
+
+### 1. Company Auto-fill Functionality Enhancement (Latest)
+- **Issue**: When customers work for companies, user had to manually enter company data into customer fields
+- **Solution**: Enhanced `AddEditDocumentController` with automatic company data population:
+  - `_loadAndFillCompanyData()`: Fetches company data from Firestore and auto-fills customer fields
+  - `_clearCompanyAutoFilledData()`: Clears auto-filled data when switching to individual selection
+  - Enhanced `onCompanyChanged()`: Triggers auto-fill when company selected, clearing when individual selected
+  - **Auto-filled Fields**:
+    - Address: Combines `addressLine1 + subdistrict + district + province + country`
+    - Postal Code: From company's `postalCode` field
+    - National ID: From company's `taxId` field
+    - Email: First email from company's `emails` array
+    - Phone: First phone from company's `phones` array
+- **Database Source**: `workspaces/{workspaceId}/companies/{companyId}`
+- **Impact**: Reduces manual data entry, ensures consistency between company and customer data, improves user experience
+
+### 2. Default Seller Assignment for New Documents (Latest)
+- **Issue**: When creating new documents, users had to manually select a seller from the dropdown
+- **Solution**: Enhanced `AddEditDocumentController` with automatic default seller assignment:
+  - `_setDefaultSellerAsCurrentUser()`: Auto-selects current authenticated user as default seller
+  - Called during `_initializeUserAndWorkspace()` after loading workspace members
+  - Only applies to new documents (documentId == null), preserves existing seller for edits
+  - Validates current user is a workspace member before assignment
+- **Impact**: Improved user experience by eliminating redundant seller selection for most common use case
+
+### 3. Payment Method Persistence Fix for Document Editing (Latest)
+- **Issue**: When editing existing documents, payment method was not being loaded/assigned from database
+- **Solution**: Enhanced `_loadDocumentBasicInfo()` method in `AddEditDocumentController`:
+  - Improved payment method loading logic with better type handling
+  - Added validation for payment method data existence
+  - Enhanced logging for debugging payment method assignment
+  - Preserves payment method data during document updates
+- **Impact**: Fixed data loss issue, ensures payment method information persists correctly when editing documents
+
+### 4. End-of-Bill Discount Validation Enhancement
 - **Issue**: End-of-bill discount input lacked proper validation, allowing negative values and amounts exceeding subtotal
 - **Solution**: Enhanced `AddEditDocumentController` with comprehensive discount validation:
   - `validateEndOfBillDiscount()`: Validates discount input against bounds (0 ≤ discount ≤ subtotal)
@@ -37,16 +117,16 @@
   - Visual error indicators on collapsed summary section header
 - **Impact**: Prevents invalid discount amounts, improves data integrity, enhances user experience with clear feedback at input and save levels
 
-### 2. Customer Company Selection Enhancement
+### 5. Customer Company Selection Enhancement
 - **Issue**: Customer company dropdown lacked a default "individual" option and required manual selection
 - **Solution**: Enhanced customer company selection with automatic default selection:
-  - Added translation keys: `select_individual` ("Select Individual" / "เลือกบุคคลธรรมดา")
+  - Added translation keys: `select_individual` ("Select Individual" / "บุคคลธรรมดา")
   - Modified `onCustomerChanged()`: Auto-selects 'individual' when customer is chosen
   - Updated dropdown UI: Always shows when customer selected, includes individual option first
   - Backward compatible: Existing company selections remain functional
 - **Impact**: Improved UX with sensible default selection for individual customers vs. companies
 
-### 2. Auto-fill Default Notes Enhancement
+### 6. Auto-fill Default Notes Enhancement
 - **Issue**: When creating new documents, the notes field was empty instead of using workspace-configured default notes
 - **Solution**: Enhanced `AddEditDocumentController` with automatic default notes loading:
   - `loadDefaultNotes()`: Fetches workspace `docSettings.defaultNotes` and auto-fills based on document type
@@ -55,7 +135,7 @@
 - **Database Source**: `workspaces/{workspaceId}/companyProfile.docSettings.defaultNotes`
 - **Impact**: Improved user experience with pre-filled professional default terms/notes for each document type
 
-### 3. Navigation Error Fix - GetX Controller Conflicts
+### 7. Navigation Error Fix - GetX Controller Conflicts
 - **Issue**: "AddEditDocumentController not found" error when navigating to edit page after creating documents
 - **Solution**: Replaced `Get.to()` with `Navigator.push()` for all navigation to `AddEditDocumentPage` with existing document IDs
 - **Files Updated**:
@@ -65,7 +145,7 @@
   - `InvoiceCreationController` (3 methods): Fixed all invoice creation scenarios
 - **Impact**: Resolved GetX dependency injection conflicts, enabling smooth navigation throughout document workflows
 
-### 4. Template-Aware Quantity Validation Enhancement
+### 8. Template-Aware Quantity Validation Enhancement
 - **Issue**: Template quantity validation not working properly for documents with predefined quantity columns and remainingQuantity limits
 - **Solution**: Enhanced `add_edit_document_controller.dart` with comprehensive template-aware validation methods:
   - `hasTemplateQuantityColumn`: Detects if template has predefined quantity fields
@@ -73,7 +153,7 @@
   - `getQuantityErrorMessage()`: Provides user-friendly error messages
 - **Impact**: All document types (QT, INV, RT) now support template-based quantity validation with remainingQuantity constraints
 
-### 5. Database-Level Type Filtering Implementation  
+### 9. Database-Level Type Filtering Implementation  
 - **Issue**: Document pagination queries lacked proper `.where('type', isEqualTo: 'XX')` conditions
 - **Solution**: Enhanced `firestore_repository.dart` with documentType parameter for database-level filtering
 - **Controllers Updated**:
@@ -82,7 +162,7 @@
   - `receipt_list_controller.dart`: Added `documentType: 'RT'` filtering
 - **Impact**: Improved performance and accuracy of document list pagination
 
-### 6. Invoice Creation Item Selection Fix
+### 10. Invoice Creation Item Selection Fix
 - **Issue**: When selecting items for "สร้างใบแจ้งหนี้ (แบ่งจ่ายแบบรายการ)", items were incorrectly setting quantity to 0 instead of minimum 1
 - **Solution**: Fixed `invoice_creation_controller.dart` methods:
   - `toggleItemSelection()`: Now sets minimum quantity to 1 when item is selected, uses original quantity as default
@@ -91,6 +171,25 @@
 - **Impact**: Improved user experience for item-based invoice creation with logical quantity defaults
 
 ## Technical Architecture
+
+### Auto-fill and Data Integration System
+- **Company Data Integration**: Seamless fetching from `workspaces/{workspaceId}/companies/{companyId}` collection
+- **Cross-Collection Data Mapping**: Intelligent mapping between company fields and customer form fields
+- **Data Consistency**: Ensures customer information matches company records when business relationship exists
+- **Flexible Data Handling**: Supports both individual customers and company-associated customers
+- **Error Handling**: Graceful fallback when company data is incomplete or unavailable
+
+### Smart Default Assignment System
+- **Context-Aware Defaults**: Different default behaviors for new vs. existing documents
+- **User-Centric Design**: Auto-selects current user as seller for most common use case
+- **Workspace Integration**: Validates user permissions and workspace membership before assignment
+- **Data Preservation**: Maintains existing selections when editing documents
+
+### Data Persistence and Loading Enhancement
+- **Robust Data Loading**: Enhanced payment method and document data loading with comprehensive error handling
+- **Type Safety**: Improved type checking and validation for document field assignment
+- **State Management**: Consistent data state across document creation and editing workflows
+- **Debugging Support**: Comprehensive logging for troubleshooting data assignment issues
 
 ### Customer Data Management Enhancement
 - Smart default selection reduces user friction when creating documents for individual customers
