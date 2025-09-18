@@ -18,6 +18,7 @@ import '../../document/view/create_document_from_card_page.dart';
 import '../../document/view/add_edit_document_page.dart';
 import '../../../core/services/notifications_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
+import '../../customers/view/add_edit_customer_page.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -233,6 +234,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
   // HTML Editor controller
   final HtmlEditorController _htmlEditorController = HtmlEditorController();
+  bool _isHtmlEditorReady = false;
 
   // Current user information
   Map<String, dynamic>? _currentUserInfo;
@@ -679,35 +681,41 @@ class _EditCardPageState extends State<EditCardPage> {
           };
         }
 
-        setState(() {
-          _availableCompanies = companyMap.values.toList();
-          // ถ้า company ปัจจุบันไม่มีในรายการใหม่ ให้รีเซ็ต
-          if (_selectedCompany != 'none' &&
-              !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
-            _selectedCompany = 'none';
-          }
-        });
+        if (mounted) {
+          setState(() {
+            _availableCompanies = companyMap.values.toList();
+            // ถ้า company ปัจจุบันไม่มีในรายการใหม่ ให้รีเซ็ต
+            if (_selectedCompany != 'none' &&
+                !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
+              _selectedCompany = 'none';
+            }
+          });
+        }
 
         print(
           '✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies',
         );
       } else {
+        if (mounted) {
+          setState(() {
+            _availableCompanies = [
+              {'id': 'none', 'name': 'None'},
+            ];
+            _selectedCompany = 'none';
+          });
+        }
+        print('⚠️ No companies found for customer');
+      }
+    } catch (e) {
+      print('❌ Failed to load companies for customer: $e');
+      if (mounted) {
         setState(() {
           _availableCompanies = [
             {'id': 'none', 'name': 'None'},
           ];
           _selectedCompany = 'none';
         });
-        print('⚠️ No companies found for customer');
       }
-    } catch (e) {
-      print('❌ Failed to load companies for customer: $e');
-      setState(() {
-        _availableCompanies = [
-          {'id': 'none', 'name': 'None'},
-        ];
-        _selectedCompany = 'none';
-      });
     }
   }
 
@@ -732,9 +740,11 @@ class _EditCardPageState extends State<EditCardPage> {
 
             if (productDoc.exists) {
               final productData = productDoc.data()!;
-              setState(() {
-                _productItems[i]['image'] = productData['imageUrl'];
-              });
+              if (mounted) {
+                setState(() {
+                  _productItems[i]['image'] = productData['imageUrl'];
+                });
+              }
             }
           } catch (e) {
             print('❌ Failed to load image for product $productId: $e');
@@ -782,26 +792,28 @@ class _EditCardPageState extends State<EditCardPage> {
         });
       }
 
-      setState(() {
-        _quotationTemplates = templates;
-        
-        // ตรวจสอบ quotationTemplateId จาก card
-        if (_selectedTemplateId != null && _selectedTemplateId!.isNotEmpty) {
-          // ตรวจสอบว่า template ที่เลือกมีอยู่จริงใน list หรือไม่
-          final templateExists = templates.any((t) => t['id'] == _selectedTemplateId);
-          if (!templateExists && templates.isNotEmpty) {
-            // ถ้าไม่พบ template ที่ระบุ ให้เลือก template แรก
+      if (mounted) {
+        setState(() {
+          _quotationTemplates = templates;
+          
+          // ตรวจสอบ quotationTemplateId จาก card
+          if (_selectedTemplateId != null && _selectedTemplateId!.isNotEmpty) {
+            // ตรวจสอบว่า template ที่เลือกมีอยู่จริงใน list หรือไม่
+            final templateExists = templates.any((t) => t['id'] == _selectedTemplateId);
+            if (!templateExists && templates.isNotEmpty) {
+              // ถ้าไม่พบ template ที่ระบุ ให้เลือก template แรก
+              _selectedTemplateId = templates.first['id'];
+              print('⚠️ Template not found, selected first template: $_selectedTemplateId');
+            }
+          } else if (templates.isNotEmpty) {
+            // ถ้าไม่มี quotationTemplateId ให้เลือก template แรก
             _selectedTemplateId = templates.first['id'];
-            print('⚠️ Template not found, selected first template: $_selectedTemplateId');
+            print('📋 No templateId in card, selected first template: $_selectedTemplateId');
           }
-        } else if (templates.isNotEmpty) {
-          // ถ้าไม่มี quotationTemplateId ให้เลือก template แรก
-          _selectedTemplateId = templates.first['id'];
-          print('📋 No templateId in card, selected first template: $_selectedTemplateId');
-        }
-        
-        _updateVisibleColumns();
-      });
+          
+          _updateVisibleColumns();
+        });
+      }
 
       print('✅ Loaded ${templates.length} quotation templates');
       print('🎯 Selected template: $_selectedTemplateId');
@@ -1235,17 +1247,31 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       );
     }
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          'Edit Job Card',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        centerTitle: false,
+    return PopScope(
+      canPop: _isHtmlEditorReady,
+      onPopInvoked: (didPop) {
+        if (!didPop && !_isHtmlEditorReady) {
+          // Show message to user that they need to wait
+          Get.snackbar(
+            'Please Wait',
+            'HTML editor is still loading. Please wait a moment before going back.',
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 2),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: AppBar(
+          title: const Text(
+            'Edit Job Card',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0,
+          centerTitle: false,
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.black54),
@@ -1444,6 +1470,7 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       ),
       bottomNavigationBar: _buildBottomButtons(),
+      ),
     );
   }
 
@@ -4380,41 +4407,61 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
-          decoration: const InputDecoration(
-            hintText: 'Select customer',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-          isExpanded: true,
-          items: _availableCustomers.map((customer) {
-            return DropdownMenuItem<String>(
-              value: customer['id'],
-              child: Text(
-                customer['name'] ?? customer['id'],
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14),
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedCustomer = value ?? '';
-            });
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
+                decoration: const InputDecoration(
+                  hintText: 'Select customer',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                isExpanded: true,
+                items: _availableCustomers.map((customer) {
+                  return DropdownMenuItem<String>(
+                    value: customer['id'],
+                    child: Text(
+                      customer['name'] ?? customer['id'],
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCustomer = value ?? '';
+                  });
 
-            // Load companies for selected customer
-            if (value != null && value.isNotEmpty) {
-              _loadCompaniesForCustomer(value);
-            } else {
-              setState(() {
-                _availableCompanies = [
-                  {'id': 'none', 'name': 'None'},
-                ];
-                _selectedCompany = 'none';
-              });
-            }
-          },
+                  // Load companies for selected customer
+                  if (value != null && value.isNotEmpty) {
+                    _loadCompaniesForCustomer(value);
+                  } else {
+                    setState(() {
+                      _availableCompanies = [
+                        {'id': 'none', 'name': 'None'},
+                      ];
+                      _selectedCompany = 'none';
+                    });
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _openAddCustomerPage,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
         // Company Section
@@ -4484,6 +4531,14 @@ class _EditCardPageState extends State<EditCardPage> {
               hint: 'Enter job details...',
               shouldEnsureVisible: true,
               initialText: widget.card.description.isNotEmpty ? widget.card.description : '',
+            ),
+            callbacks: Callbacks(
+              onInit: () {
+                print('✅ HTML Editor initialized in edit card page');
+                setState(() {
+                  _isHtmlEditorReady = true;
+                });
+              },
             ),
             htmlToolbarOptions: const HtmlToolbarOptions(
               toolbarPosition: ToolbarPosition.aboveEditor,
@@ -6231,6 +6286,18 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
+  Future<void> _openAddCustomerPage() async {
+    final result = await Get.to(
+      () => const AddEditCustomerPage(customerSources: []),
+    );
+    
+    if (result == true) {
+      // Refresh customer list after adding new customer
+      await _loadAvailableOptions();
+      setState(() {});
+    }
+  }
+
   // Product management methods
   void _addProduct() {
     _showProductSelectionDialog();
@@ -6789,6 +6856,20 @@ class _EditCardPageState extends State<EditCardPage> {
 
   @override
   void dispose() {
+    print('🔄 EditCardPage.dispose - Page being disposed');
+    
+    // Skip HTML editor disposal to prevent JavaScript evaluation errors
+    // The HTML editor will be automatically disposed when the widget tree is destroyed
+    print('⚠️ Skipping HTML editor disposal to prevent JavaScript evaluation errors');
+    
+    // Dispose todo controllers
+    for (var todo in _todoItems) {
+      todo['controller']?.dispose();
+    }
+    
+    // Dispose edit comment controller if exists
+    _editCommentController.dispose();
+    
     _jobIdController.dispose();
     _titleController.dispose();
     _detailsController.dispose();

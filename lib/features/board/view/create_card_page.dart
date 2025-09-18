@@ -8,6 +8,7 @@ import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../data/services/firestore_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
+import '../../customers/view/add_edit_customer_page.dart';
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -275,29 +276,35 @@ class _CreateCardPageState extends State<CreateCardPage> {
           };
         }
         
-        setState(() {
-          _availableCompanies = companyMap.values.toList();
-          _selectedCompany = 'none';
-        });
+        if (mounted) {
+          setState(() {
+            _availableCompanies = companyMap.values.toList();
+            _selectedCompany = 'none';
+          });
+        }
         
         print('✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies');
       } else {
+        if (mounted) {
+          setState(() {
+            _availableCompanies = [
+              {'id': 'none', 'name': 'None'},
+            ];
+            _selectedCompany = 'none';
+          });
+        }
+        print('⚠️ No companies found for customer');
+      }
+    } catch (e) {
+      print('❌ Failed to load companies for customer: $e');
+      if (mounted) {
         setState(() {
           _availableCompanies = [
             {'id': 'none', 'name': 'None'},
           ];
           _selectedCompany = 'none';
         });
-        print('⚠️ No companies found for customer');
       }
-    } catch (e) {
-      print('❌ Failed to load companies for customer: $e');
-      setState(() {
-        _availableCompanies = [
-          {'id': 'none', 'name': 'None'},
-        ];
-        _selectedCompany = 'none';
-      });
     }
   }
 
@@ -448,6 +455,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
     for (var todo in _todoItems) {
       todo['controller']?.dispose();
     }
+    
+    // Skip HTML editor disposal to prevent JavaScript evaluation errors
+    // The HTML editor will be automatically disposed when the widget tree is destroyed
+    print('⚠️ Skipping HTML editor disposal to prevent JavaScript evaluation errors');
     
     _jobIdController.dispose();
     _titleController.dispose();
@@ -673,18 +684,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
       print('✅ Card created successfully with ID: $cardId');
 
-      // Show success message and navigate back immediately
-      Get.snackbar(
-        'Success',
-        'Job Card created successfully',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 1),
-      );
-
-      print('🔄 CreateCardPage._saveCard - Navigating back...');
-      
       // Reset loading state before navigation
       if (mounted) {
         setState(() {
@@ -694,6 +693,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
         // Navigate back immediately after success
         Navigator.of(context).pop();
         print('✅ CreateCardPage._saveCard - Navigation completed');
+        
+        // Show warning dialog if HTML editor was unavailable
+        if (!_isHtmlEditorReady) {
+          _showHtmlEditorWarningDialog();
+        }
       } else {
         print('⚠️ CreateCardPage._saveCard - Widget not mounted, cannot navigate');
       }
@@ -717,6 +721,53 @@ class _CreateCardPageState extends State<CreateCardPage> {
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
       colorText: Colors.white,
+    );
+  }
+
+  void _showHtmlEditorWarningDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.orange,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.white, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Warning',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Description editor unavailable, card will be created without description. You can edit it later.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -761,12 +812,26 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ),
       );
     }
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Job Card'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
+    return PopScope(
+      canPop: _isHtmlEditorReady,
+      onPopInvoked: (didPop) {
+        if (!didPop && !_isHtmlEditorReady) {
+          // Show message to user that they need to wait
+          Get.snackbar(
+            'Please Wait',
+            'HTML editor is still loading. Please wait a moment before going back.',
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 2),
+          );
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Create Job Card'),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
         actions: [
           // Action menu
           // PopupMenuButton<String>(
@@ -890,6 +955,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   _buildActionButtons(),
                 ],
               ),
+      ),
     );
   }
 
@@ -1164,6 +1230,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
+  Future<void> _openAddCustomerPage() async {
+    final result = await Get.to(
+      () => const AddEditCustomerPage(customerSources: []),
+    );
+    
+    if (result == true) {
+      // Refresh customer list after adding new customer
+      await _loadAvailableOptions();
+      setState(() {});
+    }
+  }
+
   Widget _buildAssigneeSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1251,22 +1329,20 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 },
               ),
             ),
-            // const SizedBox(width: 8),
-            // ElevatedButton.icon(
-            //   onPressed: () {
-            //     // New customer functionality will be implemented later
-            //   },
-            //   icon: const Icon(Icons.add, size: 16),
-            //   label: const Text('New'),
-            //   style: ElevatedButton.styleFrom(
-            //     backgroundColor: AppTheme.primaryOrange,
-            //     foregroundColor: Colors.white,
-            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            //     shape: RoundedRectangleBorder(
-            //       borderRadius: BorderRadius.circular(6),
-            //     ),
-            //   ),
-            // ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _openAddCustomerPage,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
           ],
         ),
       ],

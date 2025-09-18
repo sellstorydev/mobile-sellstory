@@ -4,7 +4,66 @@
     - For better answer me please read your mememory inside file `lib/features/board/BOARD_SUMMARY.md`
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
+## 
+Topic: After enter careate_card_page.dart and edit_card_page.dart then press exit immediately, show error like this
+```
+[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: MissingPluginException(No implementation found for method evaluateJavascript on channel com.pichillilorenzo/flutter_inappwebview_3)
+#0      MethodChannel._invokeMethod (package:flutter/src/services/platform_channel.dart:365:7)
+platform_channel.dart:365
+<asynchronous suspension>
+#1      IOSInAppWebViewController.evaluateJavascript (package:flutter_inappwebview_ios/src/in_app_webview/in_app_webview_controller.dart:1924:16)
+in_app_webview_controller.dart:1924
+<asynchronous suspension>
+#2      HtmlEditorController._evaluateJavascript (package:html_editor_enhanced/src/html_editor_controller_mobile.dart:264:20)
+html_editor_controller_mobile.dart:264
+```
 
+##
+Topic: /fix error htmleditor load not success
+Detail: After enter careate_card_page.dart and edit_card_page.dart then press exit immediately, show error like this
+```
+Exception has occurred.
+_Exception (Exception: HTML editor is still loading, please wait before evaluating this JS: $('#summernote-2').summernote('reset');!)
+```
+i think should disable go back button or PopScope go back until load html editor success
+
+## 
+Topic: /fix error create_card_page.dart
+detail: After enter create_card_page.dart then go back, show error like this
+```
+Exception has occurred.
+MissingPluginException (MissingPluginException(No implementation found for method evaluateJavascript on channel com.pichillilorenzo/flutter_inappwebview_3))
+
+flutter: 🔄 CreateCardPage.dispose - Page being disposed
+[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: MissingPluginException(No implementation found for method evaluateJavascript on channel com.pichillilorenzo/flutter_inappwebview_3)
+#0      MethodChannel._invokeMethod (package:flutter/src/services/platform_channel.dart:365:7)
+platform_channel.dart:365
+<asynchronous suspension>
+#1      IOSInAppWebViewController.evaluateJavascript (package:flutter_inappwebview_ios/src/in_app_webview/in_app_webview_controller.dart:1924:16)
+in_app_webview_controller.dart:1924
+<asynchronous suspension>
+#2      _HtmlEditorWidgetMobileState.build.<anonymous closure> (package:html_editor_enhanced/src/widgets/html_editor_widget_mobile.dart:445:23)
+html_editor_widget_mobile.dart:445
+<asynchronous suspension>
+
+flutter: ❌ Failed to load companies for customer: setState() called after dispose(): _EditCardPageState#bb53e(lifecycle state: defunct, not mounted)
+This error happens if you call setState() on a State object for a widget that no longer appears in the widget tree (e.g., whose parent widget no longer includes the widget in its build). This error can occur when code calls setState() from a timer or an animation callback.
+The preferred solution is to cancel the timer or stop listening to the animation in the dispose() callback. Another solution is to check the "mounted" property of this object before calling setState() to ensure the object is still in the tree.
+This error might indicate a memory leak if setState() is being called because another object is retaining a reference to this State object after it has been removed from the tree. To avoid memory leaks, consider breaking the reference to this object during dispose().
+[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: setState() called after dispose(): _EditCardPageState#bb53e(lifecycle state: defunct, not mounted)
+This error happens if you call setState() on a State object for a widget that no longer appears in the widget tree (e.g., whose parent widget no longer includes the widget in its build). This error can occur when code calls setState() from a timer or an animation callback.
+The preferred solution is to cancel the timer or stop listening to the animation in the dispose() callback. Another solution is to check the "mounted" property of this object before calling setState() to ensure the object is still in the tree.
+This error might indicate a memory leak if setState() is being called because another object is retaining a reference to this State object after it has been removed from the tree. To avoid memory leaks, consider breaking the reference to this object during dispose().
+#0      State.setState.<anonymous closure> (package:flutte<…>
+```
+
+##
+Topic: /fix Fix warning after create new jobcard 
+Detail: After create new jobcard, show alert dialog warning like attach image.
+
+##
+Topic: Add button "Add Customer" in Customer information section.
+Detail: Add button "Add Customer" in Customer informaion section in edit_card_page.dart and create_card_page.dart. By pressed button go to Add customer "add_edit_customer_page.dart".After add customer success go back to edit card page or create card page and fetch new customer in select
 
 ##
 Topic:Fix error html input field description in Content and Tasks section in create_card_page.dart 
