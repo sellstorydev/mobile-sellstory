@@ -143,18 +143,18 @@ class MorePage extends StatelessWidget {
                     //   ),
                     // ),
                     // _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.people_outline,
-                      title: 'sales_management'.tr,
-                      onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'sales_management_coming_soon'.tr,
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      },
-                    ),
-                    _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.people_outline,
+                    //   title: 'sales_management'.tr,
+                    //   onTap: () {
+                    //     Get.snackbar(
+                    //       'Info',
+                    //       'sales_management_coming_soon'.tr,
+                    //       snackPosition: SnackPosition.BOTTOM,
+                    //     );
+                    //   },
+                    // ),
+                    // _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.archive_outlined,
                       title: 'archive'.tr,
@@ -162,30 +162,30 @@ class MorePage extends StatelessWidget {
                         Get.toNamed('/archive');
                       },
                     ),
-                    _buildDivider(),
-                    PermissionGuard(
-                      anyOf: const ['settings:catalog:manage'],
-                      child: _buildMenuItem(
-                        icon: Icons.tag_outlined,
-                        title: 'hashtag_center'.tr,
-                        onTap: () {
-                          final workspaceId =
-                              boardController.currentWorkspaceId.value;
-                          if (workspaceId.isNotEmpty) {
-                            controller.openHashtagSettings(workspaceId);
-                          } else {
-                            Get.snackbar(
-                              'Error',
-                              'no_workspace_selected'.tr,
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Get.theme.colorScheme.error
-                                  .withValues(alpha: 0.1),
-                              colorText: Get.theme.colorScheme.error,
-                            );
-                          }
-                        },
-                      ),
-                    ),
+                    // _buildDivider(),
+                    // PermissionGuard(
+                    //   anyOf: const ['settings:catalog:manage'],
+                    //   child: _buildMenuItem(
+                    //     icon: Icons.tag_outlined,
+                    //     title: 'hashtag_center'.tr,
+                    //     onTap: () {
+                    //       final workspaceId =
+                    //           boardController.currentWorkspaceId.value;
+                    //       if (workspaceId.isNotEmpty) {
+                    //         controller.openHashtagSettings(workspaceId);
+                    //       } else {
+                    //         Get.snackbar(
+                    //           'Error',
+                    //           'no_workspace_selected'.tr,
+                    //           snackPosition: SnackPosition.BOTTOM,
+                    //           backgroundColor: Get.theme.colorScheme.error
+                    //               .withValues(alpha: 0.1),
+                    //           colorText: Get.theme.colorScheme.error,
+                    //         );
+                    //       }
+                    //     },
+                    //   ),
+                    // ),
                     // _buildDivider(),
                     // _buildMenuItem(
                     //   icon: Icons.web,
@@ -213,30 +213,30 @@ class MorePage extends StatelessWidget {
                     //   },
                     // ),
 
-                    _buildDivider(),
-                    PermissionGuard(
-                      anyOf: const ['settings:company:manage'],
-                      child: _buildMenuItem(
-                        icon: Icons.business_outlined,
-                        title: 'company_settings'.tr,
-                        onTap: () {
-                          final workspaceId =
-                              boardController.currentWorkspaceId.value;
-                          if (workspaceId.isNotEmpty) {
-                            controller.openCompanySettings(workspaceId);
-                          } else {
-                            Get.snackbar(
-                              'Error',
-                              '',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Get.theme.colorScheme.error
-                                  .withValues(alpha: 0.1),
-                              colorText: Get.theme.colorScheme.error,
-                            );
-                          }
-                        },
-                      ),
-                    ),
+                    // _buildDivider(),
+                    // PermissionGuard(
+                    //   anyOf: const ['settings:company:manage'],
+                    //   child: _buildMenuItem(
+                    //     icon: Icons.business_outlined,
+                    //     title: 'company_settings'.tr,
+                    //     onTap: () {
+                    //       final workspaceId =
+                    //           boardController.currentWorkspaceId.value;
+                    //       if (workspaceId.isNotEmpty) {
+                    //         controller.openCompanySettings(workspaceId);
+                    //       } else {
+                    //         Get.snackbar(
+                    //           'Error',
+                    //           '',
+                    //           snackPosition: SnackPosition.BOTTOM,
+                    //           backgroundColor: Get.theme.colorScheme.error
+                    //               .withValues(alpha: 0.1),
+                    //           colorText: Get.theme.colorScheme.error,
+                    //         );
+                    //       }
+                    //     },
+                    //   ),
+                    // ),
                     _buildDivider(),
                     PermissionGuard(
                       anyOf: const ['settings:board:manage'],
@@ -261,69 +261,69 @@ class MorePage extends StatelessWidget {
                         },
                       ),
                     ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.notifications_outlined,
-                      title: 'notification_settings'.tr,
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openNotificationSettings(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            '',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.message_outlined,
-                      title: 'welcome_message'.tr,
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openWelcomeMessageSettings(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            '',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.smart_toy_outlined,
-                      title: 'chatbot_settings'.tr,
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openChatbotSettings(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            '',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
-                    ),
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.notifications_outlined,
+                    //   title: 'notification_settings'.tr,
+                    //   onTap: () {
+                    //     final workspaceId =
+                    //         boardController.currentWorkspaceId.value;
+                    //     if (workspaceId.isNotEmpty) {
+                    //       controller.openNotificationSettings(workspaceId);
+                    //     } else {
+                    //       Get.snackbar(
+                    //         'Error',
+                    //         '',
+                    //         snackPosition: SnackPosition.BOTTOM,
+                    //         backgroundColor: Get.theme.colorScheme.error
+                    //             .withValues(alpha: 0.1),
+                    //         colorText: Get.theme.colorScheme.error,
+                    //       );
+                    //     }
+                    //   },
+                    // ),
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.message_outlined,
+                    //   title: 'welcome_message'.tr,
+                    //   onTap: () {
+                    //     final workspaceId =
+                    //         boardController.currentWorkspaceId.value;
+                    //     if (workspaceId.isNotEmpty) {
+                    //       controller.openWelcomeMessageSettings(workspaceId);
+                    //     } else {
+                    //       Get.snackbar(
+                    //         'Error',
+                    //         '',
+                    //         snackPosition: SnackPosition.BOTTOM,
+                    //         backgroundColor: Get.theme.colorScheme.error
+                    //             .withValues(alpha: 0.1),
+                    //         colorText: Get.theme.colorScheme.error,
+                    //       );
+                    //     }
+                    //   },
+                    // ),
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.smart_toy_outlined,
+                    //   title: 'chatbot_settings'.tr,
+                    //   onTap: () {
+                    //     final workspaceId =
+                    //         boardController.currentWorkspaceId.value;
+                    //     if (workspaceId.isNotEmpty) {
+                    //       controller.openChatbotSettings(workspaceId);
+                    //     } else {
+                    //       Get.snackbar(
+                    //         'Error',
+                    //         '',
+                    //         snackPosition: SnackPosition.BOTTOM,
+                    //         backgroundColor: Get.theme.colorScheme.error
+                    //             .withValues(alpha: 0.1),
+                    //         colorText: Get.theme.colorScheme.error,
+                    //       );
+                    //     }
+                    //   },
+                    // ),
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.rule_outlined,
@@ -345,69 +345,69 @@ class MorePage extends StatelessWidget {
                         }
                       },
                     ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.security_outlined,
-                      title: 'roles_permissions'.tr,
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openRolesPermissions(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            '',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.approval_outlined,
-                      title: 'approval_conditions'.tr,
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openApprovalConditions(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            '',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.description_outlined,
-                      title: 'document_settings'.tr,
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openDocumentSettings(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            '',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
-                    ),
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.security_outlined,
+                    //   title: 'roles_permissions'.tr,
+                    //   onTap: () {
+                    //     final workspaceId =
+                    //         boardController.currentWorkspaceId.value;
+                    //     if (workspaceId.isNotEmpty) {
+                    //       controller.openRolesPermissions(workspaceId);
+                    //     } else {
+                    //       Get.snackbar(
+                    //         'Error',
+                    //         '',
+                    //         snackPosition: SnackPosition.BOTTOM,
+                    //         backgroundColor: Get.theme.colorScheme.error
+                    //             .withValues(alpha: 0.1),
+                    //         colorText: Get.theme.colorScheme.error,
+                    //       );
+                    //     }
+                    //   },
+                    // ),
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.approval_outlined,
+                    //   title: 'approval_conditions'.tr,
+                    //   onTap: () {
+                    //     final workspaceId =
+                    //         boardController.currentWorkspaceId.value;
+                    //     if (workspaceId.isNotEmpty) {
+                    //       controller.openApprovalConditions(workspaceId);
+                    //     } else {
+                    //       Get.snackbar(
+                    //         'Error',
+                    //         '',
+                    //         snackPosition: SnackPosition.BOTTOM,
+                    //         backgroundColor: Get.theme.colorScheme.error
+                    //             .withValues(alpha: 0.1),
+                    //         colorText: Get.theme.colorScheme.error,
+                    //       );
+                    //     }
+                    //   },
+                    // ),
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.description_outlined,
+                    //   title: 'document_settings'.tr,
+                    //   onTap: () {
+                    //     final workspaceId =
+                    //         boardController.currentWorkspaceId.value;
+                    //     if (workspaceId.isNotEmpty) {
+                    //       controller.openDocumentSettings(workspaceId);
+                    //     } else {
+                    //       Get.snackbar(
+                    //         'Error',
+                    //         '',
+                    //         snackPosition: SnackPosition.BOTTOM,
+                    //         backgroundColor: Get.theme.colorScheme.error
+                    //             .withValues(alpha: 0.1),
+                    //         colorText: Get.theme.colorScheme.error,
+                    //       );
+                    //     }
+                    //   },
+                    // ),
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.inventory_2_outlined,
@@ -444,18 +444,18 @@ class MorePage extends StatelessWidget {
                     //     },
                     //   ),
                     // ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.privacy_tip_outlined,
-                      title: 'data_disclosure_consent'.tr,
-                      onTap: () {
-                        Get.snackbar(
-                          'Info',
-                          'data_disclosure_coming_soon'.tr,
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      },
-                    ),
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.privacy_tip_outlined,
+                    //   title: 'data_disclosure_consent'.tr,
+                    //   onTap: () {
+                    //     Get.snackbar(
+                    //       'Info',
+                    //       'data_disclosure_coming_soon'.tr,
+                    //       snackPosition: SnackPosition.BOTTOM,
+                    //     );
+                    //   },
+                    // ),
                     _buildDivider(),
                     _buildMenuItem(
                       icon: Icons.logout,
@@ -469,24 +469,24 @@ class MorePage extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Delete Account Button
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Get.snackbar(
-                      'Info',
-                      'delete_account_coming_soon'.tr,
-                      snackPosition: SnackPosition.BOTTOM,
-                    );
-                  },
-                  child: Text(
-                    'delete_account'.tr,
-                    style: const TextStyle(color: Colors.red, fontSize: 14),
-                  ),
-                ),
-              ),
+              // // Delete Account Button
+              // Center(
+              //   child: TextButton(
+              //     onPressed: () {
+              //       Get.snackbar(
+              //         'Info',
+              //         'delete_account_coming_soon'.tr,
+              //         snackPosition: SnackPosition.BOTTOM,
+              //       );
+              //     },
+              //     child: Text(
+              //       'delete_account'.tr,
+              //       style: const TextStyle(color: Colors.red, fontSize: 14),
+              //     ),
+              //   ),
+              // ),
 
-              const SizedBox(height: 16),
+              // const SizedBox(height: 16),
 
               // App Version
               Center(

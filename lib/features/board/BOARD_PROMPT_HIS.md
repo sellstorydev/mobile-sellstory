@@ -5,6 +5,12 @@
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
+
+##
+Topic:Fix error html input field description in Content and Tasks section in create_card_page.dart 
+Detail: Now after pressed save card button in create card page, show toast "Failed to create card: MissingPluginException(No implementation found for method evaluateJavascript on channel com.pichililorenzo/fluttter_inappwebview_15 )"
+
+
 ##
 Topic: Comment section in edit_card_page.dart can't delete and edit
 Detail: Comment section in edit_card_page.dart add icon delete and edit 
@@ -16,8 +22,6 @@ Step:
 
 Path: /workspaces/{workspace uid}/cards/{card uid}/notes[]
  
-
-
 ##
 Topic: fix bad ui.
 Detail: Timeline and status section in edit_card_page.dart status select ui not map create_card_page.dart chagne ui status select like create_card_page.dart

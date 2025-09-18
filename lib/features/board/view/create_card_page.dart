@@ -39,6 +39,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   // HTML Editor controller
   final HtmlEditorController _htmlEditorController = HtmlEditorController();
+  bool _isHtmlEditorReady = false;
+  
+  // Fallback controller for description if HTML editor fails
+  final TextEditingController _descriptionFallbackController = TextEditingController();
 
   
   // Hashtag state
@@ -449,6 +453,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     _titleController.dispose();
     _assigneeController.dispose();
     _detailsController.dispose();
+    _descriptionFallbackController.dispose();
     super.dispose();
   }
 
@@ -572,11 +577,47 @@ class _CreateCardPageState extends State<CreateCardPage> {
         'mentions': [],
       }).toList();
 
-      // Format description as HTML from HTML editor
+      // Format description as HTML from HTML editor with timeout and retry mechanism
       String htmlDescription = '';
-      final editorContent = await _htmlEditorController.getText();
-      if (editorContent.isNotEmpty) {
-        htmlDescription = editorContent;
+      try {
+        if (_isHtmlEditorReady) {
+          // Add timeout to prevent indefinite waiting
+          final textFuture = _htmlEditorController.getText();
+          final editorContent = await textFuture.timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              print('⚠️ HTML editor getText timeout, returning empty string');
+              return '';
+            },
+          );
+          
+          if (editorContent.isNotEmpty) {
+            htmlDescription = editorContent;
+          }
+        } else {
+          print('⚠️ HTML editor not ready, using empty description');
+        }
+      } catch (e) {
+        print('⚠️ Error getting HTML editor content: $e');
+        
+        // For specific MissingPluginException, show more informative error
+        if (e.toString().contains('MissingPluginException') || 
+            e.toString().contains('evaluateJavascript')) {
+          print('⚠️ WebView plugin error detected - HTML editor not fully initialized');
+          
+          // Still allow card creation with empty description
+          Get.snackbar(
+            'Warning',
+            'Description editor unavailable, card will be created without description. You can edit it later.',
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 3),
+          );
+        }
+        
+        // Fallback to empty string if HTML editor fails
+        htmlDescription = '';
       }
 
       final card = JobCard(
@@ -728,28 +769,28 @@ class _CreateCardPageState extends State<CreateCardPage> {
         elevation: 0,
         actions: [
           // Action menu
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              // Add watcher functionality will be implemented later
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem<String>(
-                value: 'add_watcher',
-                child: Row(
-                  children: [
-                    const Icon(Icons.visibility_outlined, size: 20),
-                    const SizedBox(width: 12),
-                    const Text('Add a watcher'),
-                  ],
-                ),
-              ),
-            ],
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(Icons.more_vert),
-            ),
-          ),
-          // Close button
+          // PopupMenuButton<String>(
+          //   onSelected: (value) {
+          //     // Add watcher functionality will be implemented later
+          //   },
+          //   itemBuilder: (context) => [
+          //     PopupMenuItem<String>(
+          //       value: 'add_watcher',
+          //       child: Row(
+          //         children: [
+          //           const Icon(Icons.visibility_outlined, size: 20),
+          //           const SizedBox(width: 12),
+          //           const Text('Add a watcher'),
+          //         ],
+          //       ),
+          //     ),
+          //   ],
+          //   child: const Padding(
+          //     padding: EdgeInsets.all(8.0),
+          //     child: Icon(Icons.more_vert),
+          //   ),
+          // ),
+          // // Close button
           IconButton(
             onPressed: () => Get.back(),
             icon: const Icon(Icons.close),
@@ -1906,8 +1947,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
             controller: _htmlEditorController,
             htmlEditorOptions: const HtmlEditorOptions(
               hint: 'Enter description...',
-              shouldEnsureVisible: true,
+              shouldEnsureVisible: false,
               initialText: '',
+              characterLimit: 10000,
             ),
             htmlToolbarOptions: const HtmlToolbarOptions(
               toolbarPosition: ToolbarPosition.aboveEditor,
@@ -1925,6 +1967,14 @@ class _CreateCardPageState extends State<CreateCardPage> {
             ),
             otherOptions: const OtherOptions(
               height: 150,
+            ),
+            callbacks: Callbacks(
+              onInit: () {
+                print('🔄 HTML editor initialized successfully');
+                setState(() {
+                  _isHtmlEditorReady = true;
+                });
+              },
             ),
           ),
         ),

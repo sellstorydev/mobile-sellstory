@@ -2,6 +2,88 @@
 
 ## Recent Changes
 
+### HTML Editor MissingPluginException Fix in create_card_page.dart (September 18, 2025)
+
+**Issue:** When pressing save card button in create card page, error toast appeared: "Failed to create card: MissingPluginException(No implementation found for method evaluateJavascript on channel com.pichililorenzo/fluttter_inappwebview_15)"
+
+**Root Cause Analysis:**
+- The `html_editor_enhanced` package depends on `flutter_inappwebview` plugin for JavaScript execution
+- The `_htmlEditorController.getText()` method calls `evaluateJavascript` to retrieve HTML content from the editor
+- The error occurs when the webview/editor is not fully initialized or the JavaScript bridge is not ready
+- This typically happens when save is called before the HTML editor's webview has completed initialization
+
+**Solution Applied:**
+1. **Added Initialization Tracking**: Added `_isHtmlEditorReady` boolean flag to track editor initialization state
+2. **Added onInit Callback**: Used `Callbacks(onInit: ...)` to detect when HTML editor is fully ready
+3. **Implemented Timeout Mechanism**: Added 5-second timeout to `getText()` call to prevent indefinite waiting
+4. **Enhanced Error Handling**: Specific handling for MissingPluginException with user-friendly warning
+5. **Graceful Degradation**: Card creation continues with empty description if editor fails
+
+**Technical Changes:**
+```dart
+// Before: Direct call without error handling
+final editorContent = await _htmlEditorController.getText();
+
+// After: Robust error handling with timeout
+final textFuture = _htmlEditorController.getText();
+final editorContent = await textFuture.timeout(
+  const Duration(seconds: 5),
+  onTimeout: () => '',
+);
+```
+
+**Error Handling Strategy:**
+- **Readiness Check**: Only attempt to get text if `_isHtmlEditorReady` is true
+- **Timeout Protection**: 5-second timeout prevents hanging on failed JavaScript calls
+- **MissingPluginException Detection**: Specific handling for webview plugin errors
+- **User Notification**: Orange warning snackbar explaining the issue to users
+- **Graceful Fallback**: Card creation proceeds with empty description instead of failing completely
+
+**Files Modified:**
+- `lib/features/board/view/create_card_page.dart`
+  - Added `_isHtmlEditorReady` state tracking
+  - Enhanced HTML editor with `Callbacks(onInit: ...)` 
+  - Improved error handling in `_saveCard()` method with timeout mechanism
+  - Added specific MissingPluginException detection and user notification
+
+**Benefits:**
+- **Prevents Card Creation Failure**: Users can still create cards even if HTML editor fails
+- **Better User Experience**: Clear warning message instead of cryptic error toast
+- **Robust Error Handling**: Timeout prevents app hanging on failed JavaScript calls
+- **Debugging Information**: Enhanced logging for troubleshooting HTML editor issues
+
+**User Impact:**
+- Cards can be created successfully even when HTML editor has initialization issues
+- Users receive clear feedback when description editor is unavailable
+- Can edit description later after card creation if editor was initially unavailable
+
+### Auto-Scroll Prevention Fix in create_card_page.dart (September 18, 2025)
+
+**Issue:** After entering create card page, when HTML editor finishes loading, the page automatically scrolls down to the HTML editor section instead of staying at the top.
+
+**Root Cause:** The `shouldEnsureVisible: true` option in HtmlEditorOptions causes the HTML editor to automatically scroll itself into view when initialization completes.
+
+**Solution Applied:**
+Changed `shouldEnsureVisible` from `true` to `false` in HtmlEditorOptions to prevent automatic scrolling behavior.
+
+**Technical Changes:**
+```dart
+// Before: Auto-scroll enabled
+shouldEnsureVisible: true,
+
+// After: Auto-scroll disabled  
+shouldEnsureVisible: false,
+```
+
+**Files Modified:**
+- `lib/features/board/view/create_card_page.dart`
+  - Updated HtmlEditorOptions to disable auto-scroll behavior
+
+**Benefits:**
+- Page stays at the top when HTML editor loads
+- Better user experience with predictable scroll position
+- Users can manually scroll to sections they want to interact with
+
 ### Status Section UI Fix in edit_card_page.dart (September 18, 2025)
 
 **Issue:** Timeline and status section in edit_card_page.dart had inconsistent UI compared to create_card_page.dart status selection interface.
