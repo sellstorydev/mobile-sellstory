@@ -1,4 +1,4 @@
-# POST PROMPT
+# PRE PROMPT
     - *important* You don't need to explain what you did. I don't want to know, it's a waste of time. Focus on editing the file to meet the task I gave you.
     - First read `lib/features/board/BOARD_SUMMARY.md` file for review your memory and brainstrom your self. 
     - For better answer me please read your mememory inside file `lib/features/board/BOARD_SUMMARY.md`
@@ -6,6 +6,20 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 
+##
+Topic: Todo title convert string in content and tasks section.
+Detail: In image in textfield show html tag,  Before Map value to title todo convert html tag string to normal string and save to html tag p.
+
+In textfield should be like this
+```
+text
+```
+
+If Save to title todo in firestore add only tag p
+```
+<p>text</p>
+
+```
 ##
 Topic: Todo title data not show in input field 
 
