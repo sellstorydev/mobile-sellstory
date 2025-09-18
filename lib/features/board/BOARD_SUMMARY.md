@@ -2,6 +2,40 @@
 
 ## Recent Changes
 
+### Todo Title Mapping Fix in edit_card_page.dart (September 18, 2025)
+
+**Issue:** Todo titles were not displaying in input fields in the Content and Tasks section when editing cards.
+
+**Root Cause Analysis:**
+- Firestore data structure uses `title` field for todo titles
+- Edit card initialization was only mapping `text` field 
+- Backup data shows todos have structure: `{"title": "todo title", "completed": false, "dueDate": timestamp}`
+
+**Solution Applied:**
+1. Updated `_initializeData()` method in edit_card_page.dart
+2. Modified todo mapping to handle both `title` and `text` fields from Firestore
+3. Added fallback logic: `todo['title'] ?? todo['text'] ?? ''`
+4. Updated TextEditingController initialization to use the correct title text
+5. Also mapped `completed` field as fallback for `isCompleted`
+
+**Technical Changes:**
+```dart
+// Before
+'text': todo['text'] ?? '',
+'controller': TextEditingController(text: todo['text'] ?? ''),
+
+// After  
+final titleText = todo['title'] ?? todo['text'] ?? '';
+'text': titleText,
+'controller': TextEditingController(text: titleText),
+'isCompleted': todo['isCompleted'] ?? todo['completed'] ?? false,
+```
+
+**Data Structure Understanding:**
+- Firestore todos structure: `{title: string, completed: boolean, dueDate: timestamp, id: string, mentions: []}`
+- App internal structure: `{text: string, isCompleted: boolean, controller: TextEditingController}`
+- The mapping now bridges both structures correctly
+
 ### HTML Editor Integration for Content & Details Section in edit_card_page.dart
 
 **Completed:**

@@ -360,14 +360,16 @@ class _EditCardPageState extends State<EditCardPage> {
 
     // Initialize todos
     _todoItems = List<Map<String, dynamic>>.from(widget.card.todos.map((todo) {
+      // Handle title field from Firestore data structure
+      final titleText = todo['title'] ?? todo['text'] ?? '';
       return {
         'id': todo['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        'text': todo['text'] ?? '',
-        'isCompleted': todo['isCompleted'] ?? false,
+        'text': titleText,
+        'isCompleted': todo['isCompleted'] ?? todo['completed'] ?? false,
         'dueDate': todo['dueDate'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['dueDate']) : null,
         'duration': todo['duration'],
         'endTime': todo['endTime'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['endTime']) : null,
-        'controller': TextEditingController(text: todo['text'] ?? ''),
+        'controller': TextEditingController(text: titleText),
       };
     }));
 

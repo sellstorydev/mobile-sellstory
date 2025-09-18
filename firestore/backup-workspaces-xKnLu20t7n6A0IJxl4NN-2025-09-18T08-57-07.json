@@ -185,7 +185,7 @@
           "product": 2,
           "company": 3,
           "jobCard": 58,
-          "quotation": 51
+          "quotation": 55
         }
       },
       "subCollection": {
@@ -856,23 +856,6 @@
             },
             "amount": 0,
             "withholdingTaxPercentage": 3,
-            "description": "<p><strong><p><strong><p><strong><p><strong><p><strong><p><strong><p><strong><p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Details</u></em></strong></span></p></strong></p></strong></p></strong></p></strong></p></strong></p></strong></p></strong></p>",
-            "todos": [
-              {
-                "completed": false,
-                "dueDate": 1756918860000,
-                "id": "todo-todo-todo-todo-todo-todo-todo-todo-1756975522376",
-                "mentions": [],
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
-              },
-              {
-                "completed": false,
-                "dueDate": 1756918860000,
-                "id": "todo-todo-todo-todo-todo-todo-todo-todo-1756975523853",
-                "mentions": [],
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
-              }
-            ],
             "expenses": [
               {
                 "customInputs": {
@@ -892,22 +875,31 @@
                 "unit": "จำนวน"
               }
             ],
-            "updatedAt": {
-              "_seconds": 1758016784,
-              "_nanoseconds": 960000000
-            },
             "relatedDocuments": [
               {
-                "id": "wqLjTmVGwXp5Phir4WKe",
-                "docNo": "EST-250916-0050",
-                "type": "QT"
-              },
-              {
-                "id": "Sa4MhNnD7C1M19wrV51t",
-                "docNo": "EST-250916-0051",
+                "id": "fan8Q0INnmXPI26bVeOq",
+                "docNo": "EST-250916-0055",
                 "type": "QT"
               }
             ],
+            "description": "<p><strong></strong></p><p><strong><strong></strong></strong></p><p><strong><strong><strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Detailstest1111111</u></em></strong></span></strong></strong></strong></p><p></p><p></p><p></p><p></p><p></p><p></p><p></p>",
+            "todos": [
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975522376",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
+              },
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975523853",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
+              }
+            ],
+            "updatedAt": 1758082199776,
             "subCollection": {
               "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/expenses": {
                 "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN": {
@@ -926,7 +918,7 @@
                   "productId": "34N6d2Az4sYF7ZHvyFHN",
                   "quantity": 1,
                   "unit": "จำนวน",
-                  "updatedAt": 1758016749678
+                  "updatedAt": 1758082200085
                 }
               }
             }
@@ -1089,126 +1081,65 @@
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/documents": {
-          "Sa4MhNnD7C1M19wrV51t": {
-            "docNo": "EST-250916-0051",
-            "type": "QT",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "status": "DRAFT",
+          "fan8Q0INnmXPI26bVeOq": {
+            "activityLog": [
+              {
+                "action": "Created",
+                "details": "Created quotation EST-250916-0055 from job card JB-250904-00431234",
+                "timestamp": 1758022559195,
+                "userDisplayName": "BewLnwZa",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+              }
+            ],
+            "createdAt": 1758022559195,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "customer": {
-              "id": "WNF9tUB8pFM6QKQw9Fj3",
-              "customFields": [],
-              "customId": "CUS-250822-0001",
-              "name": "Bew",
               "assignees": [
                 "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
                 "d3z7heLqwYXXC3u3O9uR7iO9ium2"
               ],
-              "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-              "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-              "emails": [
-                {
-                  "id": "email-initial",
-                  "value": "",
-                  "label": "Work"
-                }
-              ],
-              "updatedAt": 1756797511482,
               "companyNames": [
                 {
                   "id": "aVGCGee5LmYsr9oXYfE8",
-                  "value": "colaco company",
-                  "label": "Main"
-                }
-              ],
-              "phones": [
-                {
-                  "value": "",
-                  "id": "phone-initial",
-                  "label": "Work"
+                  "label": "Main",
+                  "value": "colaco company"
                 }
               ],
               "createdAt": 1755845245761,
-              "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+              "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "customFields": [],
+              "customId": "CUS-250822-0001",
+              "emails": [
+                {
+                  "id": "email-initial",
+                  "label": "Work",
+                  "value": ""
+                }
+              ],
+              "name": "Bew",
+              "phones": [
+                {
+                  "id": "phone-initial",
+                  "label": "Work",
+                  "value": ""
+                }
+              ],
+              "updatedAt": 1756797511482,
+              "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "workspaceId": "xKnLu20t7n6A0IJxl4NN"
             },
-            "seller": {
-              "uid": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-              "displayName": "BewLnwZa",
-              "photoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1757477615778-image_picker_ECC7211D-6E2F-4BFD-BF60-26E5C3832B13-18863-000000163018BDCE.jpg?alt=media&token=f34d4f45-4453-4bd5-b5e7-1c214c36fee2"
-            },
-            "sellerName": "BewLnwZa",
-            "jobName": "Job Card Title1234",
-            "jobCardId": "AhzmaDyKm4wwcMntM3hO",
-            "project": {
-              "name": "",
-              "refId": ""
-            },
-            "jobcardCustomId": "JB-250904-00431234",
-            "jobCardBoardId": "Mop2RUYjlM9kRoXGa001",
+            "discount": 1.17,
+            "docNo": "EST-250916-0055",
+            "grandTotal": -0.18189999999999992,
+            "isVatEnabled": true,
             "items": [
               {
-                "discount": 20,
-                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
-                "quantity": 1,
-                "name": "รายการ1",
-                "unit": "จำนวน",
-                "pricePerUnit": 1,
                 "customInputs": {
                   "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
                   "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
                   "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
                   "zJ1Gk75NoiV4WxZT1yEZN": "test01"
                 },
-                "description": "",
-                "productId": "34N6d2Az4sYF7ZHvyFHN",
-                "discountType": "percentage"
-              }
-            ],
-            "subtotal": 1,
-            "discount": 0.97,
-            "vatAmount": 0.002100000000000002,
-            "grandTotal": 0.03210000000000003,
-            "whtAmount": 0.0009000000000000007,
-            "withholdingTaxPercentage": 3,
-            "netTotal": 0.03120000000000003,
-            "isVatEnabled": true,
-            "validUntil": 1760608791416,
-            "createdAt": 1758016791416,
-            "updatedAt": 1758016791416,
-            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "activityLog": [
-              {
-                "timestamp": 1758016791416,
-                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-                "userDisplayName": "BewLnwZa",
-                "action": "Created",
-                "details": "Created quotation EST-250916-0051 from job card JB-250904-00431234"
-              }
-            ],
-            "templateId": "MwDjGmET9ECYTGveik98"
-          },
-          "wqLjTmVGwXp5Phir4WKe": {
-            "activityLog": [
-              {
-                "action": "Created",
-                "details": "Created quotation EST-250916-0050 from job card JB-250904-00431234",
-                "timestamp": 1758016784894,
-                "userDisplayName": "BewLnwZa",
-                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
-              }
-            ],
-            "createdAt": 1758016784894,
-            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "customer": {
-              "id": "WNF9tUB8pFM6QKQw9Fj3",
-              "name": "Bew"
-            },
-            "discount": 1.17,
-            "docNo": "EST-250916-0050",
-            "grandTotal": -0.18189999999999992,
-            "isVatEnabled": true,
-            "items": [
-              {
                 "description": "",
                 "discount": 20,
                 "discountType": "percentage",
@@ -1239,9 +1170,9 @@
             "subtotal": 1,
             "templateId": "MwDjGmET9ECYTGveik98",
             "type": "QT",
-            "updatedAt": 1758016784894,
+            "updatedAt": 1758022559195,
             "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "validUntil": 1760608784894,
+            "validUntil": 1760614559194,
             "vatAmount": -0.011899999999999996,
             "whtAmount": -0.0054569999999999974,
             "withholdingTaxPercentage": 3,
