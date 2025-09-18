@@ -488,8 +488,7 @@ class AddEditDocumentController extends GetxController {
         if (customer != null) {
           // Auto-fill customer fields from Firebase data
           customerAddressController.text = customer.address;
-          customerPostalCodeController.text =
-              customer.nationalId; // Using nationalId as postal code for now
+          customerPostalCodeController.text = ''; // Customers don't have postal code field
           customerNationalIdController.text = customer.nationalId;
 
           // Load all phone numbers
@@ -565,12 +564,48 @@ class AddEditDocumentController extends GetxController {
       if (companyId != null && companyId != 'individual') {
         final companyData = selectedCompanyData;
         if (companyData != null) {
-          // You can add company-specific auto-fill logic here
-          // For example, if you have company address, tax ID, etc.
           print('✅ Selected company: ${getCompanyDisplayName(companyData)}');
+          
+          // Auto-fill customer fields with company data by fetching from database
+          _loadAndFillCompanyData(companyId);
         }
       } else if (companyId == 'individual') {
         print('✅ Selected individual customer (no company)');
+        // Clear company-related fields when individual is selected
+        _clearCompanyAutoFilledData();
+        
+        // Re-fetch and auto-fill customer data if a customer is selected
+        if (_selectedCustomerId != null) {
+          final customer = _customers.firstWhereOrNull((c) => c.id == _selectedCustomerId);
+          if (customer != null) {
+            print('🔄 Re-filling customer data after switching back to individual');
+            
+            // Re-fill customer fields from original customer data
+            customerAddressController.text = customer.address;
+            customerPostalCodeController.text = ''; // Customers don't have postal code field
+            customerNationalIdController.text = customer.nationalId;
+
+            // Re-load all phone numbers
+            _customerPhones.clear();
+            if (customer.phones.isNotEmpty) {
+              _customerPhones.addAll(customer.phones.map((phone) => Map<String, dynamic>.from(phone)));
+              customerPhoneController.text = customer.phones.first['value'] ?? '';
+            } else {
+              customerPhoneController.text = '';
+            }
+
+            // Re-load all emails
+            _customerEmails.clear();
+            if (customer.emails.isNotEmpty) {
+              _customerEmails.addAll(customer.emails.map((email) => Map<String, dynamic>.from(email)));
+              customerEmailController.text = customer.emails.first['value'] ?? '';
+            } else {
+              customerEmailController.text = '';
+            }
+
+            print('✅ Re-filled customer data for: ${customer.name}');
+          }
+        }
       }
 
       update();
@@ -582,6 +617,121 @@ class AddEditDocumentController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  // Load company data from Firestore and auto-fill customer fields
+  Future<void> _loadAndFillCompanyData(String companyId) async {
+    try {
+      if (_currentWorkspaceId == null) {
+        print('⚠️ No workspace ID available for loading company data');
+        return;
+      }
+
+      print('🏢 Loading company data for auto-fill: $companyId');
+
+      // Fetch company data from Firestore
+      final companyDoc = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(_currentWorkspaceId!)
+          .collection('companies')
+          .doc(companyId)
+          .get();
+
+      if (companyDoc.exists) {
+        final companyData = companyDoc.data()!;
+        
+        // Auto-fill address fields with company address
+        final addressLine1 = companyData['addressLine1']?.toString() ?? '';
+        final subdistrict = companyData['subdistrict']?.toString() ?? '';
+        final district = companyData['district']?.toString() ?? '';
+        final province = companyData['province']?.toString() ?? '';
+        final country = companyData['country']?.toString() ?? '';
+        
+        // Build full address from company data
+        final addressParts = [addressLine1, subdistrict, district, province, country]
+            .where((part) => part.isNotEmpty)
+            .toList();
+        
+        if (addressParts.isNotEmpty) {
+          customerAddressController.text = addressParts.join(', ');
+          print('✅ Auto-filled address: ${addressParts.join(', ')}');
+        }
+
+        // Auto-fill postal code
+        final postalCode = companyData['postalCode']?.toString() ?? '';
+        if (postalCode.isNotEmpty) {
+          customerPostalCodeController.text = postalCode;
+          print('✅ Auto-filled postal code: $postalCode');
+        }
+
+        // Auto-fill tax ID to national ID field
+        final taxId = companyData['taxId']?.toString() ?? '';
+        if (taxId.isNotEmpty) {
+          customerNationalIdController.text = taxId;
+          print('✅ Auto-filled tax ID: $taxId');
+        }
+
+        // Auto-fill emails from company
+        final companyEmails = companyData['emails'] as List<dynamic>?;
+        if (companyEmails != null && companyEmails.isNotEmpty) {
+          _customerEmails.clear();
+          _customerEmails.addAll(companyEmails.map((email) => Map<String, dynamic>.from(email as Map)));
+          
+          // Set first email to legacy controller for backward compatibility
+          final firstEmail = companyEmails.first;
+          if (firstEmail is Map<String, dynamic>) {
+            final emailValue = firstEmail['value']?.toString() ?? '';
+            customerEmailController.text = emailValue;
+            print('✅ Auto-filled emails: ${companyEmails.length} entries');
+          }
+        }
+
+        // Auto-fill phones from company
+        final companyPhones = companyData['phones'] as List<dynamic>?;
+        if (companyPhones != null && companyPhones.isNotEmpty) {
+          _customerPhones.clear();
+          _customerPhones.addAll(companyPhones.map((phone) => Map<String, dynamic>.from(phone as Map)));
+          
+          // Set first phone to legacy controller for backward compatibility
+          final firstPhone = companyPhones.first;
+          if (firstPhone is Map<String, dynamic>) {
+            final phoneValue = firstPhone['value']?.toString() ?? '';
+            customerPhoneController.text = phoneValue;
+            print('✅ Auto-filled phones: ${companyPhones.length} entries');
+          }
+        }
+
+        print('✅ Company data auto-filled successfully');
+        update(); // Refresh UI to show auto-filled data
+        
+      } else {
+        print('⚠️ Company document not found: $companyId');
+      }
+    } catch (e) {
+      print('❌ Failed to load company data for auto-fill: $e');
+    }
+  }
+
+  // Clear company auto-filled data when individual is selected
+  void _clearCompanyAutoFilledData() {
+    try {
+      // Only clear if customer is not already selected (to avoid clearing customer's own data)
+      if (_selectedCustomerId == null) {
+        customerAddressController.clear();
+        customerPostalCodeController.clear();
+        customerNationalIdController.clear();
+        customerPhoneController.clear();
+        customerEmailController.clear();
+        
+        _customerEmails.clear();
+        _customerPhones.clear();
+        
+        print('✅ Cleared company auto-filled data');
+        update();
+      }
+    } catch (e) {
+      print('❌ Failed to clear company auto-filled data: $e');
     }
   }
 
