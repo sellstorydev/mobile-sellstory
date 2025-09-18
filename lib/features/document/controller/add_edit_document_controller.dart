@@ -522,10 +522,6 @@ class AddEditDocumentController extends GetxController {
             
             // Load assignee details if available
             _loadAssigneeDetails(firstAssigneeId);
-          } else {
-            // Clear seller selection if no assignees
-            _selectedSellerIds.clear();
-            sellerNameController.clear();
           }
 
           print('✅ Auto-filled customer data for: ${customer.name}');
@@ -1041,6 +1037,7 @@ class AddEditDocumentController extends GetxController {
                 final displayName = '$accountName ($bankName)';
                 _paymentDetails.add(paymentDetail);
                 _availablePaymentMethods.add(displayName);
+                print('✅ Added payment method: $displayName');
               }
             }
           }
@@ -1215,16 +1212,39 @@ class AddEditDocumentController extends GetxController {
       final refId = documentData['refId']?.toString() ?? '';
       refIdController.text = refId;
       
-      // Payment methods
-      final paymentMethods = documentData['paymentMethod'] as List<dynamic>?;
-      if (paymentMethods != null && paymentMethods.isNotEmpty) {
-        // Take the first payment method for single selection
-        _selectedPaymentMethod = paymentMethods.first.toString();
-      } else {
-        // Also check for single payment method field
-        final paymentMethod = documentData['paymentMethod'] as String?;
-        if (paymentMethod != null && paymentMethod.isNotEmpty) {
-          _selectedPaymentMethod = paymentMethod;
+      // Payment methods - handle both string and array formats
+      final paymentMethodData = documentData['paymentMethod'];
+      if (paymentMethodData != null) {
+        String? paymentMethodValue;
+        
+        if (paymentMethodData is List && paymentMethodData.isNotEmpty) {
+          // Handle array format (legacy)
+          paymentMethodValue = paymentMethodData.first.toString();
+        } else if (paymentMethodData is String && paymentMethodData.isNotEmpty) {
+          // Handle string format (current)
+          paymentMethodValue = paymentMethodData;
+        }
+        
+        if (paymentMethodValue != null && paymentMethodValue.isNotEmpty) {
+          // Always set the payment method from the document, even if it's not in current workspace
+          // This preserves data integrity in case workspace configuration changed
+          _selectedPaymentMethod = paymentMethodValue;
+          
+          // Validate that the payment method exists in available methods for UI consistency
+          if (_availablePaymentMethods.contains(paymentMethodValue)) {
+            print('✅ Loaded and validated payment method from document: $paymentMethodValue');
+          } else {
+            // Payment method from document is no longer available in workspace, but keep it for data preservation
+            print('⚠️ Payment method from document not found in current workspace: $paymentMethodValue');
+            print('Available payment methods: $_availablePaymentMethods');
+            print('ℹ️ Keeping original payment method for data preservation');
+            
+            // Add the original payment method to available methods to prevent UI issues
+            if (!_availablePaymentMethods.contains(paymentMethodValue)) {
+              _availablePaymentMethods.add(paymentMethodValue);
+              print('✅ Added original payment method to available options: $paymentMethodValue');
+            }
+          }
         }
       }
       
@@ -1259,6 +1279,9 @@ class AddEditDocumentController extends GetxController {
       }
       
       print('✅ Basic document info loaded');
+      
+      // Trigger UI update after loading basic info including payment method
+      update();
       
     } catch (e) {
       print('❌ Failed to load basic document info: $e');
