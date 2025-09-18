@@ -588,47 +588,66 @@ class _CreateCardPageState extends State<CreateCardPage> {
         'mentions': [],
       }).toList();
 
-      // Format description as HTML from HTML editor with timeout and retry mechanism
+      // Format description as HTML from HTML editor with webview disposal protection
       String htmlDescription = '';
       try {
-        if (_isHtmlEditorReady) {
-          // Add timeout to prevent indefinite waiting
-          final textFuture = _htmlEditorController.getText();
-          final editorContent = await textFuture.timeout(
-            const Duration(seconds: 5),
-            onTimeout: () {
-              print('⚠️ HTML editor getText timeout, returning empty string');
-              return '';
-            },
-          );
-          
-          if (editorContent.isNotEmpty) {
-            htmlDescription = editorContent;
+        print('🔍 HTML Editor Save Debug (Create):');
+        print('  - _isHtmlEditorReady: $_isHtmlEditorReady');
+        print('  - Fallback controller text: "${_descriptionFallbackController.text}"');
+        
+        // Check if we're in the middle of disposal
+        if (!mounted) {
+          print('⚠️ Widget not mounted, skipping HTML editor access');
+          htmlDescription = _descriptionFallbackController.text;
+        } else if (_isHtmlEditorReady) {
+          // Add additional safety check before getText()
+          try {
+            // Add timeout to prevent indefinite waiting
+            final textFuture = _htmlEditorController.getText();
+            final editorContent = await textFuture.timeout(
+              const Duration(seconds: 3),
+              onTimeout: () {
+                print('⚠️ HTML editor getText timeout, using fallback');
+                return _descriptionFallbackController.text;
+              },
+            );
+            
+            print('  - HTML editor getText() result: "$editorContent"');
+            if (editorContent.isNotEmpty) {
+              htmlDescription = editorContent;
+              print('✅ Successfully retrieved HTML editor content: ${htmlDescription.length} chars');
+            } else {
+              print('⚠️ HTML editor returned empty content, using fallback');
+              htmlDescription = _descriptionFallbackController.text;
+            }
+          } catch (innerE) {
+            print('⚠️ Inner error during getText(): $innerE');
+            htmlDescription = _descriptionFallbackController.text;
           }
         } else {
-          print('⚠️ HTML editor not ready, using empty description');
+          print('⚠️ HTML editor not ready, using fallback controller');
+          htmlDescription = _descriptionFallbackController.text;
         }
+        
+        print('  - Final htmlDescription: "$htmlDescription"');
       } catch (e) {
         print('⚠️ Error getting HTML editor content: $e');
+        
+        // Always use fallback for any error
+        htmlDescription = _descriptionFallbackController.text;
         
         // For specific MissingPluginException, show more informative error
         if (e.toString().contains('MissingPluginException') || 
             e.toString().contains('evaluateJavascript')) {
-          print('⚠️ WebView plugin error detected - HTML editor not fully initialized');
+          print('⚠️ WebView plugin error detected - using fallback content');
           
-          // Still allow card creation with empty description
-          Get.snackbar(
-            'Warning',
-            'Description editor unavailable, card will be created without description. You can edit it later.',
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Colors.orange,
-            colorText: Colors.white,
-            duration: const Duration(seconds: 3),
-          );
+          if (htmlDescription.isEmpty) {
+            // Show warning that description wasn't saved
+            if (!_isHtmlEditorReady) {
+              _showHtmlEditorWarningDialog();
+            }
+          }
         }
-        
-        // Fallback to empty string if HTML editor fails
-        htmlDescription = '';
       }
 
       final card = JobCard(
@@ -2050,6 +2069,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 setState(() {
                   _isHtmlEditorReady = true;
                 });
+              },
+              onChangeContent: (String? changed) {
+                // Sync HTML editor content to fallback controller for error handling
+                if (changed != null && mounted) {
+                  _descriptionFallbackController.text = changed;
+                  print('🔄 Synced HTML content to fallback: ${changed.length} chars');
+                }
               },
             ),
           ),

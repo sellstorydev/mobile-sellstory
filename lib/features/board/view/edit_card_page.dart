@@ -3790,11 +3790,66 @@ class _EditCardPageState extends State<EditCardPage> {
           )
           .toList();
 
-      // Format description as HTML from HTML editor
+      // Format description as HTML from HTML editor with webview disposal protection
       String htmlDescription = '';
-      final editorContent = await _htmlEditorController.getText();
-      if (editorContent.isNotEmpty) {
-        htmlDescription = editorContent;
+      try {
+        print('🔍 HTML Editor Save Debug:');
+        print('  - _isHtmlEditorReady: $_isHtmlEditorReady');
+        print('  - Initial description: "${widget.card.description}"');
+        print('  - Fallback controller text: "${_detailsController.text}"');
+        
+        // Check if we're in the middle of disposal
+        if (!mounted) {
+          print('⚠️ Widget not mounted, skipping HTML editor access');
+          htmlDescription = _detailsController.text;
+        } else if (_isHtmlEditorReady) {
+          // Add additional safety check before getText()
+          try {
+            final editorContent = await _htmlEditorController.getText().timeout(
+              const Duration(seconds: 3),
+              onTimeout: () {
+                print('⚠️ HTML editor getText timeout, using fallback');
+                return _detailsController.text;
+              },
+            );
+            
+            print('  - HTML editor getText() result: "$editorContent"');
+            if (editorContent.isNotEmpty) {
+              htmlDescription = editorContent;
+              print('✅ Successfully retrieved HTML editor content: ${htmlDescription.length} chars');
+            } else {
+              print('⚠️ HTML editor returned empty content, using fallback');
+              htmlDescription = _detailsController.text;
+            }
+          } catch (innerE) {
+            print('⚠️ Inner error during getText(): $innerE');
+            htmlDescription = _detailsController.text;
+          }
+        } else {
+          print('⚠️ HTML editor not ready, using fallback controller');
+          htmlDescription = _detailsController.text;
+        }
+        
+        // Additional safety check - if still empty, prompt user
+        if (htmlDescription.isEmpty && widget.card.description.isNotEmpty) {
+          print('⚠️ Description is empty but original card had content, preserving original');
+          htmlDescription = widget.card.description;
+        }
+        
+        print('  - Final htmlDescription: "$htmlDescription"');
+      } catch (e) {
+        print('⚠️ Error getting HTML editor content: $e');
+        
+        // Always use fallback for any error
+        htmlDescription = _detailsController.text.isNotEmpty 
+            ? _detailsController.text 
+            : widget.card.description;
+        
+        // For specific MissingPluginException, use fallback
+        if (e.toString().contains('MissingPluginException') || 
+            e.toString().contains('evaluateJavascript')) {
+          print('⚠️ WebView plugin error detected - using fallback description');
+        }
       }
 
       // Prepare expenses data from product items
@@ -4538,6 +4593,15 @@ class _EditCardPageState extends State<EditCardPage> {
                 setState(() {
                   _isHtmlEditorReady = true;
                 });
+                // Initialize fallback controller with existing content
+                _detailsController.text = widget.card.description;
+              },
+              onChangeContent: (String? changed) {
+                // Sync HTML editor content to fallback controller for error handling
+                if (changed != null && mounted) {
+                  _detailsController.text = changed;
+                  print('🔄 Synced HTML content to fallback: ${changed.length} chars');
+                }
               },
             ),
             htmlToolbarOptions: const HtmlToolbarOptions(

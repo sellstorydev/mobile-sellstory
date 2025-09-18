@@ -4,6 +4,47 @@
     - For better answer me please read your mememory inside file `lib/features/board/BOARD_SUMMARY.md`
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
+
+
+##
+Topic: html editor not store to firebase.
+Detail: I got this error after save card.
+Error 
+```
+flutter: 🔍 HTML Editor Save Debug (Create):
+flutter:   - _isHtmlEditorReady: true
+flutter:   - Fallback controller text: ""
+[IOSInAppWebViewWidget] (iOS) IOSInAppWebViewWidget calling "dispose" using []
+flutter: ⚠️ Error getting HTML editor content: MissingPluginException(No implementation found for method evaluateJavascript on channel com.pichillilorenzo/flutter_inappwebview_31)
+flutter: ⚠️ WebView plugin error detected - HTML editor not fully initialized
+```
+you should fix this error .
+
+##
+Topic: html editor not store to firebase.
+Detial:I filled value to htmleditor. And pressed save card success. but not store in firestore
+Path: "/workspaces/xKnLu20t7n6A0IJxl4NN/cards/fIPtV1kTyO6NDk26MYVF"
+Data:
+```
+{
+description:""
+}
+```
+you can check  this data and structure from "firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-18T16-22-35.json"
+
+##
+Topic: descriptio Htmleditor not store data to firestore.
+Detail: After pressed save card data not store data to firestore in path "/workspaces/{workspace id}/cards/{card id}/description"
+Example description like
+```
+{
+    ...,
+    description:"<p><strong></strong></p><p><strong><strong></strong></strong></p><p><strong><strong><strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><span style="color: rgb(2, 8, 23); font-size: 14px;"><strong><em><u>Detailstest1111111</u></em></strong></span></strong></strong></strong></p><p></p><p></p><p></p><p></p><p></p><p></p><p></p>",
+    ...
+}
+```
+
+
 ## 
 Topic: After enter careate_card_page.dart and edit_card_page.dart then press exit immediately, show error like this
 ```
