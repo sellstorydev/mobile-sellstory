@@ -89,7 +89,7 @@ class ChatService extends GetxService {
           .orderBy('last_upd', descending: true)
           .get();
 
-      return qs.docs.map((doc) {
+      final items = qs.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
 
@@ -120,6 +120,16 @@ class ChatService extends GetxService {
 
         return data;
       }).toList();
+
+      // Hide chats marked as hidden unless they have unread messages
+      final filtered = items.where((m) {
+        final hiddenRaw = m['is_hidden'];
+        final hidden = hiddenRaw == true || hiddenRaw == 'Y';
+        final unread = int.tryParse(m['count']?.toString() ?? '0') ?? 0;
+        return !hidden || unread > 0;
+      }).toList();
+
+      return filtered;
     } catch (e) {
       throw Exception('Failed to get chatrooms: $e');
     }

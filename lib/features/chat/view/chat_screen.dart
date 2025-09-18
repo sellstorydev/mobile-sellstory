@@ -527,12 +527,15 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       await _chatService.getChatroomsCollection(widget.workspaceId)
           .doc(widget.conversationId)
-          .update({'is_deleted': 'Y'});
+          .set({
+            'is_hidden': true,
+            'hidden_at': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
       if (mounted) {
         Navigator.of(context).pop(); // ออกจากหน้าแชท
       }
     } catch (e) {
-      _showErrorSnackBar('ลบแชทไม่สำเร็จ: $e');
+      _showErrorSnackBar('ซ่อนแชทไม่สำเร็จ: $e');
     }
   }
 

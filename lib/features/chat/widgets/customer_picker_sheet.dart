@@ -13,7 +13,8 @@ class CustomerItem {
 
 class CustomerPickerSheet extends StatefulWidget {
   final String workspaceId;
-  const CustomerPickerSheet({super.key, required this.workspaceId});
+  final String? initialSelectedId;
+  const CustomerPickerSheet({super.key, required this.workspaceId, this.initialSelectedId});
 
   @override
   State<CustomerPickerSheet> createState() => _CustomerPickerSheetState();
@@ -23,11 +24,13 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
   late Future<List<CustomerItem>> _future;
   String _query = '';
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
+  String? _selectedId;
 
   @override
   void initState() {
     super.initState();
     _future = _loadCustomers();
+    _selectedId = widget.initialSelectedId;
   }
 
   Future<List<CustomerItem>> _loadCustomers() async {
@@ -98,6 +101,7 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final c = filtered[index];
+                    final selected = _selectedId == c.id;
                     return ListTile(
                       leading: const CircleAvatar(child: Icon(Icons.person_outline)),
                       title: Text(c.name),
@@ -105,11 +109,41 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
                         if (c.customId != null && c.customId!.isNotEmpty) 'ID: ${c.customId}',
                         if (c.company != null && c.company!.isNotEmpty) 'บริษัท: ${c.company}',
                       ].join('  ')),
-                      onTap: () => Navigator.pop(context, c.id),
+                      trailing: selected
+                          ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
+                          : null,
+                      selected: selected,
+                      onTap: () => setState(() => _selectedId = c.id),
+                      onLongPress: () => Navigator.pop(context, c.id), // quick select via long-press
                     );
                   },
                 );
               },
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('cancel'.tr),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: (_selectedId == null)
+                          ? null
+                          : () => Navigator.pop(context, _selectedId),
+                      child: Text('confirm'.tr),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 
 class UserItem {
   UserItem({required this.uid, required this.displayName, required this.email, this.photoURL, this.role});
@@ -11,8 +12,11 @@ class UserItem {
 }
 
 class UserPickerSheet extends StatefulWidget {
-  const UserPickerSheet({Key? key, required this.workspaceId}) : super(key: key);
+  const UserPickerSheet({Key? key, required this.workspaceId, this.initialSelectedUid, this.multiSelect = false, this.initialSelectedUids}) : super(key: key);
   final String workspaceId;
+  final String? initialSelectedUid;
+  final bool multiSelect;
+  final List<String>? initialSelectedUids;
 
   @override
   State<UserPickerSheet> createState() => _UserPickerSheetState();
@@ -21,11 +25,20 @@ class UserPickerSheet extends StatefulWidget {
 class _UserPickerSheetState extends State<UserPickerSheet> {
   late Future<List<UserItem>> _future;
   String _query = '';
+  String? _selectedUid;
+  final Set<String> _selectedUids = <String>{};
 
   @override
   void initState() {
     super.initState();
     _future = _loadMembers();
+    _selectedUid = widget.initialSelectedUid;
+    if (widget.initialSelectedUids != null) {
+      _selectedUids.addAll(widget.initialSelectedUids!);
+    }
+    if (widget.initialSelectedUid != null) {
+      _selectedUids.add(widget.initialSelectedUid!);
+    }
   }
 
   Future<List<UserItem>> _loadMembers() async {
@@ -58,7 +71,7 @@ class _UserPickerSheetState extends State<UserPickerSheet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('เลือกเซล'),
+        title: Text(widget.multiSelect ? 'เลือกเซล (หลายคน)' : 'เลือกเซล'),
       ),
       body: Column(
         children: [
@@ -95,6 +108,9 @@ class _UserPickerSheetState extends State<UserPickerSheet> {
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final u = filtered[index];
+                    final selected = widget.multiSelect
+                        ? _selectedUids.contains(u.uid)
+                        : _selectedUid == u.uid;
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundImage: (u.photoURL != null && u.photoURL!.isNotEmpty)
@@ -106,13 +122,59 @@ class _UserPickerSheetState extends State<UserPickerSheet> {
                       ),
                       title: Text(u.displayName),
                       subtitle: Text(u.email.isEmpty ? (u.role ?? '') : u.email),
-                      onTap: () => Navigator.pop(context, u.uid),
+                      trailing: selected
+                          ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
+                          : (widget.multiSelect ? const Icon(Icons.radio_button_unchecked) : null),
+                      selected: selected,
+                      onTap: () async {
+                        if (widget.multiSelect) {
+                          setState(() {
+                            if (_selectedUids.contains(u.uid)) {
+                              _selectedUids.remove(u.uid);
+                            } else {
+                              _selectedUids.add(u.uid);
+                            }
+                          });
+                        } else {
+                          setState(() => _selectedUid = u.uid);
+                          // Delay to show tick then close
+                          await Future.delayed(const Duration(milliseconds: 120));
+                          if (!mounted) return;
+                          Navigator.pop<String>(context, u.uid);
+                        }
+                      },
                     );
                   },
                 );
               },
             ),
           ),
+          if (widget.multiSelect)
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('cancel'.tr),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _selectedUids.isEmpty
+                            ? null
+                            : () => Navigator.pop<List<String>>(context, _selectedUids.toList()),
+                        child: Text('confirm'.tr),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

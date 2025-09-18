@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
 class HashtagInputField extends StatefulWidget {
@@ -33,97 +34,77 @@ class HashtagInputField extends StatefulWidget {
 class _HashtagInputFieldState extends State<HashtagInputField> {
   final TextEditingController _searchController = TextEditingController();
   List<HashtagOption> _filteredHashtags = [];
-  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
     _filteredHashtags = widget.availableHashtags;
-    _searchController.addListener(_filterHashtags);
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
-  void didUpdateWidget(HashtagInputField oldWidget) {
+  void didUpdateWidget(covariant HashtagInputField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update filtered hashtags when available hashtags change
     if (oldWidget.availableHashtags != widget.availableHashtags) {
       _filteredHashtags = widget.availableHashtags;
-      _filterHashtags(null);
+      _applyFilter();
     }
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  void _filterHashtags([StateSetter? setModalState]) {
-    final query = _searchController.text.toLowerCase();
-    if (setModalState != null) {
-      setModalState(() {
-        if (query.isEmpty) {
-          _filteredHashtags = widget.availableHashtags;
-        } else {
-          _filteredHashtags = widget.availableHashtags
-              .where((hashtag) =>
-                  hashtag.name.toLowerCase().contains(query) ||
-                  hashtag.id.toLowerCase().contains(query))
-              .toList();
-        }
-      });
-    } else {
-      setState(() {
-        if (query.isEmpty) {
-          _filteredHashtags = widget.availableHashtags;
-        } else {
-          _filteredHashtags = widget.availableHashtags
-              .where((hashtag) =>
-                  hashtag.name.toLowerCase().contains(query) ||
-                  hashtag.id.toLowerCase().contains(query))
-              .toList();
-        }
-      });
-    }
-  }
+  void _onSearchChanged() => _applyFilter();
 
-  void _toggleHashtag(String hashtagId, [StateSetter? setModalState]) {
-    final List<String> newSelectedHashtags = List.from(widget.selectedHashtags);
-    
-    if (newSelectedHashtags.contains(hashtagId)) {
-      newSelectedHashtags.remove(hashtagId);
-    } else {
-      if (!widget.allowMultiple) {
-        newSelectedHashtags.clear();
+  void _applyFilter([StateSetter? setModalState]) {
+    final q = _searchController.text.toLowerCase();
+    final run = () {
+      if (q.isEmpty) {
+        _filteredHashtags = widget.availableHashtags;
+      } else {
+        _filteredHashtags = widget.availableHashtags
+            .where((h) => h.name.toLowerCase().contains(q) || h.id.toLowerCase().contains(q))
+            .toList();
       }
-      newSelectedHashtags.add(hashtagId);
-    }
-    
-    // Call the callback to update parent widget
-    widget.onHashtagsChanged(newSelectedHashtags);
-    
-    // Force rebuild to show selection changes immediately
+    };
     if (setModalState != null) {
-      setModalState(() {});
+      setModalState(run);
     } else {
-      setState(() {});
+      setState(run);
     }
   }
 
-  void _showHashtagSelector() {
+  void _toggle(String id, [StateSetter? setModalState]) {
+    final next = List<String>.from(widget.selectedHashtags);
+    if (next.contains(id)) {
+      next.remove(id);
+    } else {
+      if (!widget.allowMultiple) next.clear();
+      next.add(id);
+    }
+    try { HapticFeedback.selectionClick(); } catch (_) {}
+    widget.onHashtagsChanged(next);
+    if (setModalState != null) setModalState(() {}); else setState(() {});
+  }
+
+  void _openSelector() {
+    // Work on a local copy to avoid rebuilding parent on each toggle
+    final localSelected = List<String>.from(widget.selectedHashtags);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return _buildHashtagSelector(setModalState);
-        },
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => _buildSelector(setModalState, localSelected),
       ),
     );
   }
 
-  Widget _buildHashtagSelector([StateSetter? setModalState]) {
+  Widget _buildSelector(StateSetter setModalState, List<String> localSelected) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: const BoxDecoration(
@@ -144,10 +125,7 @@ class _HashtagInputFieldState extends State<HashtagInputField> {
                 Expanded(
                   child: Text(
                     widget.label,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
                 IconButton(
@@ -159,170 +137,142 @@ class _HashtagInputFieldState extends State<HashtagInputField> {
               ],
             ),
           ),
-          
-                                // Search bar
-            if (widget.showSearch) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'ค้นหาแฮชแท็ก...',
-                    prefixIcon: const Icon(Icons.search, size: 18),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+
+          // Search
+          if (widget.showSearch) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'ค้นหาแฮชแท็ก...',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+                onChanged: (_) => _applyFilter(setModalState),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // Selected
+          if (localSelected.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 6,
+                children: localSelected.map((id) {
+                  final tag = widget.availableHashtags.firstWhere(
+                    (h) => h.id == id,
+                    orElse: () => HashtagOption(id: id, name: id, color: '#ef4444', totalUsage: 0, enabled: true, scopes: const {}),
+                  );
+                  return _selectedChip(tag, () {
+                    // remove via X only
+                    localSelected.remove(tag.id);
+                    setModalState(() {});
+                  });
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            const SizedBox(height: 4),
+          ],
+
+          // Grid
+          Expanded(
+            child: _filteredHashtags.isEmpty
+                ? const Center(
+                    child: Text('ไม่พบแฮชแท็ก', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 3.2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 8,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+                    itemCount: _filteredHashtags.length,
+                    itemBuilder: (context, index) {
+                      final tag = _filteredHashtags[index];
+                      final selected = localSelected.contains(tag.id);
+                      return _gridItem(tag, selected, () {
+                        if (selected) {
+                          localSelected.remove(tag.id);
+                        } else {
+                          if (!widget.allowMultiple) localSelected.clear();
+                          localSelected.add(tag.id);
+                        }
+                        try { HapticFeedback.selectionClick(); } catch (_) {}
+                        setModalState(() {});
+                      });
+                    },
                   ),
-                                     onChanged: (value) {
-                     // Trigger search immediately when text changes
-                     _filterHashtags(setModalState);
-                   },
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          
-                                // Selected hashtags display
-            if (widget.selectedHashtags.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: widget.selectedHashtags.map((hashtagId) {
-                        final hashtag = widget.availableHashtags
-                            .firstWhere(
-                              (h) => h.id == hashtagId,
-                              orElse: () => HashtagOption(
-                                id: hashtagId,
-                                name: hashtagId,
-                                color: '#ef4444',
-                                totalUsage: 0,
-                                enabled: true,
-                                scopes: {},
-                              ),
-                            );
-                        return _buildSelectedHashtagChip(hashtag, setModalState);
-                      }).toList(),
+          ),
+
+          // Actions
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      localSelected.clear();
+                      setModalState(() {});
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                  ],
+                    child: const Text('ล้างทั้งหมด', style: TextStyle(fontSize: 13)),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Divider(height: 1),
-              const SizedBox(height: 4),
-            ],
-          
-                     // Hashtag list
-           Expanded(
-             child: _filteredHashtags.isEmpty
-                 ? const Center(
-                     child: Text(
-                       'ไม่พบแฮชแท็ก',
-                       style: TextStyle(
-                         color: AppTheme.textSecondary,
-                         fontSize: 14,
-                       ),
-                     ),
-                   )
-                 : GridView.builder(
-                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                       crossAxisCount: 2,
-                       childAspectRatio: 3.5,
-                       crossAxisSpacing: 8,
-                       mainAxisSpacing: 4,
-                     ),
-                     itemCount: _filteredHashtags.length,
-                     itemBuilder: (context, index) {
-                       final hashtag = _filteredHashtags[index];
-                       final isSelected = widget.selectedHashtags.contains(hashtag.id);
-                       
-                       return _buildHashtagGridItem(hashtag, isSelected, setModalState);
-                     },
-                   ),
-           ),
-          
-                     // Action buttons
-           Container(
-             padding: const EdgeInsets.all(12),
-             child: Row(
-               children: [
-                 Expanded(
-                   child: OutlinedButton(
-                     onPressed: () {
-                       widget.onHashtagsChanged([]);
-                       Navigator.pop(context);
-                     },
-                     style: OutlinedButton.styleFrom(
-                       padding: const EdgeInsets.symmetric(vertical: 8),
-                       shape: RoundedRectangleBorder(
-                         borderRadius: BorderRadius.circular(6),
-                       ),
-                     ),
-                     child: const Text(
-                       'ล้างทั้งหมด',
-                       style: TextStyle(fontSize: 12),
-                     ),
-                   ),
-                 ),
-                 const SizedBox(width: 8),
-                 Expanded(
-                   child: ElevatedButton(
-                     onPressed: () => Navigator.pop(context),
-                     style: ElevatedButton.styleFrom(
-                       backgroundColor: AppTheme.primaryOrange,
-                       padding: const EdgeInsets.symmetric(vertical: 8),
-                       shape: RoundedRectangleBorder(
-                         borderRadius: BorderRadius.circular(6),
-                       ),
-                     ),
-                     child: Text(
-                       'confirm'.tr,
-                       style: const TextStyle(color: Colors.white, fontSize: 12),
-                     ),
-                   ),
-                 ),
-               ],
-             ),
-           ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      widget.onHashtagsChanged(List<String>.from(localSelected));
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryOrange,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Text('confirm'.tr, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSelectedHashtagChip(HashtagOption hashtag, [StateSetter? setModalState]) {
+  // Chip is NOT tappable as a whole; only the X removes it to prevent accidental clearing
+  Widget _selectedChip(HashtagOption tag, VoidCallback onRemove) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: _parseColor(hashtag.color),
-        borderRadius: BorderRadius.circular(12),
+        color: _parseColor(tag.color),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '#${hashtag.name}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 3),
-          GestureDetector(
-            onTap: () => _toggleHashtag(hashtag.id, setModalState),
-            child: const Icon(
-              Icons.close,
-              color: Colors.white,
-              size: 12,
+          Text('#${tag.name}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 6),
+          InkResponse(
+            onTap: onRemove,
+            radius: 16,
+            child: const Padding(
+              padding: EdgeInsets.all(4.0),
+              child: Icon(Icons.close, color: Colors.white, size: 16),
             ),
           ),
         ],
@@ -330,59 +280,49 @@ class _HashtagInputFieldState extends State<HashtagInputField> {
     );
   }
 
-  Widget _buildHashtagGridItem(HashtagOption hashtag, bool isSelected, [StateSetter? setModalState]) {
-    return GestureDetector(
-      onTap: () => _toggleHashtag(hashtag.id, setModalState),
+  Widget _gridItem(HashtagOption tag, bool selected, VoidCallback onTap) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? AppTheme.primaryOrange : Colors.grey.shade300,
-            width: 1,
-          ),
+          color: selected ? AppTheme.primaryOrange.withAlpha(26) : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: selected ? AppTheme.primaryOrange : Colors.grey.shade300, width: 1),
         ),
         child: Row(
           children: [
             Container(
-              width: 16,
-              height: 16,
-              margin: const EdgeInsets.only(left: 8),
-              decoration: BoxDecoration(
-                color: _parseColor(hashtag.color),
-                borderRadius: BorderRadius.circular(8),
-              ),
+              width: 18,
+              height: 18,
+              margin: const EdgeInsets.only(left: 2),
+              decoration: BoxDecoration(color: _parseColor(tag.color), borderRadius: BorderRadius.circular(9)),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '#${hashtag.name}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppTheme.primaryOrange : AppTheme.textPrimary,
-                ),
+                '#${tag.name}',
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? AppTheme.primaryOrange : AppTheme.textPrimary,
+                ),
               ),
             ),
-            Container(
-              margin: const EdgeInsets.only(right: 6),
-              child: Icon(
-                isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                size: 16,
-                color: isSelected ? AppTheme.primaryOrange : AppTheme.textSecondary,
-              ),
-            ),
+            Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked, size: 20, color: selected ? AppTheme.primaryOrange : AppTheme.textSecondary),
           ],
         ),
       ),
     );
   }
 
-  Color _parseColor(String colorString) {
+  Color _parseColor(String hex) {
     try {
-      return Color(int.parse(colorString.replaceAll('#', '0xFF')));
-    } catch (e) {
+      return Color(int.parse(hex.replaceAll('#', '0xFF')));
+    } catch (_) {
       return AppTheme.primaryOrange;
     }
   }
@@ -396,28 +336,17 @@ class _HashtagInputFieldState extends State<HashtagInputField> {
           children: [
             Text(
               widget.label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.textPrimary,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
             ),
             if (widget.isRequired) ...[
               const SizedBox(width: 4),
-              const Text(
-                '*',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const Text('*', style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold)),
             ],
           ],
         ),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: _showHashtagSelector,
+          onTap: _openSelector,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
@@ -426,39 +355,30 @@ class _HashtagInputFieldState extends State<HashtagInputField> {
             ),
             child: Row(
               children: [
-                                 Expanded(
-                   child: widget.selectedHashtags.isEmpty
-                       ? Text(
-                           widget.hintText,
-                           style: TextStyle(
-                             color: Colors.grey.shade500,
-                             fontSize: 14,
-                           ),
-                         )
-                       : Wrap(
-                           spacing: 8,
-                           runSpacing: 4,
-                           children: widget.selectedHashtags.map((hashtagId) {
-                             final hashtag = widget.availableHashtags
-                                 .firstWhere(
-                                   (h) => h.id == hashtagId,
-                                   orElse: () => HashtagOption(
-                                     id: hashtagId,
-                                     name: hashtagId,
-                                     color: '#ef4444',
-                                     totalUsage: 0,
-                                     enabled: true,
-                                     scopes: {},
-                                   ),
-                                 );
-                             return _buildSelectedHashtagChip(hashtag, null);
-                           }).toList(),
-                         ),
-                 ),
-                const Icon(
-                  Icons.arrow_drop_down,
-                  color: AppTheme.textSecondary,
+                Expanded(
+                  child: widget.selectedHashtags.isEmpty
+                      ? Text(widget.hintText, style: TextStyle(color: Colors.grey.shade500, fontSize: 14))
+                      : Wrap(
+                          spacing: 10,
+                          runSpacing: 6,
+                          children: widget.selectedHashtags.map((id) {
+                            final tag = widget.availableHashtags.firstWhere(
+                              (h) => h.id == id,
+                              orElse: () => HashtagOption(id: id, name: id, color: '#ef4444', totalUsage: 0, enabled: true, scopes: const {}),
+                            );
+                            // In the field display, chips are also non-tappable; only the X is active inside the selector.
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _parseColor(tag.color),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text('#${tag.name}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                            );
+                          }).toList(),
+                        ),
                 ),
+                const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
               ],
             ),
           ),
@@ -476,7 +396,7 @@ class HashtagOption {
   final bool enabled;
   final Map<String, bool> scopes;
 
-  HashtagOption({
+  const HashtagOption({
     required this.id,
     required this.name,
     required this.color,

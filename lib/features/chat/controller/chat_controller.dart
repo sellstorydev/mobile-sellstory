@@ -532,15 +532,37 @@ class ChatController extends GetxController {
           return enriched;
         }).toList();
 
+        // Hide items marked as hidden unless they have unread > 0 (new messages)
+        final filtered = <Map<String, dynamic>>[];
+        for (final it in items) {
+          final hiddenRaw = it['is_hidden'];
+          final hidden = hiddenRaw == true || hiddenRaw == 'Y';
+          final unread = (it['unreadCount'] as int?) ?? 0;
+          if (!hidden || unread > 0) {
+            filtered.add(it);
+          }
+          // Auto-unhide when a hidden chat gets new messages
+          if (hidden && unread > 0) {
+            try {
+              final id = it['id']?.toString();
+              if (id != null && id.isNotEmpty && _currentWorkspaceId != null) {
+                _firestoreService.getChatroomsCollection(_currentWorkspaceId!)
+                    .doc(id)
+                    .set({'is_hidden': false}, SetOptions(merge: true));
+              }
+            } catch (_) {}
+          }
+        }
+
         // Preserve list identity to reduce widget rebuild/flicker
-        conversations.assignAll(items);
+        conversations.assignAll(filtered);
         isLoading.value = false;
         error.value = '';
 
         // Asynchronously enrich with assignee display names
-        _augmentAssignees(items);
+        _augmentAssignees(filtered);
         // Asynchronously enrich with customer hashtags (merge with chatroom hashtags)
-        _augmentCustomerHashtags(items);
+        _augmentCustomerHashtags(filtered);
       }, onError: (e) {
         isLoading.value = false;
         error.value = 'Failed to get realtime chatrooms: $e';

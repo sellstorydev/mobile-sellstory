@@ -371,10 +371,6 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         'hashtagIds': ids,
         'hashtags': names,
       }, SetOptions(merge: true));
-      final meta = objects.map((m) => {
-        'name': (m['text'] is String && (m['text'] as String).startsWith('#')) ? m['text'] : '#${m['text']}',
-        'color': m['color'] ?? '#64748B',
-      }).toList();
 
       if (!mounted) return;
       setState(() {
@@ -457,6 +453,159 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       _showTopSnack('chat_hashtag_create_failed'.tr + ': $e', isError: true);
     } finally {
       if (mounted) setState(() => _creatingHashtag = false);
+    }
+  }
+
+  Future<void> _migrateNotesToCustomer(String customerId) async {
+    try {
+      final ws = FirebaseFirestore.instance.collection('workspaces').doc(widget.workspaceId);
+      final chatRef = ws.collection('chatrooms').doc(widget.chatroomId);
+      final custRef = ws.collection('customers').doc(customerId);
+      final chatSnap = await chatRef.get();
+      final custSnap = await custRef.get();
+      final chatData = chatSnap.data() ?? {};
+      final custData = custSnap.data() ?? {};
+      final List<dynamic> rawChat = (chatData['notes'] as List?) ?? const [];
+      final List<dynamic> rawCust = (custData['notes'] as List?) ?? const [];
+      // Normalize to Map<String,dynamic>
+      List<Map<String, dynamic>> toMapList(List<dynamic> src) => src
+          .map((e) => e is Map<String, dynamic> ? Map<String, dynamic>.from(e) : <String, dynamic>{})
+          .where((m) => m.isNotEmpty)
+          .toList();
+      final chatNotes = toMapList(rawChat);
+      final custNotes = toMapList(rawCust);
+      if (chatNotes.isEmpty && custNotes.isEmpty) return;
+
+      String keyOf(Map<String, dynamic> n) {
+        final sp = (n['storagePath'] ?? '').toString();
+        if (sp.isNotEmpty) return 'sp:$sp';
+        final url = (n['url'] ?? '').toString();
+        if (url.isNotEmpty) return 'url:$url';
+        final id = (n['id'] ?? '').toString();
+        if (id.isNotEmpty) return 'id:$id';
+        final ts = (n['timestamp'] ?? 0).toString();
+        final title = (n['title'] ?? n['fileName'] ?? '').toString();
+        return 't:$ts|$title';
+      }
+
+      final combined = <String, Map<String, dynamic>>{};
+      // Seed with existing customer notes
+      for (final n in custNotes) {
+        combined[keyOf(n)] = n;
+      }
+      // Merge chat notes; prefer newest timestamp on conflict
+      for (final n in chatNotes) {
+        final k = keyOf(n);
+        final existing = combined[k];
+        if (existing == null) {
+          combined[k] = n;
+        } else {
+          final a = (existing['timestamp'] ?? 0) as int? ?? 0;
+          final b = (n['timestamp'] ?? 0) as int? ?? 0;
+          combined[k] = b >= a ? n : existing;
+        }
+      }
+      // Sort desc by timestamp
+      final merged = combined.values.toList()
+        ..sort((a, b) => ((b['timestamp'] ?? 0) as int).compareTo((a['timestamp'] ?? 0) as int));
+
+      await custRef.set({'notes': merged}, SetOptions(merge: true));
+      // Clear notes from chatroom to avoid confusion
+      await chatRef.set({'notes': FieldValue.delete()}, SetOptions(merge: true));
+
+      if (mounted) _showTopSnack('ย้ายโน้ตจากห้องแชทไปยังลูกค้าแล้ว');
+    } catch (e) {
+      if (mounted) _showTopSnack('ย้ายโน้ตไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
+
+  Future<void> _migrateNotesFromCustomerToChatroom(String customerId) async {
+    try {
+      final ws = FirebaseFirestore.instance.collection('workspaces').doc(widget.workspaceId);
+      final chatRef = ws.collection('chatrooms').doc(widget.chatroomId);
+      final custRef = ws.collection('customers').doc(customerId);
+      final chatSnap = await chatRef.get();
+      final custSnap = await custRef.get();
+      final chatData = chatSnap.data() ?? {};
+      final custData = custSnap.data() ?? {};
+      final List<dynamic> rawChat = (chatData['notes'] as List?) ?? const [];
+      final List<dynamic> rawCust = (custData['notes'] as List?) ?? const [];
+      List<Map<String, dynamic>> toMapList(List<dynamic> src) => src
+          .map((e) => e is Map<String, dynamic> ? Map<String, dynamic>.from(e) : <String, dynamic>{})
+          .where((m) => m.isNotEmpty)
+          .toList();
+      final chatNotes = toMapList(rawChat);
+      final custNotes = toMapList(rawCust);
+      if (chatNotes.isEmpty && custNotes.isEmpty) return;
+
+      String keyOf(Map<String, dynamic> n) {
+        final sp = (n['storagePath'] ?? '').toString();
+        if (sp.isNotEmpty) return 'sp:$sp';
+        final url = (n['url'] ?? '').toString();
+        if (url.isNotEmpty) return 'url:$url';
+        final id = (n['id'] ?? '').toString();
+        if (id.isNotEmpty) return 'id:$id';
+        final ts = (n['timestamp'] ?? 0).toString();
+        final title = (n['title'] ?? n['fileName'] ?? '').toString();
+        return 't:$ts|$title';
+      }
+
+      final combined = <String, Map<String, dynamic>>{};
+      for (final n in chatNotes) {
+        combined[keyOf(n)] = n;
+      }
+      for (final n in custNotes) {
+        final k = keyOf(n);
+        final existing = combined[k];
+        if (existing == null) {
+          combined[k] = n;
+        } else {
+          final a = (existing['timestamp'] ?? 0) as int? ?? 0;
+          final b = (n['timestamp'] ?? 0) as int? ?? 0;
+          combined[k] = b >= a ? n : existing;
+        }
+      }
+      final merged = combined.values.toList()
+        ..sort((a, b) => ((b['timestamp'] ?? 0) as int).compareTo((a['timestamp'] ?? 0) as int));
+
+      await chatRef.set({'notes': merged}, SetOptions(merge: true));
+      if (mounted) _showTopSnack('คัดลอกโน้ตของลูกค้ามายังห้องแชทแล้ว');
+    } catch (e) {
+      if (mounted) _showTopSnack('คัดลอกโน้ตไม่สำเร็จ: $e', isError: true);
+    }
+  }
+
+  Future<void> _unlinkCustomer() async {
+    final cid = _currentCustomerId?.trim() ?? '';
+    if (cid.isEmpty) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยกเลิกเชื่อมต่อลูกค้า'),
+        content: const Text('ต้องการยกเลิกการเชื่อมต่อลูกค้ากับห้องแชทนี้หรือไม่?\nโน้ตของลูกค้าจะถูกคัดลอกมายังห้องแชท'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('confirm'.tr)),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    try {
+      // Copy customer notes back into chatroom notes
+      await _migrateNotesFromCustomerToChatroom(cid);
+      // Remove customer link fields
+      await _chatroomDoc.set({
+        'customerId': FieldValue.delete(),
+        'customerName': FieldValue.delete(),
+      }, SetOptions(merge: true));
+      if (!mounted) return;
+      setState(() { _currentCustomerId = null; _currentCustomerName = null; });
+      await _loadAssignees();
+      _showTopSnack('ยกเลิกการเชื่อมต่อลูกค้าแล้ว');
+    } catch (e) {
+      if (mounted) _showTopSnack('ยกเลิกเชื่อมต่อลูกค้าไม่สำเร็จ: $e', isError: true);
     }
   }
 
@@ -581,16 +730,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Future<void> _openNotes() async {
-    if (_currentCustomerId == null || _currentCustomerId!.isEmpty) {
-      // Prompt to pick a customer first
-      final prev = _currentCustomerId;
-      await _openCustomerPicker();
-      if (!mounted) return;
-      if ((_currentCustomerId ?? '') == (prev ?? '') || (_currentCustomerId ?? '').isEmpty) {
-        _showTopSnack('ไม่พบลูกค้าสำหรับบันทึกโน้ต', isError: true);
-        return;
-      }
-    }
+    // Open notes directly; if no customer is linked, save notes at chatroom level
     await showModalBottomSheet(
       context: context,
       useSafeArea: true,
@@ -605,7 +745,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           height: h * 0.9,
           child: NotesSheet(
             workspaceId: widget.workspaceId,
-            customerId: _currentCustomerId!,
+            chatroomId: widget.chatroomId,
+            customerId: _currentCustomerId, // may be null; NotesSheet will fallback to chatroom-level
           ),
         );
       },
@@ -613,7 +754,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Future<void> _openUserPicker() async {
-    final pickedUid = await showModalBottomSheet<String>(
+    // Open in multi-select mode with current assignees preselected
+    final preselected = _assignees.map((e) => e.uid).toList();
+    final pickedUids = await showModalBottomSheet<List<String>>(
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
@@ -625,11 +768,17 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         final h = MediaQuery.of(ctx).size.height;
         return SizedBox(
           height: h * 0.9,
-          child: UserPickerSheet(workspaceId: widget.workspaceId),
+          child: UserPickerSheet(
+            workspaceId: widget.workspaceId,
+
+            multiSelect: true,
+            initialSelectedUids: preselected,
+          ),
         );
       },
     );
-    if (pickedUid != null && pickedUid.isNotEmpty) {
+    if (pickedUids != null && pickedUids.isNotEmpty) {
+      final unique = pickedUids.toSet().toList();
       final ok = await DialogUtils.showConfirmDialog(
         context: context,
         title: 'chat_confirm_assign_sale'.tr,
@@ -645,14 +794,15 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 .doc(widget.workspaceId)
                 .collection('customers')
                 .doc(_currentCustomerId)
-                .set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+                .set({'assignees': FieldValue.arrayUnion(unique)}, SetOptions(merge: true));
           } else {
-            await _chatroomDoc.set({'assignees': FieldValue.arrayUnion([pickedUid])}, SetOptions(merge: true));
+            await _chatroomDoc.set({'assignees': FieldValue.arrayUnion(unique)}, SetOptions(merge: true));
           }
           await _loadAssignees();
-          widget.onAssignChanged?.call(pickedUid);
+          // Notify external listener if needed (send first uid to keep backward compatibility)
+          if (unique.isNotEmpty) widget.onAssignChanged?.call(unique.first);
           if (mounted) {
-            _showTopSnack('ผูกเซลเรียบร้อย');
+            _showTopSnack('ผูกเซลเรียบร้อย (${unique.length} คน)');
           }
         } catch (e) {
           if (mounted) {
@@ -710,7 +860,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         final h = MediaQuery.of(ctx).size.height;
         return SizedBox(
           height: h * 0.9,
-          child: CustomerPickerSheet(workspaceId: widget.workspaceId),
+          child: CustomerPickerSheet(
+            workspaceId: widget.workspaceId,
+            initialSelectedId: _currentCustomerId,
+          ),
         );
       },
     );
@@ -740,6 +893,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }, SetOptions(merge: true));
 
       if (!mounted) return;
+      // Migrate any existing chat-level notes into the newly linked customer, then refresh
+      await _migrateNotesToCustomer(pickedCustomerId);
       setState(() {
         _currentCustomerId = pickedCustomerId;
         _currentCustomerName = name.isNotEmpty ? name : null;
@@ -833,6 +988,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           if (cid != null && cid.isNotEmpty) {
             await _chatroomDoc.set({'customerId': cid, if (cname.isNotEmpty) 'customerName': cname}, SetOptions(merge: true));
             if (mounted) {
+              // Also migrate notes now that a customer is linked via Job Card
+              await _migrateNotesToCustomer(cid);
               setState(() { _currentCustomerId = cid; _currentCustomerName = cname.isNotEmpty ? cname : _currentCustomerName; });
               _loadAssignees();
               _loadCustomerHashtags(cid);
@@ -1030,10 +1187,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               text: 'โน้ต',
               onTap: () {
                 final svc = MobilePermissionsService.to;
-                if (svc.isOwner || svc.can('customer:edit:all') || svc.can('customer:edit:assigned')) {
+                final hasCustomer = (_currentCustomerId ?? '').isNotEmpty;
+                final canCustomerEdit = svc.isOwner || svc.can('customer:edit:all') || svc.can('customer:edit:assigned');
+                final canChatNote = svc.isOwner || svc.can('chat:manage') || svc.can('chat:assign') || svc.can('chat:send');
+                if ((hasCustomer && canCustomerEdit) || (!hasCustomer && canChatNote)) {
                   _openNotes();
                 } else {
-                  _showTopSnack('คุณไม่มีสิทธิ์แก้ไขข้อมูลลูกค้า/บันทึกโน้ต', isError: true);
+                  _showTopSnack('คุณไม่มีสิทธิ์แก้ไขโน้ต', isError: true);
                 }
               },
               closeOnTap: false,
@@ -1106,7 +1266,21 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   ),
                 ),
               ),
-
+              if ((_currentCustomerId ?? '').isNotEmpty)
+                ChatMenuTile(
+                  icon: Icons.link_off,
+                  text: 'ยกเลิกเชื่อมต่อลูกค้า',
+                  danger: true,
+                  onTap: () {
+                    final svc = MobilePermissionsService.to;
+                    if (svc.isOwner || svc.can('chat:assign')) {
+                      _unlinkCustomer();
+                    } else {
+                      _showTopSnack('คุณไม่มีสิทธิ์ยกเลิกเชื่อมต่อลูกค้า', isError: true);
+                    }
+                  },
+                  closeOnTap: false,
+                ),
               // Hashtags picker for linked customer
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -1205,6 +1379,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                       _showTopSnack('คุณไม่มีสิทธิ์ดูรายละเอียด Job Card', isError: true);
                     }
                   },
+
                   borderRadius: BorderRadius.circular(12),
                   child: Card(
                     color: Colors.white,

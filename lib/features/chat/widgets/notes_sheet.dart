@@ -40,9 +40,10 @@ class NoteItem {
 }
 
 class NotesSheet extends StatefulWidget {
-  const NotesSheet({Key? key, required this.workspaceId, required this.customerId}) : super(key: key);
+  const NotesSheet({Key? key, required this.workspaceId, this.customerId, required this.chatroomId}) : super(key: key);
   final String workspaceId;
-  final String customerId;
+  final String? customerId;
+  final String chatroomId;
 
   @override
   State<NotesSheet> createState() => _NotesSheetState();
@@ -52,11 +53,16 @@ class _NotesSheetState extends State<NotesSheet> {
   final List<NoteItem> _notes = [];
   bool _busy = false;
 
-  DocumentReference<Map<String, dynamic>> get _customerDoc => FirebaseFirestore.instance
-      .collection('workspaces')
-      .doc(widget.workspaceId)
-      .collection('customers')
-      .doc(widget.customerId);
+  // Determine whether notes are saved under a customer or directly under a chatroom
+  bool get _hasCustomer => (widget.customerId != null && widget.customerId!.isNotEmpty);
+
+  DocumentReference<Map<String, dynamic>> get _targetDoc {
+    final ws = FirebaseFirestore.instance.collection('workspaces').doc(widget.workspaceId);
+    if (_hasCustomer) {
+      return ws.collection('customers').doc(widget.customerId);
+    }
+    return ws.collection('chatrooms').doc(widget.chatroomId);
+  }
 
   @override
   void initState() {
@@ -67,7 +73,7 @@ class _NotesSheetState extends State<NotesSheet> {
   Future<void> _loadNotes() async {
     try {
       setState(() => _busy = true);
-      final snap = await _customerDoc.get();
+      final snap = await _targetDoc.get();
       final data = snap.data() ?? {};
       final list = (data['notes'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       list.sort((a, b) => ((b['timestamp'] ?? 0) as int).compareTo((a['timestamp'] ?? 0) as int));
@@ -126,7 +132,7 @@ class _NotesSheetState extends State<NotesSheet> {
       'userDisplayName': FirebaseAuth.instance.currentUser?.displayName,
       'userPhotoURL': FirebaseAuth.instance.currentUser?.photoURL,
     }).toList();
-    await _customerDoc.set({'notes': arr}, SetOptions(merge: true));
+    await _targetDoc.set({'notes': arr}, SetOptions(merge: true));
   }
 
   Future<void> _addTextNote() async {
@@ -196,7 +202,9 @@ class _NotesSheetState extends State<NotesSheet> {
       else if (ext == 'pdf') type = NoteType.pdf;
 
       final ts = DateTime.now().millisecondsSinceEpoch;
-      final baseDir = 'notes/${widget.workspaceId}/customers/${widget.customerId}/$ts';
+      final baseDir = _hasCustomer
+          ? 'notes/${widget.workspaceId}/customers/${widget.customerId}/$ts'
+          : 'notes/${widget.workspaceId}/chatrooms/${widget.chatroomId}/$ts';
 
       String url;
       String? thumbUrl;
