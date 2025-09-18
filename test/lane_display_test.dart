@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import '../lib/features/board/controllers/lane_display_controller.dart';
-import '../lib/features/board/enums/lane_display_mode.dart';
+import 'package:sellstory/core/enums/lane_display_mode.dart';
+import '../lib/features/board/controller/lane_display_controller.dart';
 
 void main() {
   group('Lane Display Controller Tests', () {

@@ -607,6 +607,15 @@ class ChatController extends GetxController {
     final String uid = _currentUserId ?? '';
 
     var filtered = conversations.where((conv) {
+      try {
+        final hiddenRaw = conv['is_hidden'];
+        final hidden = hiddenRaw == true || hiddenRaw == 'Y' ||
+            (hiddenRaw is String && hiddenRaw.toLowerCase() == 'true') ||
+            hiddenRaw == 1;
+        final unread = (conv['unreadCount'] as int?) ?? int.tryParse(conv['count']?.toString() ?? '0') ?? 0;
+        if (hidden && unread <= 0) return false;
+      } catch (_) {}
+
       // Permission gating
       if (!isOwnerOrAll) {
         final ids = (conv['assigneeIds'] is List)

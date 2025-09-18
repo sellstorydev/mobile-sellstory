@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sellstory/core/enums/lane_display_mode.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/lane.dart';
-import '../enums/lane_display_mode.dart';
-import '../controllers/lane_display_controller.dart';
-import '../utils/lane_total_calculator.dart';
+import '../controller/lane_display_controller.dart';
+import '../../../core/utils/lane_total_calculator.dart';
 
 class LaneHeader extends StatelessWidget {
   final Lane lane;

@@ -38,6 +38,8 @@ class JobCard {
   final Map<String, dynamic>? additionalDiscount; // Add additional discount field
   final num withholdingTaxPercentage; // Add withholding tax percentage field
   final List<Map<String, dynamic>> attachments; // Add attachments field
+  final List<Map<String, dynamic>> relatedDocuments; // Add related documents field
+  final String? quotationTemplateId; // Add quotation template ID field
 
   JobCard({
     required this.id,
@@ -77,6 +79,8 @@ class JobCard {
     this.additionalDiscount,
     this.withholdingTaxPercentage = 0,
     this.attachments = const [],
+    this.relatedDocuments = const [],
+    this.quotationTemplateId,
   });
 
   JobCard copyWith({
@@ -117,6 +121,8 @@ class JobCard {
     Map<String, dynamic>? additionalDiscount,
     num? withholdingTaxPercentage,
     List<Map<String, dynamic>>? attachments,
+    List<Map<String, dynamic>>? relatedDocuments,
+    String? quotationTemplateId,
   }) {
     return JobCard(
       id: id ?? this.id,
@@ -156,6 +162,8 @@ class JobCard {
       additionalDiscount: additionalDiscount ?? this.additionalDiscount,
       withholdingTaxPercentage: withholdingTaxPercentage ?? this.withholdingTaxPercentage,
       attachments: attachments ?? this.attachments,
+      relatedDocuments: relatedDocuments ?? this.relatedDocuments,
+      quotationTemplateId: quotationTemplateId ?? this.quotationTemplateId,
     );
   }
 
@@ -198,6 +206,8 @@ class JobCard {
       'additionalDiscount': additionalDiscount,
       'withholdingTaxPercentage': withholdingTaxPercentage,
       'attachments': attachments,
+      'relatedDocuments': relatedDocuments,
+      'quotationTemplateId': quotationTemplateId,
     };
   }
 
@@ -330,6 +340,8 @@ class JobCard {
       additionalDiscount: map['additionalDiscount'] != null ? Map<String, dynamic>.from(map['additionalDiscount'] as Map) : null,
       withholdingTaxPercentage: map['withholdingTaxPercentage'] ?? 0,
       attachments: List<Map<String, dynamic>>.from(map['attachments'] ?? const []),
+      relatedDocuments: List<Map<String, dynamic>>.from(map['relatedDocuments'] ?? const []),
+      quotationTemplateId: _nullableStringFrom(map['quotationTemplateId']),
     );
   }
 

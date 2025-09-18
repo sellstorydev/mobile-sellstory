@@ -1,6 +1,23 @@
 # Document System Development Summary
 
 ## Recent Developments (January 27, 2025)
+### Template-Based Column Mapping Verification (September 14, 2025)
+- **VERIFICATION COMPLETED**: Flutter mobile P&S implementation correctly follows React web patterns for strict template-based column mapping
+- **Analysis Result**: Current `edit_card_page.dart` implementation is CORRECT and matches React behavior:
+  - `_buildUserInputCell()`: Only displays values from `product['customInputs'][column.id]`; shows empty if no value exists for specific column ID
+  - `_onTemplateChanged()`: Remaps customInputs to only include user_input IDs from new template; preserves matching values, sets empty for missing ones
+  - Template switching properly clears stale values and only shows data for columns defined in selected template
+- **Key Pattern Match**: Both React (`item.customInputs?.[col.id] || ''`) and Flutter (`customInputs.containsKey(columnId)`) implementations strictly map by column ID with no fallback display
+- **Conclusion**: No changes needed - Flutter implementation already enforces template-based value display correctly
+
+### Edit Card P&S Subcollection + Template Mapping (September 14, 2025)
+- Source of truth for Products & Services on Edit Card now reads Firestore subcollection `workspaces/{ws}/cards/{cardId}/expenses` with fallback to embedded `card.expenses` when empty/unavailable.
+- Saving a card now synchronizes `_productItems` to the expenses subcollection (overwrite strategy) and also updates embedded `expenses` in the card document for backward compatibility.
+- Template loading for Edit Card uses the card’s `workspaceId` and prefers `body.components[1]` if it is a table, matching web behavior; otherwise falls back to the first table component found.
+- Rendering for type=`user_input` strictly uses `product.customInputs[column.id]` with a fallback to `prefillSourceField` only when the custom input value is empty.
+- Custom product additions and product selections initialize `customInputs` entries for each visible user_input column so IDs match the selected template’s column IDs.
+- Result: Custom columns like `BewLnwZa001` / `Bew1150` display values from `expense.customInputs` when the selected template column IDs match the keys.
+ - When switching templates in Edit Card, `customInputs` are remapped: only user_input ids defined in the new template are kept; matching ids retain values, missing ones prefill from `prefillSourceField` or become empty. This prevents stale values from previous templates.
 
 ### Receipt Creation Support Implementation (Latest - September 18, 2025)
 - **Complete Receipt Support**: Full integration of receipt creation and editing in AddEditDocumentPage
