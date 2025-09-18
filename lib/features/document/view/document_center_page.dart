@@ -298,12 +298,7 @@ class DocumentCenterPage extends StatelessWidget {
                 color: const Color(0xFFFF9800),
                 onTap: () {
                   Navigator.of(context).pop();
-                  // TODO: Navigate to create receipt page
-                  Get.snackbar(
-                    'Info',
-                    'Create receipt page coming soon',
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
+                  Get.to(() => const AddEditDocumentPage(documentType: 'RT'));
                 },
               ),
             ],

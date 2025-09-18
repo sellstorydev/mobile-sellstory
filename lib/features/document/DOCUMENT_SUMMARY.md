@@ -2,7 +2,29 @@
 
 ## Recent Developments (January 27, 2025)
 
-### Document View Page Implementation (Latest - September 18, 2025)
+### Receipt Creation Support Implementation (Latest - September 18, 2025)
+- **Complete Receipt Support**: Full integration of receipt creation and editing in AddEditDocumentPage
+- **Features Implemented**:
+  - Receipt ID generation using `generateReceiptDocNo()` method with configurable prefix, date format, and sequence
+  - Document type 'RT' support with appropriate status options: 'COMPLETED' and 'VOID'
+  - Default status 'COMPLETED' for new receipts (different from 'DRAFT' for quotations/invoices)
+  - Type-specific document titles: 'Create Receipt' and 'Edit Receipt' with full translation support
+  - Navigation integration from Document Center to receipt creation
+- **Technical Implementation**:
+  - **ID Generation**: Added `generateReceiptDocNo()` method to `IdGenerationService` using 'receipt' entity type rules
+  - **Controller Updates**: Modified `AddEditDocumentController` with type-specific status lists and default initialization
+  - **UI Integration**: Updated `AddEditDocumentPage` with receipt-specific titles and workflows
+  - **Document Center**: Enabled receipt creation button (removed "coming soon" placeholder)
+- **Files Modified**:
+  - `lib/core/services/id_generation_service.dart`: Added receipt ID generation
+  - `lib/features/document/controller/add_edit_document_controller.dart`: Receipt type support and status handling
+  - `lib/features/document/view/add_edit_document_page.dart`: Receipt UI integration
+  - `lib/features/document/view/document_center_page.dart`: Enabled receipt creation navigation
+  - `lib/core/i18n/app_translations.dart`: Added 'edit_receipt' translations
+- **Status Management**: Receipts use 'COMPLETED'/'VOID' status system as per business requirements
+- **Impact**: Complete receipt lifecycle support from creation to editing, consistent with quotation and invoice workflows
+
+### Document View Page Implementation (September 18, 2025)
 - **Created**: New `DocumentViewPage` widget for viewing documents in webview
 - **Features**:
   - Displays documents at URL pattern: `http://localhost:3000/doc/{type}/{uid}`

@@ -208,19 +208,49 @@ class AddEditDocumentController extends GetxController {
   String? _originalCreatedBy;
 
   // Available document statuses
-  List<String> get availableStatuses => [
-    'DRAFT',
-    'SENT',
-    'PENDING_APPROVAL',
-    'APPROVED',
-    'REJECTED',
-    'VOID',
-    'INVOICED',
-    'FULLY_PAID',
-    'PARTIAL_PAID',
-    'PAID',
-    'OVERDUE',
-  ];
+  List<String> get availableStatuses {
+    switch (documentType) {
+      case 'QT':
+        return [
+          'DRAFT',
+          'SENT',
+          'PENDING_APPROVAL',
+          'APPROVED',
+          'REJECTED',
+          'VOID',
+          'INVOICED',
+          'FULLY_PAID',
+        ];
+      case 'INV':
+        return [
+          'DRAFT',
+          'SENT',
+          'PARTIAL_PAID',
+          'PAID',
+          'OVERDUE',
+          'VOID',
+        ];
+      case 'RT':
+        return [
+          'COMPLETED',
+          'VOID',
+        ];
+      default:
+        return [
+          'DRAFT',
+          'SENT',
+          'PENDING_APPROVAL',
+          'APPROVED',
+          'REJECTED',
+          'VOID',
+          'INVOICED',
+          'FULLY_PAID',
+          'PARTIAL_PAID',
+          'PAID',
+          'OVERDUE',
+        ];
+    }
+  }
 
   // Summary section
   bool _isVatEnabled = false;
@@ -390,6 +420,18 @@ class AddEditDocumentController extends GetxController {
       if (documentId == null) {
         _documentDate = DateTime.now();
         _validUntilDate = DateTime.now().add(const Duration(days: 30));
+      }
+
+      // Set default status based on document type (only for new documents)
+      if (documentId == null) {
+        switch (documentType) {
+          case 'RT':
+            _documentStatus = 'COMPLETED';
+            break;
+          default:
+            _documentStatus = 'DRAFT';
+            break;
+        }
       }
 
       // Set default WHT percentage (only if not editing existing document)
@@ -3393,20 +3435,18 @@ class AddEditDocumentController extends GetxController {
         try {
           final idService = Get.find<IdGenerationService>();
           // Use appropriate document type for ID generation
-          String idType = 'quotation'; // default
           switch (documentType) {
             case 'QT':
-              idType = 'quotation';
+              docNo = await idService.generateDocumentDocNo(_currentWorkspaceId!, 'quotation');
               break;
             case 'INV':
-              idType = 'invoice';
+              docNo = await idService.generateInvoiceDocNo(_currentWorkspaceId!);
               break;
             case 'RT':
-              idType = 'receipt';
+              docNo = await idService.generateReceiptDocNo(_currentWorkspaceId!);
               break;
           }
-          docNo = await idService.generateDocumentDocNo(_currentWorkspaceId!, idType);
-          print('📝 Generated $idType document number: $docNo');
+          print('📝 Generated $documentType document number: $docNo');
         } catch (e) {
           print('❌ Failed to generate document number: $e');
         }

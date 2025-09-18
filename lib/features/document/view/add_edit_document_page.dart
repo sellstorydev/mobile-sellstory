@@ -63,10 +63,14 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               widget.documentId == null
                   ? (widget.documentType == 'QT'
                         ? 'create_quotation'.tr
-                        : 'create_invoice'.tr)
+                        : widget.documentType == 'INV'
+                        ? 'create_invoice'.tr
+                        : 'create_receipt'.tr)
                   : (widget.documentType == 'QT'
                         ? 'edit_quotation'.tr
-                        : 'edit_invoice'.tr),
+                        : widget.documentType == 'INV'
+                        ? 'edit_invoice'.tr
+                        : 'edit_receipt'.tr),
               style: const TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 18,
