@@ -4,7 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../../../core/services/id_generation_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../view/document_view_page.dart';
+import '../view/add_edit_document_page.dart';
 
 class InvoiceListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -368,5 +371,103 @@ class InvoiceListController extends GetxController {
   bool isDocumentHighlighted(String? documentId) {
     return highlightedDocumentId.value != null && 
            highlightedDocumentId.value == documentId;
+  }
+
+  // Create receipt from invoice
+  Future<void> createReceiptFromInvoice(Map<String, dynamic> invoice) async {
+    try {
+      // Show loading dialog
+      Get.dialog(
+        Center(child: CircularProgressIndicator(color: AppTheme.primaryOrange)),
+        barrierDismissible: false,
+      );
+
+      if (currentWorkspaceId.value.isEmpty) {
+        throw Exception('No workspace available');
+      }
+
+      // Create receipt data by copying invoice data
+      final receiptData = Map<String, dynamic>.from(invoice);
+      
+      // Remove invoice-specific fields
+      receiptData.remove('id');
+      receiptData.remove('dueDate');
+      receiptData.remove('paymentStatus');
+      receiptData.remove('invoiceType');
+      receiptData.remove('relatedQuotationId');
+      receiptData.remove('installmentNumber');
+      receiptData.remove('totalInstallments');
+      receiptData.remove('totalAmountFromQuotation');
+      receiptData.remove('deductedDeposit');
+      
+      // Update fields for receipt
+      receiptData['type'] = 'RT';
+      receiptData['status'] = 'COMPLETED';
+      receiptData['relatedInvoiceId'] = invoice['id'];
+      receiptData['receiptFor'] = 'invoice';
+      receiptData['paymentDate'] = DateTime.now().millisecondsSinceEpoch;
+      receiptData['paymentMethod'] = ['transfer']; // Default payment method
+      
+      // Update timestamps and user info
+      final now = DateTime.now().millisecondsSinceEpoch;
+      receiptData['createdAt'] = now;
+      receiptData['updatedAt'] = now;
+      receiptData['createdBy'] = currentUserId.value;
+      receiptData['updatedBy'] = currentUserId.value;
+      
+      // Update activity log
+      receiptData['activityLog'] = [
+        {
+          'timestamp': now,
+          'userId': currentUserId.value,
+          'userDisplayName': receiptData['seller']?['email'] ?? 'Unknown',
+          'action': 'Created',
+          'details': 'Created receipt from invoice ${invoice['docNo']}',
+        }
+      ];
+
+      // Set notes
+      receiptData['notes'] = 'Receipt for Invoice ${invoice['docNo']}';
+
+      // Generate new document number
+      final idService = Get.find<IdGenerationService>();
+      receiptData['docNo'] = await idService.generateReceiptDocNo(currentWorkspaceId.value);
+
+      // Create receipt in Firestore
+      final receiptId = await _repository.createDocument(
+        workspaceId: currentWorkspaceId.value,
+        documentData: receiptData,
+      );
+
+      Get.back(); // Close loading dialog
+      
+      // Show success message and navigate to receipt
+      Get.snackbar(
+        'Success', 
+        'Receipt created from invoice ${invoice['docNo']}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.1),
+        colorText: Colors.green,
+      );
+
+      // Navigate to the new receipt
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => AddEditDocumentPage(documentType: 'RT', documentId: receiptId),
+        ),
+      );
+
+    } catch (e) {
+      Get.back(); // Close loading dialog
+      print('❌ Failed to create receipt from invoice: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to create receipt: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    }
   }
 }

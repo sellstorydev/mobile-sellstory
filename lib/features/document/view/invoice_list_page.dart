@@ -381,9 +381,9 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
       ),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.spacing8),
+        child: GestureDetector(
           onTap: () => controller.viewInvoice(invoice),
+          onLongPress: () => _showContextMenu(context, invoice, controller),
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacing12),
             child: Row(
@@ -467,6 +467,100 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showContextMenu(
+    BuildContext context,
+    Map<String, dynamic> invoice,
+    InvoiceListController controller,
+  ) {
+    final status = invoice['status'] ?? '';
+    
+    // Only show context menu for PARTIAL_PAID or PAID invoices
+    if (status != 'PARTIAL_PAID' && status != 'PAID') {
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(AppTheme.spacing16),
+            topRight: Radius.circular(AppTheme.spacing16),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: AppTheme.spacing12),
+              decoration: BoxDecoration(
+                color: AppTheme.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing16),
+            
+            // Title
+            Text(
+              'options'.tr,
+              style: TextStyle(
+                fontSize: AppTheme.fontSize18,
+                fontWeight: FontWeight.w600,
+                fontFamily: AppFont.family,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing16),
+            
+            // Create Receipt button
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(AppTheme.spacing8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.spacing8),
+                ),
+                child: const Icon(
+                  Icons.receipt_outlined,
+                  color: AppTheme.primaryOrange,
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                'create_receipt'.tr,
+                style: TextStyle(
+                  fontSize: AppTheme.fontSize16,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: AppFont.family,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              subtitle: Text(
+                'create_receipt_from_invoice'.tr,
+                style: TextStyle(
+                  fontSize: AppTheme.fontSize14,
+                  fontFamily: AppFont.family,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                controller.createReceiptFromInvoice(invoice);
+              },
+            ),
+            
+            const SizedBox(height: AppTheme.spacing16),
+          ],
         ),
       ),
     );

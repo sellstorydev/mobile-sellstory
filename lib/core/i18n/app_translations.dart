@@ -530,6 +530,7 @@ class AppTranslations extends Translations {
           'start_creating_first_quotation': 'Start creating your first quotation',
           'options': 'Options',
           'create_invoice_from_quotation': 'Create invoice from this quotation',
+          'create_receipt_from_invoice': 'Create receipt from this invoice',
           
           // Board Filter Page Keys
           'filter_tasks': 'Filter Tasks',
@@ -1157,6 +1158,7 @@ class AppTranslations extends Translations {
           'start_creating_first_quotation': 'เริ่มต้นสร้างใบเสนอราคาแรกของคุณ',
           'options': 'ตัวเลือก',
           'create_invoice_from_quotation': 'สร้างใบแจ้งหนี้จากใบเสนอราคานี้',
+          'create_receipt_from_invoice': 'สร้างใบเสร็จรับเงินจากใบแจ้งหนี้นี้',
           
           // Board Filter Page Keys
           'filter_tasks': 'ตัวกรองงาน',
