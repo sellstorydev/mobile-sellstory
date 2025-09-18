@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../view/add_edit_document_page.dart';
+import '../view/document_view_page.dart';
 
 class QuotationsListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -328,12 +329,18 @@ class QuotationsListController extends GetxController {
 
   void viewQuotation(Map<String, dynamic> quotation) {
     final quotationId = quotation['id'] as String?;
-    Navigator.push(
-      Get.context!,
-      MaterialPageRoute(
-        builder: (context) => AddEditDocumentPage(documentType: 'QT', documentId: quotationId),
-      ),
-    );
+    if (quotationId != null) {
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => DocumentViewPage(
+            documentType: 'QT',
+            documentId: quotationId,
+            title: quotation['docNo'] as String?,
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> reviseQuotationToInvoice(Map<String, dynamic> quotation) async {

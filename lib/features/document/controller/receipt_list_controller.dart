@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../view/document_view_page.dart';
 
 class ReceiptListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -321,8 +322,18 @@ class ReceiptListController extends GetxController {
 
   void viewReceipt(Map<String, dynamic> receipt) {
     final receiptId = receipt['id'] as String?;
-    // Implementation for viewing receipt
-    print('Viewing receipt: $receiptId');
+    if (receiptId != null) {
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => DocumentViewPage(
+            documentType: 'RT',
+            documentId: receiptId,
+            title: receipt['docNo'] as String?,
+          ),
+        ),
+      );
+    }
   }
 
   String formatDate(int timestamp) {

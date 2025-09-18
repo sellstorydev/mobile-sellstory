@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
-import '../view/add_edit_document_page.dart';
+import '../view/document_view_page.dart';
 
 class InvoiceListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -317,12 +317,18 @@ class InvoiceListController extends GetxController {
 
   void viewInvoice(Map<String, dynamic> invoice) {
     final invoiceId = invoice['id'] as String?;
-    Navigator.push(
-      Get.context!,
-      MaterialPageRoute(
-        builder: (context) => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId),
-      ),
-    );
+    if (invoiceId != null) {
+      Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => DocumentViewPage(
+            documentType: 'INV',
+            documentId: invoiceId,
+            title: invoice['docNo'] as String?,
+          ),
+        ),
+      );
+    }
   }
 
   String formatDate(int timestamp) {

@@ -2,6 +2,31 @@
 
 ## Recent Developments (January 27, 2025)
 
+### Document View Page Implementation (Latest - September 18, 2025)
+- **Created**: New `DocumentViewPage` widget for viewing documents in webview
+- **Features**:
+  - Displays documents at URL pattern: `http://localhost:3000/doc/{type}/{uid}`
+  - Supports all document types: quotations (QT), invoices (INV), receipts (RT)
+  - Full-screen webview with loading indicators and error handling
+  - Edit button that navigates to document edit page and refreshes view on return
+  - Floating action button for quick edit access
+  - Menu options for reload, open in browser, and share
+  - Document type-specific titles using translations
+- **Navigation Flow**: Document List → Document View → Document Edit
+- **URL Examples**:
+  - `http://localhost:3000/doc/quotation/0xCzVTaGbEeHdaeyJDUt`
+  - `http://localhost:3000/doc/invoice/{invoiceId}`
+  - `http://localhost:3000/doc/receipt/{receiptId}`
+- **Controllers Updated**:
+  - `QuotationsListController.viewQuotation()` now navigates to DocumentViewPage
+  - `InvoiceListController.viewInvoice()` now navigates to DocumentViewPage  
+  - `ReceiptListController.viewReceipt()` now navigates to DocumentViewPage
+- **Files Created/Modified**:
+  - `lib/features/document/view/document_view_page.dart` (new)
+  - `lib/features/document/controller/quotations_list_controller.dart` (modified)
+  - `lib/features/document/controller/invoice_list_controller.dart` (modified)
+  - `lib/features/document/controller/receipt_list_controller.dart` (modified)
+
 ### 1. Company Auto-fill Functionality Enhancement (Latest)
 - **Issue**: When customers work for companies, user had to manually enter company data into customer fields
 - **Solution**: Enhanced `AddEditDocumentController` with automatic company data population:
