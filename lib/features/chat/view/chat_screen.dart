@@ -49,20 +49,30 @@ class _ChatScreenState extends State<ChatScreen> {
   int _focusedMatchIndex = 0;
   String _lastFocusedQuery = '';
   // Visual index tracking for alignment logic
-  final Map<String, int> _listIndexById = {};
+  final Map<String, int> _listIndexById = {}; // docId -> list index
+  final Map<String, int> _altIdIndex = {}; // alternative internal ids -> list index
   int _lastItemCount = 0;
   // Cache latest messages to allow instant recompute on user typing
   List<QueryDocumentSnapshot> _currentMessages = const [];
 
   // Quote reply state
-  String? _replyPreviewText;
-
-
+  String? _replyPreviewText; // existing
+  String? _replyToMessageId;
+  String? _replyToMessageType;
+  String? _replyOriginalSenderName; // NEW: sender name of original message
+  String? _focusedReplyMessageId; // currently highlighted original
+  Timer? _replyFocusClearTimer;
+  String? _replyQuoteToken; // NEW: quoteToken for LINE replies
 
   // Track previous message count to avoid redundant auto-scrolls that cause flicker
   int _prevMessageCount = -1;
   // Track if user is already near bottom; gate auto-scroll to reduce jumps
   bool _nearBottom = true;
+
+  // dynamic fetch limit
+  int _messageLimit = 50;
+  final int _maxMessageLimit = 500;
+  String? _pendingFocusMessageId; // message id waiting to focus after loading more
 
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
   String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? 'chat_default_name'.tr);
@@ -81,6 +91,32 @@ class _ChatScreenState extends State<ChatScreen> {
   final Map<String, String> _userNameCache = {};
   // Track currently subscribed customerId to allow dynamic re-subscription
   String? _subscribedCustomerId;
+  // Cached current user profile from Firestore
+  Map<String, dynamic>? _currentUserProfile;
+
+  Future<void> _ensureCurrentUserProfile() async {
+    if (_currentUserProfile != null) return;
+    try {
+      final uid = _currentUserId;
+      final snap = await FirestoreService.to.usersCollection.doc(uid).get();
+      _currentUserProfile = snap.data() ?? {};
+    } catch (_) {
+      _currentUserProfile = {};
+    }
+  }
+
+  Map<String, dynamic> _buildSenderPayload() {
+    final p = _currentUserProfile;
+    final authUser = FirebaseAuth.instance.currentUser;
+    final name = (p?['displayName'] ?? p?['name'] ?? authUser?.displayName ?? 'Mobile User').toString();
+    final avatar = (p?['photoURL'] ?? p?['photoUrl'] ?? p?['avatar'] ?? authUser?.photoURL);
+    return {
+      'id': _currentUserId,
+      'name': name,
+      'avatar': avatar,
+    };
+  }
+
 
   Future<void> _openAddSales() async {
     try {
@@ -171,6 +207,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _markAsRead();
     _loadAssigneesIfNeeded();
+    _ensureCurrentUserProfile();
     // If a customerId is known, subscribe for live changes
     final data = widget.conversationData;
     final cid = (data['customerId'] ?? data['customer_id'] ?? data['customer']?['id'])?.toString();
@@ -193,6 +230,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _replyFocusClearTimer?.cancel();
     // _scrollController.dispose();
     _searchController.dispose();
     _customerSub?.cancel();
@@ -229,168 +267,119 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
-
-    // Do not toggle _isLoading for quick text sends to avoid UI flicker
-    // setState(() => _error = null); // Clear previous errors
-
-
-    // try {
-      final result = await _chatService.sendTextMessage(
-        workspaceId: widget.workspaceId,
-        chatroomId: widget.conversationId,
-        platform: _sourceType,
-        text: text.trim(),
-        replyText: _replyPreviewText, // include quote when present
-        sender: {
-          'id': _currentUserId,
-          'name': FirebaseAuth.instance.currentUser?.displayName ?? 'Mobile User',
-          'avatar': FirebaseAuth.instance.currentUser?.photoURL,
-        },
-      );
-
-      if (result['success'] == true) {
-        // Clear reply state after successful send
-        if(_replyPreviewText != null)
-        if (mounted) setState(() => _replyPreviewText = null);
-        // Don't call _scrollToBottom here; stream listener will autoscroll when appropriate
-      }
-    // } catch (e) {
-    //   _error = 'ส่งข้อความไม่สำเร็จ';
-    //   _showErrorSnackBar(_error!);
-    // }
+    await _ensureCurrentUserProfile();
+    final sender = _buildSenderPayload();
+    final result = await _chatService.sendTextMessage(
+      workspaceId: widget.workspaceId,
+      chatroomId: widget.conversationId,
+      platform: _sourceType,
+      text: text.trim(),
+      replyText: _replyPreviewText,
+      replyToMessageId: _replyToMessageId,
+      replyToMessageType: _replyToMessageType,
+      replyOriginalSenderName: _replyOriginalSenderName,
+      replyQuoteToken: _replyQuoteToken,
+      sender: sender,
+    );
+    if (result['success'] == true && mounted) {
+      setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
+    }
   }
 
   Future<void> _sendImageMessage(String imageUrl) async {
-    _isLoading = true;
-    _error = null;
-
+    _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
+      final sender = _buildSenderPayload();
       final result = await _chatService.sendImageMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
         platform: _sourceType,
         imageUrl: imageUrl,
-        sender: {
-          'id': _currentUserId,
-          'name': FirebaseAuth.instance.currentUser?.displayName ?? 'Mobile User',
-          'avatar': FirebaseAuth.instance.currentUser?.photoURL,
-        },
+        replyText: _replyPreviewText,
+        replyToMessageId: _replyToMessageId,
+        replyToMessageType: _replyToMessageType,
+        replyOriginalSenderName: _replyOriginalSenderName,
+        replyQuoteToken: _replyQuoteToken,
+        sender: sender,
       );
-
-      if (result['success'] == true) {
-        // Clear reply preview on successful send
-        if(_replyPreviewText != null)
-        if (mounted) setState(() => _replyPreviewText = null);
-        // Don't force scroll; will autoscroll if user is near bottom
+      if (result['success'] == true && mounted) {
+        setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
       }
-    } catch (e) {
-      setState(() => _error = 'ส่งรูปภาพไม่สำเร็จ');
-      _showErrorSnackBar(_error!);
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    } catch (e) { setState(() => _error = 'ส่งรูปภาพไม่สำเร็จ'); _showErrorSnackBar(_error!); }
+    finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   Future<void> _sendFileMessage(String fileUrl, String fileName) async {
-    _isLoading = true;
-    _error = null;
-
+    _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
+      final sender = _buildSenderPayload();
       final result = await _chatService.sendFileMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
         platform: _sourceType,
         fileUrl: fileUrl,
         fileName: fileName,
-        sender: {
-          'id': _currentUserId,
-          'name': FirebaseAuth.instance.currentUser?.displayName ?? 'Mobile User',
-          'avatar': FirebaseAuth.instance.currentUser?.photoURL,
-        },
+        replyText: _replyPreviewText,
+        replyToMessageId: _replyToMessageId,
+        replyToMessageType: _replyToMessageType,
+        replyOriginalSenderName: _replyOriginalSenderName,
+        replyQuoteToken: _replyQuoteToken,
+        sender: sender,
       );
-
-      if (result['success'] == true) {
-        // Clear reply preview on successful send
-        if(_replyPreviewText != null)
-        if (mounted) setState(() => _replyPreviewText = null);
-        // No manual scroll
+      if (result['success'] == true && mounted) {
+        setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
       }
-    } catch (e) {
-      setState(() => _error = 'ส่งไฟล์ไม่สำเร็จ');
-      _showErrorSnackBar(_error!);
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    } catch (e) { setState(() => _error = 'ส่งไฟล์ไม่สำเร็จ'); _showErrorSnackBar(_error!); }
+    finally { if (mounted) setState(() => _isLoading = false); }
   }
 
-  // เพิ่มฟังก์��ันส่งข้อความประเภทอื่นๆ
+  // เพิ่มฟังก์ชั่นส่งข้อความประเภทอื่นๆ
   Future<void> _sendVideoMessage(String videoUrl) async {
-    _isLoading = true;
-    _error = null;
-
+    _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
+      final sender = _buildSenderPayload();
       final result = await _chatService.sendVideoMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
         platform: _sourceType,
         videoUrl: videoUrl,
-        sender: {
-          'id': _currentUserId,
-          'name': FirebaseAuth.instance.currentUser?.displayName ?? 'Mobile User',
-          'avatar': FirebaseAuth.instance.currentUser?.photoURL,
-        },
+        replyText: _replyPreviewText,
+        replyToMessageId: _replyToMessageId,
+        replyToMessageType: _replyToMessageType,
+        replyOriginalSenderName: _replyOriginalSenderName,
+        replyQuoteToken: _replyQuoteToken,
+        sender: sender,
       );
-
-      if (result['success'] == true) {
-        // Clear reply preview on successful send
-        if(_replyPreviewText != null)
-        if (mounted) setState(() => _replyPreviewText = null);
-        // No manual scroll
+      if (result['success'] == true && mounted) {
+        setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
       }
-    } catch (e) {
-      setState(() => _error = 'ส่งวิดีโอไม่สำเร็จ');
-      _showErrorSnackBar(_error!);
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    } catch (e) { setState(() => _error = 'ส่งวิดีโอไม่สำเร็จ'); _showErrorSnackBar(_error!); }
+    finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   Future<void> _sendStickerMessage(String stickerId, String stickerPackageId) async {
-    if (_sourceType.toLowerCase() != 'line') {
-      _showErrorSnackBar('สติ๊กเกอร์รองรับเฉพาะ LINE เท่านั้น');
-      return;
-    }
-    _isLoading = true;
-    _error = null;
-
-
+    if (_sourceType.toLowerCase() != 'line') { _showErrorSnackBar('สติ๊กเกอร์รองรับเฉพาะ LINE เท่านั้น'); return; }
+    _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
+      final sender = _buildSenderPayload();
       final result = await _chatService.sendStickerMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
         platform: _sourceType,
         stickerId: stickerId,
         stickerPackageId: stickerPackageId,
-        sender: {
-          'id': _currentUserId,
-          'name': FirebaseAuth.instance.currentUser?.displayName ?? 'Mobile User',
-          'avatar': FirebaseAuth.instance.currentUser?.photoURL,
-        },
+        replyText: _replyPreviewText,
+        replyToMessageId: _replyToMessageId,
+        replyToMessageType: _replyToMessageType,
+        replyOriginalSenderName: _replyOriginalSenderName,
+        replyQuoteToken: _replyQuoteToken,
+        sender: sender,
       );
-
-
-      if (result['success'] == true) {
-        // Clear reply preview on successful send
-        if(_replyPreviewText != null)
-        if (mounted) setState(() => _replyPreviewText = null);
-        // No manual scroll
+      if (result['success'] == true && mounted) {
+        setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
       }
-    } catch (e) {
-      setState(() => _error = 'ส่งสติ๊กเกอร์ไม่สำเร็จ: $e');
-      _showErrorSnackBar(_error!);
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    } catch (e) { setState(() => _error = 'ส่งสติ๊กเกอร์ไม่สำเร็จ: $e'); _showErrorSnackBar(_error!); }
+    finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   void _showErrorSnackBar(String message) {
@@ -561,7 +550,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       }
     } catch (e) {
-      _showErrorSnackBar('ดึงข้อมูลไม่สำเ��็จ: $e');
+      _showErrorSnackBar('ดึงข้อมูลไม่สำเร็จ: $e');
     }
   }
 
@@ -983,7 +972,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         icon: const Icon(Icons.keyboard_arrow_up),
                       ),
                       IconButton(
-                        tooltip: 'ถัด���ป',
+                        tooltip: 'ถัดไป',
                         onPressed: _matchedIds.isEmpty ? null : _gotoNextMatch,
                         icon: const Icon(Icons.keyboard_arrow_down),
                       ),
@@ -997,6 +986,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   stream: _chatService.getMessagesStream(
                     workspaceId: widget.workspaceId,
                     chatroomId: widget.conversationId,
+                    limit: _messageLimit,
                   ),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -1019,6 +1009,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
                     // reset visual index map for this build
                     _listIndexById.clear();
+                    _altIdIndex.clear();
                     _lastItemCount = messages.length;
                     _prevMessageCount = messages.length;
 
@@ -1043,6 +1034,25 @@ class _ChatScreenState extends State<ChatScreen> {
                       SchedulerBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animate: animate));
                     }
 
+                    // if pending focus and message list changed attempt focus
+                    if (_pendingFocusMessageId != null) {
+                      // attempt after build frame to ensure indices ready
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        final ok = _tryScrollToMessageId(_pendingFocusMessageId!, silent: true);
+                        if (ok) {
+                          setState(() { _pendingFocusMessageId = null; });
+                        } else {
+                          // escalate limit if possible
+                          if (_messageLimit < _maxMessageLimit) {
+                            setState(() { _messageLimit = (_messageLimit + 100).clamp(0, _maxMessageLimit); });
+                          } else {
+                            _showErrorSnackBar('ไม่พบข้อความต้นฉบับ');
+                            setState(() { _pendingFocusMessageId = null; });
+                          }
+                        }
+                      });
+                    }
+
                     return ScrollablePositionedList.builder(
                       itemScrollController: _itemScrollController,
                       itemPositionsListener: _itemPositionsListener,
@@ -1052,24 +1062,33 @@ class _ChatScreenState extends State<ChatScreen> {
                       itemBuilder: (context, index) {
                         final messageData = messages[index].data() as Map<String, dynamic>;
                         final messageId = messages[index].id;
+                        final messageType = (messageData['type'] ?? '').toString();
+                        _listIndexById[messageId] = index; // map
 
-                        // register visual index for alignment logic
-                        _listIndexById[messageId] = index;
-
-                        final isHighlighted = _searchQuery.isNotEmpty && _matchesQuery(messageData, _searchQuery);
-                        final isFocused = _searchQuery.isNotEmpty &&
-                            _matchedIds.isNotEmpty &&
-                            messageId == _matchedIds[_focusedMatchIndex];
+                        // index alternative IDs for quicker reply navigation
+                        void addAlt(dynamic v) { if (v == null) return; final s = v.toString(); if (s.isEmpty) return; _altIdIndex[s] = index; }
+                        addAlt(messageData['id']);
+                        addAlt(messageData['messageId']);
+                        addAlt(messageData['platformMessageId']); // NEW ensure platform id focus works
+                        addAlt(messageData['internalId']);
+                        addAlt(messageData['clientMessageId']);
+                        addAlt(messageData['originalMessageId']);
+                        final isSearchHighlighted = _searchQuery.isNotEmpty && _matchesQuery(messageData, _searchQuery);
+                        final isSearchFocused = _searchQuery.isNotEmpty && _matchedIds.isNotEmpty && messageId == _matchedIds[_focusedMatchIndex];
+                        final replyFocused = _focusedReplyMessageId != null && messageId == _focusedReplyMessageId;
+                        final highlight = isSearchHighlighted || replyFocused;
+                        final focused = isSearchFocused || replyFocused;
                         return RepaintBoundary(
                           child: MessageBubble(
                             key: ValueKey(messageId),
                             messageId: messageId,
                             messageData: messageData,
                             isFromCurrentUser: _isMessageFromCurrentUser(messageData),
-                            highlight: isHighlighted,
+                            highlight: highlight,
                             highlightQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-                            focused: isFocused,
-                            onLongPress: () => _onLongPressMessage(messageData),
+                            focused: focused,
+                            onLongPress: () => _onLongPressMessage(messageId, messageData, messageType),
+                            onTapReply: (origId) => _focusReplyOriginal(origId),
                           ),
                         );
                       },
@@ -1105,7 +1124,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   chatroomId: widget.conversationId,
                   enabled: !_isLoading,
                   replyPreview: _replyPreviewText,
-                  onCancelReply: () => setState(() => _replyPreviewText = null),
+                  replyToMessageId: _replyToMessageId,
+                  onTapReplyPreview: () {
+                    if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
+                      _focusReplyOriginal(_replyToMessageId!);
+                    }
+                  },
+                  onCancelReply: () => setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; }),
                 ),
               ),
             ],
@@ -1262,31 +1287,72 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<void> _onLongPressMessage(Map<String, dynamic> messageData) async {
+  void _clearReplyFocusLater() {
+    _replyFocusClearTimer?.cancel();
+    _replyFocusClearTimer = Timer(const Duration(seconds: 3), () { if (!mounted) return; setState(() { _focusedReplyMessageId = null; }); });
+  }
+  bool _tryScrollToMessageId(String id, {bool silent = false}) {
+    int? idx = _listIndexById[id];
+    idx ??= _altIdIndex[id];
+    if (idx == null) {
+      // Fallback scan among currently loaded messages only (no expansion here)
+      for (int i = 0; i < _currentMessages.length; i++) {
+        try {
+          final data = _currentMessages[i].data() as Map<String, dynamic>;
+          if (_currentMessages[i].id == id ||
+              (data['id']?.toString() == id) ||
+              (data['messageId']?.toString() == id) ||
+              (data['internalId']?.toString() == id) ||
+              (data['clientMessageId']?.toString() == id) ||
+              (data['originalMessageId']?.toString() == id)) {
+            idx = i; break; }
+        } catch (_) {}
+      }
+    }
+    if (idx == null) {
+      if (!silent) _showErrorSnackBar('ไม่พบข้อความต้นฉบับ');
+      return false;
+    }
+    if (!_itemScrollController.isAttached) return false;
+    _itemScrollController.scrollTo(index: idx, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut, alignment: 0.2);
+    setState(() { _focusedReplyMessageId = _currentMessages[idx!].id; });
+    _clearReplyFocusLater();
+    return true;
+  }
+
+  void _focusReplyOriginal(String id) {
+    final ok = _tryScrollToMessageId(id, silent: true);
+    if (ok) return;
+    // need to load more messages
+    if (_messageLimit < _maxMessageLimit) {
+      setState(() { _pendingFocusMessageId = id; _messageLimit = (_messageLimit + 100).clamp(0, _maxMessageLimit); });
+    } else {
+      _showErrorSnackBar('ไม่พบข้อความต้นฉบับ');
+    }
+  }
+
+  // Replace old _scrollToMessageId usages
+  Future<void> _onLongPressMessage(String messageId, Map<String, dynamic> messageData, String messageType) async {
     final picked = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.reply),
-              title: const Text('Quote Reply'),
-              onTap: () => Navigator.pop(ctx, 'reply'),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(leading: const Icon(Icons.reply), title: const Text('Quote Reply'), onTap: () => Navigator.pop(ctx, 'reply')),
+          const SizedBox(height: 8),
+        ]),
       ),
     );
     if (picked == 'reply') {
       final preview = _makeReplyPreview(messageData);
-      setState(() => _replyPreviewText = preview);
+      final originalSenderName = (messageData['sender']?['name'] ?? '').toString();
+      // Prefer Firestore doc id; fallback to platformMessageId if provided in data
+      final platformMsgId = (messageData['platformMessageId'] ?? '').toString();
+      final chosenId = messageId.isNotEmpty ? messageId : platformMsgId;
+      final quoteToken = (messageData['quoteToken'] ?? '').toString();
+      setState(() { _replyPreviewText = preview; _replyToMessageId = chosenId; _replyToMessageType = messageType; _replyOriginalSenderName = originalSenderName; _replyQuoteToken = quoteToken.isNotEmpty ? quoteToken : null; });
     }
   }
 }
