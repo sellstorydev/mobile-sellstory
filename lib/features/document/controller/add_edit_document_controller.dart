@@ -9,6 +9,7 @@ import '../../../core/services/id_generation_service.dart';
 import 'quotations_list_controller.dart';
 import 'invoice_list_controller.dart';
 import 'receipt_list_controller.dart';
+import '../view/add_edit_document_page.dart';
 
 class AddEditDocumentController extends GetxController {
   final String? documentId;
@@ -64,6 +65,9 @@ class AddEditDocumentController extends GetxController {
 
   String? _selectedCompanyId;
   String? get selectedCompanyId => _selectedCompanyId;
+  
+  // Get UI display value for company dropdown (shows 'individual' when null)
+  String? get selectedCompanyIdForUI => _selectedCompanyId ?? 'individual';
 
   // Get company display name
   String getCompanyDisplayName(Map<String, dynamic> company) {
@@ -318,6 +322,7 @@ class AddEditDocumentController extends GetxController {
         await loadTemplates(skipUpdates: true);
         await loadSignatures();
         await loadCompanySeals();
+        await loadDefaultNotes(); // Load default notes for new documents
         
         // If editing existing document, load its data
         if (documentId != null) {
@@ -472,7 +477,7 @@ class AddEditDocumentController extends GetxController {
   void onCustomerChanged(String? customerId) {
     try {
       _selectedCustomerId = customerId;
-      _selectedCompanyId = null;
+      _selectedCompanyId = null; // Auto-select individual (null internally, 'individual' in UI)
 
       // Auto-fill customer information if customer is selected
       if (customerId != null) {
@@ -554,16 +559,19 @@ class AddEditDocumentController extends GetxController {
 
   void onCompanyChanged(String? companyId) {
     try {
-      _selectedCompanyId = companyId;
+      // Convert 'individual' selection to null for Firebase storage
+      _selectedCompanyId = (companyId == 'individual') ? null : companyId;
 
       // Auto-fill company information if company is selected
-      if (companyId != null) {
+      if (companyId != null && companyId != 'individual') {
         final companyData = selectedCompanyData;
         if (companyData != null) {
           // You can add company-specific auto-fill logic here
           // For example, if you have company address, tax ID, etc.
           print('✅ Selected company: ${getCompanyDisplayName(companyData)}');
         }
+      } else if (companyId == 'individual') {
+        print('✅ Selected individual customer (no company)');
       }
 
       update();
@@ -923,6 +931,56 @@ class AddEditDocumentController extends GetxController {
     }
   }
 
+  // Load default notes from workspace settings
+  Future<void> loadDefaultNotes() async {
+    try {
+      if (_currentWorkspaceId == null) {
+        print('⚠️ No workspace ID available for loading default notes');
+        return;
+      }
+
+      print('📝 Loading default notes from workspace: $_currentWorkspaceId');
+      
+      final workspaceDoc = await _repository.getWorkspace(_currentWorkspaceId!);
+      if (workspaceDoc != null) {
+        final companyProfile = workspaceDoc['companyProfile'] as Map<String, dynamic>?;
+        final docSettings = companyProfile?['docSettings'] as Map<String, dynamic>?;
+        final defaultNotes = docSettings?['defaultNotes'] as Map<String, dynamic>?;
+        
+        if (defaultNotes != null) {
+          // Set default notes based on document type (only for new documents)
+          if (documentId == null) {
+            String defaultNote = '';
+            switch (documentType) {
+              case 'QT':
+                defaultNote = defaultNotes['quotation']?.toString() ?? '';
+                break;
+              case 'INV':
+                defaultNote = defaultNotes['invoice']?.toString() ?? '';
+                break;
+              case 'RT':
+                defaultNote = defaultNotes['receipt']?.toString() ?? '';
+                break;
+              default:
+                defaultNote = '';
+            }
+            
+            if (defaultNote.isNotEmpty) {
+              notesController.text = defaultNote;
+              print('✅ Set default notes for $documentType: $defaultNote');
+            }
+          }
+        } else {
+          print('⚠️ No default notes found in workspace profile: $_currentWorkspaceId');
+        }
+      } else {
+        print('⚠️ Workspace document not found: $_currentWorkspaceId');
+      }
+    } catch (e) {
+      print('❌ Failed to load default notes: $e');
+    }
+  }
+
   // Handle signature selection
   void onSignatureChanged(String signatureRoleName, String? signatureId) {
     try {
@@ -1178,6 +1236,9 @@ class AddEditDocumentController extends GetxController {
             if (companyId != null) {
               _selectedCompanyId = companyId;
             }
+          } else {
+            // No company data means individual customer (null in Firebase, 'individual' in UI)
+            _selectedCompanyId = null;
           }
         }
       }
@@ -2693,11 +2754,43 @@ class AddEditDocumentController extends GetxController {
   double get endOfBillDiscountAmount {
     try {
       if (!_isEndOfBillDiscountEnabled) return 0.0;
-      return double.tryParse(endOfBillDiscountController.text) ?? 0.0;
+      final discountValue = double.tryParse(endOfBillDiscountController.text) ?? 0.0;
+      // Validate bounds: cannot be less than 0 or greater than subtotal
+      return discountValue.clamp(0.0, subtotal);
     } catch (e) {
       print('❌ Failed to calculate end-of-bill discount: $e');
       return 0.0;
     }
+  }
+
+  // Validate end-of-bill discount input
+  bool validateEndOfBillDiscount(String value) {
+    if (value.isEmpty) return true; // Empty is valid (treated as 0)
+    
+    final discountValue = double.tryParse(value);
+    if (discountValue == null) return false; // Invalid number
+    
+    return discountValue >= 0 && discountValue <= subtotal;
+  }
+
+  // Get error message for end-of-bill discount validation
+  String? getEndOfBillDiscountErrorMessage(String value) {
+    if (value.isEmpty) return null;
+    
+    final discountValue = double.tryParse(value);
+    if (discountValue == null) {
+      return 'กรุณาใส่ตัวเลขที่ถูกต้อง';
+    }
+    
+    if (discountValue < 0) {
+      return 'ส่วนลดต้องมากกว่าหรือเท่ากับ 0';
+    }
+    
+    if (discountValue > subtotal) {
+      return 'ส่วนลดไม่สามารถเกินยอดรวม ${subtotal.toStringAsFixed(2)} บาท';
+    }
+    
+    return null;
   }
 
   double get afterDiscount => subtotal - endOfBillDiscountAmount;
@@ -3014,6 +3107,21 @@ class AddEditDocumentController extends GetxController {
         return;
       }
 
+      // Validate end-of-bill discount
+      if (_isEndOfBillDiscountEnabled) {
+        final discountValue = endOfBillDiscountController.text;
+        if (!validateEndOfBillDiscount(discountValue)) {
+          final errorMessage = getEndOfBillDiscountErrorMessage(discountValue);
+          Get.snackbar(
+            'ข้อผิดพลาด',
+            errorMessage ?? 'ส่วนลดท้ายบิลไม่ถูกต้อง',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return;
+        }
+      }
+
       
 
       if (_currentWorkspaceId == null || _currentUserId == null) {
@@ -3241,6 +3349,7 @@ class AddEditDocumentController extends GetxController {
       };
 
       // Save to Firestore
+      String? newDocumentId;
       if (documentId != null) {
         // Update existing document
         await _repository.updateDocument(
@@ -3251,51 +3360,142 @@ class AddEditDocumentController extends GetxController {
         print('📝 Updated document: $documentId');
       } else {
         // Create new document
-        final newDocumentId = await _repository.createDocument(
+        newDocumentId = await _repository.createDocument(
           workspaceId: _currentWorkspaceId!,
           documentData: documentData,
         );
         print('📝 Created new document with ID: $newDocumentId');
       }
 
-             // Show success notification with document ID
-       final documentNumber = documentId != null 
-           ? (_currentDocNo ?? 'ERROR') 
-           : (docNo ?? 'ERROR');
-       
-       String documentTypeName = '';
-       switch (documentType) {
-         case 'QT':
-           documentTypeName = 'ใบเสนอราคา';
-           break;
-         case 'INV':
-           documentTypeName = 'ใบแจ้งหนี้';
-           break;
-         case 'RT':
-           documentTypeName = 'ใบเสร็จรับเงิน';
-           break;
-         default:
-           documentTypeName = 'เอกสาร';
-       }
-       
-       final successMessage = documentId != null
-           ? 'อัปเดต$documentTypeNameเรียบร้อย - เลขที่: $documentNumber'
-           : 'สร้าง$documentTypeNameเรียบร้อย - เลขที่: $documentNumber';
-       
-       Get.snackbar(
-         'สำเร็จ',
-         successMessage,
-         backgroundColor: Colors.green,
-         colorText: Colors.white,
-         duration: Duration(seconds: 4),
-         snackPosition: SnackPosition.TOP,
-       );
+      // Show success notification with document ID
+      final documentNumber = documentId != null 
+          ? (_currentDocNo ?? 'ERROR') 
+          : (docNo ?? 'ERROR');
+      
+      String documentTypeName = '';
+      switch (documentType) {
+        case 'QT':
+          documentTypeName = 'quotation'.tr;
+          break;
+        case 'INV':
+          documentTypeName = 'invoice'.tr;
+          break;
+        case 'RT':
+          documentTypeName = 'receipt'.tr;
+          break;
+        default:
+          documentTypeName = 'document'.tr;
+      }
+      
+      final isUpdate = documentId != null;
+      final successTitle = isUpdate ? 'document_updated_successfully'.tr : 'document_created_successfully'.tr;
+      final successMessage = '$documentTypeName $documentNumber';
+      
+      // Show success dialog
+      await Get.dialog(
+        AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'success'.tr,
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                successTitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.green.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.description,
+                      color: Colors.green,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        successMessage,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(Get.context!).pop(),
+              child: Text('ok'.tr),
+            ),
+          ],
+        ),
+        barrierDismissible: false,
+      );
 
-       // Navigate back and refresh the appropriate list
-       Get.back(); // Go back to previous page
-       
-       // Trigger refresh on the appropriate list controller
-       _refreshListController();
+      // Handle navigation based on create vs update
+      if (isUpdate) {
+        // For updates, just refresh the list and stay on edit page
+        _refreshListController();
+      } else {
+        // For new documents, navigate to edit page of the newly created document
+        if (newDocumentId != null) {
+          // Navigate back to the list first
+          Get.back();
+          
+          // Then navigate to edit page for the newly created document
+          await Future.delayed(const Duration(milliseconds: 300)); // Small delay for smooth transition
+          
+          // Use Navigator.push to avoid GetX controller conflicts
+          Navigator.push(
+            Get.context!,
+            MaterialPageRoute(
+              builder: (context) => AddEditDocumentPage(
+                documentId: newDocumentId,
+                documentType: documentType,
+              ),
+            ),
+          );
+          
+          // Refresh the list controller
+          _refreshListController();
+        } else {
+          // Fallback: just go back if something went wrong
+          Get.back();
+          _refreshListController();
+        }
+      }
     } catch (e) {
       print('❌ Failed to save document: $e');
       Get.snackbar(
@@ -3342,13 +3542,5 @@ class AddEditDocumentController extends GetxController {
       print('⚠️ Could not find list controller to refresh: $e');
     }
   }
-}
-
-int _parseAge(dynamic raw) {
-  if (raw == null) return 0;
-  if (raw is int) return raw;
-  if (raw is double) return raw.toInt();
-  if (raw is String) return int.tryParse(raw.trim()) ?? 0;
-  return 0;
 }
 

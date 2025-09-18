@@ -2,7 +2,53 @@
 
 ## Recent Developments (January 27, 2025)
 
-### 1. Template-Aware Quantity Validation Enhancement
+### 1. End-of-Bill Discount Validation Enhancement
+- **Issue**: End-of-bill discount input lacked proper validation, allowing negative values and amounts exceeding subtotal
+- **Solution**: Enhanced `AddEditDocumentController` with comprehensive discount validation:
+  - `validateEndOfBillDiscount()`: Validates discount input against bounds (0 ≤ discount ≤ subtotal)
+  - `getEndOfBillDiscountErrorMessage()`: Provides user-friendly error messages in Thai
+  - Updated `endOfBillDiscountAmount` getter: Uses `clamp()` to enforce bounds automatically
+  - Enhanced UI: Shows helper text with maximum amount, displays validation errors in real-time
+  - **Save Validation**: Added end-of-bill discount validation during document save process
+  - **Section Header Error Indicator**: Summary section header shows error state when discount validation fails
+- **Validation Rules**:
+  - Minimum: 0 (cannot be negative)
+  - Maximum: Current subtotal amount
+  - Shows "สูงสุด: ฿XX.XX" helper text
+  - Real-time error messages in Thai
+  - Blocks document save when discount is invalid
+  - Visual error indicators on collapsed summary section header
+- **Impact**: Prevents invalid discount amounts, improves data integrity, enhances user experience with clear feedback at input and save levels
+
+### 2. Customer Company Selection Enhancement
+- **Issue**: Customer company dropdown lacked a default "individual" option and required manual selection
+- **Solution**: Enhanced customer company selection with automatic default selection:
+  - Added translation keys: `select_individual` ("Select Individual" / "เลือกบุคคลธรรมดา")
+  - Modified `onCustomerChanged()`: Auto-selects 'individual' when customer is chosen
+  - Updated dropdown UI: Always shows when customer selected, includes individual option first
+  - Backward compatible: Existing company selections remain functional
+- **Impact**: Improved UX with sensible default selection for individual customers vs. companies
+
+### 2. Auto-fill Default Notes Enhancement
+- **Issue**: When creating new documents, the notes field was empty instead of using workspace-configured default notes
+- **Solution**: Enhanced `AddEditDocumentController` with automatic default notes loading:
+  - `loadDefaultNotes()`: Fetches workspace `docSettings.defaultNotes` and auto-fills based on document type
+  - Document type mapping: QT→quotation, INV→invoice, RT→receipt notes
+  - Only applies to new documents (documentId == null), preserves existing notes for edits
+- **Database Source**: `workspaces/{workspaceId}/companyProfile.docSettings.defaultNotes`
+- **Impact**: Improved user experience with pre-filled professional default terms/notes for each document type
+
+### 3. Navigation Error Fix - GetX Controller Conflicts
+- **Issue**: "AddEditDocumentController not found" error when navigating to edit page after creating documents
+- **Solution**: Replaced `Get.to()` with `Navigator.push()` for all navigation to `AddEditDocumentPage` with existing document IDs
+- **Files Updated**:
+  - `AddEditDocumentController.saveDocument()`: Fixed post-creation navigation to edit page
+  - `InvoiceListController.viewInvoice()`: Fixed viewing existing invoices
+  - `QuotationsListController.viewQuotation()` & `reviseQuotationToInvoice()`: Fixed quotation operations
+  - `InvoiceCreationController` (3 methods): Fixed all invoice creation scenarios
+- **Impact**: Resolved GetX dependency injection conflicts, enabling smooth navigation throughout document workflows
+
+### 4. Template-Aware Quantity Validation Enhancement
 - **Issue**: Template quantity validation not working properly for documents with predefined quantity columns and remainingQuantity limits
 - **Solution**: Enhanced `add_edit_document_controller.dart` with comprehensive template-aware validation methods:
   - `hasTemplateQuantityColumn`: Detects if template has predefined quantity fields
@@ -10,7 +56,7 @@
   - `getQuantityErrorMessage()`: Provides user-friendly error messages
 - **Impact**: All document types (QT, INV, RT) now support template-based quantity validation with remainingQuantity constraints
 
-### 2. Database-Level Type Filtering Implementation  
+### 5. Database-Level Type Filtering Implementation  
 - **Issue**: Document pagination queries lacked proper `.where('type', isEqualTo: 'XX')` conditions
 - **Solution**: Enhanced `firestore_repository.dart` with documentType parameter for database-level filtering
 - **Controllers Updated**:
@@ -19,7 +65,7 @@
   - `receipt_list_controller.dart`: Added `documentType: 'RT'` filtering
 - **Impact**: Improved performance and accuracy of document list pagination
 
-### 3. Invoice Creation Item Selection Fix
+### 6. Invoice Creation Item Selection Fix
 - **Issue**: When selecting items for "สร้างใบแจ้งหนี้ (แบ่งจ่ายแบบรายการ)", items were incorrectly setting quantity to 0 instead of minimum 1
 - **Solution**: Fixed `invoice_creation_controller.dart` methods:
   - `toggleItemSelection()`: Now sets minimum quantity to 1 when item is selected, uses original quantity as default
@@ -28,6 +74,21 @@
 - **Impact**: Improved user experience for item-based invoice creation with logical quantity defaults
 
 ## Technical Architecture
+
+### Customer Data Management Enhancement
+- Smart default selection reduces user friction when creating documents for individual customers
+- Maintains flexibility for business customers with company association options
+- Translation system ensures proper localization for all customer types
+
+### Document Creation UX Enhancement
+- Default notes system provides professional templates automatically based on document type
+- Workspace-level configuration allows customization of default terms for different document types
+- Seamless integration with existing document creation workflow without disrupting edit functionality
+
+### Navigation System Stability
+- Resolved GetX controller dependency conflicts with standard Flutter navigation patterns
+- Each `AddEditDocumentPage` instance manages its own controller lifecycle independently
+- Consistent navigation behavior across all document operations (create, view, edit, convert)
 
 ### Template System Integration
 - Templates now support smart field detection and validation
@@ -46,8 +107,11 @@
 
 ## Files Modified
 - `lib/features/document/controller/add_edit_document_controller.dart`
-- `lib/features/document/controller/invoice_creation_controller.dart`
 - `lib/features/document/view/add_edit_document_page.dart`
+- `lib/core/i18n/app_translations.dart`
+- `lib/features/document/controller/invoice_creation_controller.dart`
+- `lib/features/document/controller/invoice_list_controller.dart`
+- `lib/features/document/controller/quotations_list_controller.dart`
 - `lib/data/repositories/firestore_repository.dart`
 - `lib/features/document/controller/quotations_list_controller.dart`
 - `lib/features/document/controller/invoice_list_controller.dart`
@@ -195,6 +259,99 @@
   - Quotation list will show "INVOICED" status for converted quotations
   - Clear workflow progression from quotation to invoice
 - **Business Logic**: Maintains data consistency by automatically tracking the quotation-to-invoice conversion process
+
+### Enhanced Save/Create Success Handling (UX Enhancement - September 17, 2025)
+
+**Enhancement Details**: Improved user feedback and navigation flow when saving or creating documents with success dialogs and intelligent navigation.
+
+**File Updated**: `lib/features/document/controller/add_edit_document_controller.dart`
+
+**Changes Made**:
+
+1. **Enhanced Success Dialog**:
+   - **Replaced Snackbar** with professional success dialog featuring green checkmark icon
+   - **Multi-language Support**: All dialog text uses translation system (.tr)
+   - **Document-specific Icons**: Visual document representation in dialog
+   - **Rich Content Layout**: Structured dialog with title, message, and styled document information
+   - **Styled Success Card**: Green-themed container showing document type and number
+
+2. **Intelligent Navigation Logic**:
+   - **Create Flow**: After creating new document → Show success dialog → Navigate to edit page of newly created document
+   - **Update Flow**: After updating existing document → Show success dialog → Stay on current edit page
+   - **Smooth Transitions**: Added 300ms delay for better visual flow between navigation steps
+   - **Error Handling**: Fallback navigation if document creation fails
+
+3. **Translation Keys Added**:
+   - **English**:
+     - `'document_created_successfully': 'Document created successfully'`
+     - `'document_updated_successfully': 'Document updated successfully'`
+     - `'quotation': 'Quotation'`, `'invoice': 'Invoice'`, `'receipt': 'Receipt'`, `'document': 'Document'`
+   - **Thai**:
+     - `'document_created_successfully': 'สร้างเอกสารเรียบร้อยแล้ว'`
+     - `'document_updated_successfully': 'อัปเดตเอกสารเรียบร้อยแล้ว'`
+     - `'quotation': 'ใบเสนอราคา'`, `'invoice': 'ใบแจ้งหนี้'`, `'receipt': 'ใบเสร็จรับเงิน'`, `'document': 'เอกสาร'`
+
+4. **Technical Implementation**:
+   - **Success Dialog**: Modal dialog with barrierDismissible: false for controlled dismissal
+   - **Navigation Flow**: Proper async/await handling for sequential navigation steps
+   - **List Refresh**: Automatic refresh of appropriate list controller after successful operations
+   - **Error Boundaries**: Graceful handling of navigation failures with fallback behavior
+
+**User Experience Benefits**:
+- **Clear Success Feedback**: Professional dialog provides clear confirmation of successful operations
+- **Seamless Workflow**: Create → Edit flow allows immediate editing of newly created documents
+- **Visual Consistency**: Green-themed success styling matches app design language
+- **Intuitive Navigation**: Users automatically land on edit page after creating new documents
+- **Multilingual Support**: Success messages properly localized for all supported languages
+
+**Business Logic**:
+- **Create Documents**: Success creates new document and opens edit mode for immediate modifications
+- **Update Documents**: Success keeps user on same page for continued editing
+- **List Synchronization**: Automatic refresh ensures list views show latest document states
+- **Error Recovery**: Robust fallback navigation maintains usable application state
+
+### Search Functionality and Translation in Product Selection Dialog (Enhancement - September 17, 2025)
+
+**Enhancement Details**: Fixed search functionality and translated hardcoded Thai text in the product selection dialog for document creation.
+
+**File Updated**: `lib/features/document/view/add_edit_document_page.dart`
+
+**Changes Made**:
+
+1. **Search Functionality Implementation**:
+   - **Fixed Non-functional Search**: Replaced TODO comment with actual search implementation
+   - **Search State Management**: Added `searchQuery` variable to track search input
+   - **Real-time Filtering**: Products filter dynamically as user types
+   - **Multi-field Search**: Searches across product name, SKU, and description fields
+   - **Case-insensitive Search**: All searches converted to lowercase for better matching
+
+2. **Translation System Integration**:
+   - **Dialog Title**: Changed from hardcoded 'เลือกสินค้าจากฐานข้อมูล' to `'select_products_from_database'.tr`
+   - **Search Placeholder**: Changed from hardcoded 'ค้นหาสินค้า...' to `'search_products'.tr`
+   - **Error Messages**: Updated snackbar messages to use translation keys
+   - **Action Buttons**: Changed 'เพิ่มสินค้า' to `'add_products'.tr`
+
+3. **Translation Keys Added**:
+   - **English (en_US)**:
+     - `'warning': 'Warning'`
+     - `'please_select_at_least_one_product': 'Please select at least one product'`
+     - `'add_products': 'Add Products'`
+   - **Thai (th)**:
+     - `'warning': 'คำเตือน'`
+     - `'please_select_at_least_one_product': 'กรุณาเลือกสินค้าอย่างน้อย 1 รายการ'`
+     - `'add_products': 'เพิ่มสินค้า'`
+
+**Technical Implementation**:
+- **Search Algorithm**: Uses `String.contains()` with lowercase conversion for efficient searching
+- **State Management**: Proper StatefulBuilder implementation for real-time UI updates
+- **Performance**: Filtering happens in UI layer without backend calls
+- **User Experience**: Instant search results with no loading delays
+
+**Benefits**:
+- **Working Search**: Users can now actually search and filter products effectively
+- **Multilingual Support**: All text properly translated for English and Thai users
+- **Better UX**: Real-time search results improve product selection efficiency
+- **Maintainability**: All UI text centralized in translation system
 
 ### Invoice Quantity Validation (Security Enhancement - September 9, 2025)
 - **SECURITY FEATURE ADDED**: Maximum quantity validation for item-based invoice creation

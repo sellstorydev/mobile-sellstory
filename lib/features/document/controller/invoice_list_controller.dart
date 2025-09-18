@@ -314,7 +314,12 @@ class InvoiceListController extends GetxController {
 
   void viewInvoice(Map<String, dynamic> invoice) {
     final invoiceId = invoice['id'] as String?;
-    Get.to(() => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId));
+    Navigator.push(
+      Get.context!,
+      MaterialPageRoute(
+        builder: (context) => AddEditDocumentPage(documentType: 'INV', documentId: invoiceId),
+      ),
+    );
   }
 
   String formatDate(int timestamp) {
