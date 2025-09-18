@@ -31,6 +31,9 @@ class QuotationsListController extends GetxController {
   
   // All quotations for filtering
   final allQuotations = <Map<String, dynamic>>[].obs;
+  
+  // Highlighting variables
+  final highlightedDocumentId = Rx<String?>(null);
 
   @override
   void onInit() {
@@ -441,7 +444,18 @@ class QuotationsListController extends GetxController {
   }
 
   // Refresh data
-  Future<void> refreshData() async {
+  Future<void> refreshData({String? highlightDocumentId}) async {
+    // Set the document to highlight
+    if (highlightDocumentId != null) {
+      highlightedDocumentId.value = highlightDocumentId;
+      // Clear highlighting after 4 seconds for better visibility
+      Future.delayed(const Duration(seconds: 4), () {
+        if (highlightedDocumentId.value == highlightDocumentId) {
+          highlightedDocumentId.value = null;
+        }
+      });
+    }
+    
     // Store current state
     final int currentItemCount = allQuotations.length;
     print('🔄 Refresh started - Current item count: $currentItemCount');
@@ -467,5 +481,11 @@ class QuotationsListController extends GetxController {
     }
     
     print('🔄 Refresh completed - Final count: ${allQuotations.length}');
+  }
+  
+  // Check if a document should be highlighted
+  bool isDocumentHighlighted(String? documentId) {
+    return highlightedDocumentId.value != null && 
+           highlightedDocumentId.value == documentId;
   }
 }

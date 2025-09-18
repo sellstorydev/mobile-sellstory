@@ -23,7 +23,7 @@
 ### 2. Customer Company Selection Enhancement
 - **Issue**: Customer company dropdown lacked a default "individual" option and required manual selection
 - **Solution**: Enhanced customer company selection with automatic default selection:
-  - Added translation keys: `select_individual` ("Select Individual" / "เลือกบุคคลธรรมดา")
+  - Added translation keys: `select_individual` ("Select Individual" / "บุคคลธรรมดา")
   - Modified `onCustomerChanged()`: Auto-selects 'individual' when customer is chosen
   - Updated dropdown UI: Always shows when customer selected, includes individual option first
   - Backward compatible: Existing company selections remain functional

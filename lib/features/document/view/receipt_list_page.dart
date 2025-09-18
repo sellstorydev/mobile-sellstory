@@ -335,16 +335,29 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
     final grandTotal = receipt['grandTotal']?.toDouble() ?? 0.0;
     final status = receipt['status'] ?? 'COMPLETED';
     final createdAt = receipt['createdAt'] ?? 0;
+    final documentId = receipt['id'] ?? '';
+    final isHighlighted = controller.isDocumentHighlighted(documentId);
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isHighlighted 
+            ? AppTheme.primaryOrange.withOpacity(0.1) 
+            : Colors.white,
         borderRadius: BorderRadius.circular(AppTheme.spacing8),
         border: Border.all(
-          color: AppTheme.borderGrey.withValues(alpha: 0.3),
-          width: 1,
+          color: isHighlighted 
+              ? AppTheme.primaryOrange 
+              : AppTheme.borderGrey.withValues(alpha: 0.3),
+          width: isHighlighted ? 2 : 1,
         ),
+        boxShadow: isHighlighted ? [
+          BoxShadow(
+            color: AppTheme.primaryOrange.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ] : null,
       ),
       child: Material(
         color: Colors.transparent,
