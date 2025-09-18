@@ -6,6 +6,19 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 ##
+Topic: Comment section in edit_card_page.dart can't delete and edit
+Detail: Comment section in edit_card_page.dart add icon delete and edit 
+Step:
+1. Add icon delete and edit comment.
+2. When click delete show confirm dialogs, then press confirm delete comment.
+3. When click edit show input field,  close or cancle icon and save icon an on conment display
+4. after press save store data comment to firestore
+
+Path: /workspaces/{workspace uid}/cards/{card uid}/notes[]
+ 
+
+
+##
 Topic: fix bad ui.
 Detail: Timeline and status section in edit_card_page.dart status select ui not map create_card_page.dart chagne ui status select like create_card_page.dart
 

@@ -12,6 +12,7 @@ import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/repositories/firestore_repository.dart';
+import '../../../data/repositories/firestore_repository_extras.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../document/view/create_document_from_card_page.dart';
 import '../../document/view/add_edit_document_page.dart';
@@ -228,12 +229,16 @@ class _EditCardPageState extends State<EditCardPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
+  final TextEditingController _editCommentController = TextEditingController();
 
   // HTML Editor controller
   final HtmlEditorController _htmlEditorController = HtmlEditorController();
 
   // Current user information
   Map<String, dynamic>? _currentUserInfo;
+
+  // Comment editing state
+  int? _editingCommentIndex;
 
   // Hashtag state (same as create page)
   List<Map<String, dynamic>> _selectedHashtags = [];
@@ -3102,6 +3107,27 @@ class _EditCardPageState extends State<EditCardPage> {
                                       ),
                                     ),
                                     const Spacer(),
+                                    // Edit and Delete icons
+                                    if (note['userId'] == _currentUserInfo?['uid']) ...[
+                                      GestureDetector(
+                                        onTap: () => _editComment(index, note),
+                                        child: Icon(
+                                          Icons.edit,
+                                          size: 16,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () => _deleteComment(index, note),
+                                        child: Icon(
+                                          Icons.delete,
+                                          size: 16,
+                                          color: Colors.red[400],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
                                     Text(
                                       _formatTimestamp(note['timestamp']),
                                       style: TextStyle(
@@ -3112,13 +3138,50 @@ class _EditCardPageState extends State<EditCardPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  _stripHtmlTags(note['text'] ?? ''),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
+                                // Edit mode or display mode
+                                _editingCommentIndex == index 
+                                  ? Column(
+                                      children: [
+                                        TextField(
+                                          controller: _editCommentController,
+                                          decoration: InputDecoration(
+                                            hintText: 'Edit comment...',
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            contentPadding: const EdgeInsets.all(12),
+                                          ),
+                                          maxLines: 3,
+                                          minLines: 1,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            TextButton(
+                                              onPressed: _cancelEditComment,
+                                              child: const Text('Cancel'),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            ElevatedButton(
+                                              onPressed: () => _saveEditComment(index, note),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.orange,
+                                                foregroundColor: Colors.white,
+                                              ),
+                                              child: const Text('Save'),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    )
+                                  : Text(
+                                      _stripHtmlTags(note['text'] ?? ''),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
                                 if (!isReply) ...[
                                   const SizedBox(height: 8),
                                   GestureDetector(
@@ -3387,6 +3450,108 @@ class _EditCardPageState extends State<EditCardPage> {
       Get.snackbar(
         'Error',
         'Failed to save comment. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // Comment edit/delete methods
+  void _editComment(int index, Map<String, dynamic> note) {
+    setState(() {
+      _editingCommentIndex = index;
+      _editCommentController.text = _stripHtmlTags(note['text'] ?? '');
+    });
+  }
+
+  void _cancelEditComment() {
+    setState(() {
+      _editingCommentIndex = null;
+      _editCommentController.clear();
+    });
+  }
+
+  void _saveEditComment(int index, Map<String, dynamic> note) async {
+    if (_editCommentController.text.trim().isEmpty) return;
+
+    final updatedText = '<p>${_editCommentController.text.trim()}</p>';
+    
+    // Update local state
+    setState(() {
+      _notes[index]['text'] = updatedText;
+      _editingCommentIndex = null;
+      _editCommentController.clear();
+    });
+
+    try {
+      // Update in Firestore
+      await _repository.updateNoteInCard(
+        _controller.currentWorkspaceId.value,
+        widget.card.id,
+        note['id'],
+        {'text': updatedText},
+      );
+      print('✅ Comment updated successfully');
+    } catch (e) {
+      print('❌ Failed to update comment: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to update comment. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void _deleteComment(int index, Map<String, dynamic> note) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Comment'),
+        content: const Text('Are you sure you want to delete this comment? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _confirmDeleteComment(index, note);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteComment(int index, Map<String, dynamic> note) async {
+    // Remove from local state
+    setState(() {
+      _notes.removeAt(index);
+    });
+
+    try {
+      // Remove from Firestore
+      await _repository.deleteNoteFromCard(
+        _controller.currentWorkspaceId.value,
+        widget.card.id,
+        note['id'],
+      );
+      print('✅ Comment deleted successfully');
+    } catch (e) {
+      print('❌ Failed to delete comment: $e');
+      // Add back to local state if failed
+      setState(() {
+        _notes.insert(index, note);
+      });
+      Get.snackbar(
+        'Error',
+        'Failed to delete comment. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,

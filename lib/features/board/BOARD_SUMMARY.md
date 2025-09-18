@@ -178,5 +178,52 @@ final titleText = todo['title'] ?? todo['text'] ?? '';
 - Data persistence: Todos included in card.copyWith() call and saved to main card document
 - Initialization: Todos loaded from existing card data in _initializeData()
 
+### Comment Edit/Delete Feature in edit_card_page.dart (September 18, 2025)
+
+**Issue:** Comment section in edit_card_page.dart lacked edit and delete functionality for comments.
+
+**Requirements:**
+1. Add edit and delete icons to each comment
+2. Show confirm dialog when deleting comments  
+3. Show input field with cancel/save icons when editing
+4. Save changes to Firestore at /workspaces/{workspace uid}/cards/{card uid}/notes[]
+
+**Solution Applied:**
+1. **Added Edit/Delete Icons**: Added edit and delete icons next to timestamp for comments owned by current user
+2. **Implemented Edit Mode**: Added edit state with TextEditingController and conditional UI rendering
+3. **Delete Confirmation**: Added confirmation dialog before deleting comments
+4. **Firestore Integration**: Added updateNoteInCard and deleteNoteFromCard methods to FirestoreRepositoryExtras
+
+**Technical Changes:**
+- **UI Components**: Added edit/delete icons that appear only for user's own comments
+- **State Management**: Added `_editingCommentIndex` and `_editCommentController` to track edit mode
+- **Edit Mode UI**: Conditional rendering between display text and edit TextField with cancel/save buttons
+- **Delete Dialog**: Confirmation dialog with cancel/confirm actions
+- **Firestore Methods**: Extended FirestoreRepositoryExtras with updateNoteInCard and deleteNoteFromCard
+
+**Files Modified:**
+- `lib/features/board/view/edit_card_page.dart`
+  - Added edit/delete icons with user ownership check
+  - Implemented edit mode with conditional rendering
+  - Added confirmation dialog for delete action
+  - Added methods: `_editComment()`, `_cancelEditComment()`, `_saveEditComment()`, `_deleteComment()`, `_confirmDeleteComment()`
+- `lib/data/repositories/firestore_repository_extras.dart`
+  - Added `updateNoteInCard()` method for updating specific notes in card notes array
+  - Added `deleteNoteFromCard()` method for removing notes from card notes array
+
+**Security & UX Features:**
+- **User Ownership**: Edit/delete icons only appear for comments created by current user
+- **Optimistic Updates**: Local state updated immediately with Firestore sync
+- **Error Handling**: Failed operations revert local state and show error messages
+- **Confirmation Dialog**: Prevents accidental comment deletion
+
+**Benefits:**
+- **Full CRUD Operations**: Comments now support complete create, read, update, delete functionality
+- **User Control**: Users can edit their own comments and fix mistakes
+- **Data Safety**: Confirmation dialogs prevent accidental deletions
+- **Consistent UX**: Edit mode follows standard cancel/save pattern
+
+````
+
 
 
