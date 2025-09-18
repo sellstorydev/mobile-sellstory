@@ -1212,7 +1212,6 @@ class _BoardPageState extends State<BoardPage> {
 
   void _showAddLaneDialog() {
     final TextEditingController nameController = TextEditingController();
-    final TextEditingController orderController = TextEditingController();
 
     showDialog(
       context: context,
@@ -1230,16 +1229,6 @@ class _BoardPageState extends State<BoardPage> {
                   prefixIcon: Icon(Icons.label),
                 ),
                 autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: orderController,
-                decoration: const InputDecoration(
-                  labelText: 'Order',
-                  hintText: 'Enter order (optional)',
-                  prefixIcon: Icon(Icons.sort),
-                ),
-                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
               Container(
@@ -1270,7 +1259,7 @@ class _BoardPageState extends State<BoardPage> {
                       '• boardId: Auto-generated\n'
                       '• workspaceId: Current workspace\n'
                       '• name: Lane name\n'
-                      '• order: Position in board\n'
+                      '• order: Auto-assigned\n'
                       '• cards: Empty array\n'
                       '• hasMoreCards: false',
                       style: TextStyle(
@@ -1292,13 +1281,8 @@ class _BoardPageState extends State<BoardPage> {
           ElevatedButton(
             onPressed: () {
               if (nameController.text.trim().isNotEmpty) {
-                final order = orderController.text.trim().isNotEmpty 
-                    ? int.tryParse(orderController.text.trim()) ?? _controller.lanes.length
-                    : _controller.lanes.length;
-                
                 print('🔄 Adding new lane:');
                 print('  - Name: ${nameController.text.trim()}');
-                print('  - Order: $order');
                 
                 _controller.onAddLane(nameController.text.trim());
                 Navigator.of(context).pop();

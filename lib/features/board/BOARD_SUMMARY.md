@@ -2,6 +2,41 @@
 
 ## Recent Changes
 
+### Remove Order Input Field from Add New Lane Modal (September 18, 2025)
+
+**Issue:** The Add New Lane modal contained an unnecessary order input field that complicated the user experience.
+
+**Solution Applied:**
+1. **Removed Order Input Field**: Eliminated the order TextController and input field from `_showAddLaneDialog()` method
+2. **Simplified UI**: Removed the order TextField and associated logic
+3. **Auto-Assign Order**: Order is now automatically assigned based on lane count (existing behavior preserved)
+4. **Updated Info Text**: Changed "order: Position in board" to "order: Auto-assigned" in the lane structure info
+
+**Technical Changes:**
+- **Before**: Modal had both lane name and order input fields
+- **After**: Modal only has lane name input field
+- **Order Logic**: Removed manual order input, order is automatically set to `_controller.lanes.length`
+- **UI Simplification**: Reduced form complexity from 2 fields to 1 field
+
+**Files Modified:**
+- `lib/features/board/view/board_page.dart`
+  - Updated `_showAddLaneDialog()` method
+  - Removed `orderController` TextEditingController
+  - Removed order TextField widget
+  - Simplified lane creation logic
+  - Updated lane structure information display
+
+**Benefits:**
+- **Simplified UX**: Users only need to enter lane name
+- **Automatic Ordering**: System handles lane positioning automatically
+- **Reduced Errors**: No more manual order conflicts or confusion
+- **Cleaner Interface**: Less cluttered modal dialog
+
+**Functionality Preserved:**
+- Lane creation still works as expected
+- Order is automatically assigned based on current lane count
+- All existing lane management features remain intact
+
 ### Todo Title Mapping Fix in edit_card_page.dart (September 18, 2025)
 
 **Issue:** Todo titles were not displaying in input fields in the Content and Tasks section when editing cards.
