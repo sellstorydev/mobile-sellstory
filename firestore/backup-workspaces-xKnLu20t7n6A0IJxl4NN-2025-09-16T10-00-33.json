@@ -157,15 +157,6 @@
             }
           ]
         },
-        "lastUsedCounters": {
-          "invoice": 0,
-          "receipt": 0,
-          "customer": 2,
-          "product": 2,
-          "company": 3,
-          "quotation": 2,
-          "jobCard": 58
-        },
         "docSettings": {
           "senderEmail": "noreply@sellstory.me",
           "businessName": "",
@@ -186,6 +177,15 @@
             "invoice": "",
             "receipt": ""
           }
+        },
+        "lastUsedCounters": {
+          "invoice": 0,
+          "receipt": 0,
+          "customer": 2,
+          "product": 2,
+          "company": 3,
+          "jobCard": 58,
+          "quotation": 51
         }
       },
       "subCollection": {
@@ -727,73 +727,11 @@
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/cards": {
-          "5as6suFlRBEBz9s5tLsY": {
-            "endDate": 1757437200000,
-            "todos": [],
-            "laneId": "cGyeW3MQ4XxqFpW5aRbr",
-            "expenses": [],
-            "hashtags": [],
-            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "notes": [],
-            "title": "test filter ",
-            "customFields": [],
-            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedByDisplayName": "System Copy",
-            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
-            "description": "",
-            "startDate": 1757178000000,
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "company": {
-              "id": "aVGCGee5LmYsr9oXYfE8",
-              "label": "Main",
-              "value": "colaco company"
-            },
-            "quotationTemplateId": "",
-            "customer": "Bew",
-            "attachments": [],
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "watchers": [
-              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
-            ],
-            "order": 1,
-            "collaborators": [],
-            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "customId": "JB-250907-0058",
-            "createdAt": 1757235246618,
-            "id": "5as6suFlRBEBz9s5tLsY",
-            "customerInterest": "มาก (High)",
-            "updatedAt": 1757255887593,
-            "status": "Cancelled"
-          },
           "AhzmaDyKm4wwcMntM3hO": {
             "boardId": "Mop2RUYjlM9kRoXGa001",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
             "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "customFields": [],
-            "expenses": [
-              {
-                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
-                "productId": "34N6d2Az4sYF7ZHvyFHN",
-                "name": "Example html",
-                "description": "",
-                "quantity": 1,
-                "unit": "item",
-                "pricePerUnit": 51234,
-                "discount": 20,
-                "discountType": "percentage"
-              },
-              {
-                "id": "exp-1756975564459-RwedKMymVqN8W3nFYbJP",
-                "productId": "RwedKMymVqN8W3nFYbJP",
-                "name": "test1",
-                "description": "",
-                "quantity": 1,
-                "unit": "item",
-                "pricePerUnit": 11223344,
-                "discount": 0,
-                "discountType": "amount"
-              }
-            ],
             "customer": "Bew",
             "customerId": "WNF9tUB8pFM6QKQw9Fj3",
             "company": {
@@ -810,11 +748,8 @@
             "createdAt": 1756975589247,
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedByDisplayName": "bew kiw",
-            "quotationTemplateId": "",
             "startDate": 1756918800000,
             "descriptionMentions": [],
-            "withholdingTaxPercentage": 3,
             "id": "AhzmaDyKm4wwcMntM3hO",
             "isVatEnabled": true,
             "additionalDiscount": {
@@ -832,23 +767,6 @@
                 "color": "#eab308",
                 "id": "bew1234455",
                 "text": "Bew1234455"
-              }
-            ],
-            "description": "<p><strong><p><strong><p><strong><p><strong><p><strong><p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Details</u></em></strong></span></p></strong></p></strong></p></strong></p></strong></p></strong></p>",
-            "todos": [
-              {
-                "completed": false,
-                "dueDate": 1756918860000,
-                "id": "todo-todo-todo-todo-todo-todo-1756975522376",
-                "mentions": [],
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
-              },
-              {
-                "completed": false,
-                "dueDate": 1756918860000,
-                "id": "todo-todo-todo-todo-todo-todo-1756975523853",
-                "mentions": [],
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
               }
             ],
             "hashtag": "#Bew1234455",
@@ -926,112 +844,92 @@
               }
             ],
             "order": 0,
-            "amount": 0,
             "customerInterest": "เริ่มต้น",
             "laneId": "qesjwQS3saV9h3wzyYMz",
-            "updatedAt": {
-              "_seconds": 1757338938,
-              "_nanoseconds": 917000000
-            }
-          },
-          "GvgkbxV6Paa5J9wWn6xt": {
-            "endDate": 1757437200000,
-            "title": "test filter ",
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "customId": "JB-250907-0058",
-            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "expenses": [],
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "notes": [],
-            "laneId": "RuytZ3ayOKKPYCEgYOVh",
-            "customFields": [],
-            "todos": [],
-            "collaborators": [],
-            "updatedByDisplayName": "System Copy",
-            "startDate": 1757178000000,
-            "attachments": [],
-            "description": "",
-            "quotationTemplateId": "",
-            "watchers": [
-              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
-            ],
-            "createdAt": 1757235245134,
-            "id": "GvgkbxV6Paa5J9wWn6xt",
-            "status": "Done",
-            "customerInterest": "น้อย (Low)",
-            "customerId": "IhxyfTOYQ6k1UxmdMTT2",
-            "company": {
-              "id": "Z1h1nm9GM2nfusJh7YuD",
-              "label": "Main",
-              "value": "test"
-            },
-            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
-            "customer": "testssss",
-            "hashtags": [
-              {
-                "id": "bew213",
-                "text": "Bew213",
-                "color": "#f97316"
-              }
-            ],
-            "order": 0,
-            "updatedAt": {
-              "_seconds": 1757338938,
-              "_nanoseconds": 917000000
-            }
-          },
-          "RfdPz6jNnTRcoo2RR4nN": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "laneId": "nvx4rzpcNcJk8GIw4YsK",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "description": "",
-            "status": "In Progress",
-            "customFields": [],
-            "expenses": [],
-            "todos": [],
-            "notes": [],
-            "watchers": [
-              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
-            ],
-            "collaborators": [],
-            "attachments": [],
-            "createdAt": 1757235234470,
-            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "order": 1,
-            "quotationTemplateId": "",
-            "startDate": 1757178000000,
-            "endDate": 1757437200000,
-            "customerInterest": "กลาง (Medium)",
-            "customId": "JB-250907-0058",
-            "company": {
-              "value": "test112345",
-              "label": "Main",
-              "id": "Vr6SXzHlVkWsYJYnyiMJ"
-            },
-            "id": "RfdPz6jNnTRcoo2RR4nN",
-            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
-            "hashtags": [
-              {
-                "id": "bew213",
-                "text": "Bew213",
-                "color": "#f97316"
-              }
-            ],
             "updatedByDisplayName": "BewLnwZa",
-            "isVatEnabled": false,
+            "quotationTemplateId": "MwDjGmET9ECYTGveik98",
+            "formatDataExpense": {
+              "subTotal": 11274578,
+              "totalAfterDiscount": 338237.34,
+              "grandTotal": 361913.95,
+              "netTotal": 351766.83
+            },
             "amount": 0,
-            "withholdingTaxPercentage": 0,
-            "dueDate": null,
-            "title": "test filter",
-            "priority": null,
-            "additionalDiscount": null,
-            "badges": [],
-            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
-            "hashtag": "#Bew213",
-            "updatedAt": 1757253001763,
-            "customer": "Bew"
+            "withholdingTaxPercentage": 3,
+            "description": "<p><strong><p><strong><p><strong><p><strong><p><strong><p><strong><p><strong><p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Details</u></em></strong></span></p></strong></p></strong></p></strong></p></strong></p></strong></p></strong></p></strong></p>",
+            "todos": [
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-1756975522376",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
+              },
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-1756975523853",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
+              }
+            ],
+            "expenses": [
+              {
+                "customInputs": {
+                  "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                  "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
+                  "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                },
+                "description": "",
+                "discount": 20,
+                "discountType": "percentage",
+                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
+                "name": "รายการ1",
+                "pricePerUnit": 1,
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "quantity": 1,
+                "unit": "จำนวน"
+              }
+            ],
+            "updatedAt": {
+              "_seconds": 1758016784,
+              "_nanoseconds": 960000000
+            },
+            "relatedDocuments": [
+              {
+                "id": "wqLjTmVGwXp5Phir4WKe",
+                "docNo": "EST-250916-0050",
+                "type": "QT"
+              },
+              {
+                "id": "Sa4MhNnD7C1M19wrV51t",
+                "docNo": "EST-250916-0051",
+                "type": "QT"
+              }
+            ],
+            "subCollection": {
+              "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/expenses": {
+                "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN": {
+                  "customInputs": {
+                    "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
+                    "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                    "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
+                    "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                  },
+                  "description": "",
+                  "discount": 20,
+                  "discountType": "percentage",
+                  "name": "รายการ1",
+                  "order": 0,
+                  "pricePerUnit": 1,
+                  "productId": "34N6d2Az4sYF7ZHvyFHN",
+                  "quantity": 1,
+                  "unit": "จำนวน",
+                  "updatedAt": 1758016749678
+                }
+              }
+            }
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/companies": {
@@ -1190,35 +1088,167 @@
             "updatedAt": 1756797511482
           }
         },
-        "workspaces/xKnLu20t7n6A0IJxl4NN/lanes": {
-          "RuytZ3ayOKKPYCEgYOVh": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
+        "workspaces/xKnLu20t7n6A0IJxl4NN/documents": {
+          "Sa4MhNnD7C1M19wrV51t": {
+            "docNo": "EST-250916-0051",
+            "type": "QT",
             "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "name": "Done (Copy)",
-            "order": 2
-          },
-          "cGyeW3MQ4XxqFpW5aRbr": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
-            "name": "Done (Copy) (Copy)",
-            "order": 3
-          },
-          "nvx4rzpcNcJk8GIw4YsK": {
-            "boardId": "Mop2RUYjlM9kRoXGa001",
-            "cards": [],
-            "createdAt": {
-              "_seconds": 1755854785,
-              "_nanoseconds": 732943000
+            "status": "DRAFT",
+            "customer": {
+              "id": "WNF9tUB8pFM6QKQw9Fj3",
+              "customFields": [],
+              "customId": "CUS-250822-0001",
+              "name": "Bew",
+              "assignees": [
+                "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "d3z7heLqwYXXC3u3O9uR7iO9ium2"
+              ],
+              "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+              "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "emails": [
+                {
+                  "id": "email-initial",
+                  "value": "",
+                  "label": "Work"
+                }
+              ],
+              "updatedAt": 1756797511482,
+              "companyNames": [
+                {
+                  "id": "aVGCGee5LmYsr9oXYfE8",
+                  "value": "colaco company",
+                  "label": "Main"
+                }
+              ],
+              "phones": [
+                {
+                  "value": "",
+                  "id": "phone-initial",
+                  "label": "Work"
+                }
+              ],
+              "createdAt": 1755845245761,
+              "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
             },
-            "hasMoreCards": false,
-            "name": "Done",
-            "order": 2,
-            "updatedAt": {
-              "_seconds": 1755854785,
-              "_nanoseconds": 732943000
+            "seller": {
+              "uid": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "displayName": "BewLnwZa",
+              "photoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1757477615778-image_picker_ECC7211D-6E2F-4BFD-BF60-26E5C3832B13-18863-000000163018BDCE.jpg?alt=media&token=f34d4f45-4453-4bd5-b5e7-1c214c36fee2"
             },
+            "sellerName": "BewLnwZa",
+            "jobName": "Job Card Title1234",
+            "jobCardId": "AhzmaDyKm4wwcMntM3hO",
+            "project": {
+              "name": "",
+              "refId": ""
+            },
+            "jobcardCustomId": "JB-250904-00431234",
+            "jobCardBoardId": "Mop2RUYjlM9kRoXGa001",
+            "items": [
+              {
+                "discount": 20,
+                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
+                "quantity": 1,
+                "name": "รายการ1",
+                "unit": "จำนวน",
+                "pricePerUnit": 1,
+                "customInputs": {
+                  "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                  "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
+                  "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                },
+                "description": "",
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "discountType": "percentage"
+              }
+            ],
+            "subtotal": 1,
+            "discount": 0.97,
+            "vatAmount": 0.002100000000000002,
+            "grandTotal": 0.03210000000000003,
+            "whtAmount": 0.0009000000000000007,
+            "withholdingTaxPercentage": 3,
+            "netTotal": 0.03120000000000003,
+            "isVatEnabled": true,
+            "validUntil": 1760608791416,
+            "createdAt": 1758016791416,
+            "updatedAt": 1758016791416,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "activityLog": [
+              {
+                "timestamp": 1758016791416,
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userDisplayName": "BewLnwZa",
+                "action": "Created",
+                "details": "Created quotation EST-250916-0051 from job card JB-250904-00431234"
+              }
+            ],
+            "templateId": "MwDjGmET9ECYTGveik98"
+          },
+          "wqLjTmVGwXp5Phir4WKe": {
+            "activityLog": [
+              {
+                "action": "Created",
+                "details": "Created quotation EST-250916-0050 from job card JB-250904-00431234",
+                "timestamp": 1758016784894,
+                "userDisplayName": "BewLnwZa",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+              }
+            ],
+            "createdAt": 1758016784894,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customer": {
+              "id": "WNF9tUB8pFM6QKQw9Fj3",
+              "name": "Bew"
+            },
+            "discount": 1.17,
+            "docNo": "EST-250916-0050",
+            "grandTotal": -0.18189999999999992,
+            "isVatEnabled": true,
+            "items": [
+              {
+                "description": "",
+                "discount": 20,
+                "discountType": "percentage",
+                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
+                "name": "รายการ1",
+                "pricePerUnit": 1,
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "quantity": 1,
+                "unit": "จำนวน"
+              }
+            ],
+            "jobCardBoardId": "Mop2RUYjlM9kRoXGa001",
+            "jobCardId": "AhzmaDyKm4wwcMntM3hO",
+            "jobName": "Job Card Title1234",
+            "jobcardCustomId": "JB-250904-00431234",
+            "netTotal": -0.17644299999999993,
+            "project": {
+              "name": "",
+              "refId": ""
+            },
+            "seller": {
+              "displayName": "BewLnwZa",
+              "photoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1757477615778-image_picker_ECC7211D-6E2F-4BFD-BF60-26E5C3832B13-18863-000000163018BDCE.jpg?alt=media&token=f34d4f45-4453-4bd5-b5e7-1c214c36fee2",
+              "uid": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            },
+            "sellerName": "BewLnwZa",
+            "status": "DRAFT",
+            "subtotal": 1,
+            "templateId": "MwDjGmET9ECYTGveik98",
+            "type": "QT",
+            "updatedAt": 1758016784894,
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "validUntil": 1760608784894,
+            "vatAmount": -0.011899999999999996,
+            "whtAmount": -0.0054569999999999974,
+            "withholdingTaxPercentage": 3,
             "workspaceId": "xKnLu20t7n6A0IJxl4NN"
-          },
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/lanes": {
           "qesjwQS3saV9h3wzyYMz": {
             "boardId": "Mop2RUYjlM9kRoXGa001",
             "cards": [],
@@ -1288,16 +1318,6 @@
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/quotationTemplates": {
           "Fv9OBceNChku4n8jmx1P": {
-            "page": {
-              "width": "210mm",
-              "height": "297mm",
-              "fontFamily": "Lato",
-              "pageNumbering": {
-                "enabled": true,
-                "format": "Page {page}",
-                "position": "bottom_center"
-              }
-            },
             "headers": [
               {
                 "id": "header-cm-1",
@@ -1319,132 +1339,136 @@
                 ]
               }
             ],
+            "footers": [],
+            "name": "Clean Minimal Quotation",
+            "createdAt": 1757575872115,
+            "page": {
+              "width": "210mm",
+              "height": "297mm",
+              "fontFamily": "Lato"
+            },
             "body": {
               "components": [
                 {
                   "id": "comp-cm-customer",
-                  "type": "text",
-                  "x": 450,
-                  "y": 10,
                   "width": 300,
                   "height": 80,
-                  "content": "<p style=\"text-align: right;\"><b>To:</b> {customer.name}<br/>{customer.address}</p>",
+                  "x": 450,
+                  "type": "text",
                   "style": {
                     "zIndex": 1,
                     "lineHeight": "1.6"
-                  }
+                  },
+                  "content": "<p style=\"text-align: right;\"><b>To:</b> {customer.name}<br/>{customer.address}</p>",
+                  "y": 10
                 },
                 {
-                  "id": "comp-cm-table",
-                  "type": "table",
-                  "x": 50,
-                  "y": 120,
-                  "width": 700,
                   "height": 600,
-                  "columns": [
-                    {
-                      "id": "zu26Y",
-                      "label": "Description",
-                      "type": "product_field",
-                      "sourceField": "name",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 0,
-                      "width": "60%",
-                      "style": {
-                        "isBold": true,
-                        "fontSize": 13
-                      }
-                    },
-                    {
-                      "id": "sUKnF",
-                      "label": "Qty",
-                      "type": "predefined",
-                      "predefinedField": "quantity",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 1,
-                      "width": "10%",
-                      "align": "center",
-                      "style": {
-                        "fontSize": 13
-                      }
-                    },
-                    {
-                      "id": "aWmaz",
-                      "label": "Unit Price",
-                      "type": "product_field",
-                      "sourceField": "pricePerUnit",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 2,
-                      "width": "15%",
-                      "align": "right",
-                      "style": {
-                        "fontSize": 13
-                      }
-                    },
-                    {
-                      "id": "9OOhL",
-                      "label": "Total",
-                      "type": "predefined",
-                      "predefinedField": "line_total",
-                      "isVisible": true,
-                      "isEditable": false,
-                      "order": 3,
-                      "width": "15%",
-                      "align": "right",
-                      "style": {
-                        "fontSize": 13
-                      }
-                    }
-                  ],
                   "style": {
                     "zIndex": 1,
-                    "headerColor": "#ffffff",
                     "headerHeight": 30,
-                    "borderColor": "#000000",
                     "headerStyle": {
                       "isBold": true,
                       "isUnderline": true
-                    }
+                    },
+                    "headerColor": "#ffffff",
+                    "borderColor": "#000000"
                   },
-                  "content": ""
+                  "content": "",
+                  "x": 50,
+                  "type": "table",
+                  "id": "comp-cm-table",
+                  "y": 120,
+                  "columns": [
+                    {
+                      "sourceField": "name",
+                      "width": "60%",
+                      "isVisible": true,
+                      "type": "product_field",
+                      "id": "zu26Y",
+                      "order": 0,
+                      "isEditable": true,
+                      "style": {
+                        "fontSize": 13,
+                        "isBold": true
+                      },
+                      "label": "Description"
+                    },
+                    {
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "isVisible": true,
+                      "predefinedField": "quantity",
+                      "width": "10%",
+                      "id": "sUKnF",
+                      "order": 1,
+                      "type": "predefined",
+                      "label": "Qty",
+                      "isEditable": true,
+                      "align": "center"
+                    },
+                    {
+                      "isVisible": true,
+                      "align": "right",
+                      "label": "Unit Price",
+                      "isEditable": true,
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "id": "aWmaz",
+                      "order": 2,
+                      "type": "product_field",
+                      "sourceField": "pricePerUnit",
+                      "width": "15%"
+                    },
+                    {
+                      "isVisible": true,
+                      "isEditable": false,
+                      "order": 3,
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "label": "Total",
+                      "align": "right",
+                      "id": "9OOhL",
+                      "predefinedField": "line_total",
+                      "type": "predefined",
+                      "width": "15%"
+                    },
+                    {
+                      "id": "zJ1Gk75NoiV4WxZT1yEZN",
+                      "label": "Test01",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 4,
+                      "prefillSourceField": "category"
+                    }
+                  ],
+                  "width": 700
                 },
                 {
-                  "id": "comp-cm-summary",
-                  "type": "summary",
                   "x": 450,
-                  "y": 750,
-                  "width": 300,
-                  "height": 120,
-                  "content": "",
-                  "style": {
-                    "zIndex": 1
-                  },
                   "summaryFields": {
                     "subtotal": true,
                     "grandTotal": true
-                  }
+                  },
+                  "id": "comp-cm-summary",
+                  "height": 120,
+                  "type": "summary",
+                  "content": "",
+                  "y": 750,
+                  "style": {
+                    "zIndex": 1
+                  },
+                  "width": 300
                 }
               ]
             },
-            "footers": [],
-            "name": "Clean Minimal Quotation",
-            "createdAt": 1757575872115,
-            "updatedAt": 1757575872115
+            "updatedAt": 1757585582709
           },
           "MwDjGmET9ECYTGveik98": {
-            "page": {
-              "width": "210mm",
-              "height": "297mm",
-              "fontFamily": "Sarabun",
-              "pageNumbering": {
-                "enabled": true,
-                "format": "Page {page} of {total}",
-                "position": "bottom_right"
-              }
-            },
             "headers": [
               {
                 "id": "header-F9CECD-36OhaODcpp_1zb",
@@ -1525,110 +1549,6 @@
                 ]
               }
             ],
-            "body": {
-              "components": [
-                {
-                  "id": "comp-Nv1HxD_6iueREMATlTi6v",
-                  "type": "text",
-                  "x": 40,
-                  "y": 10,
-                  "width": 350,
-                  "height": 80,
-                  "content": "<p style=\"font-size: 12px; color: #4b5563;\">เรียน:</p><p style=\"font-size: 14px; font-weight: bold;\">{customer.name}</p><p style=\"font-size: 12px; color: #4b5563;\">{customer.address}</p><p style=\"font-size: 12px; color: #4b5563;\">เลขประจำตัวผู้เสียภาษี: {customer.nationalId}</p>",
-                  "style": {
-                    "zIndex": 1,
-                    "lineHeight": "1.5"
-                  }
-                },
-                {
-                  "id": "comp-iIwpjyedgaN3TyTwOq3CV",
-                  "type": "table",
-                  "x": 40,
-                  "y": 100,
-                  "width": 710,
-                  "height": 500,
-                  "columns": [
-                    {
-                      "id": "jSgce",
-                      "label": "รายการ",
-                      "type": "product_field",
-                      "sourceField": "name",
-                      "isVisible": true,
-                      "isEditable": false,
-                      "order": 0,
-                      "width": "40%",
-                      "style": {
-                        "isBold": true
-                      }
-                    },
-                    {
-                      "id": "ZD0jX",
-                      "label": "จำนวน",
-                      "type": "predefined",
-                      "predefinedField": "quantity",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 1,
-                      "width": "15%",
-                      "align": "center"
-                    },
-                    {
-                      "id": "kHrfQ",
-                      "label": "ราคา/หน่วย",
-                      "type": "product_field",
-                      "sourceField": "pricePerUnit",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 2,
-                      "width": "20%",
-                      "align": "right"
-                    },
-                    {
-                      "id": "AApPb",
-                      "label": "ยอดรวม",
-                      "type": "predefined",
-                      "predefinedField": "line_total",
-                      "isVisible": true,
-                      "isEditable": false,
-                      "order": 3,
-                      "formula": "{quantity} * {pricePerUnit}",
-                      "width": "25%",
-                      "align": "right"
-                    }
-                  ],
-                  "style": {
-                    "zIndex": 1,
-                    "headerColor": "#f3f4f6",
-                    "headerHeight": 35,
-                    "borderColor": "#d1d5db",
-                    "headerStyle": {
-                      "isBold": true
-                    }
-                  },
-                  "content": ""
-                },
-                {
-                  "id": "comp-cpq-summary",
-                  "type": "summary",
-                  "x": 450,
-                  "y": 620,
-                  "width": 300,
-                  "height": 150,
-                  "content": "",
-                  "style": {
-                    "zIndex": 1
-                  },
-                  "summaryFields": {
-                    "subtotal": true,
-                    "discount": true,
-                    "vat": true,
-                    "grandTotal": true,
-                    "wht": true,
-                    "netTotal": true
-                  }
-                }
-              ]
-            },
             "footers": [
               {
                 "id": "footer-_oafkMNGuhswL79TBF9wa",
@@ -1681,7 +1601,142 @@
             ],
             "name": "Classic Professional Quotation",
             "createdAt": 1757575845672,
-            "updatedAt": 1757575845672
+            "page": {
+              "width": "210mm",
+              "height": "297mm",
+              "fontFamily": "Sarabun",
+              "pageNumbering": {
+                "enabled": true,
+                "format": "Page {page}/{total}",
+                "position": "bottom_right"
+              }
+            },
+            "body": {
+              "components": [
+                {
+                  "x": 40,
+                  "type": "text",
+                  "id": "comp-Nv1HxD_6iueREMATlTi6v",
+                  "style": {
+                    "lineHeight": "1.5",
+                    "zIndex": 1
+                  },
+                  "y": 10,
+                  "height": 80,
+                  "content": "<p style=\"font-size: 12px; color: #4b5563;\">เรียน:</p><p style=\"font-size: 14px; font-weight: bold;\">{customer.name}</p><p style=\"font-size: 12px; color: #4b5563;\">{customer.address}</p><p style=\"font-size: 12px; color: #4b5563;\">เลขประจำตัวผู้เสียภาษี: {customer.nationalId}</p>",
+                  "width": 350
+                },
+                {
+                  "x": 40,
+                  "width": 710,
+                  "id": "comp-iIwpjyedgaN3TyTwOq3CV",
+                  "columns": [
+                    {
+                      "label": "รายการ",
+                      "order": 0,
+                      "style": {
+                        "isBold": true
+                      },
+                      "type": "product_field",
+                      "width": "20%",
+                      "isEditable": false,
+                      "id": "jSgce",
+                      "isVisible": true,
+                      "sourceField": "name"
+                    },
+                    {
+                      "width": "20%",
+                      "align": "center",
+                      "isEditable": true,
+                      "type": "predefined",
+                      "predefinedField": "quantity",
+                      "order": 1,
+                      "label": "จำนวน",
+                      "id": "ZD0jX",
+                      "isVisible": true
+                    },
+                    {
+                      "label": "ราคา/หน่วย",
+                      "type": "product_field",
+                      "width": "20%",
+                      "sourceField": "pricePerUnit",
+                      "id": "kHrfQ",
+                      "isEditable": true,
+                      "order": 2,
+                      "isVisible": true,
+                      "align": "right"
+                    },
+                    {
+                      "isEditable": false,
+                      "type": "predefined",
+                      "order": 3,
+                      "predefinedField": "line_total",
+                      "isVisible": true,
+                      "id": "AApPb",
+                      "width": "20%",
+                      "formula": "{quantity} * {pricePerUnit}",
+                      "align": "right",
+                      "label": "ยอดรวม"
+                    },
+                    {
+                      "prefillSourceField": "description",
+                      "isVisible": true,
+                      "inputType": "text",
+                      "id": "BZp1ilY7pFssB5cVhH_RP",
+                      "isEditable": true,
+                      "type": "user_input",
+                      "order": 4,
+                      "label": "BewLnwZa001",
+                      "width": "20%"
+                    },
+                    {
+                      "type": "user_input",
+                      "id": "nWnGJtH7SjOyYsBeK5LhX",
+                      "label": "Bew1150 ",
+                      "isVisible": true,
+                      "prefillSourceField": "name",
+                      "order": 5,
+                      "isEditable": true,
+                      "width": "20%"
+                    }
+                  ],
+                  "type": "table",
+                  "height": 500,
+                  "y": 100,
+                  "style": {
+                    "headerColor": "#f3f4f6",
+                    "headerHeight": 35,
+                    "zIndex": 1,
+                    "borderColor": "#d1d5db",
+                    "headerStyle": {
+                      "isBold": true
+                    }
+                  },
+                  "content": ""
+                },
+                {
+                  "x": 450,
+                  "width": 300,
+                  "height": 150,
+                  "y": 620,
+                  "type": "summary",
+                  "summaryFields": {
+                    "grandTotal": true,
+                    "discount": true,
+                    "subtotal": true,
+                    "vat": true,
+                    "wht": true,
+                    "netTotal": true
+                  },
+                  "style": {
+                    "zIndex": 1
+                  },
+                  "content": "",
+                  "id": "comp-cpq-summary"
+                }
+              ]
+            },
+            "updatedAt": 1757659443801
           },
           "v9GCzC6qLDd473ZCdIeD": {
             "headers": [
@@ -1758,134 +1813,90 @@
             "page": {
               "width": "210mm",
               "height": "297mm",
-              "fontFamily": "Kanit"
+              "fontFamily": "Kanit",
+              "pageNumbering": {
+                "enabled": true,
+                "format": "Page {page}/{total}",
+                "position": "bottom_right"
+              }
             },
             "body": {
               "components": [
                 {
-                  "x": 40,
-                  "content": "<p style=\"color:#666;\">Prepared for:</p><h2 style=\"font-size: 16px; font-weight: bold;\">{customer.name}</h2>",
                   "id": "comp-ms-customer",
-                  "type": "text",
-                  "width": 300,
+                  "height": 60,
                   "style": {
                     "zIndex": 1
                   },
+                  "type": "text",
                   "y": 120,
-                  "height": 60
+                  "width": 300,
+                  "x": 40,
+                  "content": "<p style=\"color:#666;\">Prepared for:</p><h2 style=\"font-size: 16px; font-weight: bold;\">{customer.name}</h2>"
                 },
                 {
+                  "x": 40,
+                  "height": 500,
                   "style": {
-                    "zIndex": 1,
                     "textColor": "#ffffff",
                     "headerColor": "#4f46e5",
-                    "headerHeight": 40
+                    "headerHeight": 40,
+                    "zIndex": 1
                   },
-                  "x": 40,
+                  "id": "comp-ms-table",
+                  "width": 710,
+                  "type": "table",
                   "y": 200,
                   "content": "",
-                  "height": 500,
-                  "type": "table",
-                  "id": "comp-ms-table",
                   "columns": [
                     {
-                      "style": {
-                        "isBold": true,
-                        "fontSize": 13
-                      },
-                      "isEditable": true,
-                      "id": "dOGhH",
-                      "width": "50%",
-                      "label": "สินค้า/บริการ",
-                      "order": 0,
-                      "type": "product_field",
+                      "prefillSourceField": "sku",
                       "isVisible": true,
-                      "sourceField": "name"
-                    },
-                    {
-                      "order": 1,
-                      "type": "predefined",
-                      "width": "15%",
-                      "predefinedField": "quantity",
-                      "isVisible": true,
-                      "style": {
-                        "fontSize": 13
-                      },
-                      "isEditable": true,
-                      "id": "CU7n2",
-                      "label": "จำนวน",
-                      "align": "center"
-                    },
-                    {
-                      "isEditable": true,
-                      "isVisible": true,
-                      "style": {
-                        "fontSize": 13
-                      },
-                      "width": "15%",
-                      "sourceField": "pricePerUnit",
-                      "type": "product_field",
-                      "label": "ราคาต่อหน่วย",
-                      "id": "Y6J4Y",
-                      "order": 2,
-                      "align": "right"
-                    },
-                    {
-                      "id": "I8TGx",
-                      "type": "predefined",
-                      "align": "right",
-                      "style": {
-                        "fontSize": 13
-                      },
-                      "isVisible": true,
-                      "order": 3,
-                      "isEditable": false,
-                      "predefinedField": "line_total",
-                      "label": "รวม",
-                      "width": "20%"
-                    },
-                    {
-                      "id": "WtwtSRTxFY0N-H83PORrG",
-                      "label": "Desc",
-                      "type": "user_input",
-                      "isVisible": true,
-                      "isEditable": true,
-                      "order": 4,
-                      "prefillSourceField": "description"
-                    },
-                    {
-                      "id": "Ww9jjpqJA3_-4QBgWvXXP",
-                      "label": "SKU",
-                      "type": "user_input",
-                      "isVisible": true,
-                      "isEditable": true,
                       "order": 5,
-                      "prefillSourceField": "sku"
+                      "type": "user_input",
+                      "label": "SKU",
+                      "isEditable": true,
+                      "id": "Ww9jjpqJA3_-4QBgWvXXP"
+                    },
+                    {
+                      "id": "x5CGZ5H50xV6Dj4iCI2ea",
+                      "label": "Test01234",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 1
+                    },
+                    {
+                      "id": "hDN5ufHcsU0plBqbdLq_o",
+                      "label": "New Column",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 2
                     }
-                  ],
-                  "width": 710
+                  ]
                 },
                 {
-                  "width": 300,
-                  "x": 450,
-                  "content": "",
-                  "type": "summary",
                   "summaryFields": {
-                    "grandTotal": true,
                     "vat": true,
+                    "grandTotal": true,
                     "subtotal": true,
                     "discount": true
                   },
                   "style": {
                     "zIndex": 1
                   },
-                  "height": 150,
+                  "y": 720,
+                  "width": 300,
                   "id": "comp-ms-summary",
-                  "y": 720
+                  "type": "summary",
+                  "content": "",
+                  "x": 450,
+                  "height": 150
                 }
               ]
             },
-            "updatedAt": 1757584598039
+            "updatedAt": 1757918450286
           }
         }
       }

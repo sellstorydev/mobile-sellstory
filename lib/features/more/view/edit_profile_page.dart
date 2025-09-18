@@ -4,10 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../../../core/theme/app_theme.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../data/repositories/firestore_repository.dart';
+import '../controller/more_controller.dart';
 import '../../../app/routes.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -38,9 +40,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String? _currentWorkspaceName;
   String? _currentWorkspaceRole;
 
+  // MoreController to get current display name like in more_page
+  late MoreController _moreController;
+
   @override
   void initState() {
     super.initState();
+    _moreController = Get.find<MoreController>();
     _initializeUserData();
     _loadWorkspaceInfo();
     _loadUserDataFromFirestore();
@@ -133,6 +139,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _pickImage() async {
     try {
+      // Check photo library permission first
+      final status = await Permission.photos.status;
+      
+      if (status.isDenied) {
+        final result = await Permission.photos.request();
+        if (result.isDenied) {
+          _showError('Photo library permission is required to select images');
+          return;
+        }
+      }
+      
+      if (status.isPermanentlyDenied) {
+        _showPermissionDialog('Photo Library', 'photo library access to select images');
+        return;
+      }
+      
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 512,
@@ -152,6 +174,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _takePhoto() async {
     try {
+      // Check camera permission first
+      final status = await Permission.camera.status;
+      
+      if (status.isDenied) {
+        final result = await Permission.camera.request();
+        if (result.isDenied) {
+          _showError('Camera permission is required to take photos');
+          return;
+        }
+      }
+      
+      if (status.isPermanentlyDenied) {
+        _showPermissionDialog('Camera', 'camera access to take photos');
+        return;
+      }
+      
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.camera,
         maxWidth: 512,
@@ -335,6 +373,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
       colorText: Colors.white,
+    );
+  }
+
+  void _showPermissionDialog(String permissionName, String reason) {
+    Get.dialog(
+      AlertDialog(
+        title: Text('${permissionName} Permission Required'),
+        content: Text(
+          'This app needs $reason. Please go to Settings and enable ${permissionName} permission for this app.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              openAppSettings();
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -560,9 +622,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                           : null) as ImageProvider?,
                                   child: (_selectedImageFile == null && _currentPhotoURL == null)
                                       ? Text(
-                                          _displayNameController.text.isNotEmpty
-                                              ? _displayNameController.text[0].toUpperCase()
-                                              : 'U',
+                                          _getDisplayInitial(),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 32,
@@ -911,5 +971,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
       default:
         return role;
     }
+  }
+
+  // Get display initial letter for avatar
+  String _getDisplayInitial() {
+    // ใช้ displayName จาก MoreController เหมือนกับหน้า more_page
+    final displayName = _moreController.displayName;
+    
+    if (displayName.isNotEmpty && displayName != 'Guest' && displayName != 'User') {
+      return displayName[0].toUpperCase();
+    }
+    
+    return 'U';
   }
 }

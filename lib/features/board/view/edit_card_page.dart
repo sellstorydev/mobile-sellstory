@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import 'package:collection/collection.dart';
 import '../../../data/services/upload_service.dart';
 import '../../../domain/entities/board.dart';
 import '../../../domain/entities/lane.dart';
@@ -14,15 +13,15 @@ import '../controller/board_controller.dart';
 import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../document/view/create_document_from_card_page.dart';
+import '../../document/view/add_edit_document_page.dart';
 import '../../../core/services/notifications_service.dart';
+import 'package:html_editor_enhanced/html_editor.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
 
-  const EditCardPage({
-    super.key,
-    required this.card,
-  });
+  const EditCardPage({super.key, required this.card});
 
   @override
   State<EditCardPage> createState() => _EditCardPageState();
@@ -37,20 +36,27 @@ class _EditCardPageState extends State<EditCardPage> {
       return false;
     }
   }
+
   bool get _isAssignee {
     final uid = _controller.currentUserId.value.isNotEmpty
         ? _controller.currentUserId.value
         : (FirebaseAuth.instance.currentUser?.uid ?? '');
     return uid.isNotEmpty && uid == widget.card.assignedTo;
   }
-  bool get _canView => _can('jobcard:view:all') || (_can('jobcard:view:assigned') && _isAssignee);
+
+  bool get _canView =>
+      _can('jobcard:view:all') ||
+      (_can('jobcard:view:assigned') && _isAssignee);
   bool get _canEditAll => _can('jobcard:edit:all');
   bool get _canEditAssigned => _can('jobcard:edit:assigned') && _isAssignee;
   bool get _canEditAny => _canEditAll || _canEditAssigned;
   bool get _canMove => _can('jobcard:move');
-  bool get _canDelete => _can('jobcard:delete:all') || (_can('jobcard:delete:assigned') && _isAssignee);
+  bool get _canDelete =>
+      _can('jobcard:delete:all') ||
+      (_can('jobcard:delete:assigned') && _isAssignee);
   bool get _canArchive => (_canEditAny && _can('jobcard:edit:field:status'));
-  bool get _canEditAttachments => _canEditAny && _can('jobcard:edit:field:attachments');
+  bool get _canEditAttachments =>
+      _canEditAny && _can('jobcard:edit:field:attachments');
   bool get _canEditNotes => _canEditAny && _can('jobcard:edit:field:notes');
 
   void _showNoPermission() {
@@ -97,10 +103,7 @@ class _EditCardPageState extends State<EditCardPage> {
           'Are you sure you want to archive "${widget.card.title}"?\n\nArchived cards will be hidden from the board but can be restored later.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
               Get.back(); // Close dialog first
@@ -139,7 +142,6 @@ class _EditCardPageState extends State<EditCardPage> {
 
       // Close edit page and go back to board
       Navigator.of(context).pop();
-
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -169,10 +171,7 @@ class _EditCardPageState extends State<EditCardPage> {
           'Are you sure you want to permanently delete "${widget.card.title}"?\n\nThis action cannot be undone.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
               Get.back(); // Close dialog first
@@ -205,7 +204,6 @@ class _EditCardPageState extends State<EditCardPage> {
 
       // Close edit page and go back to board
       Navigator.of(context).pop();
-
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -221,37 +219,42 @@ class _EditCardPageState extends State<EditCardPage> {
       });
     }
   }
+
   final BoardController _controller = Get.find<BoardController>();
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
-  
+
   // Form controllers
   final TextEditingController _jobIdController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
-  
+
+  // HTML Editor controller
+  final HtmlEditorController _htmlEditorController = HtmlEditorController();
+
   // Current user information
   Map<String, dynamic>? _currentUserInfo;
-  
+
   // Hashtag state (same as create page)
   List<Map<String, dynamic>> _selectedHashtags = [];
-  
-  // Todo state 
+
+  // Todo state
   List<Map<String, dynamic>> _todoItems = [];
-  
+
   // Product state
   List<Map<String, dynamic>> _productItems = [];
-  
+
   // Template and columns state
   List<Map<String, dynamic>> _quotationTemplates = [];
   String? _selectedTemplateId;
+  Map<String, dynamic>? _selectedTemplateData; // เก็บข้อมูล template ที่เลือกทั้งหมด
   List<Map<String, dynamic>> _visibleColumns = [];
-  
+
   // VAT and discount state
   bool _isVatEnabled = false;
   Map<String, dynamic>? _additionalDiscount;
   double _withholdingTaxPercentage = 0.0;
-  
+
   // Form state
   String _selectedLane = '';
   String _selectedAssignee = '';
@@ -263,30 +266,46 @@ class _EditCardPageState extends State<EditCardPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
-  
+
   // Multi-select for collaborators and watchers
   List<String> _selectedCollaborators = [];
   List<String> _selectedWatchers = [];
-  
+
   // Notes data
   List<Map<String, dynamic>> _notes = [];
-  
+
+  // Related documents data
+  List<Map<String, dynamic>> _relatedDocuments = [];
+  bool _isLoadingRelatedDocuments = false;
+
   // Attachments data
   List<Map<String, dynamic>> _attachments = [];
-  
+
   // Available options
   List<Map<String, dynamic>> _availableLanes = [];
   List<Map<String, dynamic>> _availableAssignees = [];
   List<Map<String, dynamic>> _availableCustomers = [];
   List<Map<String, dynamic>> _availableCompanies = [];
   List<Map<String, dynamic>> _availableUsers = [];
-  
+
   // Status options
   final List<Map<String, dynamic>> _statusOptions = [
     {'value': 'Pending', 'label': 'Pending', 'icon': Icons.schedule},
     {'value': 'In Progress', 'label': 'In Progress', 'icon': Icons.schedule},
     {'value': 'Done', 'label': 'Done', 'icon': Icons.check},
     {'value': 'Cancelled', 'label': 'Cancelled', 'icon': Icons.close},
+  ];
+
+  // Document status options for Related Documents
+  final List<Map<String, dynamic>> _documentStatusOptions = [
+    {'value': 'DRAFT', 'label': 'ร่าง'},
+    {'value': 'APPROVED', 'label': 'อนุมัติแล้ว'},
+    {'value': 'PENDING_APPROVAL', 'label': 'รออนุมัติ'},
+    {'value': 'SENT_FOR_APPROVAL', 'label': 'ส่งอนุมัติ'},
+    {'value': 'CANCELLED', 'label': 'ยกเลิก'},
+    {'value': 'REJECTED', 'label': 'ปฏิเสธ'},
+    {'value': 'INVOICED', 'label': 'ออกใบแจ้งหนี้แล้ว'},
+    {'value': 'FULLY_PAID', 'label': 'ชำระครบแล้ว'},
   ];
 
   // Customer Interest options (same as create page)
@@ -311,96 +330,238 @@ class _EditCardPageState extends State<EditCardPage> {
   Future<void> _initializeData() async {
     // Load current user information
     await _loadCurrentUserInfo();
-    
+
     // Load card data
     _jobIdController.text = widget.card.customId;
     _titleController.text = widget.card.title;
     _detailsController.text = widget.card.description;
+
+    // Wait for HTML editor to be ready before setting content
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Remove manual setText since initialText in HtmlEditorOptions handles it
+
     _selectedLane = widget.card.laneId;
     _selectedAssignee = widget.card.assignedTo;
-    _selectedCustomer = widget.card.customerId ?? ''; // ใช้ customerId แทน customer
-    _selectedCompany = widget.card.company?['id'] ?? 'none'; // Initialize company from JobCard
-    _selectedCustomerInterest = (widget.card.customerInterest?.isNotEmpty ?? false) ? widget.card.customerInterest! : 'เริ่มต้น';
+    _selectedCustomer =
+        widget.card.customerId ?? ''; // ใช้ customerId แทน customer
+    _selectedCompany =
+        widget.card.company?['id'] ?? 'none'; // Initialize company from JobCard
+    _selectedCustomerInterest =
+        (widget.card.customerInterest?.isNotEmpty ?? false)
+        ? widget.card.customerInterest!
+        : 'เริ่มต้น';
     _selectedStatus = widget.card.status;
     _startDate = widget.card.startDate;
     _endDate = widget.card.endDate;
-    
+
     // Initialize hashtags (same as create page)
     _selectedHashtags = List<Map<String, dynamic>>.from(widget.card.hashtags);
-    
+
     // Initialize todos
-    _todoItems = List<Map<String, dynamic>>.from(widget.card.todos);
-    
+    _todoItems = List<Map<String, dynamic>>.from(widget.card.todos.map((todo) {
+      return {
+        'id': todo['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        'text': todo['text'] ?? '',
+        'isCompleted': todo['isCompleted'] ?? false,
+        'dueDate': todo['dueDate'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['dueDate']) : null,
+        'duration': todo['duration'],
+        'endTime': todo['endTime'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['endTime']) : null,
+        'controller': TextEditingController(text: todo['text'] ?? ''),
+      };
+    }));
+
     // Initialize collaborators and watchers
     _selectedCollaborators = List<String>.from(widget.card.collaborators);
     _selectedWatchers = List<String>.from(widget.card.watchers);
-    
+
     // Initialize notes
     _notes = List<Map<String, dynamic>>.from(widget.card.notes);
-    
+
     // Initialize attachments
     _attachments = List<Map<String, dynamic>>.from(widget.card.attachments);
-    
-    // Initialize product items from expenses
-    _productItems = List<Map<String, dynamic>>.from(widget.card.expenses.map((expense) => {
-      'id': expense['id'],
-      'productId': expense['productId'],
-      'name': expense['name'],
-      'description': expense['description'] ?? '',
-      'quantity': (expense['quantity'] ?? 0).toDouble(),
-      'unit': expense['unit'] ?? 'item',
-      'price': (expense['pricePerUnit'] ?? 0).toDouble(), // Map pricePerUnit to price with type casting
-      'pricePerUnit': (expense['pricePerUnit'] ?? 0).toDouble(), // Keep original pricePerUnit field
-      'discount': (expense['discount'] ?? 0).toDouble(),
-      'discountType': expense['discountType'] ?? 'percentage',
-      'image': null, // Will be loaded from product database
-    }));
-    
+
+    // Initialize related documents list as empty, will be loaded from Firestore
+    _relatedDocuments = [];
+
+    // Load detailed related documents information from Firestore
+    await _loadRelatedDocumentsDetails();
+
+    // Initialize product items from Firestore subcollection expenses first; fallback to embedded card.expenses
+    await _loadExpensesFromFirestore();
+
     // Load product images from database
     await _loadProductImages();
-    
+
     // Initialize VAT and discount settings
     _isVatEnabled = widget.card.isVatEnabled;
     _additionalDiscount = widget.card.additionalDiscount;
     _withholdingTaxPercentage = widget.card.withholdingTaxPercentage.toDouble();
-    
+
+    // Initialize template selection from card data
+    _selectedTemplateId = widget.card.quotationTemplateId;
+    print('🎯 Card quotationTemplateId: ${widget.card.quotationTemplateId}');
+
     // Load available options
     await _loadAvailableOptions();
-    
+
     // Load quotation templates
     await _loadQuotationTemplates();
-    
+
     // โหลด companies ของ customer ที่เลือกไว้
     if (_selectedCustomer.isNotEmpty && _selectedCustomer != 'none') {
       await _loadCompaniesForCustomer(_selectedCustomer);
     }
   }
 
+  Future<void> _loadExpensesFromFirestore() async {
+    try {
+      final workspaceId = widget.card.workspaceId;
+      final cardId = widget.card.id;
+      if (workspaceId.isEmpty || cardId.isEmpty) {
+        // Fallback to embedded expenses on card
+        _productItems = List<Map<String, dynamic>>.from(
+          widget.card.expenses.map(
+            (expense) => {
+              'id': expense['id'],
+              'productId': expense['productId'],
+              'name': expense['name'],
+              'description': expense['description'] ?? '',
+              'quantity': (expense['quantity'] ?? 0).toDouble(),
+              'unit': expense['unit'] ?? 'item',
+              'price': (expense['pricePerUnit'] ?? expense['price'] ?? 0)
+                  .toDouble(),
+              'pricePerUnit': (expense['pricePerUnit'] ?? expense['price'] ?? 0)
+                  .toDouble(),
+              'discount': (expense['discount'] ?? 0).toDouble(),
+              'discountType': expense['discountType'] ?? 'percentage',
+              'customInputs': expense['customInputs'] ?? {},
+              'image': null,
+              'order': expense['order'] ?? 0,
+            },
+          ),
+        );
+        return;
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      final snapshot = await firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('cards')
+          .doc(cardId)
+          .collection('expenses')
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        // Fallback to embedded expenses when subcollection empty
+        _productItems = List<Map<String, dynamic>>.from(
+          widget.card.expenses.map(
+            (expense) => {
+              'id': expense['id'],
+              'productId': expense['productId'],
+              'name': expense['name'],
+              'description': expense['description'] ?? '',
+              'quantity': (expense['quantity'] ?? 0).toDouble(),
+              'unit': expense['unit'] ?? 'item',
+              'price': (expense['pricePerUnit'] ?? expense['price'] ?? 0)
+                  .toDouble(),
+              'pricePerUnit': (expense['pricePerUnit'] ?? expense['price'] ?? 0)
+                  .toDouble(),
+              'discount': (expense['discount'] ?? 0).toDouble(),
+              'discountType': expense['discountType'] ?? 'percentage',
+              'customInputs': expense['customInputs'] ?? {},
+              'image': null,
+              'order': expense['order'] ?? 0,
+            },
+          ),
+        );
+        return;
+      }
+
+      final items = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return <String, dynamic>{
+          'id': doc.id,
+          'productId': data['productId'],
+          'name': data['name'] ?? '',
+          'description': data['description'] ?? '',
+          'quantity': (data['quantity'] ?? 0).toDouble(),
+          'unit': data['unit'] ?? 'item',
+          'pricePerUnit': (data['pricePerUnit'] ?? data['price'] ?? 0)
+              .toDouble(),
+          'price': (data['pricePerUnit'] ?? data['price'] ?? 0).toDouble(),
+          'discount': (data['discount'] ?? 0).toDouble(),
+          'discountType': data['discountType'] ?? 'percentage',
+          'customInputs': (data['customInputs'] is Map)
+              ? Map<String, dynamic>.from(data['customInputs'])
+              : <String, dynamic>{},
+          'image': null,
+          'order': data['order'] ?? 0,
+        };
+      }).toList();
+
+      // Sort by order if available
+      items.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
+
+      setState(() {
+        _productItems = List<Map<String, dynamic>>.from(items);
+      });
+    } catch (e) {
+      print('❌ Failed to load expenses subcollection: $e');
+      // Fallback to embedded expenses
+      _productItems = List<Map<String, dynamic>>.from(
+        widget.card.expenses.map(
+          (expense) => {
+            'id': expense['id'],
+            'productId': expense['productId'],
+            'name': expense['name'],
+            'description': expense['description'] ?? '',
+            'quantity': (expense['quantity'] ?? 0).toDouble(),
+            'unit': expense['unit'] ?? 'item',
+            'price': (expense['pricePerUnit'] ?? expense['price'] ?? 0)
+                .toDouble(),
+            'pricePerUnit': (expense['pricePerUnit'] ?? expense['price'] ?? 0)
+                .toDouble(),
+            'discount': (expense['discount'] ?? 0).toDouble(),
+            'discountType': expense['discountType'] ?? 'percentage',
+            'customInputs': expense['customInputs'] ?? {},
+            'image': null,
+            'order': expense['order'] ?? 0,
+          },
+        ),
+      );
+    }
+  }
+
   Future<void> _loadAvailableOptions() async {
     // Load lanes
     final lanes = _controller.lanes;
-    _availableLanes = lanes.map((lane) => {
-      'id': lane.id,
-      'name': lane.title,
-    }).toList();
-    
+    _availableLanes = lanes
+        .map((lane) => {'id': lane.id, 'name': lane.title})
+        .toList();
+
     // Validate selected lane exists in available lanes
     if (_selectedLane.isNotEmpty) {
-      final laneExists = _availableLanes.any((lane) => lane['id'] == _selectedLane);
+      final laneExists = _availableLanes.any(
+        (lane) => lane['id'] == _selectedLane,
+      );
       if (!laneExists) {
-        print('⚠️ Selected lane $_selectedLane not found in available lanes, resetting');
+        print(
+          '⚠️ Selected lane $_selectedLane not found in available lanes, resetting',
+        );
         _selectedLane = '';
       }
     }
-    
+
     // Load assignees from workspace users
     await _loadWorkspaceUsers();
-    
+
     // Load customers from Firestore
     try {
       print('🔄 Loading customers from Firestore...');
       final customers = await _controller.getCustomers();
-      
+
       // Deduplicate customers by ID to prevent dropdown issues
       final customerMap = <String, Map<String, dynamic>>{};
       for (final customer in customers) {
@@ -413,14 +574,18 @@ class _EditCardPageState extends State<EditCardPage> {
         }
       }
       _availableCustomers = customerMap.values.toList();
-      
+
       print('✅ Customers loaded: ${_availableCustomers.length} customers');
-      
+
       // Validate selected customer exists in available customers
       if (_selectedCustomer.isNotEmpty) {
-        final customerExists = _availableCustomers.any((customer) => customer['id'] == _selectedCustomer);
+        final customerExists = _availableCustomers.any(
+          (customer) => customer['id'] == _selectedCustomer,
+        );
         if (!customerExists) {
-          print('⚠️ Selected customer $_selectedCustomer not found in available customers, resetting');
+          print(
+            '⚠️ Selected customer $_selectedCustomer not found in available customers, resetting',
+          );
           _selectedCustomer = '';
         }
       }
@@ -429,7 +594,7 @@ class _EditCardPageState extends State<EditCardPage> {
       _availableCustomers = [];
       _selectedCustomer = '';
     }
-    
+
     // Initialize company selection if customer is already selected
     if (_selectedCustomer.isNotEmpty) {
       await _loadCompaniesForCustomer(_selectedCustomer);
@@ -441,6 +606,7 @@ class _EditCardPageState extends State<EditCardPage> {
       _selectedCompany = 'none';
     }
   }
+
   Future<void> _loadWorkspaceUsers() async {
     try {
       final workspaceId = _controller.currentWorkspaceId.value;
@@ -452,10 +618,10 @@ class _EditCardPageState extends State<EditCardPage> {
       }
 
       print('🔄 Loading users for workspace: $workspaceId');
-      
+
       // Get users from the workspace - data is already properly formatted from repository
       final users = await _controller.getWorkspaceUsers(workspaceId);
-      
+
       // Deduplicate users by ID to prevent dropdown issues
       final userMap = <String, Map<String, dynamic>>{};
       for (final user in users) {
@@ -464,14 +630,18 @@ class _EditCardPageState extends State<EditCardPage> {
         }
       }
       _availableAssignees = userMap.values.toList();
-      
+
       print('✅ Loaded ${_availableAssignees.length} users for workspace');
-      
+
       // Validate selected assignee exists in available assignees
       if (_selectedAssignee.isNotEmpty) {
-        final assigneeExists = _availableAssignees.any((assignee) => assignee['id'] == _selectedAssignee);
+        final assigneeExists = _availableAssignees.any(
+          (assignee) => assignee['id'] == _selectedAssignee,
+        );
         if (!assigneeExists) {
-          print('⚠️ Selected assignee $_selectedAssignee not found in available assignees, resetting');
+          print(
+            '⚠️ Selected assignee $_selectedAssignee not found in available assignees, resetting',
+          );
           _selectedAssignee = '';
         }
       }
@@ -485,15 +655,15 @@ class _EditCardPageState extends State<EditCardPage> {
   Future<void> _loadCompaniesForCustomer(String customerId) async {
     try {
       print('🔄 Loading companies for customer: $customerId');
-      
+
       // Get customer details to access companyNames
       final customers = await _controller.getCustomers();
       final customer = customers.firstWhereOrNull((c) => c.id == customerId);
-      
+
       if (customer != null && customer.companyNames.isNotEmpty) {
         final companyMap = <String, Map<String, dynamic>>{};
         companyMap['none'] = {'id': 'none', 'name': 'None'};
-        
+
         for (final company in customer.companyNames) {
           companyMap[company['id']] = {
             'id': company['id'],
@@ -501,16 +671,19 @@ class _EditCardPageState extends State<EditCardPage> {
             'value': company['value'],
           };
         }
-        
+
         setState(() {
           _availableCompanies = companyMap.values.toList();
           // ถ้า company ปัจจุบันไม่มีในรายการใหม่ ให้รีเซ็ต
-          if (_selectedCompany != 'none' && !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
+          if (_selectedCompany != 'none' &&
+              !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
             _selectedCompany = 'none';
           }
         });
-        
-        print('✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies');
+
+        print(
+          '✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies',
+        );
       } else {
         setState(() {
           _availableCompanies = [
@@ -537,9 +710,9 @@ class _EditCardPageState extends State<EditCardPage> {
       if (workspaceId.isEmpty || _productItems.isEmpty) return;
 
       print('🔄 Loading product images for ${_productItems.length} products');
-      
+
       final firestore = FirebaseFirestore.instance;
-      
+
       // Load images for each product
       for (int i = 0; i < _productItems.length; i++) {
         final productId = _productItems[i]['productId'];
@@ -549,7 +722,7 @@ class _EditCardPageState extends State<EditCardPage> {
                 .collection('workspaces/$workspaceId/products')
                 .doc(productId)
                 .get();
-                
+
             if (productDoc.exists) {
               final productData = productDoc.data()!;
               setState(() {
@@ -561,7 +734,7 @@ class _EditCardPageState extends State<EditCardPage> {
           }
         }
       }
-      
+
       print('✅ Product images loaded successfully');
     } catch (e) {
       print('❌ Failed to load product images: $e');
@@ -570,15 +743,16 @@ class _EditCardPageState extends State<EditCardPage> {
 
   Future<void> _loadQuotationTemplates() async {
     try {
-      final workspaceId = _controller.currentWorkspaceId.value;
+      // Always use the card's workspace to load its templates
+      final workspaceId = widget.card.workspaceId;
       if (workspaceId.isEmpty) {
         print('⚠️ No workspace selected for loading templates');
         return;
       }
 
       print('🔄 Loading quotation templates for workspace: $workspaceId');
-      
-      // Use Firebase service to get templates
+
+    // Use Firebase service to get templates
       final firestore = FirebaseFirestore.instance;
       final snapshot = await firestore
           .collection('workspaces')
@@ -587,18 +761,12 @@ class _EditCardPageState extends State<EditCardPage> {
           .get();
 
       final List<Map<String, dynamic>> templates = [];
-      
-      // Add "None" option first
-      templates.add({
-        'id': 'none',
-        'name': 'None',
-        'columns': _getDefaultColumns(),
-      });
 
+      // ไม่เพิ่ม "None" option - ต้องเลือก template เสมอ
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final tableComponent = _findTableComponent(data);
-        
+
         templates.add({
           'id': doc.id,
           'name': data['name'] ?? 'Unnamed Template',
@@ -609,48 +777,70 @@ class _EditCardPageState extends State<EditCardPage> {
 
       setState(() {
         _quotationTemplates = templates;
-        // Try to default to Modern Standard Quotation template, fallback to 'none'
-        final modernTemplate = templates.firstWhereOrNull((t) => t['id'] == 'v9GCzC6qLDd473ZCdIeD');
-        _selectedTemplateId = modernTemplate != null ? 'v9GCzC6qLDd473ZCdIeD' : 'none';
+        
+        // ตรวจสอบ quotationTemplateId จาก card
+        if (_selectedTemplateId != null && _selectedTemplateId!.isNotEmpty) {
+          // ตรวจสอบว่า template ที่เลือกมีอยู่จริงใน list หรือไม่
+          final templateExists = templates.any((t) => t['id'] == _selectedTemplateId);
+          if (!templateExists && templates.isNotEmpty) {
+            // ถ้าไม่พบ template ที่ระบุ ให้เลือก template แรก
+            _selectedTemplateId = templates.first['id'];
+            print('⚠️ Template not found, selected first template: $_selectedTemplateId');
+          }
+        } else if (templates.isNotEmpty) {
+          // ถ้าไม่มี quotationTemplateId ให้เลือก template แรก
+          _selectedTemplateId = templates.first['id'];
+          print('📋 No templateId in card, selected first template: $_selectedTemplateId');
+        }
+        
         _updateVisibleColumns();
       });
 
-      print('✅ Loaded ${templates.length - 1} quotation templates');
+      print('✅ Loaded ${templates.length} quotation templates');
       print('🎯 Selected template: $_selectedTemplateId');
-      if (_selectedTemplateId != 'none') {
-        final template = _quotationTemplates.firstWhereOrNull((t) => t['id'] == _selectedTemplateId);
+      if (_selectedTemplateId != null && _selectedTemplateId != 'none') {
+        final template = _quotationTemplates.firstWhereOrNull(
+          (t) => t['id'] == _selectedTemplateId,
+        );
         if (template != null) {
           final columns = template['columns'] as List<dynamic>? ?? [];
           print('📋 Template columns count: ${columns.length}');
           for (final column in columns) {
             if (column is Map<String, dynamic>) {
-              print('  - ${column['label']} (${column['type']}) - visible: ${column['isVisible']}');
+              print(
+                '  - ${column['label']} (${column['type']}) - visible: ${column['isVisible']}',
+              );
             }
           }
         }
       }
     } catch (e) {
       print('❌ Failed to load quotation templates: $e');
-      // Set default state
+      // Set default state - สร้าง template เปล่าถ้าไม่มี
       setState(() {
-        _quotationTemplates = [{
-          'id': 'none',
-          'name': 'None',
-          'columns': _getDefaultColumns(),
-        }];
-        _selectedTemplateId = 'none';
+        _quotationTemplates = [
+          {'id': 'default', 'name': 'Default Template', 'columns': _getDefaultColumns()},
+        ];
+        _selectedTemplateId = 'default';
         _updateVisibleColumns();
       });
     }
   }
 
   Map<String, dynamic>? _findTableComponent(Map<String, dynamic> templateData) {
-    // Search in body components
+    // Search in body components, prefer index 1 if it is a table (matches web)
     final body = templateData['body'];
     if (body != null && body['components'] != null) {
-      for (final component in body['components']) {
-        if (component['type'] == 'table') {
-          return component;
+      final comps = body['components'];
+      if (comps is List && comps.length > 1) {
+        final second = comps[1];
+        if (second is Map && second['type'] == 'table') {
+          return Map<String, dynamic>.from(second);
+        }
+      }
+      for (final component in comps) {
+        if (component is Map && component['type'] == 'table') {
+          return Map<String, dynamic>.from(component);
         }
       }
     }
@@ -717,26 +907,32 @@ class _EditCardPageState extends State<EditCardPage> {
 
   void _updateVisibleColumns() {
     print('🔄 Updating visible columns for template: $_selectedTemplateId');
-    
-    if (_selectedTemplateId == null || _selectedTemplateId == 'none') {
+
+    if (_selectedTemplateId == null) {
       _visibleColumns = _getDefaultColumns();
-      print('📋 Using default columns: ${_visibleColumns.length} columns');
+      print('📋 No template selected, using default columns: ${_visibleColumns.length} columns');
     } else {
       final template = _quotationTemplates.firstWhereOrNull(
-        (t) => t['id'] == _selectedTemplateId
+        (t) => t['id'] == _selectedTemplateId,
       );
       if (template != null) {
-        final columns = List<Map<String, dynamic>>.from(template['columns'] ?? []);
+        final columns = List<Map<String, dynamic>>.from(
+          template['columns'] ?? [],
+        );
         print('📋 Template found with ${columns.length} total columns');
-        
+
         // Sort by order
         columns.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
-        
+
         // Filter only visible columns
-        _visibleColumns = columns.where((col) => col['isVisible'] == true).toList();
+        _visibleColumns = columns
+            .where((col) => col['isVisible'] == true)
+            .toList();
         print('📋 Filtered to ${_visibleColumns.length} visible columns:');
         for (final col in _visibleColumns) {
-          print('  - ${col['label']} (${col['type']}) - order: ${col['order']}');
+          print(
+            '  - ${col['label']} (${col['type']}) - order: ${col['order']}',
+          );
         }
       } else {
         _visibleColumns = _getDefaultColumns();
@@ -748,16 +944,191 @@ class _EditCardPageState extends State<EditCardPage> {
   void _onTemplateChanged(String? templateId) {
     setState(() {
       _selectedTemplateId = templateId;
+
+      // เก็บข้อมูล template ที่เลือกทั้งหมด
+      final template = _quotationTemplates.firstWhereOrNull(
+        (t) => t['id'] == _selectedTemplateId,
+      );
+
+      if (template == null || _selectedTemplateId == null) {
+        // ไม่มี template ที่เลือก: เคลียร์ข้อมูล template
+        _selectedTemplateData = null;
+        // No template selected: clear customInputs to avoid showing stale values
+        for (int i = 0; i < _productItems.length; i++) {
+          _productItems[i]['customInputs'] = <String, dynamic>{};
+        }
+        print('🎯 Template cleared: $_selectedTemplateId');
+      } else {
+        // เก็บข้อมูล template ทั้งหมดในตัวแปร _selectedTemplateData
+        _selectedTemplateData = Map<String, dynamic>.from(template);
+        print('🎯 Template selected and saved: ${template['name']} (ID: $_selectedTemplateId)');
+        print('📋 Template data saved with keys: ${_selectedTemplateData?.keys.toList()}');
+        
+        // สร้าง product table จากข้อมูล template และเก็บ template ID ไว้
+        _createProductsFromTemplate(template);
+        
+        final columns = List<Map<String, dynamic>>.from(template['columns'] ?? const []);
+        // Consider only user_input columns; build map id -> column for access to prefillSourceField
+        final Map<String, Map<String, dynamic>> userInputCols = {};
+        for (final col in columns) {
+          if ((col['type'] ?? '') == 'user_input') {
+            final id = (col['id'] ?? '').toString();
+            if (id.isNotEmpty) {
+              userInputCols[id] = Map<String, dynamic>.from(col);
+            }
+          }
+        }
+
+        print('🔗 Found ${userInputCols.length} user input columns in template');
+        userInputCols.forEach((id, col) {
+          print('  - Column ID: $id, Label: ${col['label']}');
+        });
+
+        // เก็บข้อมูลจาก expense เดิมไว้ก่อนการ mapping ใหม่
+        print('💾 Preserving existing expense data before template mapping');
+        final originalExpenses = List<Map<String, dynamic>>.from(widget.card.expenses);
+
+        // ล้างค่าใน customInputs ของทุก product items ก่อนการ mapping ใหม่
+        print('🧹 Clearing all customInputs before new template mapping');
+        for (int i = 0; i < _productItems.length; i++) {
+          _productItems[i]['customInputs'] = <String, dynamic>{};
+        }
+
+        // อัปเดต customInputs ของแต่ละ product item ให้ตรงกับ template columns ใหม่
+        for (int i = 0; i < _productItems.length; i++) {
+          final product = _productItems[i];
+          final Map<String, dynamic> newCi = <String, dynamic>{};
+
+          // หา expense เดิมที่ตรงกัน (ถ้ามี)
+          Map<String, dynamic>? matchingExpense;
+          if (i < originalExpenses.length) {
+            matchingExpense = originalExpenses[i];
+          }
+
+          // สร้าง customInputs ใหม่ตาม template columns
+          userInputCols.forEach((id, col) {
+            String value = '';
+            
+            // ตรวจสอบว่ามีข้อมูลเดิมที่ตรงกับ column ID นี้หรือไม่
+            if (matchingExpense != null && 
+                matchingExpense['customInputs'] != null &&
+                matchingExpense['customInputs'][id] != null) {
+              value = matchingExpense['customInputs'][id].toString();
+              print('  ✅ Preserved existing value for $id (${col['label']}): $value');
+            } else {
+              print('  📝 Set empty value for new template column $id (${col['label']})');
+            }
+            
+            newCi[id] = value;
+          });
+
+          product['customInputs'] = newCi;
+          // เก็บ template ID ในแต่ละ product item สำหรับการ mapping
+          product['templateId'] = _selectedTemplateId;
+        }
+      }
+
       _updateVisibleColumns();
     });
   }
 
+  void _createProductsFromTemplate(Map<String, dynamic> template) {
+    try {
+      print('🏗️ Creating products from template: ${template['name']}');
+      print('📋 Using existing expenses data: ${widget.card.expenses.length} items');
+      
+      // ล้าง product items ที่มีอยู่ก่อน
+      _productItems.clear();
+      
+      // ใช้ข้อมูลจาก card expenses แทนการสร้างใหม่
+      final expenses = widget.card.expenses;
+      
+      if (expenses.isNotEmpty) {
+        print('📊 Found ${expenses.length} expense items in card data');
+        
+        // สร้าง product items จากข้อมูล expenses พร้อม template mapping
+        for (int index = 0; index < expenses.length; index++) {
+          final expense = expenses[index];
+          
+          // สร้าง product item จากข้อมูล expense
+          final productItem = {
+            'id': expense['id'] ?? 'exp-${DateTime.now().millisecondsSinceEpoch}-$index',
+            'productId': expense['productId'] ?? '',
+            'name': expense['name'] ?? 'Product ${index + 1}',
+            'description': expense['description'] ?? '',
+            'quantity': (expense['quantity'] ?? 1).toInt(),
+            'unit': expense['unit'] ?? 'item',
+            'pricePerUnit': (expense['pricePerUnit'] ?? expense['price'] ?? 0).toInt(),
+            'discount': (expense['discount'] ?? 0).toInt(),
+            'discountType': expense['discountType'] ?? 'percentage',
+            // ล้าง customInputs (จะถูก map ใหม่ใน _onTemplateChanged)
+            'customInputs': <String, dynamic>{},
+            'templateId': _selectedTemplateId, // เก็บ template ID สำหรับ mapping
+            'image': expense['image'],
+            'order': expense['order'] ?? index,
+          };
+          
+          _productItems.add(productItem);
+          
+          print('✅ Mapped expense to product item:');
+          print('  - Name: ${productItem['name']}');
+          print('  - Quantity: ${productItem['quantity']}');
+          print('  - Price: ${productItem['pricePerUnit']}');
+          print('  - CustomInputs: cleared for new template mapping');
+        }
+        
+        print('✅ Created ${_productItems.length} product items from card expenses');
+      } else {
+        print('📝 No expenses found in card, creating empty product item');
+        
+        // ถ้าไม่มี expenses ให้สร้าง product item เปล่า
+        final emptyProduct = {
+          'id': 'template-product-${DateTime.now().millisecondsSinceEpoch}',
+          'productId': '',
+          'name': '',
+          'description': '',
+          'quantity': 1,
+          'unit': 'item',
+          'pricePerUnit': 0,
+          'discount': 0,
+          'discountType': 'percentage',
+          'customInputs': <String, dynamic>{},
+          'templateId': _selectedTemplateId,
+          'image': null,
+        };
+        _productItems.add(emptyProduct);
+        print('📋 Created empty product item with template ID');
+      }
+      
+    } catch (e) {
+      print('❌ Error creating products from template: $e');
+      // สร้าง product item เปล่าในกรณีเกิดข้อผิดพลาด
+      if (_productItems.isEmpty) {
+        final fallbackProduct = {
+          'id': 'fallback-product-${DateTime.now().millisecondsSinceEpoch}',
+          'productId': '',
+          'name': '',
+          'description': '',
+          'quantity': 1,
+          'unit': 'item',
+          'pricePerUnit': 0,
+          'discount': 0,
+          'discountType': 'percentage',
+          'customInputs': <String, dynamic>{},
+          'templateId': _selectedTemplateId,
+          'image': null,
+        };
+        _productItems.add(fallbackProduct);
+      }
+    }
+  }
+
   List<Widget> _buildHeaderColumns() {
     List<Widget> headers = [];
-    
+
     for (final column in _visibleColumns) {
       Widget headerWidget;
-      
+
       // Determine flex based on column width
       int flex = 2; // default
       String? widthStr = column['width'];
@@ -774,12 +1145,15 @@ class _EditCardPageState extends State<EditCardPage> {
           flex = int.tryParse(widthStr) ?? 2;
         }
       }
-      
+
       // Handle special columns
       if (column['id'] == 'img' || column['type'] == 'image') {
         headerWidget = const SizedBox(
-          width: 50, 
-          child: Text('', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))
+          width: 50,
+          child: Text(
+            '',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          ),
         );
       } else {
         // Determine text alignment
@@ -789,24 +1163,24 @@ class _EditCardPageState extends State<EditCardPage> {
         } else if (column['align'] == 'right') {
           textAlign = TextAlign.right;
         }
-        
+
         headerWidget = Expanded(
           flex: flex,
           child: Text(
             column['label'] ?? '',
             style: const TextStyle(
-              fontWeight: FontWeight.w600, 
-              fontSize: 12, 
-              color: Colors.deepOrange
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: Colors.deepOrange,
             ),
             textAlign: textAlign,
           ),
         );
       }
-      
+
       headers.add(headerWidget);
     }
-    
+
     return headers;
   }
 
@@ -817,7 +1191,7 @@ class _EditCardPageState extends State<EditCardPage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    
+
     if (picked != null) {
       setState(() {
         _startDate = picked;
@@ -836,7 +1210,7 @@ class _EditCardPageState extends State<EditCardPage> {
       firstDate: _startDate ?? DateTime(2020),
       lastDate: DateTime(2030),
     );
-    
+
     if (picked != null) {
       setState(() {
         _endDate = picked;
@@ -848,108 +1222,106 @@ class _EditCardPageState extends State<EditCardPage> {
   Widget build(BuildContext context) {
     if (!_canView) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Edit Job Card'),
-        ),
+        appBar: AppBar(title: const Text('Edit Job Card')),
         body: const Center(
           child: Text('You do not have permission to view this card.'),
         ),
       );
     }
     return Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
-        appBar: AppBar(
-          title: const Text(
-            'Edit Job Card',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-          centerTitle: false,
-          actions: [
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.black54),
-              onSelected: (value) {
-                switch (value) {
-                  case 'copy':
-                    _onCopy();
-                    break;
-                  case 'move':
-                    _onMove();
-                    break;
-                  case 'archive':
-                    _onArchive();
-                    break;
-                  case 'delete':
-                    _onDeletePermanently();
-                    break;
-                }
-              },
-              itemBuilder: (context) {
-                final items = <PopupMenuEntry<String>>[];
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text(
+          'Edit Job Card',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+        centerTitle: false,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.black54),
+            onSelected: (value) {
+              switch (value) {
+                case 'copy':
+                  _onCopy();
+                  break;
+                case 'move':
+                  _onMove();
+                  break;
+                case 'archive':
+                  _onArchive();
+                  break;
+                case 'delete':
+                  _onDeletePermanently();
+                  break;
+              }
+            },
+            itemBuilder: (context) {
+              final items = <PopupMenuEntry<String>>[];
+              items.add(
+                PopupMenuItem(
+                  value: 'copy',
+                  child: Row(
+                    children: const [
+                      Icon(Icons.copy, size: 18),
+                      SizedBox(width: 8),
+                      Text('Copy'),
+                    ],
+                  ),
+                ),
+              );
+              if (_canMove) {
                 items.add(
                   PopupMenuItem(
-                    value: 'copy',
+                    value: 'move',
                     child: Row(
                       children: const [
-                        Icon(Icons.copy, size: 18),
+                        Icon(Icons.open_with, size: 18),
                         SizedBox(width: 8),
-                        Text('Copy'),
+                        Text('Move'),
                       ],
                     ),
                   ),
                 );
-                if (_canMove) {
-                  items.add(
-                    PopupMenuItem(
-                      value: 'move',
-                      child: Row(
-                        children: const [
-                          Icon(Icons.open_with, size: 18),
-                          SizedBox(width: 8),
-                          Text('Move'),
-                        ],
-                      ),
+              }
+              if (_canArchive) {
+                items.add(
+                  PopupMenuItem(
+                    value: 'archive',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.archive, size: 18),
+                        SizedBox(width: 8),
+                        Text('Archive'),
+                      ],
                     ),
-                  );
-                }
-                if (_canArchive) {
-                  items.add(
-                    PopupMenuItem(
-                      value: 'archive',
-                      child: Row(
-                        children: const [
-                          Icon(Icons.archive, size: 18),
-                          SizedBox(width: 8),
-                          Text('Archive'),
-                        ],
-                      ),
+                  ),
+                );
+              }
+              if (_canDelete) {
+                items.add(
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.delete_forever, color: Colors.red, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Delete Permanently',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
                     ),
-                  );
-                }
-                if (_canDelete) {
-                  items.add(
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: const [
-                          Icon(Icons.delete_forever, color: Colors.red, size: 18),
-                          SizedBox(width: 8),
-                          Text('Delete Permanently', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                return items;
-              },
-            ),
-          ],
-        ),
+                  ),
+                );
+              }
+              return items;
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -969,7 +1341,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ],
             ),
             const SizedBox(height: 24),
-            
+
             // Assignment Section
             _buildSectionCard(
               title: 'Assignment & Tags',
@@ -1005,9 +1377,7 @@ class _EditCardPageState extends State<EditCardPage> {
               title: 'Products & Services',
               icon: Icons.shopping_cart,
               color: Colors.deepOrange,
-              children: [
-                _buildProductSection(),
-              ],
+              children: [_buildProductSection()],
             ),
             const SizedBox(height: 24),
 
@@ -1016,9 +1386,7 @@ class _EditCardPageState extends State<EditCardPage> {
               title: 'Related Documents',
               icon: Icons.description,
               color: Colors.purple,
-              children: [
-                _buildRelatedDocumentsSection(),
-              ],
+              children: [_buildRelatedDocumentsSection()],
             ),
             const SizedBox(height: 24),
 
@@ -1027,13 +1395,20 @@ class _EditCardPageState extends State<EditCardPage> {
               title: 'Content & Details',
               icon: Icons.edit_document,
               color: Colors.indigo,
-              children: [
-                _buildDetailsSection(),
-              ],
+              children: [_buildDetailsSection()],
             ),
             const SizedBox(height: 24),
 
-            // Timeline & Status Section  
+            // Content & Tasks Section  
+            _buildSectionCard(
+              title: 'Content & Tasks',
+              icon: Icons.task_alt,
+              color: Colors.purple,
+              children: [_buildTodoListSection()],
+            ),
+            const SizedBox(height: 24),
+
+            // Timeline & Status Section
             _buildSectionCard(
               title: 'Timeline & Status',
               icon: Icons.schedule,
@@ -1051,9 +1426,7 @@ class _EditCardPageState extends State<EditCardPage> {
               title: 'Attached Files',
               icon: Icons.attach_file,
               color: Colors.teal,
-              children: [
-                _buildAttachedFilesContent(),
-              ],
+              children: [_buildAttachedFilesContent()],
             ),
             const SizedBox(height: 24),
 
@@ -1103,11 +1476,7 @@ class _EditCardPageState extends State<EditCardPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(
-                            Icons.today,
-                            size: 16,
-                            color: Colors.teal[700],
-                          ),
+                          Icon(Icons.today, size: 16, color: Colors.teal[700]),
                           const SizedBox(width: 6),
                           Text(
                             'Start Date',
@@ -1155,7 +1524,11 @@ class _EditCardPageState extends State<EditCardPage> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: _endDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                    border: Border.all(
+                      color: _endDate != null
+                          ? Colors.teal[300]!
+                          : Colors.grey[300]!,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                     color: _endDate != null ? Colors.teal[50] : Colors.grey[50],
                   ),
@@ -1167,14 +1540,18 @@ class _EditCardPageState extends State<EditCardPage> {
                           Icon(
                             Icons.event,
                             size: 16,
-                            color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                            color: _endDate != null
+                                ? Colors.teal[700]
+                                : Colors.grey[600],
                           ),
                           const SizedBox(width: 6),
                           Text(
                             'End Date',
                             style: TextStyle(
                               fontSize: 12,
-                              color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                              color: _endDate != null
+                                  ? Colors.teal[700]
+                                  : Colors.grey[600],
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1187,8 +1564,12 @@ class _EditCardPageState extends State<EditCardPage> {
                             : 'Select end date',
                         style: TextStyle(
                           fontSize: 16,
-                          color: _endDate != null ? Colors.black87 : Colors.grey[500],
-                          fontWeight: _endDate != null ? FontWeight.w600 : FontWeight.normal,
+                          color: _endDate != null
+                              ? Colors.black87
+                              : Colors.grey[500],
+                          fontWeight: _endDate != null
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -1228,7 +1609,7 @@ class _EditCardPageState extends State<EditCardPage> {
             final isSelected = _selectedStatus == status['value'];
             Color chipColor;
             Color textColor;
-            
+
             // Set colors based on status
             switch (status['value']) {
               case 'Pending':
@@ -1251,7 +1632,7 @@ class _EditCardPageState extends State<EditCardPage> {
                 chipColor = Colors.grey[100]!;
                 textColor = Colors.grey[700]!;
             }
-            
+
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -1259,26 +1640,29 @@ class _EditCardPageState extends State<EditCardPage> {
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: chipColor,
                   borderRadius: BorderRadius.circular(20),
-                  border: isSelected ? null : Border.all(color: Colors.grey[300]!),
+                  border: isSelected
+                      ? null
+                      : Border.all(color: Colors.grey[300]!),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      status['icon'],
-                      size: 16,
-                      color: textColor,
-                    ),
+                    Icon(status['icon'], size: 16, color: textColor),
                     const SizedBox(width: 6),
                     Text(
                       status['label'],
                       style: TextStyle(
                         color: textColor,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                         fontSize: 14,
                       ),
                     ),
@@ -1387,7 +1771,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Table Header
             Container(
               padding: const EdgeInsets.all(12),
@@ -1397,16 +1781,52 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
               child: const Row(
                 children: [
-                  Expanded(flex: 1, child: Text('Img', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 3, child: Text('Product/Service', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Qty/Unit', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Price/Unit', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Discount', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      'Img',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      'Product/Service',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Qty/Unit',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Price/Unit',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Discount',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Total',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
             const Center(
               child: Text(
@@ -1421,120 +1841,592 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Widget _buildRelatedDocumentsSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Related Documents',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryOrange,
-                  ),
+            const Spacer(),
+            // Create Quotation Button
+            ElevatedButton.icon(
+              onPressed: _createDocument,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Create Quotation'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Document'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Table Header
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Row(
-                children: [
-                  Expanded(flex: 2, child: Text('Doc No', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Type', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                'No related documents found',
-                style: TextStyle(color: Colors.grey),
+                textStyle: const TextStyle(fontSize: 12),
+                elevation: 2,
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 16),
+        
+        if (_isLoadingRelatedDocuments)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_relatedDocuments.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No related documents yet',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          // Documents Table
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Table Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[300]!),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 50,
+                        child: Text(
+                          'Doc No.',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Type',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          'Job Card',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Seller',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Date',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Valid Until',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Amount',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Status',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 40,
+                        child: Text(
+                          '',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Table Rows
+                ...List.generate(_relatedDocuments.length, (index) {
+                  return _buildDocumentRow(_relatedDocuments[index], index);
+                }),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildTodoListSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildDocumentRow(Map<String, dynamic> document, int index) {
+    final documentData = document['data'] as Map<String, dynamic>? ?? {};
+    final documentId = document['id'] ?? '';
+    final documentType = document['type'] ?? 'QT'; // Default to QT from backup data
+    final createdAt = document['createdAt'] ?? '';
+    
+    // Extract data from document based on actual structure
+    final docNumber = document['docNo'] ?? documentData['docNo'] ?? documentId.substring(0, 8);
+    final jobCardId = widget.card.customId;
+    
+    // Handle seller information - check multiple possible fields
+    String seller = 'N/A';
+    if (documentData['seller'] != null) {
+      if (documentData['seller'] is Map) {
+        seller = documentData['seller']['displayName'] ?? 
+                documentData['seller']['name'] ?? 
+                documentData['sellerName'] ?? 'N/A';
+      }
+    } else {
+      seller = documentData['sellerName'] ?? 
+              documentData['createdBy'] ?? 
+              documentData['createdByDisplayName'] ?? 'N/A';
+    }
+    
+    // Handle total amount - check multiple possible fields
+    final totalAmount = documentData['grandTotal'] ?? 
+                       documentData['netTotal'] ?? 
+                       documentData['totalAmount'] ?? 
+                       documentData['total'] ?? 0;
+    
+    final status = documentData['status'] ?? 'DRAFT';
+    final validUntil = documentData['validUntil'] ?? documentData['dueDate'] ?? '';
+    
+    // Convert timestamps to readable format
+    String createdDate = '';
+    if (createdAt != null && createdAt != '') {
+      try {
+        if (createdAt is int) {
+          final date = DateTime.fromMillisecondsSinceEpoch(createdAt);
+          createdDate = '${date.day}/${date.month}/${date.year}';
+        } else if (createdAt is String && createdAt.isNotEmpty) {
+          final date = DateTime.parse(createdAt);
+          createdDate = '${date.day}/${date.month}/${date.year}';
+        }
+      } catch (e) {
+        createdDate = createdAt.toString();
+      }
+    }
+    
+    String validUntilDate = '';
+    if (validUntil != null && validUntil != '') {
+      try {
+        if (validUntil is int) {
+          final date = DateTime.fromMillisecondsSinceEpoch(validUntil);
+          validUntilDate = '${date.day}/${date.month}/${date.year}';
+        } else if (validUntil is String && validUntil.isNotEmpty) {
+          final date = DateTime.parse(validUntil);
+          validUntilDate = '${date.day}/${date.month}/${date.year}';
+        }
+      } catch (e) {
+        validUntilDate = validUntil.toString();
+      }
+    }
+    
+    return InkWell(
+      onTap: status == 'NOT_FOUND' ? null : () => viewDocument(document),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: index < _relatedDocuments.length - 1 
+                ? BorderSide(color: Colors.grey[200]!)
+                : BorderSide.none,
+          ),
+        ),
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'To-Do List',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryOrange,
-                  ),
+            // Doc No.
+            SizedBox(
+              width: 50,
+              child: Text(
+                docNumber,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.description),
-                      label: const Text('Apply Template'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Item'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryOrange,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+          
+          // Type
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                _getDocumentIcon(documentType),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    _getDocumentTypeLabel(documentType),
+                    style: const TextStyle(fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                'No to-do items yet. Add one to get started!',
-                style: TextStyle(color: Colors.grey),
-              ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Job Card
+          Expanded(
+            flex: 3,
+            child: Text(
+              jobCardId,
+              style: const TextStyle(fontSize: 12, color: Colors.blue),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Seller
+          Expanded(
+            flex: 2,
+            child: Text(
+              seller,
+              style: const TextStyle(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Date
+          Expanded(
+            flex: 2,
+            child: Text(
+              createdDate,
+              style: const TextStyle(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Valid Until
+          Expanded(
+            flex: 2,
+            child: Text(
+              validUntilDate,
+              style: const TextStyle(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Amount
+          Expanded(
+            flex: 2,
+            child: Text(
+              '฿${_formatNumber(totalAmount)}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.green,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Status Dropdown
+          Expanded(
+            flex: 2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getDocumentStatusColor(status).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: _getDocumentStatusColor(status),
+                  width: 1,
+                ),
+              ),
+              child: status == 'NOT_FOUND'
+                ? Center(
+                    child: Text(
+                      'ไม่พบเอกสาร',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: _getDocumentStatusColor(status),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: status,
+                      isDense: true,
+                      isExpanded: true,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: _getDocumentStatusColor(status),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      icon: Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 14,
+                        color: _getDocumentStatusColor(status),
+                      ),
+                      items: _documentStatusOptions.map((option) {
+                        return DropdownMenuItem<String>(
+                          value: option['value'],
+                          child: Text(
+                            option['label'],
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: _getDocumentStatusColor(option['value']),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (newStatus) {
+                        if (newStatus != null && newStatus != status) {
+                          _updateDocumentStatus(documentId, newStatus);
+                        }
+                      },
+                    ),
+                  ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // More Menu
+          SizedBox(
+            width: 40,
+            child: PopupMenuButton<String>(
+              icon: Icon(Icons.more_horiz, size: 18, color: Colors.grey[600]),
+              onSelected: (value) {
+                switch (value) {
+                  case 'download':
+                    _downloadDocument(document);
+                    break;
+                  case 'duplicate':
+                    _duplicateDocument(document);
+                    break;
+                  case 'edit':
+                    _editDocument(document);
+                    break;
+                  case 'delete':
+                    _deleteDocument(document);
+                    break;
+                }
+              },
+              itemBuilder: (context) => status == 'NOT_FOUND' 
+                ? [
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 16, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('ลบอ้างอิง', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ]
+                : [
+                    const PopupMenuItem(
+                      value: 'download',
+                      child: Row(
+                        children: [
+                          Icon(Icons.download, size: 16, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('ดาวน์โหลด', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'duplicate',
+                      child: Row(
+                        children: [
+                          Icon(Icons.copy, size: 16, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('คัดลอก', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 16, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 16, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('ลบ', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+            ),
+          ),
+        ],
       ),
+    ),
+  );
+  }
+
+  String _getDocumentTypeLabel(String type) {
+    switch (type) {
+      case 'quotation':
+      case 'QT': // Support QT type from backup data
+        return 'ใบเสนอราคา';
+      case 'invoice':
+      case 'INV':
+        return 'ใบแจ้งหนี้';
+      case 'receipt':
+      case 'REC':
+        return 'ใบเสร็จ';
+      case 'purchase_order':
+      case 'PO':
+        return 'ใบสั่งซื้อ';
+      default:
+        return 'เอกสาร';
+    }
+  }
+
+  Widget _getDocumentIcon(String docType) {
+    IconData iconData;
+    Color iconColor;
+
+    switch (docType) {
+      case 'quotation':
+      case 'QT': // Support QT type from backup data
+        iconData = Icons.request_quote;
+        iconColor = Colors.orange;
+        break;
+      case 'invoice':
+      case 'INV':
+        iconData = Icons.receipt;
+        iconColor = Colors.green;
+        break;
+      case 'receipt':
+      case 'REC':
+        iconData = Icons.receipt_long;
+        iconColor = Colors.blue;
+        break;
+      case 'purchase_order':
+      case 'PO':
+        iconData = Icons.shopping_cart;
+        iconColor = Colors.purple;
+        break;
+      default:
+        iconData = Icons.description;
+        iconColor = Colors.grey;
+    }
+
+    return Icon(iconData, color: iconColor, size: 24);
+  }
+
+  String _formatNumber(dynamic number) {
+    if (number == null) return '0';
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
     );
   }
 
@@ -1560,7 +2452,7 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ),
         ),
-        
+
         // Files Table Header
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -1571,33 +2463,47 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
           child: const Row(
             children: [
-              Expanded(flex: 3, child: Text(
-                'File Name',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              )),
-              Expanded(flex: 2, child: Text(
-                'Uploaded By',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              )),
-              Expanded(flex: 2, child: Text(
-                'Uploaded At',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              )),
-              Expanded(flex: 1, child: Text(
-                'Actions',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                textAlign: TextAlign.center,
-              )),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'File Name',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Uploaded By',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Uploaded At',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text(
+                  'Actions',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
           ),
         ),
-        
+
         // Files Content
         if (_attachments.isNotEmpty)
           Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey[300]!),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(8),
+              ),
             ),
             child: Column(
               children: _attachments.map((attachment) {
@@ -1605,10 +2511,7 @@ class _EditCardPageState extends State<EditCardPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(
-                        color: Colors.grey[300]!,
-                        width: 0.5,
-                      ),
+                      bottom: BorderSide(color: Colors.grey[300]!, width: 0.5),
                     ),
                   ),
                   child: Row(
@@ -1624,7 +2527,9 @@ class _EditCardPageState extends State<EditCardPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              attachment['name'] ?? attachment['filename'] ?? 'Unknown file',
+                              attachment['name'] ??
+                                  attachment['filename'] ??
+                                  'Unknown file',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 14,
@@ -1650,7 +2555,11 @@ class _EditCardPageState extends State<EditCardPage> {
                             constraints: const BoxConstraints(),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                            icon: const Icon(
+                              Icons.delete,
+                              size: 18,
+                              color: Colors.red,
+                            ),
                             onPressed: () => _deleteAttachment(attachment),
                             padding: const EdgeInsets.all(8),
                             constraints: const BoxConstraints(),
@@ -1668,7 +2577,9 @@ class _EditCardPageState extends State<EditCardPage> {
             padding: const EdgeInsets.all(40),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey[300]!),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(8),
+              ),
             ),
             child: Center(
               child: Column(
@@ -1681,10 +2592,7 @@ class _EditCardPageState extends State<EditCardPage> {
                   const SizedBox(height: 12),
                   Text(
                     'No attachments uploaded yet',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                 ],
               ),
@@ -1711,7 +2619,7 @@ class _EditCardPageState extends State<EditCardPage> {
           setState(() {
             _isLoading = true;
           });
-          
+
           await _uploadAndAddAttachment(File(file.path!), file.name, file.size);
         }
       }
@@ -1731,25 +2639,30 @@ class _EditCardPageState extends State<EditCardPage> {
     }
   }
 
-  Future<void> _uploadAndAddAttachment(File file, String fileName, int? fileSize) async {
+  Future<void> _uploadAndAddAttachment(
+    File file,
+    String fileName,
+    int? fileSize,
+  ) async {
     try {
       // Import UploadService
       final uploadService = Get.find<UploadService>();
-      
+
       // Get current user info
       if (_currentUserInfo == null) {
         await _loadCurrentUserInfo();
       }
-      
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final workspaceId = _controller.currentWorkspaceId.value;
       final cardId = widget.card.id;
-      
+
       // Upload file to Firebase Storage
       final downloadUrl = await uploadService.uploadFile(
         file: file,
         workspaceId: workspaceId,
-        chatroomId: 'cards/$cardId', // Use cards/cardId as chatroomId for card attachments
+        chatroomId:
+            'cards/$cardId', // Use cards/cardId as chatroomId for card attachments
         onProgress: (progress) {
           // You can add progress indicator here if needed
         },
@@ -1782,7 +2695,6 @@ class _EditCardPageState extends State<EditCardPage> {
         colorText: Colors.white,
         duration: const Duration(seconds: 2),
       );
-
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -1847,7 +2759,8 @@ class _EditCardPageState extends State<EditCardPage> {
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
@@ -1872,7 +2785,9 @@ class _EditCardPageState extends State<EditCardPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Attachment'),
-        content: Text('Are you sure you want to delete "${attachment['name']}"?'),
+        content: Text(
+          'Are you sure you want to delete "${attachment['name']}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -1987,7 +2902,6 @@ class _EditCardPageState extends State<EditCardPage> {
 
       // Close edit page and go back to board with refresh signal
       Navigator.of(context).pop(true); // true = card was moved, need refresh
-
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -2002,94 +2916,6 @@ class _EditCardPageState extends State<EditCardPage> {
         _isLoading = false;
       });
     }
-  }
-
-  Widget _buildHistorySection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'History',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryOrange,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // History items
-            const ListTile(
-              leading: Icon(Icons.history, color: Colors.grey),
-              title: Text('bew kiw updated field Title from New Card to New Cardo.'),
-              subtitle: Text('less than a minute ago'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.history, color: Colors.grey),
-              title: Text('bew kiw created this card in To Do.'),
-              subtitle: Text('about 1 hour ago'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCommentsSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Comments',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryOrange,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Comment input
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    decoration: const InputDecoration(
-                      hintText: 'Write a comment...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    // Comment functionality will be implemented later
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryOrange,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Post'),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            const Text(
-              'less than a minute ago Updated by bew kiw',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // Build History/Comment toggle section
@@ -2129,9 +2955,14 @@ class _EditCardPageState extends State<EditCardPage> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
-                        color: _showHistory ? Colors.grey[300] : Colors.transparent,
+                        color: _showHistory
+                            ? Colors.grey[300]
+                            : Colors.transparent,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(12),
                         ),
@@ -2140,8 +2971,12 @@ class _EditCardPageState extends State<EditCardPage> {
                         'History',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: _showHistory ? Colors.black87 : Colors.grey[600],
-                          fontWeight: _showHistory ? FontWeight.w600 : FontWeight.normal,
+                          color: _showHistory
+                              ? Colors.black87
+                              : Colors.grey[600],
+                          fontWeight: _showHistory
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                           fontSize: 14,
                         ),
                       ),
@@ -2156,7 +2991,10 @@ class _EditCardPageState extends State<EditCardPage> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: !_showHistory ? Colors.blue : Colors.transparent,
                         borderRadius: const BorderRadius.only(
@@ -2167,8 +3005,12 @@ class _EditCardPageState extends State<EditCardPage> {
                         'Comment',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: !_showHistory ? Colors.white : Colors.grey[600],
-                          fontWeight: !_showHistory ? FontWeight.w600 : FontWeight.normal,
+                          color: !_showHistory
+                              ? Colors.white
+                              : Colors.grey[600],
+                          fontWeight: !_showHistory
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                           fontSize: 14,
                         ),
                       ),
@@ -2183,7 +3025,9 @@ class _EditCardPageState extends State<EditCardPage> {
             height: 300,
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            child: _showHistory ? _buildHistoryContent() : _buildCommentContent(),
+            child: _showHistory
+                ? _buildHistoryContent()
+                : _buildCommentContent(),
           ),
         ],
       ),
@@ -2195,28 +3039,15 @@ class _EditCardPageState extends State<EditCardPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.history,
-            size: 48,
-            color: Colors.grey,
-          ),
+          Icon(Icons.history, size: 48, color: Colors.grey),
           SizedBox(height: 16),
           Text(
             'bew kiw created card Job Card Title in lane In Progress',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.black87),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 4),
-          Text(
-            '1 day ago',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
-          ),
+          Text('1 day ago', style: TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
@@ -2232,18 +3063,11 @@ class _EditCardPageState extends State<EditCardPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.comment,
-                        size: 48,
-                        color: Colors.grey,
-                      ),
+                      Icon(Icons.comment, size: 48, color: Colors.grey),
                       SizedBox(height: 16),
                       Text(
                         'No comments yet',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -2253,7 +3077,7 @@ class _EditCardPageState extends State<EditCardPage> {
                   itemBuilder: (context, index) {
                     final note = _notes[index];
                     final isReply = note['parentId'] != null;
-                    
+
                     return Container(
                       margin: EdgeInsets.only(
                         bottom: 16,
@@ -2356,7 +3180,10 @@ class _EditCardPageState extends State<EditCardPage> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(color: Colors.blue),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     fillColor: Colors.grey[50],
                     filled: true,
                   ),
@@ -2371,7 +3198,10 @@ class _EditCardPageState extends State<EditCardPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -2379,10 +3209,7 @@ class _EditCardPageState extends State<EditCardPage> {
                 ),
                 child: const Text(
                   'Post',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -2395,17 +3222,17 @@ class _EditCardPageState extends State<EditCardPage> {
   // Helper methods for comments
   String _formatTimestamp(dynamic timestamp) {
     if (timestamp == null) return '';
-    
+
     DateTime dateTime;
     if (timestamp is int) {
       dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
     } else {
       return '';
     }
-    
+
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
     } else if (difference.inHours > 0) {
@@ -2428,24 +3255,19 @@ class _EditCardPageState extends State<EditCardPage> {
       return;
     }
     final TextEditingController replyController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text(
           'Reply to Comment',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         content: TextField(
           controller: replyController,
           decoration: InputDecoration(
             hintText: 'Type your reply...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey[300]!),
@@ -2459,9 +3281,7 @@ class _EditCardPageState extends State<EditCardPage> {
           maxLines: 3,
           minLines: 3,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -2504,7 +3324,9 @@ class _EditCardPageState extends State<EditCardPage> {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         // Load user information from Firestore
-        _currentUserInfo = await _repository.getCurrentUserInfo(currentUser.uid);
+        _currentUserInfo = await _repository.getCurrentUserInfo(
+          currentUser.uid,
+        );
         print('🔄 Current user loaded: ${_currentUserInfo?['displayName']}');
       }
     } catch (e) {
@@ -2525,7 +3347,7 @@ class _EditCardPageState extends State<EditCardPage> {
       return;
     }
     if (_commentController.text.trim().isEmpty) return;
-    
+
     final newComment = {
       'id': 'note-${DateTime.now().millisecondsSinceEpoch}',
       'userId': _currentUserInfo?['uid'] ?? 'unknown-user',
@@ -2538,13 +3360,13 @@ class _EditCardPageState extends State<EditCardPage> {
       'cardTitle': widget.card.title,
       'type': 'text',
     };
-    
+
     // Optimistic update - add to local state first
     setState(() {
       _notes.add(newComment);
       _commentController.clear();
     });
-    
+
     try {
       // Save to Firestore immediately
       await _repository.addNoteToCard(
@@ -2575,7 +3397,7 @@ class _EditCardPageState extends State<EditCardPage> {
       setState(() {
         _notes.removeWhere((note) => note['id'] == newComment['id']);
       });
-      
+
       Get.snackbar(
         'Error',
         'Failed to save comment. Please try again.',
@@ -2604,12 +3426,12 @@ class _EditCardPageState extends State<EditCardPage> {
       'cardTitle': widget.card.title,
       'type': 'text',
     };
-    
+
     // Optimistic update - add to local state first
     setState(() {
       _notes.add(newReply);
     });
-    
+
     try {
       // Save to Firestore immediately
       await _repository.addNoteToCard(
@@ -2640,7 +3462,7 @@ class _EditCardPageState extends State<EditCardPage> {
       setState(() {
         _notes.removeWhere((note) => note['id'] == newReply['id']);
       });
-      
+
       Get.snackbar(
         'Error',
         'Failed to save reply. Please try again.',
@@ -2665,39 +3487,47 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+          // Save and Cancel buttons
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Cancel'),
+                ),
               ),
-              child: const Text('Cancel'),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _saveChanges,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveChanges,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text('Save'),
+                ),
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text('Save'),
-            ),
+            ],
           ),
         ],
       ),
@@ -2750,46 +3580,65 @@ class _EditCardPageState extends State<EditCardPage> {
       // Get assignee details for updatedByDisplayName
       String assigneeDisplayName = '';
       if (_selectedAssignee.isNotEmpty) {
-        final selectedUser = _availableAssignees.firstWhereOrNull((u) => u['id'] == _selectedAssignee);
-        assigneeDisplayName = selectedUser?['displayName'] ?? selectedUser?['name'] ?? _selectedAssignee;
+        final selectedUser = _availableAssignees.firstWhereOrNull(
+          (user) => user['id'] == _selectedAssignee,
+        );
+        assigneeDisplayName =
+            selectedUser?['displayName'] ??
+            selectedUser?['name'] ??
+            _selectedAssignee;
       }
 
-      // Get customer display name
+      // Get customer name if selected
       String customerName = '';
       if (_selectedCustomer.isNotEmpty) {
-        final selectedCustomer = _availableCustomers.firstWhereOrNull((c) => c['id'] == _selectedCustomer);
+        final selectedCustomer = _availableCustomers.firstWhereOrNull(
+          (c) => c['id'] == _selectedCustomer,
+        );
         customerName = selectedCustomer?['name'] ?? '';
       }
 
       // Prepare todos data in correct format
-      final todosData = _todoItems.map((todo) => {
-        'id': 'todo-${todo['id']}',
-        'title': '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>${todo['text'] ?? ''}</em></strong></span></p>',
-        'completed': todo['isCompleted'] ?? false,
-        'dueDate': _normalizeEpoch(todo['dueDate']),
-        'mentions': [],
-      }).toList();
+      final todosData = _todoItems
+          .map(
+            (todo) => {
+              'id': 'todo-${todo['id']}',
+              'title':
+                  '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>${todo['text'] ?? ''}</em></strong></span></p>',
+              'completed': todo['isCompleted'] ?? false,
+              'dueDate': _normalizeEpoch(todo['dueDate']),
+              'mentions': [],
+            },
+          )
+          .toList();
 
-      // Format description as HTML
+      // Format description as HTML from HTML editor
       String htmlDescription = '';
-      if (_detailsController.text.trim().isNotEmpty) {
-        htmlDescription = '<p><strong>${_detailsController.text.trim()}</strong></p>';
+      final editorContent = await _htmlEditorController.getText();
+      if (editorContent.isNotEmpty) {
+        htmlDescription = editorContent;
       }
 
       // Prepare expenses data from product items
-      final expensesData = _productItems.map((product) => {
-        'id': product['id'],
-        'productId': product['productId'],
-        'name': product['name'],
-        'description': product['description'] ?? '',
-        'quantity': (product['quantity'] ?? 0).toInt(),
-        'unit': product['unit'],
-        'pricePerUnit': (product['pricePerUnit'] ?? product['price'] ?? 0).toInt(), // Use pricePerUnit field first, fallback to price
-        'discount': (product['discount'] ?? 0).toInt(),
-        'discountType': product['discountType'],
-      }).toList();
+      final expensesData = _productItems
+          .map(
+            (product) => {
+              'id': product['id'],
+              'productId': product['productId'],
+              'name': product['name'],
+              'description': product['description'] ?? '',
+              'quantity': (product['quantity'] ?? 0).toInt(),
+              'unit': product['unit'],
+              'pricePerUnit': (product['pricePerUnit'] ?? product['price'] ?? 0)
+                  .toInt(), // Use pricePerUnit field first, fallback to price
+              'discount': (product['discount'] ?? 0).toInt(),
+              'discountType': product['discountType'],
+              'customInputs': product['customInputs'] ?? {}, // Include custom inputs
+            },
+          )
+          .toList();
 
-      // Create updated card
+  // Create updated card
       final updatedCard = widget.card.copyWith(
         title: _titleController.text.trim(),
         description: htmlDescription, // Use HTML formatted description
@@ -2803,7 +3652,9 @@ class _EditCardPageState extends State<EditCardPage> {
         dueDate: _expectedClosingDate,
         startDate: _startDate,
         endDate: _endDate,
-        hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
+        hashtag: _selectedHashtags.isNotEmpty
+            ? _selectedHashtags.map((h) => '#${h['text']}').join(' ')
+            : null,
         hashtags: _selectedHashtags,
         todos: todosData,
         collaborators: _selectedCollaborators,
@@ -2812,7 +3663,9 @@ class _EditCardPageState extends State<EditCardPage> {
         expenses: expensesData, // Include expenses
         isVatEnabled: _isVatEnabled, // Include VAT setting
         additionalDiscount: _additionalDiscount, // Include additional discount
-        withholdingTaxPercentage: _withholdingTaxPercentage, // Include withholding tax
+        withholdingTaxPercentage:
+            _withholdingTaxPercentage, // Include withholding tax
+        quotationTemplateId: _selectedTemplateId, // เก็บ template ID ที่เลือก
         updatedAt: DateTime.now(),
         updatedByDisplayName: assigneeDisplayName,
       );
@@ -2820,49 +3673,50 @@ class _EditCardPageState extends State<EditCardPage> {
       // Update card in repository
       await _controller.updateCard(updatedCard);
 
-      // Fire notifications after update
-      final createdBy = _currentUserInfo?['uid'];
-      final workspaceId = _controller.currentWorkspaceId.value;
-      final workspaceName = _controller.currentWorkspaceName.value;
-      final boardId = updatedCard.boardId;
+      // Persist expenses to Firestore subcollection for real-time sync with document page
+      try {
+        final firestore = FirebaseFirestore.instance;
+        final ws = widget.card.workspaceId;
+        final cardId = widget.card.id;
+        if (ws.isNotEmpty && cardId.isNotEmpty) {
+          final coll = firestore
+              .collection('workspaces')
+              .doc(ws)
+              .collection('cards')
+              .doc(cardId)
+              .collection('expenses');
 
-      // 1) Assignment change -> notify new assignee
-      if (_selectedAssignee.isNotEmpty && _selectedAssignee != originalAssignee) {
-        try {
-          await NotificationsService.to.notifyCardAssignment(
-            assigneeId: _selectedAssignee,
-            assignerName: _currentUserInfo?['displayName'] ?? 'Someone',
-            cardId: updatedCard.id,
-            boardId: boardId,
-            workspaceId: workspaceId,
-            workspaceName: workspaceName,
-            createdBy: createdBy,
-          );
-        } catch (_) {}
-      }
-
-      // 2) Status or lane change -> notify watchers/collaborators/assignee
-      final newLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == _selectedLane)?['name'] ?? _selectedLane;
-      final statusChanged = _selectedStatus != originalStatus;
-      final laneChanged = _selectedLane != originalLaneId;
-      if (statusChanged || laneChanged) {
-        final recipients = _collectNotifyRecipients(excludeUserId: createdBy);
-        if (recipients.isNotEmpty) {
-          final oldStatusLabel = laneChanged ? originalLaneName : originalStatus;
-          final newStatusLabel = laneChanged ? newLaneName : _selectedStatus;
-          try {
-            await NotificationsService.to.notifyStatusChange(
-              userIds: recipients,
-              cardId: updatedCard.id,
-              boardId: boardId,
-              oldStatus: oldStatusLabel,
-              newStatus: newStatusLabel,
-              workspaceId: workspaceId,
-              workspaceName: workspaceName,
-              createdBy: createdBy,
-            );
-          } catch (_) {}
+          // Overwrite strategy: delete existing docs then add current items
+          final existing = await coll.get();
+          for (final d in existing.docs) {
+            await d.reference.delete();
+          }
+          int order = 0;
+          for (final item in _productItems) {
+            final docId = (item['id']?.toString().isNotEmpty ?? false)
+                ? item['id'].toString()
+                : 'exp-${DateTime.now().millisecondsSinceEpoch}-$order';
+            final data = {
+              'productId': item['productId'],
+              'name': item['name'],
+              'description': item['description'] ?? '',
+              'quantity': (item['quantity'] ?? 0).toInt(),
+              'unit': item['unit'] ?? 'item',
+              'pricePerUnit': (item['pricePerUnit'] ?? item['price'] ?? 0)
+                  .toInt(),
+              'discount': (item['discount'] ?? 0).toInt(),
+              'discountType': item['discountType'] ?? 'percentage',
+              'customInputs': item['customInputs'] ?? <String, dynamic>{},
+              'order': order,
+              'updatedAt': DateTime.now().millisecondsSinceEpoch,
+            };
+            await coll.doc(docId).set(data);
+            order++;
+          }
+          print('✅ Expenses subcollection synced (${_productItems.length} items)');
         }
+      } catch (e) {
+        print('⚠️ Failed to sync expenses subcollection: $e');
       }
 
       Get.snackbar(
@@ -2894,6 +3748,40 @@ class _EditCardPageState extends State<EditCardPage> {
     if (value is int) return value; // already epoch
     if (value is DateTime) return value.millisecondsSinceEpoch;
     return null;
+  }
+
+  /// Navigate to create quotation page with job card data
+  Future<void> _createDocument() async {
+    if (widget.card.expenses.isEmpty) {
+      Get.snackbar(
+        'No Products',
+        'Please add products or services before creating a quotation.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Debug: Print selected template ID
+    print('🎯 EditCardPage - selected templateId: $_selectedTemplateId');
+
+    // Navigate to CreateDocumentFromCardPage with selected template
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateDocumentFromCardPage(
+          jobCard: widget.card,
+          templateId: _selectedTemplateId,
+        ),
+      ),
+    );
+
+    // If quotation was created successfully, refresh the related documents
+    if (result == true) {
+      print('🔄 EditCardPage - Quotation created successfully, refreshing related documents');
+      await _loadRelatedDocumentsDetails();
+    }
   }
 
   // Hashtag section methods (copied from create page)
@@ -2930,7 +3818,11 @@ class _EditCardPageState extends State<EditCardPage> {
             child: _selectedHashtags.isEmpty
                 ? Row(
                     children: [
-                      Icon(Icons.add_circle_outline, size: 20, color: Colors.grey[600]),
+                      Icon(
+                        Icons.add_circle_outline,
+                        size: 20,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 8),
                       const Text(
                         'Tap to select hashtags...',
@@ -2947,7 +3839,11 @@ class _EditCardPageState extends State<EditCardPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.check_circle, size: 16, color: Colors.purple[700]),
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.purple[700],
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Selected (${_selectedHashtags.length})',
@@ -2973,8 +3869,13 @@ class _EditCardPageState extends State<EditCardPage> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            backgroundColor: Color(
+                              int.parse(
+                                hashtag['color'].replaceFirst('#', '0xff'),
+                              ),
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           );
                         }).toList(),
                       ),
@@ -3068,8 +3969,11 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedLane.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _selectedLane) 
-                 ? _selectedLane : null,
+          value:
+              _selectedLane.isNotEmpty &&
+                  _availableLanes.any((lane) => lane['id'] == _selectedLane)
+              ? _selectedLane
+              : null,
           decoration: const InputDecoration(
             hintText: 'Select lane',
             border: OutlineInputBorder(),
@@ -3110,8 +4014,13 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedAssignee.isNotEmpty && _availableAssignees.any((assignee) => assignee['id'] == _selectedAssignee) 
-                 ? _selectedAssignee : null,
+          value:
+              _selectedAssignee.isNotEmpty &&
+                  _availableAssignees.any(
+                    (assignee) => assignee['id'] == _selectedAssignee,
+                  )
+              ? _selectedAssignee
+              : null,
           decoration: const InputDecoration(
             hintText: 'Select an assignee',
             border: OutlineInputBorder(),
@@ -3166,7 +4075,9 @@ class _EditCardPageState extends State<EditCardPage> {
                     spacing: 8,
                     runSpacing: 4,
                     children: _selectedCollaborators.map((userId) {
-                      final user = _availableAssignees.firstWhereOrNull((u) => u['id'] == userId);
+                      final user = _availableAssignees.firstWhereOrNull(
+                        (u) => u['id'] == userId,
+                      );
                       final userName = user?['name'] ?? userId;
                       return Chip(
                         label: Text(userName),
@@ -3189,18 +4100,25 @@ class _EditCardPageState extends State<EditCardPage> {
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     hintText: 'Add Collaborator',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
                   ),
                   items: _availableAssignees
-                      .where((user) => !_selectedCollaborators.contains(user['id']))
+                      .where(
+                        (user) => !_selectedCollaborators.contains(user['id']),
+                      )
                       .map((user) {
-                    return DropdownMenuItem<String>(
-                      value: user['id'],
-                      child: Text(user['name'] ?? user['id']),
-                    );
-                  }).toList(),
+                        return DropdownMenuItem<String>(
+                          value: user['id'],
+                          child: Text(user['name'] ?? user['id']),
+                        );
+                      })
+                      .toList(),
                   onChanged: (value) {
-                    if (value != null && !_selectedCollaborators.contains(value)) {
+                    if (value != null &&
+                        !_selectedCollaborators.contains(value)) {
                       setState(() {
                         _selectedCollaborators.add(value);
                       });
@@ -3243,7 +4161,9 @@ class _EditCardPageState extends State<EditCardPage> {
                     spacing: 8,
                     runSpacing: 4,
                     children: _selectedWatchers.map((userId) {
-                      final user = _availableAssignees.firstWhereOrNull((u) => u['id'] == userId);
+                      final user = _availableAssignees.firstWhereOrNull(
+                        (u) => u['id'] == userId,
+                      );
                       final userName = user?['name'] ?? userId;
                       return Chip(
                         label: Text(userName),
@@ -3266,16 +4186,20 @@ class _EditCardPageState extends State<EditCardPage> {
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     hintText: 'Add Watcher',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
                   ),
                   items: _availableAssignees
                       .where((user) => !_selectedWatchers.contains(user['id']))
                       .map((user) {
-                    return DropdownMenuItem<String>(
-                      value: user['id'],
-                      child: Text(user['name'] ?? user['id']),
-                    );
-                  }).toList(),
+                        return DropdownMenuItem<String>(
+                          value: user['id'],
+                          child: Text(user['name'] ?? user['id']),
+                        );
+                      })
+                      .toList(),
                   onChanged: (value) {
                     if (value != null && !_selectedWatchers.contains(value)) {
                       setState(() {
@@ -3327,7 +4251,7 @@ class _EditCardPageState extends State<EditCardPage> {
             setState(() {
               _selectedCustomer = value ?? '';
             });
-            
+
             // Load companies for selected customer
             if (value != null && value.isNotEmpty) {
               _loadCompaniesForCustomer(value);
@@ -3353,8 +4277,10 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedCompany.isNotEmpty && _availableCompanies.any((c) => c['id'] == _selectedCompany) 
-              ? _selectedCompany 
+          value:
+              _selectedCompany.isNotEmpty &&
+                  _availableCompanies.any((c) => c['id'] == _selectedCompany)
+              ? _selectedCompany
               : null,
           decoration: const InputDecoration(
             hintText: 'Select company',
@@ -3395,17 +4321,593 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: _detailsController,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            hintText: 'Enter job details',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: HtmlEditor(
+            controller: _htmlEditorController,
+            htmlEditorOptions: HtmlEditorOptions(
+              hint: 'Enter job details...',
+              shouldEnsureVisible: true,
+              initialText: widget.card.description.isNotEmpty ? widget.card.description : '',
+            ),
+            htmlToolbarOptions: const HtmlToolbarOptions(
+              toolbarPosition: ToolbarPosition.aboveEditor,
+              toolbarType: ToolbarType.nativeScrollable,
+              defaultToolbarButtons: [
+                StyleButtons(style: false),
+                FontSettingButtons(fontName: false, fontSize: false, fontSizeUnit: false),
+                FontButtons(bold: true, italic: true, underline: true, clearAll: false, strikethrough: false, superscript: false, subscript: false),
+                ColorButtons(foregroundColor: false, highlightColor: false),
+                ListButtons(ul: true, ol: true, listStyles: false),
+                ParagraphButtons(textDirection: false, lineHeight: false, caseConverter: false),
+                InsertButtons(link: false, picture: false, audio: false, video: false, hr: false, table: false),
+                OtherButtons(fullscreen: false, codeview: false, undo: true, redo: true, help: false),
+              ],
+            ),
+            otherOptions: const OtherOptions(
+              height: 150,
+            ),
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildTodoListSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'To-Do List',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: _showTodoTemplates,
+              icon: const Icon(Icons.description, size: 16),
+              label: const Text('Apply Template'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[300],
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _addTodoItem,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add Item'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        // Todo items list
+        if (_todoItems.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Center(
+              child: Text(
+                'No to-do items yet. Add one to get started!',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          )
+        else
+          Column(
+            children: _todoItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final todo = entry.value;
+              return _buildTodoItem(index, todo);
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTodoItem(int index, Map<String, dynamic> todo) {
+    final TextEditingController controller = todo['controller'];
+    final DateTime? dueDate = todo['dueDate'];
+    final DateTime? endTime = todo['endTime'];
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Checkbox for todo completion
+              Checkbox(
+                value: todo['isCompleted'] ?? false,
+                onChanged: (bool? value) {
+                  setState(() {
+                    todo['isCompleted'] = value ?? false;
+                  });
+                },
+                activeColor: AppTheme.primaryOrange,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              
+              // Input field
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter todo item...',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                  onChanged: (value) {
+                    todo['text'] = value;
+                  },
+                  style: TextStyle(
+                    decoration: (todo['isCompleted'] ?? false) 
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
+                    color: (todo['isCompleted'] ?? false) 
+                      ? Colors.grey[600] 
+                      : Colors.black87,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              
+              // Set time button with indicator
+              Container(
+                decoration: BoxDecoration(
+                  color: (dueDate != null || endTime != null) 
+                    ? Colors.green 
+                    : Colors.blue,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: IconButton(
+                  onPressed: () => _setTodoTime(index),
+                  icon: Icon(
+                    (dueDate != null || endTime != null) 
+                      ? Icons.schedule_send 
+                      : Icons.access_time, 
+                    color: Colors.white, 
+                    size: 20
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ),
+              const SizedBox(width: 8),
+              
+              // Delete button
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: IconButton(
+                  onPressed: () => _removeTodoItem(index),
+                  icon: const Icon(Icons.delete, color: Colors.white, size: 20),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ),
+            ],
+          ),
+          
+          // Show time information if any is set
+          if (dueDate != null || endTime != null)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              child: Column(
+                children: [
+                  // Due date
+                  if (dueDate != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.blue[200]!),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.today, size: 16, color: Colors.blue[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Due: ${_formatDateTime(dueDate)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  // Duration/End Time
+                  if (endTime != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.green[200]!),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.timer, size: 16, color: Colors.green[700]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'End: ${_formatDateTime(endTime)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Todo methods
+  void _addTodoItem() {
+    setState(() {
+      _todoItems.add({
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'text': '',
+        'isCompleted': false,
+        'dueDate': null,
+        'duration': null,
+        'endTime': null,
+        'controller': TextEditingController(),
+      });
+    });
+  }
+
+  void _removeTodoItem(int index) {
+    setState(() {
+      // Dispose controller to prevent memory leaks
+      _todoItems[index]['controller']?.dispose();
+      _todoItems.removeAt(index);
+    });
+  }
+
+  void _setTodoTime(int index) async {
+    if (!mounted) return;
+    
+    // Show options dialog first
+    final String? timeOption = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Todo Time'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Current time status
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current: ${_getCurrentTimeType(index)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _getCurrentTimeValue(index),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Time options
+            ListTile(
+              leading: Icon(
+                Icons.today, 
+                color: _todoItems[index]['dueDate'] != null ? Colors.green : Colors.blue
+              ),
+              title: Text(
+                'Set Due Date & Time',
+                style: TextStyle(
+                  fontWeight: _todoItems[index]['dueDate'] != null ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              subtitle: _todoItems[index]['dueDate'] != null 
+                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
+                : null,
+              onTap: () => Navigator.of(context).pop('datetime'),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.schedule, 
+                color: _todoItems[index]['endTime'] != null ? Colors.green : Colors.green
+              ),
+              title: Text(
+                'Set Duration',
+                style: TextStyle(
+                  fontWeight: _todoItems[index]['endTime'] != null ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              subtitle: _todoItems[index]['endTime'] != null 
+                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
+                : null,
+              onTap: () => Navigator.of(context).pop('duration'),
+            ),
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              const Divider(),
+            if (_todoItems[index]['dueDate'] != null ||
+                _todoItems[index]['endTime'] != null)
+              ListTile(
+                leading: const Icon(Icons.clear, color: Colors.red),
+                title: const Text('Clear All Times'),
+                onTap: () => Navigator.of(context).pop('clear'),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (timeOption != null && mounted) {
+      switch (timeOption) {
+        case 'datetime':
+          _clearAllTimes(index);
+          await _setDueDateTime(index);
+          break;
+        case 'duration':
+          _clearAllTimes(index);
+          await _setDuration(index);
+          break;
+        case 'clear':
+          _clearAllTimes(index);
+          break;
+      }
+    }
+  }
+
+  Future<void> _setDueDateTime(int index) async {
+    if (!mounted) return;
+    
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _todoItems[index]['dueDate'] ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (pickedDate != null && mounted) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: _todoItems[index]['dueDate'] != null 
+          ? TimeOfDay.fromDateTime(_todoItems[index]['dueDate'])
+          : TimeOfDay.now(),
+      );
+
+      if (pickedTime != null && mounted) {
+        setState(() {
+          _todoItems[index]['dueDate'] = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      }
+    }
+  }
+
+  Future<void> _setDuration(int index) async {
+    if (!mounted) return;
+    
+    final DateTime now = DateTime.now();
+    final int? currentDuration = _todoItems[index]['duration'];
+    final DateTime? endTime = currentDuration != null 
+      ? now.add(Duration(minutes: currentDuration))
+      : null;
+    
+    final TextEditingController durationController = TextEditingController(
+      text: currentDuration?.toString() ?? '',
+    );
+    
+    final int? duration = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Duration'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (endTime != null)
+              Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule, size: 16, color: Colors.green[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'End time: ${_formatDateTime(endTime)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            TextField(
+              controller: durationController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Duration (minutes)',
+                hintText: 'Enter duration in minutes',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Quick select:',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                _buildDurationChip('15 min', 15, durationController, now),
+                _buildDurationChip('30 min', 30, durationController, now),
+                _buildDurationChip('1 hour', 60, durationController, now),
+                _buildDurationChip('2 hours', 120, durationController, now),
+                _buildDurationChip('4 hours', 240, durationController, now),
+                _buildDurationChip('8 hours', 480, durationController, now),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = int.tryParse(durationController.text);
+              Navigator.of(context).pop(value);
+            },
+            child: const Text('Set'),
+          ),
+        ],
+      ),
+    );
+
+    durationController.dispose();
+
+    if (duration != null && mounted) {
+      setState(() {
+        _todoItems[index]['duration'] = duration;
+        _todoItems[index]['endTime'] = now.add(Duration(minutes: duration));
+      });
+    }
+  }
+
+  Widget _buildDurationChip(String label, int minutes, TextEditingController controller, DateTime now) {
+    final DateTime endTime = now.add(Duration(minutes: minutes));
+    return ActionChip(
+      label: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          Text(
+            '→ ${_formatDateTime(endTime)}',
+            style: const TextStyle(fontSize: 10),
+          ),
+        ],
+      ),
+      onPressed: () {
+        controller.text = minutes.toString();
+      },
+      backgroundColor: Colors.blue[50],
+      labelStyle: TextStyle(color: Colors.blue[700]),
+    );
+  }
+
+  void _clearAllTimes(int index) {
+    setState(() {
+      _todoItems[index]['dueDate'] = null;
+      _todoItems[index]['duration'] = null;
+      _todoItems[index]['endTime'] = null;
+    });
+  }
+
+  String _getCurrentTimeType(int index) {
+    if (_todoItems[index]['dueDate'] != null) {
+      return 'Due Date & Time';
+    } else if (_todoItems[index]['endTime'] != null) {
+      return 'Duration';
+    }
+    return 'None';
+  }
+
+  String _getCurrentTimeValue(int index) {
+    if (_todoItems[index]['dueDate'] != null) {
+      return _formatDateTime(_todoItems[index]['dueDate']);
+    } else if (_todoItems[index]['endTime'] != null) {
+      return _formatDateTime(_todoItems[index]['endTime']);
+    }
+    return '';
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _showTodoTemplates() {
+    // Implementation for todo templates
   }
 
   Widget _buildProductSection() {
@@ -3450,8 +4952,18 @@ class _EditCardPageState extends State<EditCardPage> {
                           ),
                         );
                       }).toList(),
-                      onChanged: _onTemplateChanged,
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.deepOrange),
+                      onChanged: (value) {
+                        print('🔄 Template dropdown changed: $value');
+                        final selectedTemplate = _quotationTemplates.firstWhereOrNull((t) => t['id'] == value);
+                        if (selectedTemplate != null) {
+                          print('📋 Selected template: ${selectedTemplate['name']}');
+                        }
+                        _onTemplateChanged(value);
+                      },
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Colors.deepOrange,
+                      ),
                       iconSize: 20,
                       style: const TextStyle(
                         color: Colors.deepOrange,
@@ -3469,9 +4981,17 @@ class _EditCardPageState extends State<EditCardPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepOrange,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 2,
                   ),
                 ),
@@ -3482,10 +5002,21 @@ class _EditCardPageState extends State<EditCardPage> {
                   label: const Text('Add Custom'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.deepOrange,
-                    side: const BorderSide(color: Colors.deepOrange, width: 1.5),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    side: const BorderSide(
+                      color: Colors.deepOrange,
+                      width: 1.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ],
@@ -3493,7 +5024,7 @@ class _EditCardPageState extends State<EditCardPage> {
           ],
         ),
         const SizedBox(height: 16),
-        
+
         // Product table header
         Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -3509,14 +5040,12 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
             border: Border.all(color: Colors.deepOrange[200]!),
           ),
-          child: Row(
-            children: _buildHeaderColumns(),
-          ),
+          child: Row(children: _buildHeaderColumns()),
         ),
-        
+
         // Product items list
         _buildProductItems(),
-        
+
         // Summary section
         _buildProductSummary(),
       ],
@@ -3544,7 +5073,11 @@ class _EditCardPageState extends State<EditCardPage> {
                   color: Colors.deepOrange[50],
                   borderRadius: BorderRadius.circular(50),
                 ),
-                child: Icon(Icons.shopping_cart_outlined, size: 48, color: Colors.deepOrange[300]),
+                child: Icon(
+                  Icons.shopping_cart_outlined,
+                  size: 48,
+                  color: Colors.deepOrange[300],
+                ),
               ),
               const SizedBox(height: 20),
               Text(
@@ -3558,10 +5091,7 @@ class _EditCardPageState extends State<EditCardPage> {
               const SizedBox(height: 8),
               Text(
                 'Click "Add Product" to start adding products or services',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -3571,14 +5101,13 @@ class _EditCardPageState extends State<EditCardPage> {
     }
 
     return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-      ),
+      decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!)),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _productItems.length,
-        separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[300]),
+        separatorBuilder: (context, index) =>
+            Divider(height: 1, color: Colors.grey[300]),
         itemBuilder: (context, index) {
           final product = _productItems[index];
           return _buildProductRow(product, index);
@@ -3603,12 +5132,12 @@ class _EditCardPageState extends State<EditCardPage> {
 
   List<Widget> _buildProductCells(Map<String, dynamic> product, int index) {
     List<Widget> cells = [];
-    
+
     for (final column in _visibleColumns) {
       Widget cellWidget = _buildProductCell(column, product, index);
       cells.add(cellWidget);
     }
-    
+
     // Always add delete button at the end
     cells.add(
       GestureDetector(
@@ -3616,11 +5145,15 @@ class _EditCardPageState extends State<EditCardPage> {
         child: Icon(Icons.close, size: 16, color: Colors.red[400]),
       ),
     );
-    
+
     return cells;
   }
 
-  Widget _buildProductCell(Map<String, dynamic> column, Map<String, dynamic> product, int index) {
+  Widget _buildProductCell(
+    Map<String, dynamic> column,
+    Map<String, dynamic> product,
+    int index,
+  ) {
     // Determine flex based on column width
     int flex = 2; // default
     String? widthStr = column['width'];
@@ -3647,14 +5180,18 @@ class _EditCardPageState extends State<EditCardPage> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey[300]!),
           ),
-          child: product['image'] != null 
+          child: product['image'] != null
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
                     product['image'],
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      return Icon(Icons.image_not_supported, color: Colors.grey[400], size: 20);
+                      return Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey[400],
+                        size: 20,
+                      );
                     },
                   ),
                 )
@@ -3665,33 +5202,39 @@ class _EditCardPageState extends State<EditCardPage> {
 
     // Get field key based on column type and sourceField
     String fieldKey = _getFieldKey(column);
-    
+
     // Handle different column types
     switch (column['type']) {
       case 'product_field':
         return _buildEditableCell(flex, product, fieldKey, column, index);
-        
+
       case 'predefined':
         return _buildPredefinedCell(flex, product, column, index);
-        
+
       case 'user_input':
         return _buildUserInputCell(flex, product, column, index);
-        
+
       default:
-        return _buildDisplayCell(flex, product[fieldKey]?.toString() ?? '', column);
+        return _buildDisplayCell(
+          flex,
+          product[fieldKey]?.toString() ?? '',
+          column,
+        );
     }
   }
 
   String _getFieldKey(Map<String, dynamic> column) {
     // For user_input columns, use prefillSourceField if available, otherwise use column id
     if (column['type'] == 'user_input') {
-      return column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
+      return column['prefillSourceField'] ??
+          column['id'] ??
+          'user_field_${column['id']}';
     }
-    
+
     if (column['sourceField'] != null) {
       return column['sourceField'];
     }
-    
+
     switch (column['predefinedField']) {
       case 'quantity':
         return 'quantity';
@@ -3704,7 +5247,13 @@ class _EditCardPageState extends State<EditCardPage> {
     }
   }
 
-  Widget _buildEditableCell(int flex, Map<String, dynamic> product, String fieldKey, Map<String, dynamic> column, int index) {
+  Widget _buildEditableCell(
+    int flex,
+    Map<String, dynamic> product,
+    String fieldKey,
+    Map<String, dynamic> column,
+    int index,
+  ) {
     // Special handling for unit field combined with quantity
     if (fieldKey == 'quantity' && column['predefinedField'] == 'quantity') {
       return Expanded(
@@ -3714,7 +5263,10 @@ class _EditCardPageState extends State<EditCardPage> {
           child: Column(
             children: [
               TextFormField(
-                initialValue: (product['quantity'] ?? 0).toDouble().toInt().toString(),
+                initialValue: (product['quantity'] ?? 0)
+                    .toDouble()
+                    .toInt()
+                    .toString(),
                 style: const TextStyle(fontSize: 14),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
@@ -3725,7 +5277,8 @@ class _EditCardPageState extends State<EditCardPage> {
                 textAlign: TextAlign.center,
                 onChanged: (value) {
                   setState(() {
-                    _productItems[index]['quantity'] = double.tryParse(value) ?? 0;
+                    _productItems[index]['quantity'] =
+                        double.tryParse(value) ?? 0;
                   });
                 },
               ),
@@ -3750,7 +5303,7 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       );
     }
-    
+
     // Regular editable fields
     return Expanded(
       flex: flex,
@@ -3769,7 +5322,8 @@ class _EditCardPageState extends State<EditCardPage> {
           onChanged: (value) {
             setState(() {
               if (fieldKey == 'pricePerUnit') {
-                _productItems[index]['pricePerUnit'] = double.tryParse(value) ?? 0;
+                _productItems[index]['pricePerUnit'] =
+                    double.tryParse(value) ?? 0;
                 if (_productItems[index]['price'] != null) {
                   _productItems[index]['price'] = double.tryParse(value) ?? 0;
                 }
@@ -3785,13 +5339,18 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  Widget _buildPredefinedCell(int flex, Map<String, dynamic> product, Map<String, dynamic> column, int index) {
+  Widget _buildPredefinedCell(
+    int flex,
+    Map<String, dynamic> product,
+    Map<String, dynamic> column,
+    int index,
+  ) {
     final predefinedField = column['predefinedField'];
-    
+
     switch (predefinedField) {
       case 'quantity':
         return _buildEditableCell(flex, product, 'quantity', column, index);
-        
+
       case 'discount':
         return Expanded(
           flex: flex,
@@ -3800,7 +5359,10 @@ class _EditCardPageState extends State<EditCardPage> {
             child: Column(
               children: [
                 TextFormField(
-                  initialValue: (product['discount'] ?? 0).toDouble().toInt().toString(),
+                  initialValue: (product['discount'] ?? 0)
+                      .toDouble()
+                      .toInt()
+                      .toString(),
                   style: const TextStyle(fontSize: 14),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
@@ -3811,7 +5373,8 @@ class _EditCardPageState extends State<EditCardPage> {
                   textAlign: TextAlign.center,
                   onChanged: (value) {
                     setState(() {
-                      _productItems[index]['discount'] = double.tryParse(value) ?? 0;
+                      _productItems[index]['discount'] =
+                          double.tryParse(value) ?? 0;
                     });
                   },
                 ),
@@ -3826,22 +5389,31 @@ class _EditCardPageState extends State<EditCardPage> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[200],
+                          color: product['discountType'] == 'percentage'
+                              ? Colors.orange
+                              : Colors.grey[200],
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(12),
                             bottomLeft: Radius.circular(12),
                           ),
                           border: Border.all(
-                            color: product['discountType'] == 'percentage' ? Colors.orange : Colors.grey[300]!,
+                            color: product['discountType'] == 'percentage'
+                                ? Colors.orange
+                                : Colors.grey[300]!,
                           ),
                         ),
                         child: Text(
                           '%',
                           style: TextStyle(
                             fontSize: 12,
-                            color: product['discountType'] == 'percentage' ? Colors.white : Colors.grey[600],
+                            color: product['discountType'] == 'percentage'
+                                ? Colors.white
+                                : Colors.grey[600],
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -3854,22 +5426,31 @@ class _EditCardPageState extends State<EditCardPage> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[200],
+                          color: product['discountType'] == 'amount'
+                              ? Colors.orange
+                              : Colors.grey[200],
                           borderRadius: const BorderRadius.only(
                             topRight: Radius.circular(12),
                             bottomRight: Radius.circular(12),
                           ),
                           border: Border.all(
-                            color: product['discountType'] == 'amount' ? Colors.orange : Colors.grey[300]!,
+                            color: product['discountType'] == 'amount'
+                                ? Colors.orange
+                                : Colors.grey[300]!,
                           ),
                         ),
                         child: Text(
                           '฿',
                           style: TextStyle(
                             fontSize: 12,
-                            color: product['discountType'] == 'amount' ? Colors.white : Colors.grey[600],
+                            color: product['discountType'] == 'amount'
+                                ? Colors.white
+                                : Colors.grey[600],
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -3881,7 +5462,7 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ),
         );
-        
+
       case 'line_total':
         return Expanded(
           flex: flex,
@@ -3894,13 +5475,21 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ),
         );
-        
+
       default:
-        return _buildDisplayCell(flex, product[predefinedField]?.toString() ?? '', column);
+        return _buildDisplayCell(
+          flex,
+          product[predefinedField]?.toString() ?? '',
+          column,
+        );
     }
   }
 
-  Widget _buildDisplayCell(int flex, String value, Map<String, dynamic> column) {
+  Widget _buildDisplayCell(
+    int flex,
+    String value,
+    Map<String, dynamic> column,
+  ) {
     return Expanded(
       flex: flex,
       child: Padding(
@@ -3914,16 +5503,39 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  Widget _buildUserInputCell(int flex, Map<String, dynamic> product, Map<String, dynamic> column, int index) {
-    // Get the field key from prefillSourceField if available, otherwise use column id
-    final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
-    
+  Widget _buildUserInputCell(
+    int flex,
+    Map<String, dynamic> product,
+    Map<String, dynamic> column,
+    int index,
+  ) {
+    // Always store/read user_input under customInputs[column.id]
+    final String columnId = (column['id'] ?? '').toString();
+
+    // Ensure customInputs map exists
+    product['customInputs'] ??= <String, dynamic>{};
+    final Map<String, dynamic> customInputs =
+        (product['customInputs'] as Map).cast<String, dynamic>();
+
+    // Determine initial value: only from existing customInputs (no prefill here)
+    String initial = '';
+    if (customInputs.containsKey(columnId) &&
+        (customInputs[columnId]?.toString().isNotEmpty ?? false)) {
+      initial = customInputs[columnId].toString();
+    }
+
+    print('🔧 Building user input cell:');
+    print('  - Column ID: $columnId');
+    print('  - Product customInputs: ${customInputs}');
+    print('  - Initial value: "$initial"');
+
     return Expanded(
       flex: flex,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: TextFormField(
-          initialValue: _getInitialValue(product, fieldKey),
+          key: Key('${product['id']}_${columnId}_${_selectedTemplateId}'), // ใช้ key เพื่อ force rebuild เมื่อเปลี่ยน template
+          initialValue: initial,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -3933,7 +5545,7 @@ class _EditCardPageState extends State<EditCardPage> {
           textAlign: _getTextAlign(column),
           onChanged: (value) {
             setState(() {
-              product[fieldKey] = value;
+              product['customInputs'][columnId] = value;
             });
           },
         ),
@@ -3944,16 +5556,21 @@ class _EditCardPageState extends State<EditCardPage> {
   String _getInitialValue(Map<String, dynamic> product, String fieldKey) {
     final value = product[fieldKey];
     if (value == null) return '';
-    
-    if (fieldKey == 'pricePerUnit' || fieldKey == 'price' || fieldKey == 'quantity') {
+
+    if (fieldKey == 'pricePerUnit' ||
+        fieldKey == 'price' ||
+        fieldKey == 'quantity') {
       return value.toDouble().toInt().toString();
     }
-    
+
     return value.toString();
   }
 
   TextInputType _getKeyboardType(String fieldKey) {
-    if (fieldKey == 'pricePerUnit' || fieldKey == 'price' || fieldKey == 'quantity' || fieldKey == 'discount') {
+    if (fieldKey == 'pricePerUnit' ||
+        fieldKey == 'price' ||
+        fieldKey == 'quantity' ||
+        fieldKey == 'discount') {
       return TextInputType.number;
     }
     return TextInputType.text;
@@ -3974,23 +5591,29 @@ class _EditCardPageState extends State<EditCardPage> {
     final subtotal = _calculateSubtotal();
     final itemDiscount = _calculateTotalDiscount();
     final subtotalAfterItemDiscount = subtotal - itemDiscount;
-    
+
     // Calculate additional discount
     double additionalDiscountAmount = 0.0;
-    if (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0) {
+    if (_additionalDiscount != null &&
+        (_additionalDiscount!['value'] ?? 0) > 0) {
       if (_additionalDiscount!['type'] == 'percentage') {
-        additionalDiscountAmount = subtotalAfterItemDiscount * ((_additionalDiscount!['value'] ?? 0).toDouble() / 100);
+        additionalDiscountAmount =
+            subtotalAfterItemDiscount *
+            ((_additionalDiscount!['value'] ?? 0).toDouble() / 100);
       } else {
-        additionalDiscountAmount = (_additionalDiscount!['value'] ?? 0).toDouble();
+        additionalDiscountAmount = (_additionalDiscount!['value'] ?? 0)
+            .toDouble();
       }
     }
-    
+
     final totalAmount = subtotalAfterItemDiscount - additionalDiscountAmount;
     final vat = _isVatEnabled ? _calculateVAT(totalAmount) : 0.0;
     final grandTotal = totalAmount + vat;
-    
+
     // Calculate withholding tax
-    final withholdingTax = (_withholdingTaxPercentage > 0) ? grandTotal * (_withholdingTaxPercentage / 100) : 0.0;
+    final withholdingTax = (_withholdingTaxPercentage > 0)
+        ? grandTotal * (_withholdingTaxPercentage / 100)
+        : 0.0;
     final finalAmount = grandTotal - withholdingTax;
 
     return Container(
@@ -4019,7 +5642,7 @@ class _EditCardPageState extends State<EditCardPage> {
       child: Column(
         children: [
           _buildSummaryRow('Subtotal', subtotal),
-          
+
           // Additional Discount Row with Toggle
           Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -4029,11 +5652,16 @@ class _EditCardPageState extends State<EditCardPage> {
                 Row(
                   children: [
                     Switch(
-                      value: (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0),
+                      value:
+                          (_additionalDiscount != null &&
+                          (_additionalDiscount!['value'] ?? 0) > 0),
                       onChanged: (value) {
                         setState(() {
                           if (value) {
-                            _additionalDiscount = {'value': 97, 'type': 'percentage'};
+                            _additionalDiscount = {
+                              'value': 97,
+                              'type': 'percentage',
+                            };
                           } else {
                             _additionalDiscount = null;
                           }
@@ -4045,17 +5673,22 @@ class _EditCardPageState extends State<EditCardPage> {
                     const SizedBox(width: 8),
                     const Text(
                       'Discount',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
-                if (_additionalDiscount != null && (_additionalDiscount!['value'] ?? 0) > 0) ...[
+                if (_additionalDiscount != null &&
+                    (_additionalDiscount!['value'] ?? 0) > 0) ...[
                   Row(
                     children: [
                       SizedBox(
                         width: 60,
                         child: TextFormField(
-                          initialValue: (_additionalDiscount!['value'] ?? 0).toString(),
+                          initialValue: (_additionalDiscount!['value'] ?? 0)
+                              .toString(),
                           style: const TextStyle(fontSize: 14),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
@@ -4066,7 +5699,8 @@ class _EditCardPageState extends State<EditCardPage> {
                           textAlign: TextAlign.right,
                           onChanged: (value) {
                             setState(() {
-                              _additionalDiscount!['value'] = double.tryParse(value) ?? 0;
+                              _additionalDiscount!['value'] =
+                                  double.tryParse(value) ?? 0;
                             });
                           },
                         ),
@@ -4081,22 +5715,36 @@ class _EditCardPageState extends State<EditCardPage> {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: _additionalDiscount!['type'] == 'percentage' ? Colors.orange : Colors.grey[200],
+                                color:
+                                    _additionalDiscount!['type'] == 'percentage'
+                                    ? Colors.orange
+                                    : Colors.grey[200],
                                 borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(12),
                                   bottomLeft: Radius.circular(12),
                                 ),
                                 border: Border.all(
-                                  color: _additionalDiscount!['type'] == 'percentage' ? Colors.orange : Colors.grey[300]!,
+                                  color:
+                                      _additionalDiscount!['type'] ==
+                                          'percentage'
+                                      ? Colors.orange
+                                      : Colors.grey[300]!,
                                 ),
                               ),
                               child: Text(
                                 'เปอร์เซ็น',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: _additionalDiscount!['type'] == 'percentage' ? Colors.white : Colors.grey[600],
+                                  color:
+                                      _additionalDiscount!['type'] ==
+                                          'percentage'
+                                      ? Colors.white
+                                      : Colors.grey[600],
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -4109,22 +5757,33 @@ class _EditCardPageState extends State<EditCardPage> {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: _additionalDiscount!['type'] == 'amount' ? Colors.orange : Colors.grey[200],
+                                color: _additionalDiscount!['type'] == 'amount'
+                                    ? Colors.orange
+                                    : Colors.grey[200],
                                 borderRadius: const BorderRadius.only(
                                   topRight: Radius.circular(12),
                                   bottomRight: Radius.circular(12),
                                 ),
                                 border: Border.all(
-                                  color: _additionalDiscount!['type'] == 'amount' ? Colors.orange : Colors.grey[300]!,
+                                  color:
+                                      _additionalDiscount!['type'] == 'amount'
+                                      ? Colors.orange
+                                      : Colors.grey[300]!,
                                 ),
                               ),
                               child: Text(
                                 'บาท',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: _additionalDiscount!['type'] == 'amount' ? Colors.white : Colors.grey[600],
+                                  color:
+                                      _additionalDiscount!['type'] == 'amount'
+                                      ? Colors.white
+                                      : Colors.grey[600],
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -4143,9 +5802,9 @@ class _EditCardPageState extends State<EditCardPage> {
               ],
             ),
           ),
-          
+
           _buildSummaryRow('Total Amount', totalAmount),
-          
+
           // VAT Row with Toggle
           Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -4167,21 +5826,32 @@ class _EditCardPageState extends State<EditCardPage> {
                     const SizedBox(width: 8),
                     const Text(
                       'VAT (7%)',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
                 Text(
                   '฿${_formatPrice(vat)}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
-          
+
           const Divider(),
-          _buildSummaryRow('Grand Total:', grandTotal, isBold: true, fontSize: 16),
-          
+          _buildSummaryRow(
+            'Grand Total:',
+            grandTotal,
+            isBold: true,
+            fontSize: 16,
+          ),
+
           // Withholding Tax Row with Checkbox and Input
           Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -4202,7 +5872,10 @@ class _EditCardPageState extends State<EditCardPage> {
                     ),
                     const Text(
                       'หัก ณ ที่จ่าย',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -4212,7 +5885,9 @@ class _EditCardPageState extends State<EditCardPage> {
                       SizedBox(
                         width: 30,
                         child: TextFormField(
-                          initialValue: _withholdingTaxPercentage.toInt().toString(),
+                          initialValue: _withholdingTaxPercentage
+                              .toInt()
+                              .toString(),
                           style: const TextStyle(fontSize: 14),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
@@ -4223,15 +5898,13 @@ class _EditCardPageState extends State<EditCardPage> {
                           textAlign: TextAlign.center,
                           onChanged: (value) {
                             setState(() {
-                              _withholdingTaxPercentage = double.tryParse(value) ?? 0;
+                              _withholdingTaxPercentage =
+                                  double.tryParse(value) ?? 0;
                             });
                           },
                         ),
                       ),
-                      const Text(
-                        '%',
-                        style: TextStyle(fontSize: 14),
-                      ),
+                      const Text('%', style: TextStyle(fontSize: 14)),
                       const SizedBox(width: 16),
                       Text(
                         '(฿${_formatPrice(withholdingTax)})',
@@ -4248,17 +5921,30 @@ class _EditCardPageState extends State<EditCardPage> {
               ],
             ),
           ),
-          
+
           if (_withholdingTaxPercentage > 0) ...[
             const Divider(),
-            _buildSummaryRow('ยอดชำระสุทธิ:', finalAmount, isBold: true, fontSize: 16, color: Colors.green),
+            _buildSummaryRow(
+              'ยอดชำระสุทธิ:',
+              finalAmount,
+              isBold: true,
+              fontSize: 16,
+              color: Colors.green,
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount, {bool isNegative = false, bool isBold = false, double fontSize = 14, Color? color}) {
+  Widget _buildSummaryRow(
+    String label,
+    double amount, {
+    bool isNegative = false,
+    bool isBold = false,
+    double fontSize = 14,
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -4412,7 +6098,8 @@ class _EditCardPageState extends State<EditCardPage> {
         for (final product in selectedProducts) {
           // Create new product item for table
           final newItem = {
-            'id': 'exp-${DateTime.now().millisecondsSinceEpoch}-${product['id']}',
+            'id':
+                'exp-${DateTime.now().millisecondsSinceEpoch}-${product['id']}',
             'productId': product['id'],
             'name': product['name'],
             'description': product['description'] ?? '',
@@ -4424,16 +6111,22 @@ class _EditCardPageState extends State<EditCardPage> {
             'discountType': 'amount',
             'image': product['imageUrl'],
           };
-          
-          // Add dynamic fields for user_input columns based on current template
+
+          // Add dynamic customInputs for user_input columns based on current template
           for (final column in _visibleColumns) {
             if (column['type'] == 'user_input') {
-              final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
-              // For selected products, prefill with product data if available
-              newItem[fieldKey] = product[fieldKey] ?? '';
+              final String columnId = (column['id'] ?? '').toString();
+              final String? prefillField =
+                  (column['prefillSourceField'] as String?)?.trim();
+              newItem['customInputs'] ??= <String, dynamic>{};
+              // Prefill from product data if available
+              newItem['customInputs'][columnId] = prefillField != null &&
+                      prefillField.isNotEmpty
+                  ? (product[prefillField]?.toString() ?? '')
+                  : '';
             }
           }
-          
+
           _productItems.add(newItem);
         }
       });
@@ -4456,18 +6149,22 @@ class _EditCardPageState extends State<EditCardPage> {
         'discountType': 'amount',
         'image': null, // No image for custom items
       };
-      
-      // Add dynamic fields for user_input columns based on current template
+
+      // Add dynamic customInputs for user_input columns based on current template
       for (final column in _visibleColumns) {
         if (column['type'] == 'user_input') {
-          final fieldKey = column['prefillSourceField'] ?? column['id'] ?? 'user_field_${column['id']}';
-          newItem[fieldKey] = ''; // Initialize with empty string
+          final String columnId = (column['id'] ?? '').toString();
+          newItem['customInputs'] ??= <String, dynamic>{};
+          final Map<String, dynamic> ci =
+              (newItem['customInputs'] as Map).cast<String, dynamic>();
+          ci[columnId] = '';
+          newItem['customInputs'] = ci;
         }
       }
-      
+
       _productItems.add(newItem);
     });
-    
+
     // Show a helpful message
     Get.snackbar(
       'Custom Product Added',
@@ -4479,16 +6176,375 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  void _editProduct(int index) {
-    // TODO: Implement product editing
+  // Load related documents details
+  Future<void> _loadRelatedDocumentsDetails() async {
+    try {
+      setState(() {
+        _isLoadingRelatedDocuments = true;
+      });
+
+      final firestore = FirebaseFirestore.instance;
+      final workspaceId = widget.card.workspaceId;
+      final cardId = widget.card.id;
+
+      if (workspaceId.isEmpty) {
+        print('⚠️ Missing workspaceId for loading related documents');
+        return;
+      }
+
+      // Get fresh card data from Firestore to get latest relatedDocuments
+      final cardSnapshot = await firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('cards')
+          .doc(cardId)
+          .get();
+
+      List<Map<String, dynamic>> cardRelatedDocuments = [];
+      
+      if (cardSnapshot.exists) {
+        final cardData = cardSnapshot.data()!;
+        
+        // Extract relatedDocuments from fresh card data
+        final relatedDocsRaw = cardData['relatedDocuments'];
+        if (relatedDocsRaw != null && relatedDocsRaw is List) {
+          cardRelatedDocuments = List<Map<String, dynamic>>.from(
+            relatedDocsRaw.map((doc) => Map<String, dynamic>.from(doc))
+          );
+        }
+      } else {
+        // Fallback to widget card data if Firestore fetch fails
+        cardRelatedDocuments = widget.card.relatedDocuments;
+      }
+      
+      if (cardRelatedDocuments.isEmpty) {
+        print('ℹ️ No related documents found in card');
+        setState(() {
+          _relatedDocuments = [];
+          _isLoadingRelatedDocuments = false;
+        });
+        return;
+      }
+
+      List<Map<String, dynamic>> detailedDocuments = [];
+
+      // Loop through each related document ID and fetch detailed data
+      for (var relatedDoc in cardRelatedDocuments) {
+        try {
+          final documentId = relatedDoc['id'] ?? '';
+          final docNo = relatedDoc['docNo'] ?? '';
+          final docType = relatedDoc['type'] ?? 'QT';
+
+          if (documentId.isEmpty) {
+            print('⚠️ Missing document ID in related document');
+            continue;
+          }
+
+          print('🔍 Loading document: $documentId ($docNo)');
+
+          // Get detailed document data from workspace documents collection
+          final documentSnapshot = await firestore
+              .collection('workspaces')
+              .doc(workspaceId)
+              .collection('documents')
+              .doc(documentId)
+              .get();
+
+          if (documentSnapshot.exists) {
+            final documentData = documentSnapshot.data()!;
+
+            detailedDocuments.add({
+              'id': documentId,
+              'type': docType,
+              'docNo': docNo,
+              'data': documentData,
+              'createdAt': documentData['createdAt'] ?? DateTime.now().toIso8601String(),
+            });
+            
+            print('✅ Loaded document: $docNo (${documentData['type'] ?? docType})');
+          } else {
+            print('⚠️ Document $documentId not found in workspace documents');
+            
+            // Add placeholder data for missing documents
+            detailedDocuments.add({
+              'id': documentId,
+              'type': docType,
+              'docNo': docNo,
+              'data': {
+                'status': 'NOT_FOUND',
+                'docNo': docNo,
+                'type': docType,
+              },
+              'createdAt': DateTime.now().toIso8601String(),
+            });
+          }
+        } catch (e) {
+          print('❌ Error loading document: $e');
+        }
+      }
+
+      setState(() {
+        _relatedDocuments = detailedDocuments;
+        _isLoadingRelatedDocuments = false;
+      });
+
+      print('✅ Loaded ${detailedDocuments.length} related documents');
+    } catch (e) {
+      print('❌ Error loading related documents: $e');
+      setState(() {
+        _isLoadingRelatedDocuments = false;
+      });
+    }
+  }
+
+  // Related Documents management methods
+  Future<void> _updateDocumentStatus(String documentId, String newStatus) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final workspaceId = widget.card.workspaceId;
+
+      // Update status in documents collection
+      await firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('documents')
+          .doc(documentId)
+          .update({
+        'status': newStatus,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      // Reload related documents to reflect changes
+      await _loadRelatedDocumentsDetails();
+
+      Get.snackbar(
+        'Success',
+        'Document status updated successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to update document status: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  void _downloadDocument(Map<String, dynamic> document) {
+    // TODO: Implement download functionality
     Get.snackbar(
-      'Coming Soon',
-      'Product editing will be available soon',
+      'Download',
+      'Download functionality will be available soon',
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
       duration: const Duration(seconds: 2),
     );
+  }
+
+  void _duplicateDocument(Map<String, dynamic> document) {
+    // TODO: Implement duplicate functionality
+    Get.snackbar(
+      'Duplicate',
+      'Duplicate functionality will be available soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _editDocument(Map<String, dynamic> document) {
+    final documentId = document['id'] as String?;
+    final documentType = document['type'] ?? 'QT';
+    
+    if (documentId != null && documentId.isNotEmpty) {
+      Get.to(() => AddEditDocumentPage(
+        documentType: documentType,
+        documentId: documentId,
+      ));
+    } else {
+      Get.snackbar(
+        'Error',
+        'Cannot open document: Invalid document ID',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  /// View document in edit page (similar to quotation_list_page.dart)
+  void viewDocument(Map<String, dynamic> document) {
+    final documentId = document['id'] as String?;
+    final documentType = document['type'] ?? 'QT';
+    
+    if (documentId != null && documentId.isNotEmpty) {
+      Get.to(() => AddEditDocumentPage(
+        documentType: documentType,
+        documentId: documentId,
+      ));
+    } else {
+      Get.snackbar(
+        'Error',
+        'Cannot open document: Invalid document ID',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  void _deleteDocument(Map<String, dynamic> document) {
+    final documentId = document['id'] ?? '';
+    final docNo = document['docNo'] ?? 'N/A';
+    final documentData = document['data'] as Map<String, dynamic>? ?? {};
+    final status = documentData['status'] ?? 'DRAFT';
+    
+    final isNotFound = status == 'NOT_FOUND';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isNotFound ? 'ลบอ้างอิงเอกสาร' : 'ลบเอกสาร'),
+        content: Text(isNotFound 
+          ? 'คุณแน่ใจหรือไม่ที่จะลบอ้างอิงเอกสาร $docNo?\n\nเอกสารนี้ไม่พบในระบบแล้ว จะลบเฉพาะอ้างอิงออกจากการ์ดนี้'
+          : 'คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _performDeleteDocument(documentId, '');
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(isNotFound ? 'ลบอ้างอิง' : 'ลบ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDeleteDocument(String documentId, String relatedDocId) async {
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value;
+      final cardId = widget.card.id;
+      
+      // Check if this document has NOT_FOUND status
+      final document = _relatedDocuments.firstWhere(
+        (doc) => doc['id'] == documentId,
+        orElse: () => {},
+      );
+      final documentData = document['data'] as Map<String, dynamic>? ?? {};
+      final status = documentData['status'] ?? 'DRAFT';
+      
+      print('🗑️ Deleting document: $documentId, Status: $status');
+      
+      // Step 1: Delete from documents collection (if document exists)
+      if (status != 'NOT_FOUND') {
+        print('🗑️ Deleting from /documents collection...');
+        await _repository.deleteDocument(
+          workspaceId: workspaceId,
+          documentId: documentId,
+        );
+        print('✅ Deleted from /documents collection');
+      } else {
+        print('ℹ️ Skipping /documents deletion - document has NOT_FOUND status');
+      }
+      
+      // Step 2: Update card's relatedDocuments field in Firestore directly
+      print('🗑️ Removing reference from card relatedDocuments...');
+      
+      final firestore = FirebaseFirestore.instance;
+      final cardRef = firestore
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('cards')
+          .doc(cardId);
+      
+      // Get current card data
+      final cardSnapshot = await cardRef.get();
+      if (cardSnapshot.exists) {
+        final cardData = cardSnapshot.data()!;
+        final currentRelatedDocs = List<Map<String, dynamic>>.from(
+          cardData['relatedDocuments'] ?? []
+        );
+        
+        // Remove the document with matching ID
+        final originalCount = currentRelatedDocs.length;
+        currentRelatedDocs.removeWhere((doc) => doc['id'] == documentId);
+        final newCount = currentRelatedDocs.length;
+        
+        print('🗑️ Removed ${originalCount - newCount} reference(s) from relatedDocuments');
+        
+        // Update the card in Firestore
+        await cardRef.update({
+          'relatedDocuments': currentRelatedDocs,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        
+        print('✅ Updated card relatedDocuments in Firestore');
+      }
+
+      // Step 3: Reload related documents to reflect changes
+      print('🔄 Reloading related documents...');
+      await _loadRelatedDocumentsDetails();
+
+      Get.snackbar(
+        'Success',
+        status == 'NOT_FOUND' ? 'Document reference removed successfully' : 'Document deleted successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to delete document: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  Color _getDocumentStatusColor(String status) {
+    switch (status) {
+      case 'DRAFT':
+        return Colors.grey;
+      case 'APPROVED':
+        return Colors.green;
+      case 'PENDING_APPROVAL':
+        return Colors.orange;
+      case 'SENT_FOR_APPROVAL':
+        return Colors.blue;
+      case 'CANCELLED':
+        return Colors.red;
+      case 'REJECTED':
+        return Colors.red;
+      case 'INVOICED':
+        return Colors.purple;
+      case 'FULLY_PAID':
+        return Colors.green.shade700;
+      case 'NOT_FOUND':
+        return Colors.red.shade300;
+      default:
+        return Colors.grey;
+    }
   }
 
   void _deleteProduct(int index) {
@@ -4531,9 +6587,9 @@ class _EditCardPageState extends State<EditCardPage> {
     final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
     final discount = (product['discount'] ?? 0).toDouble();
     final discountType = product['discountType'] ?? 'amount';
-    
+
     final subtotal = quantity * price;
-    
+
     if (discountType == 'percentage') {
       return subtotal - (subtotal * discount / 100);
     } else {
@@ -4544,7 +6600,8 @@ class _EditCardPageState extends State<EditCardPage> {
   double _calculateSubtotal() {
     return _productItems.fold(0.0, (sum, product) {
       final quantity = (product['quantity'] ?? 0).toDouble();
-      final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
+      final price = (product['pricePerUnit'] ?? product['price'] ?? 0)
+          .toDouble();
       return sum + (quantity * price);
     });
   }
@@ -4552,12 +6609,13 @@ class _EditCardPageState extends State<EditCardPage> {
   double _calculateTotalDiscount() {
     return _productItems.fold(0.0, (sum, product) {
       final quantity = (product['quantity'] ?? 0).toDouble();
-      final price = (product['pricePerUnit'] ?? product['price'] ?? 0).toDouble();
+      final price = (product['pricePerUnit'] ?? product['price'] ?? 0)
+          .toDouble();
       final discount = (product['discount'] ?? 0).toDouble();
       final discountType = product['discountType'] ?? 'amount';
-      
+
       final subtotal = quantity * price;
-      
+
       if (discountType == 'percentage') {
         return sum + (subtotal * discount / 100);
       } else {
@@ -4665,7 +6723,9 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
         _isLoadingLanes = false;
         // Reset lane selection if current lane is not available in selected board
         if (!_availableLanes.any((lane) => lane.id == _selectedLaneId)) {
-          _selectedLaneId = _availableLanes.isNotEmpty ? _availableLanes.first.id : '';
+          _selectedLaneId = _availableLanes.isNotEmpty
+              ? _availableLanes.first.id
+              : '';
         }
       });
     } catch (e) {
@@ -4681,9 +6741,7 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         width: 400,
         padding: const EdgeInsets.all(24),
@@ -4697,10 +6755,7 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
               children: [
                 const Text(
                   'Move Card',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -4713,37 +6768,34 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
             const SizedBox(height: 8),
             Text(
               'Select a new board and lane for this card',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             const SizedBox(height: 24),
 
             if (_isLoading)
-              const Center(
-                child: CircularProgressIndicator(),
-              )
+              const Center(child: CircularProgressIndicator())
             else ...[
               // Board Selection
               const Text(
                 'Board',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(color: const Color(0xFFFF7F39), width: 2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _selectedBoardId.isNotEmpty ? _selectedBoardId : null,
+                    value: _selectedBoardId.isNotEmpty
+                        ? _selectedBoardId
+                        : null,
                     hint: const Text('Select Board'),
                     isExpanded: true,
                     icon: const Icon(Icons.arrow_drop_down),
@@ -4769,16 +6821,16 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
               // Lane Selection
               const Text(
                 'Lane',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
               if (_isLoadingLanes)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey[300]!, width: 1),
                     borderRadius: BorderRadius.circular(8),
@@ -4798,7 +6850,10 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
               else if (_availableLanes.isEmpty && _selectedBoardId.isNotEmpty)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.red[300]!, width: 1),
                     borderRadius: BorderRadius.circular(8),
@@ -4820,14 +6875,19 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
               else
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey[300]!, width: 1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: _selectedLaneId.isNotEmpty ? _selectedLaneId : null,
+                      value: _selectedLaneId.isNotEmpty
+                          ? _selectedLaneId
+                          : null,
                       hint: const Text('Select Lane'),
                       isExpanded: true,
                       icon: const Icon(Icons.arrow_drop_down),
@@ -4868,7 +6928,10 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF7F39),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -4886,10 +6949,11 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
   bool _canMoveCard() {
     return _selectedBoardId.isNotEmpty &&
         _selectedLaneId.isNotEmpty &&
-        _availableLanes.isNotEmpty &&
+        _availableLanes.isNotEmpty && // Check if lanes are available
         !_isLoading &&
-        !_isLoadingLanes &&
-        !(_selectedBoardId == widget.currentBoardId && _selectedLaneId == widget.currentLaneId);
+        !_isLoadingLanes && // Check if lanes are still loading
+        !(_selectedBoardId == widget.currentBoardId &&
+            _selectedLaneId == widget.currentLaneId);
   }
 
   void _performMove() {
@@ -4902,12 +6966,11 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
 class _ProductSelectionDialog extends StatefulWidget {
   final String workspaceId;
 
-  const _ProductSelectionDialog({
-    required this.workspaceId,
-  });
+  const _ProductSelectionDialog({required this.workspaceId});
 
   @override
-  State<_ProductSelectionDialog> createState() => _ProductSelectionDialogState();
+  State<_ProductSelectionDialog> createState() =>
+      _ProductSelectionDialogState();
 }
 
 class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
@@ -4952,14 +7015,16 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
       }).toList();
 
       // Sort products by name in Dart instead of Firestore
-      products.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+      products.sort(
+        (a, b) => (a['name'] as String).compareTo(b['name'] as String),
+      );
 
       setState(() {
         _allProducts = products;
         _filteredProducts = products;
         _isLoading = false;
       });
-      
+
       print('✅ Products loaded successfully: ${products.length} products');
     } catch (e) {
       print('❌ Failed to load products: $e');
@@ -4995,8 +7060,9 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
   }
 
   List<Map<String, dynamic>> _getSelectedProducts() {
-    return _allProducts.where((product) => 
-        _selectedProductIds.contains(product['id'])).toList();
+    return _allProducts
+        .where((product) => _selectedProductIds.contains(product['id']))
+        .toList();
   }
 
   @override
@@ -5058,14 +7124,14 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
               children: [
                 const Text(
                   'รายการสินค้า',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 if (_selectedProductIds.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.deepOrange[100],
                       borderRadius: BorderRadius.circular(12),
@@ -5088,113 +7154,128 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredProducts.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'ไม่พบสินค้า',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
+                  ? const Center(
+                      child: Text(
+                        'ไม่พบสินค้า',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _filteredProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = _filteredProducts[index];
+                        final isSelected = _selectedProductIds.contains(
+                          product['id'],
+                        );
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            onTap: () => _toggleProduct(product['id']),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Colors.deepOrange
+                                      : Colors.grey[300]!,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                color: isSelected
+                                    ? Colors.deepOrange[50]
+                                    : Colors.white,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Checkbox
+                                  Checkbox(
+                                    value: isSelected,
+                                    onChanged: (_) =>
+                                        _toggleProduct(product['id']),
+                                    activeColor: Colors.deepOrange,
+                                  ),
+
+                                  // Product image
+                                  Container(
+                                    width: 60,
+                                    height: 60,
+                                    margin: const EdgeInsets.only(right: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    child: product['imageUrl'] != null
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            child: Image.network(
+                                              product['imageUrl'],
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                    return Icon(
+                                                      Icons.image,
+                                                      color: Colors.grey[400],
+                                                      size: 30,
+                                                    );
+                                                  },
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.image,
+                                            color: Colors.grey[400],
+                                            size: 30,
+                                          ),
+                                  ),
+
+                                  // Product details
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product['name'] ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '฿${(product['price'] ?? 0).toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        )
-                      : ListView.builder(
-                          itemCount: _filteredProducts.length,
-                          itemBuilder: (context, index) {
-                            final product = _filteredProducts[index];
-                            final isSelected = _selectedProductIds.contains(product['id']);
-                            
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: InkWell(
-                                onTap: () => _toggleProduct(product['id']),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: isSelected ? Colors.deepOrange : Colors.grey[300]!,
-                                      width: isSelected ? 2 : 1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    color: isSelected ? Colors.deepOrange[50] : Colors.white,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // Checkbox
-                                      Checkbox(
-                                        value: isSelected,
-                                        onChanged: (_) => _toggleProduct(product['id']),
-                                        activeColor: Colors.deepOrange,
-                                      ),
-                                      
-                                      // Product image
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        margin: const EdgeInsets.only(right: 12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[100],
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.grey[300]!),
-                                        ),
-                                        child: product['imageUrl'] != null 
-                                            ? ClipRRect(
-                                                borderRadius: BorderRadius.circular(8),
-                                                child: Image.network(
-                                                  product['imageUrl'],
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return Icon(Icons.image, color: Colors.grey[400], size: 30);
-                                                  },
-                                                ),
-                                              )
-                                            : Icon(Icons.image, color: Colors.grey[400], size: 30),
-                                      ),
-                                      
-                                      // Product details
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              product['name'] ?? '',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '฿${(product['price'] ?? 0).toStringAsFixed(2)}',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                        );
+                      },
+                    ),
             ),
 
             // Pagination (if needed)
             const SizedBox(height: 16),
-            
+
             // Bottom buttons
             Row(
               children: [
                 Text(
                   '< 1 >',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
                 const Spacer(),
                 ElevatedButton(
@@ -5204,7 +7285,10 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepOrange,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -5222,197 +7306,6 @@ class _ProductSelectionDialogState extends State<_ProductSelectionDialog> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildRelatedDocumentsSection() {
-    return Column(
-      children: [
-        // Header with Create Quotation button
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Related Documents',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                // TODO: Implement create quotation
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Create Quotation feature coming soon')),
-                );
-              },
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Create Quotation'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple[600],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // Documents Table
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: [
-              // Table Header
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                    topRight: Radius.circular(8),
-                  ),
-                ),
-                child: Row(
-                  children: const [
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Doc No.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Type',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Job Card',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Seller',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Date',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Valid Until',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Amount',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Status',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 40), // For actions column
-                  ],
-                ),
-              ),
-              
-              // Empty state when no documents
-              Container(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.description_outlined,
-                      size: 48,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No related documents yet',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Create your first quotation to get started',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -36,6 +36,8 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
   // Local expansion state has moved into the modal using StatefulBuilder
   // Cache boards for non-current workspaces when expanded
   final Map<String, List<Map<String, dynamic>>> _workspaceBoardsCache = <String, List<Map<String, dynamic>>>{};
+  // Cache card counts for boards in other workspaces
+  final Map<String, int> _boardCardCounts = <String, int>{};
   // Track loading state per workspace during board fetch
   final Set<String> _loadingWorkspaceBoards = <String>{};
   // Track which workspaces have attempted load (to show empty state)
@@ -194,83 +196,102 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
 
                   const SizedBox(height: 24),
 
-                  // Boards section
-                  if (ctrl.boards.isNotEmpty) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'select_board'.tr,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                // Boards section
+                if (ctrl.boards.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'select_board'.tr,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
-                        TextButton(
-                          onPressed: () {
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          Get.toNamed('/board-management');
+                        },
+                        child: Text('manage_board'.tr),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ...ctrl.boards.map((board) {
+                    final isSelected = board.id == ctrl.currentBoardId.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: isSelected ? null : () async {
                             Navigator.of(context).pop();
-                            Get.toNamed('/board-management');
+                            await ctrl.switchBoard(board.id);
                           },
-                          child: Text('manage_board'.tr),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ...ctrl.boards.map((board) {
-                      final isSelected = board.id == ctrl.currentBoardId.value;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: isSelected ? null : () async {
-                              Navigator.of(context).pop();
-                              await ctrl.switchBoard(board.id);
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : Colors.grey[50],
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
-                                  width: isSelected ? 2 : 1,
-                                ),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
+                                width: isSelected ? 2 : 1,
                               ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.dashboard,
-                                    color: isSelected ? AppTheme.primaryOrange : Colors.grey[600],
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.dashboard,
+                                  color: isSelected ? AppTheme.primaryOrange : Colors.grey[600],
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        board.name,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: isSelected ? AppTheme.primaryOrange : Colors.black87,
+                                        ),
+                                      ),
+                                      Obx(() {
+                                        // Count cards in this board
+                                        final boardCards = ctrl.lanes
+                                            .where((lane) => lane.boardId == board.id)
+                                            .expand((lane) => lane.cards)
+                                            .length;
+                                        return Text(
+                                          'Job Card ของคุณ $boardCards ใบ',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: AppTheme.primaryOrange,
                                     size: 24,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      board.name,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: isSelected ? AppTheme.primaryOrange : Colors.black87,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isSelected)
-                                    const Icon(
-                                      Icons.check_circle,
-                                      color: AppTheme.primaryOrange,
-                                      size: 24,
-                                    ),
-                                ],
-                              ),
+                              ],
                             ),
                           ),
                         ),
-                      );
-                    }),
-                    const SizedBox(height: 24),
-                  ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 24),
+                ],
 
                   // Workspaces section
                   if (ctrl.availableWorkspaces.isNotEmpty) ...[
@@ -291,35 +312,35 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                             modalInitDone = true;
                             final others = otherWorkspacesSnapshot;
 
-                            // Prefetch sequentially to avoid many parallel calls on large lists
-                            Future.microtask(() async {
-                              for (final ws in others) {
-                                final id = ws['id'] as String;
-                                if (_loadedWorkspaceBoards.contains(id) || _loadingWorkspaceBoards.contains(id)) {
-                                  continue;
-                                }
-                                _loadingWorkspaceBoards.add(id);
-                                if (mounted) setModalState(() {});
-                                try {
-                                  final boards = await ctrl.getBoardsForWorkspace(id);
-                                  _workspaceBoardsCache[id] = boards.map((b) => {
-                                    'id': b.id,
-                                    'name': b.name,
-                                  }).toList();
-                                } catch (_) {
-                                  _workspaceBoardsCache[id] = const [];
-                                } finally {
-                                  _loadingWorkspaceBoards.remove(id);
-                                  _loadedWorkspaceBoards.add(id);
-                                  if (mounted) setModalState(() {});
-                                }
+                          // Prefetch sequentially to avoid many parallel calls on large lists
+                          Future.microtask(() async {
+                            for (final ws in others) {
+                              final id = ws['id'] as String;
+                              if (_loadedWorkspaceBoards.contains(id) || _loadingWorkspaceBoards.contains(id)) {
+                                continue;
                               }
-                            });
-                          }
-                          return Column(
-                            children: otherWorkspacesSnapshot.map((workspace) {
-                              final workspaceId = workspace['id'] as String;
-                              final workspaceName = workspace['name'] as String;
+                              _loadingWorkspaceBoards.add(id);
+                              if (mounted) setModalState(() {});
+                              try {
+                                final boards = await ctrl.getBoardsForWorkspace(id);
+                                _workspaceBoardsCache[id] = boards.map((b) => {
+                                  'id': b.id,
+                                  'name': b.name,
+                                }).toList();
+                              } catch (_) {
+                                _workspaceBoardsCache[id] = const [];
+                              } finally {
+                                _loadingWorkspaceBoards.remove(id);
+                                _loadedWorkspaceBoards.add(id);
+                                if (mounted) setModalState(() {});
+                              }
+                            }
+                          });
+                        }
+                        return Column(
+                          children: otherWorkspacesSnapshot.map((workspace) {
+                            final workspaceId = workspace['id'] as String;
+                            final workspaceName = workspace['name'] as String;
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -394,68 +415,80 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                       );
                                     }
 
-                                    final boards = _getWorkspaceBoardsSync(workspaceId);
-                                    if (boards.isNotEmpty) {
-                                      return Container(
-                                        margin: const EdgeInsets.only(left: 16, bottom: 8),
-                                        child: Column(
-                                          children: boards.map((board) {
-                                            return Container(
-                                              margin: const EdgeInsets.only(bottom: 6),
-                                              child: Material(
-                                                color: Colors.transparent,
-                                                child: InkWell(
-                                                  onTap: () async {
-                                                    Navigator.of(context).pop();
-                                                    await ctrl.switchWorkspace(workspaceId);
-                                                    await ctrl.switchBoard(board['id'] as String);
-                                                  },
-                                                  splashColor: AppTheme.primaryOrange.withOpacity(0.12),
-                                                  highlightColor: AppTheme.primaryOrange.withOpacity(0.06),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius: BorderRadius.circular(8),
-                                                      border: Border.all(color: Colors.grey[300]!, width: 1),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Colors.black.withOpacity(0.04),
-                                                          blurRadius: 6,
-                                                          offset: const Offset(0, 2),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.dashboard,
-                                                          color: AppTheme.primaryOrange,
-                                                          size: 20,
-                                                        ),
-                                                        const SizedBox(width: 8),
-                                                        Expanded(
-                                                          child: Text(
-                                                            board['name'] as String,
-                                                            style: TextStyle(
-                                                              fontSize: 15,
-                                                              fontWeight: FontWeight.w500,
-                                                              color: Colors.black87,
+                                  final boards = _getWorkspaceBoardsSync(workspaceId);
+                                  if (boards.isNotEmpty) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(left: 16, bottom: 8),
+                                      child: Column(
+                                        children: boards.map((board) {
+                                          return Container(
+                                            margin: const EdgeInsets.only(bottom: 6),
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () async {
+                                                  Navigator.of(context).pop();
+                                                  await ctrl.switchWorkspace(workspaceId);
+                                                  await ctrl.switchBoard(board['id'] as String);
+                                                },
+                                                splashColor: AppTheme.primaryOrange.withOpacity(0.12),
+                                                highlightColor: AppTheme.primaryOrange.withOpacity(0.06),
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    border: Border.all(color: Colors.grey[300]!, width: 1),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withOpacity(0.04),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.dashboard,
+                                                        color: AppTheme.primaryOrange,
+                                                        size: 20,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              board['name'] as String,
+                                                              style: TextStyle(
+                                                                fontSize: 15,
+                                                                fontWeight: FontWeight.w500,
+                                                                color: Colors.black87,
+                                                              ),
                                                             ),
-                                                          ),
+                                                            Text(
+                                                              'Job Card ของคุณ ${_boardCardCounts[board['id']] ?? 0} ใบ',
+                                                              style: TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors.grey[600],
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                        Icon(Icons.chevron_right, color: AppTheme.primaryOrange, size: 22),
-                                                      ],
-                                                    ),
+                                                      ),
+                                                      Icon(Icons.chevron_right, color: AppTheme.primaryOrange, size: 22),
+                                                    ],
                                                   ),
                                                 ),
                                               ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      );
-                                    }
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    );
+                                  }
 
                                     if (_loadedWorkspaceBoards.contains(workspaceId)) {
                                       return Container(

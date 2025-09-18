@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sellstory/features/board/config/drag_config.dart';
+import 'package:sellstory/core/config/drag_config.dart';
 
 void main() {
   group('DragAutoScrollConfig', () {
