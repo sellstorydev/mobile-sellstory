@@ -1592,7 +1592,7 @@ class _EditCardPageState extends State<EditCardPage> {
         Row(
           children: [
             Icon(Icons.flag, size: 18, color: Colors.orange[700]),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             const Text(
               'Status',
               style: TextStyle(
@@ -1603,76 +1603,60 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: _statusOptions.map((status) {
-            final isSelected = _selectedStatus == status['value'];
-            Color chipColor;
-            Color textColor;
-
-            // Set colors based on status
-            switch (status['value']) {
-              case 'Pending':
-                chipColor = isSelected ? Colors.grey[400]! : Colors.grey[100]!;
-                textColor = isSelected ? Colors.white : Colors.grey[700]!;
-                break;
-              case 'In Progress':
-                chipColor = isSelected ? Colors.orange : Colors.orange[100]!;
-                textColor = isSelected ? Colors.white : Colors.orange[800]!;
-                break;
-              case 'Done':
-                chipColor = isSelected ? Colors.green : Colors.green[100]!;
-                textColor = isSelected ? Colors.white : Colors.green[800]!;
-                break;
-              case 'Cancelled':
-                chipColor = isSelected ? Colors.red : Colors.red[100]!;
-                textColor = isSelected ? Colors.white : Colors.red[800]!;
-                break;
-              default:
-                chipColor = Colors.grey[100]!;
-                textColor = Colors.grey[700]!;
-            }
-
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedStatus = status['value'];
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
+          ),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _statusOptions.map((status) {
+              final isSelected = _selectedStatus == status['value'];
+              return Container(
                 decoration: BoxDecoration(
-                  color: chipColor,
-                  borderRadius: BorderRadius.circular(20),
-                  border: isSelected
-                      ? null
-                      : Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: isSelected ? [
+                    BoxShadow(
+                      color: AppTheme.primaryOrange.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ] : null,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(status['icon'], size: 16, color: textColor),
-                    const SizedBox(width: 6),
-                    Text(
-                      status['label'],
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                        fontSize: 14,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedStatus = status['value'];
+                    });
+                  },
+                  icon: Icon(status['icon'], size: 16),
+                  label: Text(
+                    status['label'],
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isSelected ? AppTheme.primaryOrange : Colors.white,
+                    foregroundColor: isSelected ? Colors.white : Colors.black87,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: BorderSide(
+                        color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
+                        width: isSelected ? 2 : 1,
                       ),
                     ),
-                  ],
+                    elevation: isSelected ? 2 : 0,
+                  ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );

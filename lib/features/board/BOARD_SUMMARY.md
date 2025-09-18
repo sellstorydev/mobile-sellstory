@@ -2,6 +2,47 @@
 
 ## Recent Changes
 
+### Status Section UI Fix in edit_card_page.dart (September 18, 2025)
+
+**Issue:** Timeline and status section in edit_card_page.dart had inconsistent UI compared to create_card_page.dart status selection interface.
+
+**Problem Identified:**
+- **edit_card_page.dart**: Used old chip-style status selection with manual color coding and rounded containers
+- **create_card_page.dart**: Used modern ElevatedButton.icon style with AppTheme.primaryOrange colors and better visual hierarchy
+- UI inconsistency created poor user experience between create and edit flows
+
+**Solution Applied:**
+1. **Replaced Status Selection UI**: Updated `_buildStatusChipsSection()` method in edit_card_page.dart
+2. **Matched create_card_page.dart Design**: Copied exact UI structure from `_buildStatusSection()` in create_card_page.dart
+3. **Consistent Styling**: Applied same AppTheme.primaryOrange colors, elevation, and button styling
+4. **Improved Visual Hierarchy**: Used ElevatedButton.icon with proper spacing and padding
+
+**Technical Changes:**
+- **Before**: Custom Container with GestureDetector and manual color switching
+- **After**: ElevatedButton.icon with AppTheme.primaryOrange selection state
+- **Container Structure**: Added outer container with border, grey background, and proper padding
+- **Button Styling**: Consistent elevation, border radius, and color scheme
+- **Spacing**: Changed from 8px to 6px spacing to match create page layout
+
+**UI Components Updated:**
+- Icon spacing: 8px → 6px to match create page
+- Vertical spacing: 16px → 12px for consistent layout
+- Button style: Custom containers → ElevatedButton.icon
+- Color scheme: Manual color switching → AppTheme.primaryOrange system
+- Shadow/elevation: Consistent with create page design
+
+**Files Modified:**
+- `lib/features/board/view/edit_card_page.dart`
+  - Updated `_buildStatusChipsSection()` method
+  - Replaced custom status chip implementation
+  - Applied consistent styling with create_card_page.dart
+
+**Benefits:**
+- **UI Consistency**: Status selection now matches between create and edit flows
+- **Better UX**: Users see familiar interface when editing cards
+- **Maintainable Code**: Uses established theme colors and button styles
+- **Visual Clarity**: Improved button styling with proper elevation and shadows
+
 ### Remove Order Input Field from Add New Lane Modal (September 18, 2025)
 
 **Issue:** The Add New Lane modal contained an unnecessary order input field that complicated the user experience.
