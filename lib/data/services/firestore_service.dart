@@ -238,9 +238,11 @@ class FirestoreService extends GetxService {
           .orderBy('last_message_info.last_upd', descending: true) // แก้ไข: last_upd อยู่ใน last_message_info
           .get();
 
-      return qs.docs.map((doc) {
+
+      final items = qs.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
+
 
         // ดึงข้อมูลจาก last_message_info
         final lastMessageInfo = data['last_message_info'] as Map<String, dynamic>? ?? {};
@@ -266,13 +268,21 @@ class FirestoreService extends GetxService {
           }
           return null;
         }
-
-        // ใช้ last_upd จาก last_message_info แทน
         data['lastMessageAt'] = parseDate(lastMessageInfo['last_upd']);
         data['createdAt'] = parseDate(data['created']);
 
         return data;
       }).toList();
+
+      // ซ่อนแชทที่ถูกซ่อน (is_hidden) เว้นแต่จะมีข้อความค้างอ่าน (unread > 0)
+      final filtered = items.where((m) {
+        final hiddenRaw = m['is_hidden'];
+        final hidden = hiddenRaw == true || hiddenRaw == 'Y';
+        final unread = int.tryParse(m['count']?.toString() ?? '0') ?? (m['unreadCount'] as int? ?? 0);
+        return !hidden || unread > 0;
+      }).toList();
+
+      return filtered;
     } catch (e) {
       throw Exception('Failed to get chatrooms: $e');
     }
