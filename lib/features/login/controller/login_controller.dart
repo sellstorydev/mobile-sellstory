@@ -89,7 +89,7 @@ class LoginController extends GetxController {
       debugPrint('signInWithEmail error: $e');
       Get.snackbar(
         'Error',
-        'Login failed: ${e.toString()}',
+        'Invalid email or password',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,
@@ -202,7 +202,7 @@ class LoginController extends GetxController {
     } catch (e) {
       Get.snackbar(
         'Error',
-        'Google sign in failed: ${e.toString()}',
+        'Invalid email or password',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,
@@ -267,7 +267,7 @@ class LoginController extends GetxController {
       debugPrint('signInWithApple error: $e');
       Get.snackbar(
         'Error',
-        'Apple sign in failed: ${e.toString()}',
+        'Invalid email or password',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,
@@ -288,35 +288,7 @@ class LoginController extends GetxController {
 
   // Handle Firebase Auth Errors
   void _handleAuthError(FirebaseAuthException e) {
-    String message;
-    switch (e.code) {
-      case 'user-not-found':
-        message = 'No user found with this email address';
-        break;
-      case 'wrong-password':
-        message = 'Wrong password provided';
-        break;
-      case 'invalid-email':
-        message = 'Invalid email address';
-        break;
-      case 'weak-password':
-        message = 'Password is too weak';
-        break;
-      case 'email-already-in-use':
-        message = 'Email is already registered';
-        break;
-      case 'too-many-requests':
-        message = 'Too many attempts. Please try again later';
-        break;
-      case 'invalid-credential':
-        message = 'Apple sign-in failed: invalid credential. Check device iCloud login, bundle ID, Apple capability, and Firebase Apple provider.';
-        break;
-      case 'account-exists-with-different-credential':
-        message = 'Account exists with a different sign-in method. Try logging in with your original provider.';
-        break;
-      default:
-        message = e.message ?? 'Authentication failed';
-    }
+    String message = 'Invalid email or password';
 
     Get.snackbar(
       'Error',
