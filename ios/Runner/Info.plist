@@ -39,6 +39,8 @@
 	<string>489911602258-iq7uf5kao3roptfff7k8uvi26e22sfjn.apps.googleusercontent.com</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires access to your camera to take photos for your profile and stories.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app requires access to your photo library to let you select and upload images for your stories.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

@@ -86,6 +86,9 @@ dependencies:
   # Image picker for chat attachments
   image_picker: ^1.0.7
 
+  # Permission handler for camera and gallery permissions
+  permission_handler: ^11.3.1
+
   # File picker for chat attachments
   file_picker: ^8.0.0+1
 
