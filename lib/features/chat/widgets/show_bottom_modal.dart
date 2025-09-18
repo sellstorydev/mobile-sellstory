@@ -1,6 +1,7 @@
 // show_bottom_modal.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'dart:async';
 
 import '../../board/controller/board_controller.dart';
@@ -218,6 +219,29 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         .toString();
   }
 
+  // Helper: convert hex string like "#f97316" or "f97316" or with alpha to a Color
+  Color _hexToColor(String hex) {
+    String h = hex.replaceAll('#', '').trim();
+    if (h.length == 6) {
+      h = 'FF$h';
+    } else if (h.length == 3) {
+      // Expand shorthand like f93 -> ff9933
+      final r = h[0];
+      final g = h[1];
+      final b = h[2];
+      h = 'FF$r$r$g$g$b$b';
+    } else if (h.length == 4) {
+      // ARGB shorthand aRGB -> aarrggbb
+      final a = h[0];
+      final r = h[1];
+      final g = h[2];
+      final b = h[3];
+      h = '$a$a$r$r$g$g$b$b';
+    }
+    final value = int.tryParse(h, radix: 16) ?? 0xFFF97316;
+    return Color(value);
+  }
+
   Future<void> _renameChat() async {
     try {
       final data = await _getChatroomData();
@@ -387,25 +411,154 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   Future<void> _createNewCustomerHashtag() async {
     if ((_currentCustomerId ?? '').isEmpty) return;
     final controller = TextEditingController();
-    final colorController = TextEditingController(text: '#f97316');
+    Color selectedColor = const Color(0xFFF97316); // Default orange color
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('เพิ่มแฮชแท็กใหม่'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(hintText: 'เช่น VIP, Hot, ติดตาม'),
-              autofocus: true,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: colorController,
-              decoration: const InputDecoration(hintText: '#สี (เช่น #f97316)'),
-            ),
-          ],
+        content: StatefulBuilder(
+          builder: (ctx, setStateDialog) {
+            final presets = <Color>[
+              const Color(0xFFF97316), // orange
+              const Color(0xFFEF4444), // red
+              const Color(0xFF22C55E), // green
+              const Color(0xFF3B82F6), // blue
+              const Color(0xFFA855F7), // purple
+              const Color(0xFFEAB308), // yellow
+              const Color(0xFF06B6D4), // cyan
+              const Color(0xFF9CA3AF), // gray
+              const Color(0xFF111827), // near-black
+            ];
+
+            void pickColor(Color color) {
+              setStateDialog(() {
+                selectedColor = color;
+              });
+            }
+
+            void openColorPicker() {
+              showDialog(
+                context: ctx,
+                builder: (context) => AlertDialog(
+                  title: const Text('เลือกสี'),
+                  content: SingleChildScrollView(
+                    child: ColorPicker(
+                      pickerColor: selectedColor,
+                      onColorChanged: (Color color) {
+                        selectedColor = color;
+                      },
+                      enableAlpha: false,
+                      displayThumbColor: true,
+                      labelTypes: const [], // Updated from deprecated showLabel
+                      paletteType: PaletteType.hsv,
+                      pickerAreaHeightPercent: 0.8,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('cancel'.tr),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        setStateDialog(() {}); // Update parent dialog
+                        Navigator.pop(context);
+                      },
+                      child: const Text('เลือก'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(hintText: 'เช่น VIP, Hot, ติดตาม'),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                Text('เลือกสี', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final color in presets)
+                      InkWell(
+                        onTap: () => pickColor(color),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: (color.value == selectedColor.value) ? Colors.black87 : Colors.black12,
+                              width: (color.value == selectedColor.value) ? 2.4 : 1,
+                            ),
+                          ),
+                          child: (color.value == selectedColor.value)
+                              ? const Icon(Icons.check, size: 18, color: Colors.white)
+                              : null,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: openColorPicker,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: selectedColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black26),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('เลือกสีเพิ่มเติม', style: Theme.of(ctx).textTheme.bodyMedium),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.palette, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: selectedColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black26),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('#${selectedColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                         style: Theme.of(ctx).textTheme.bodySmall),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('cancel'.tr)),
@@ -422,13 +575,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
 
     setState(() => _creatingHashtag = true);
     try {
-      final color = () {
-        final raw = colorController.text.trim();
-        if (RegExp(r'^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$').hasMatch(raw)) {
-          return raw.startsWith('#') ? raw : '#$raw';
-        }
-        return '#f97316';
-      }();
+      final color = '#${selectedColor.value.toRadixString(16).substring(2)}';
       final ok = await _hashtagService.createHashtag(
         widget.workspaceId,
         safeName,

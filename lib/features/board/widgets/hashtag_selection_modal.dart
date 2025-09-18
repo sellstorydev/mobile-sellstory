@@ -23,6 +23,33 @@ class _HashtagSelectionModalState extends State<HashtagSelectionModal> {
   List<Map<String, dynamic>> _availableHashtags = [];
   bool _isLoading = true;
 
+  // Parse hex string like #RGB, #RRGGBB, #AARRGGBB or raw to Color
+  Color _hexToColor(String? hex) {
+    final raw = (hex ?? '').trim();
+    if (raw.isEmpty) return const Color(0xFFF97316);
+    String h = raw;
+    if (h.startsWith('#')) h = h.substring(1);
+    if (h.toLowerCase().startsWith('0x')) h = h.substring(2);
+    if (h.length == 3) {
+      h = h.split('').map((c) => '$c$c').join();
+      h = 'FF$h';
+    } else if (h.length == 4) {
+      final a = h[0], r = h[1], g = h[2], b = h[3];
+      h = '$a$a$r$r$g$g$b$b';
+    } else if (h.length == 6) {
+      h = 'FF$h';
+    } else if (h.length == 8) {
+      // keep as is
+    } else {
+      return const Color(0xFFF97316);
+    }
+    final v = int.tryParse(h, radix: 16);
+    return v == null ? const Color(0xFFF97316) : Color(v);
+  }
+
+  // Choose readable foreground color against bg
+  Color _onColor(Color bg) => bg.computeLuminance() > 0.55 ? Colors.black87 : Colors.white;
+
   @override
   void initState() {
     super.initState();
@@ -118,12 +145,15 @@ class _HashtagSelectionModalState extends State<HashtagSelectionModal> {
                 spacing: 8,
                 runSpacing: 8,
                 children: _selectedHashtags.map((hashtag) {
+                  final bg = _hexToColor(hashtag['color']?.toString());
+                  final fg = _onColor(bg);
                   return Chip(
-                    label: Text('#${hashtag['text']}'),
-                    backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
-                    labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-                    deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white),
+                    label: Text('#${hashtag['text']}', style: TextStyle(color: fg, fontSize: 12)),
+                    backgroundColor: bg,
+                    deleteIcon: Icon(Icons.close, size: 16, color: fg),
                     onDeleted: () => _toggleHashtag(hashtag),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    side: BorderSide(color: Color.fromARGB((0.25 * 255).round(), fg.red, fg.green, fg.blue)),
                   );
                 }).toList(),
               ),
@@ -164,17 +194,22 @@ class _HashtagSelectionModalState extends State<HashtagSelectionModal> {
                             runSpacing: 8,
                             children: _availableHashtags.map((hashtag) {
                               final isSelected = _selectedHashtags.any((h) => h['id'] == hashtag['id']);
+                              final bg = _hexToColor(hashtag['color']?.toString());
+                              final fg = _onColor(bg);
                               return FilterChip(
-                                label: Text('#${hashtag['text']}'),
+                                label: Text('#${hashtag['text']}', style: TextStyle(color: fg, fontSize: 12)),
                                 selected: isSelected,
                                 onSelected: (_) => _toggleHashtag(hashtag),
-                                backgroundColor: Colors.grey[200],
-                                selectedColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
-                                labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.black87,
-                                  fontSize: 12,
+                                backgroundColor: bg,
+                                selectedColor: bg,
+                                checkmarkColor: fg,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? Color.fromARGB((0.5 * 255).round(), fg.red, fg.green, fg.blue)
+                                      : Color.fromARGB((0.25 * 255).round(), fg.red, fg.green, fg.blue),
+                                  width: isSelected ? 2 : 1,
                                 ),
-                                checkmarkColor: Colors.white,
                               );
                             }).toList(),
                           ),
