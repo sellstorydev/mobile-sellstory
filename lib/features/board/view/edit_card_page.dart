@@ -4559,7 +4559,8 @@ class _EditCardPageState extends State<EditCardPage> {
             controller: _htmlEditorController,
             htmlEditorOptions: HtmlEditorOptions(
               hint: 'Enter job details...',
-              shouldEnsureVisible: true,
+              // Prevent auto-scrolling to the editor on init (parity with create page)
+              shouldEnsureVisible: false,
               initialText: widget.card.description.isNotEmpty ? widget.card.description : '',
             ),
             callbacks: Callbacks(

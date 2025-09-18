@@ -2,6 +2,10 @@
 
 ## Recent Changes
 
+### Auto-Scroll Prevention Fix in edit_card_page.dart (September 19, 2025)
+
+- Disabled `HtmlEditorOptions.shouldEnsureVisible` (set to `false`) in `edit_card_page.dart` to stop the page from auto-scrolling to the HTML editor when it finishes loading. This matches the behavior already applied in `create_card_page.dart` and keeps the scroll position at the top on entry.
+
 ### Hashtag UI Mapping + Scope Fix (September 19, 2025)
 
 - Replaced old hashtag modal with `HashtagInputField` on both create and edit card pages.
