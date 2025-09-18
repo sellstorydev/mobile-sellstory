@@ -894,13 +894,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
       onPopInvoked: (didPop) {
         if (!didPop && !_isHtmlEditorReady) {
           // Show message to user that they need to wait
-          Get.snackbar(
-            'Please Wait',
-            'HTML editor is still loading. Please wait a moment before going back.',
-            backgroundColor: Colors.orange,
-            colorText: Colors.white,
-            duration: const Duration(seconds: 2),
-          );
+          // Get.snackbar(
+          //   'Please Wait',
+          //   'HTML editor is still loading. Please wait a moment before going back.',
+          //   backgroundColor: Colors.orange,
+          //   colorText: Colors.white,
+          //   duration: const Duration(seconds: 2),
+          // );
         }
       },
       child: Scaffold(
