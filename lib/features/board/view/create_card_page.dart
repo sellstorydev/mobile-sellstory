@@ -4,11 +4,12 @@ import '../../../core/theme/app_theme.dart';
 
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
-import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../data/services/firestore_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
 import '../../customers/view/add_edit_customer_page.dart';
+import '../../../core/widgets/hashtag_input_field.dart';
+import '../../../core/services/hashtag_service.dart';
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -47,7 +48,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   
   // Hashtag state
-  List<Map<String, dynamic>> _selectedHashtags = [];
+  List<String> _selectedHashtagIds = [];
+  List<HashtagOption> _availableHashtags = [];
+  final HashtagService _hashtagService = HashtagService();
   
   // Todo state
   List<Map<String, dynamic>> _todoItems = [];
@@ -102,6 +105,61 @@ class _CreateCardPageState extends State<CreateCardPage> {
     _initializeData().then((_) {
       setState(() {});
     });
+    _loadHashtags();
+  }
+
+  List<String> get _selectedHashtagTexts {
+    return _selectedHashtagIds.map((id) {
+      final hashtag = _availableHashtags.firstWhere(
+        (h) => h.id == id,
+        orElse: () => HashtagOption(
+          id: id, 
+          name: id, 
+          color: '#6B7280', 
+          scopes: {},
+          totalUsage: 0,
+          enabled: true,
+        ),
+      );
+      return hashtag.name;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _selectedHashtagsAsMap {
+    return _selectedHashtagIds.map((id) {
+      final hashtag = _availableHashtags.firstWhere(
+        (h) => h.id == id,
+        orElse: () => HashtagOption(
+          id: id, 
+          name: id, 
+          color: '#6B7280', 
+          scopes: {},
+          totalUsage: 0,
+          enabled: true,
+        ),
+      );
+      return {
+        'text': hashtag.name,
+        'color': hashtag.color,
+      };
+    }).toList();
+  }
+
+  Future<void> _loadHashtags() async {
+    try {
+      final wsId = widget.workspaceId;
+      if (wsId == null || wsId.isEmpty) {
+        print('⚠️ Skip loading hashtags: workspaceId is null/empty');
+        return;
+      }
+      final hashtags = await _hashtagService.getHashtagsByScope(wsId, 'jobBoard');
+      _availableHashtags = hashtags;
+      if (mounted) setState(() {});
+      print('✅ Hashtags loaded: ${_availableHashtags.length} hashtags');
+    } catch (e) {
+      if (mounted) setState(() {});
+      print('❌ Failed to load hashtags: $e');
+    }
   }
 
   Future<void> _initializeData() async {
@@ -660,7 +718,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         dueDate: null, // Not using dueDate anymore
         startDate: _startDate,
         endDate: _endDate,
-        badges: _selectedHashtags.map((h) => h['text'] as String).toList(),
+        badges: _selectedHashtagTexts,
         amount: 0.0,
         laneId: _selectedLane.isNotEmpty ? _selectedLane : '',
         boardId: currentBoardId,
@@ -673,8 +731,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
         company: companyData, // Store company as object with id, label, value
         customerInterest: _selectedCustomerInterest,
-        hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
-        hashtags: _selectedHashtags,
+        hashtag: _selectedHashtagTexts.isNotEmpty ? _selectedHashtagTexts.map((text) => '#$text').join(' ') : null,
+        hashtags: _selectedHashtagsAsMap,
         expenses: [],
         todos: todosData,
         notes: [],
@@ -1150,102 +1208,19 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ],
         ),
         const SizedBox(height: 12),
-        InkWell(
-          onTap: _openHashtagModal,
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 56),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[50],
-            ),
-            child: _selectedHashtags.isEmpty
-                ? Row(
-                    children: [
-                      Icon(Icons.add_circle_outline, size: 20, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Tap to select hashtags...',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.check_circle, size: 16, color: Colors.purple[700]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Selected (${_selectedHashtags.length})',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.purple[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _selectedHashtags.map((hashtag) {
-                          return Chip(
-                            label: Text(
-                              '#${hashtag['text']}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.edit, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Tap to edit selection',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-          ),
+        HashtagInputField(
+          selectedHashtags: _selectedHashtagIds,
+          availableHashtags: _availableHashtags,
+          onHashtagsChanged: (selectedHashtagIds) {
+            setState(() {
+              _selectedHashtagIds = selectedHashtagIds;
+            });
+          },
+          label: 'Hashtags',
+          hintText: 'Select hashtags',
+          workspaceId: widget.workspaceId,
         ),
       ],
-    );
-  }
-  
-  void _openHashtagModal() {
-    showDialog(
-      context: context,
-      builder: (context) => HashtagSelectionModal(
-        selectedHashtags: _selectedHashtags,
-        onHashtagsSelected: (selectedHashtags) {
-          setState(() {
-            _selectedHashtags = selectedHashtags;
-          });
-        },
-      ),
     );
   }
 

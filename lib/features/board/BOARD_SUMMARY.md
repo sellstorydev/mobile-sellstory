@@ -2,6 +2,15 @@
 
 ## Recent Changes
 
+### Hashtag UI Mapping + Scope Fix (September 19, 2025)
+
+- Replaced old hashtag modal with `HashtagInputField` on both create and edit card pages.
+- Adjusted data model to use List<String> of hashtag IDs with `HashtagOption` master list.
+- Fixed loading to use `HashtagService.getHashtagsByScope(workspaceId, 'jobBoard')` (was 'jobcard').
+- Passed `workspaceId` to field and ensured mapping to display chips from master list.
+- With workspace `xKnLu20t7n6A0IJxl4NN` backup, expected available tags include `bew213` ("Bew213") and `bew1234455` ("Bew1234455"). These now appear and can be selected as shown in the screenshot.
+
+
 ### HTML Editor PopScope Navigation Prevention Fix (September 18, 2025)
 
 **Issue:** When users enter create_card_page.dart or edit_card_page.dart and immediately press the back button before the HTML editor finishes loading, a JavaScript evaluation error occurs:

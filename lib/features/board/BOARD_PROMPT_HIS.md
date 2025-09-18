@@ -5,6 +5,14 @@
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
+##
+Topic:Change ui hashtags
+Detail: hashtag not show after change widget like  hashtag_input_field.dart. You should mapping or get hashtag like hashtag_input_field.dart. If current should show 2 hashtage Bew213,bew1234455. Data and struc you can see in path "firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-18T16-22-35.json"
+
+
+##
+Topic:Change ui hashtags
+Detail: careate_card_page.dart and edit_card_page.dart in Assignment and tags change hashtag input like Add customer pages is HashtagInputField from hashtag_input_field.dart.
 
 ##
 Topic: html editor not store to firebase.
