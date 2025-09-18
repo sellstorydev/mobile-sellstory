@@ -1,0 +1,1836 @@
+{
+  "workspaces": {
+    "xKnLu20t7n6A0IJxl4NN": {
+      "createdAt": 1755845149854,
+      "name": "test1",
+      "ownerId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+      "members": {
+        "xvdZZF0XGsWwR1yZtUdG8cQQgtU2": "owner",
+        "d3z7heLqwYXXC3u3O9uR7iO9ium2": "admin"
+      },
+      "companyProfile": {
+        "catalogSettings": {
+          "enableAddToCart": true,
+          "isPublished": false
+        },
+        "customerCustomFieldTemplate": [],
+        "customerSources": [],
+        "idGenerationRules": {
+          "company": {
+            "dateFormat": "YYMMDD",
+            "generationMode": "auto-editable",
+            "minLength": 4,
+            "prefix": "COM",
+            "separator": "-"
+          },
+          "customer": {
+            "dateFormat": "YYMMDD",
+            "generationMode": "auto-editable",
+            "minLength": 4,
+            "prefix": "CUS",
+            "separator": "-"
+          },
+          "invoice": {
+            "dateFormat": "YYMMDD",
+            "generationMode": "auto-editable",
+            "minLength": 4,
+            "prefix": "INV",
+            "separator": "-"
+          },
+          "jobCard": {
+            "dateFormat": "YYMMDD",
+            "generationMode": "auto-editable",
+            "minLength": 4,
+            "prefix": "JB",
+            "separator": "-"
+          },
+          "product": {
+            "dateFormat": "YYMMDD",
+            "generationMode": "auto-editable",
+            "minLength": 4,
+            "prefix": "P",
+            "separator": "-"
+          },
+          "quotation": {
+            "dateFormat": "YYMMDD",
+            "generationMode": "auto-editable",
+            "minLength": 4,
+            "prefix": "EST",
+            "separator": "-"
+          },
+          "receipt": {
+            "dateFormat": "YYMMDD",
+            "generationMode": "auto-editable",
+            "minLength": 4,
+            "prefix": "RE",
+            "separator": "-"
+          }
+        },
+        "roles": [
+          {
+            "id": "owner",
+            "name": "Owner",
+            "permissions": [
+              "*"
+            ]
+          },
+          {
+            "id": "admin",
+            "name": "Admin",
+            "permissions": [
+              "jobcard:view:all",
+              "jobcard:create",
+              "jobcard:edit:all",
+              "jobcard:delete:all",
+              "jobcard:move",
+              "customer:view:all",
+              "customer:create",
+              "customer:edit:all",
+              "customer:delete",
+              "customer:import",
+              "company:view",
+              "company:create",
+              "company:edit:all",
+              "company:delete",
+              "company:import",
+              "product:view",
+              "product:create",
+              "product:edit:all",
+              "product:delete",
+              "product:import",
+              "user:manage",
+              "settings:board:manage",
+              "settings:company:manage",
+              "settings:id:manage",
+              "settings:catalog:manage",
+              "settings:roles:manage"
+            ]
+          },
+          {
+            "id": "member",
+            "name": "Member",
+            "permissions": [
+              "jobcard:view:assigned",
+              "jobcard:create"
+            ]
+          }
+        ],
+        "todoTemplates": [],
+        "hashtagSettings": {
+          "isEnabled": true,
+          "mode": "global",
+          "automation": {
+            "autoCreateFromChat": false
+          },
+          "masterList": [
+            {
+              "count": 0,
+              "color": "#f97316",
+              "name": "Bew213",
+              "id": "bew213",
+              "enabled": true,
+              "scopes": {
+                "chat": true,
+                "company": true,
+                "customer": true,
+                "jobBoard": true,
+                "product": true
+              },
+              "totalUsage": 1,
+              "usage": {
+                "jobBoard": 1
+              }
+            },
+            {
+              "id": "bew1234455",
+              "name": "Bew1234455",
+              "enabled": true,
+              "scopes": {
+                "jobBoard": true,
+                "customer": true,
+                "product": true,
+                "chat": true,
+                "company": true
+              },
+              "count": 0,
+              "color": "#eab308"
+            }
+          ]
+        },
+        "docSettings": {
+          "senderEmail": "noreply@sellstory.me",
+          "businessName": "",
+          "businessAddress": "",
+          "businessPhoneNumber": "",
+          "businessWebsite": "",
+          "businessEmail": "",
+          "defaultNotes": {
+            "quotation": "",
+            "invoice": "",
+            "receipt": ""
+          },
+          "defaultPaymentDetails": [],
+          "signatures": [],
+          "companySeals": [],
+          "defaultTemplateIds": {
+            "quotation": "Fv9OBceNChku4n8jmx1P",
+            "invoice": "",
+            "receipt": ""
+          }
+        },
+        "lastUsedCounters": {
+          "invoice": 0,
+          "receipt": 0,
+          "customer": 2,
+          "product": 2,
+          "company": 3,
+          "jobCard": 58,
+          "quotation": 55
+        }
+      },
+      "subCollection": {
+        "workspaces/xKnLu20t7n6A0IJxl4NN/activities": {
+          "06gdvC2yyeHnk6fybg0h": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "userDisplayName": "BewLnwZa",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756116275079,
+            "details": {
+              "cardId": "3jxu5Me8oI3sjhAkLek2",
+              "cardTitle": "New Job",
+              "laneId": "9V1OtWzxrwJpLLFZoJHp",
+              "laneName": "Bewtest01"
+            }
+          },
+          "6rjcLlTUVihVM27FHkEb": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756092318372,
+            "details": {
+              "cardId": "FIFVO81Kg4EfzdCUpZwI",
+              "cardTitle": "123456",
+              "sourceLaneId": "qesjwQS3saV9h3wzyYMz",
+              "sourceLaneName": "In Progress",
+              "destinationLaneId": "nvx4rzpcNcJk8GIw4YsK",
+              "destinationLaneName": "Done"
+            }
+          },
+          "97gfxUDi7B05W1qPFE04": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756140015939,
+            "details": {
+              "cardId": "6VAYUMDzobYF1cTzMOax",
+              "cardTitle": "123456ดด",
+              "laneId": "D8FI6YQaNYQLZavNCnyC",
+              "laneName": "To Do"
+            }
+          },
+          "9L7nn622F7J7aikV8kyx": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756929979477,
+            "details": {
+              "cardId": "MWt8RXcVWjHthMKJWe7T",
+              "cardTitle": "Job Card Title",
+              "laneId": "D8FI6YQaNYQLZavNCnyC",
+              "laneName": "To Do"
+            }
+          },
+          "9sZJglrOLqZQeDTpMJ8s": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756052266623,
+            "details": {
+              "cardId": "G2OB4pCjtR0hSHAfmmeV",
+              "cardTitle": "New Card",
+              "sourceLaneId": "qesjwQS3saV9h3wzyYMz",
+              "sourceLaneName": "In Progress",
+              "destinationLaneId": "nvx4rzpcNcJk8GIw4YsK",
+              "destinationLaneName": "Done"
+            }
+          },
+          "AqLyZ1nsBCxMc8i3gxBo": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756052223594,
+            "details": {
+              "cardId": "MSGxSxiHMSe1OCD34GeT",
+              "cardTitle": "New Card",
+              "sourceLaneId": "D8FI6YQaNYQLZavNCnyC",
+              "sourceLaneName": "To Do",
+              "destinationLaneId": "qesjwQS3saV9h3wzyYMz",
+              "destinationLaneName": "In Progress"
+            }
+          },
+          "AwMpiiDup4NZcPh897pA": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-update-field",
+            "timestamp": 1755857026384,
+            "details": {
+              "cardId": "k2vbyyOc5RkyyA1fWQE0",
+              "cardTitle": "New Cardด",
+              "fieldName": "Expenses"
+            }
+          },
+          "HsoHDGccqjnlfKVN7B3d": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756895548271,
+            "details": {
+              "cardId": "DTlfFRFN2Fv0o6dVP7HI",
+              "cardTitle": "Job Card Title",
+              "laneId": "hNGhlwpn4AYa4zje3own",
+              "laneName": "กฟกด"
+            }
+          },
+          "Ib2x1aALU9c9Egkengxd": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1757233137657,
+            "details": {
+              "cardId": "nJpuww1cozx6rkZ94TRM",
+              "cardTitle": "Test archive2",
+              "laneId": "Dnar5qTJf0aHEWHc55QY",
+              "laneName": "test"
+            }
+          },
+          "IsMInymDQ4oomW77QqTF": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756052219851,
+            "details": {
+              "cardId": "G2OB4pCjtR0hSHAfmmeV",
+              "cardTitle": "New Card",
+              "sourceLaneId": "D8FI6YQaNYQLZavNCnyC",
+              "sourceLaneName": "To Do",
+              "destinationLaneId": "qesjwQS3saV9h3wzyYMz",
+              "destinationLaneName": "In Progress"
+            }
+          },
+          "M7F8P3epRAmOaxOHSUhD": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756052305443,
+            "details": {
+              "cardId": "FIFVO81Kg4EfzdCUpZwI",
+              "cardTitle": "123456",
+              "sourceLaneId": "nvx4rzpcNcJk8GIw4YsK",
+              "sourceLaneName": "Done",
+              "destinationLaneId": "nOsAcuKYIaNx4gDblwJO",
+              "destinationLaneName": "1111"
+            }
+          },
+          "Mp6BoZVXdmCKiT3dbiwn": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-update-field",
+            "timestamp": 1756052282340,
+            "details": {
+              "cardId": "FIFVO81Kg4EfzdCUpZwI",
+              "cardTitle": "123456",
+              "fieldName": "Title",
+              "from": "New Cardๅ_กก",
+              "to": "123456"
+            }
+          },
+          "NBNXiWySgOTeWnzofSDF": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756896135031,
+            "details": {
+              "cardId": "1ejC9IJLOnDEltM2yZrH",
+              "cardTitle": "Job Card Title",
+              "laneId": "nvx4rzpcNcJk8GIw4YsK",
+              "laneName": "Done"
+            }
+          },
+          "NUBtsTUrycKhPzdYDtr7": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1755852198783,
+            "details": {
+              "cardId": "KUi2CBRssaZ43K6AsKXC",
+              "cardTitle": "New Card",
+              "laneId": "wGzrjxCb85kpTEqvaucY",
+              "laneName": "To Do"
+            }
+          },
+          "PdVSa8SRHKACSzcbZu70": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1755845253327,
+            "details": {
+              "cardId": "k2vbyyOc5RkyyA1fWQE0",
+              "cardTitle": "New Card",
+              "laneId": "wGzrjxCb85kpTEqvaucY",
+              "laneName": "To Do"
+            }
+          },
+          "SZgrmbo6lFnrPsSeKPN1": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756052201348,
+            "details": {
+              "cardId": "9ZqnRBV0fWvaHh40wQwS",
+              "cardTitle": "New Card",
+              "sourceLaneId": "qesjwQS3saV9h3wzyYMz",
+              "sourceLaneName": "In Progress",
+              "destinationLaneId": "D8FI6YQaNYQLZavNCnyC",
+              "destinationLaneName": "To Do"
+            }
+          },
+          "Wwi6MHFIcWkrvU6lZKap": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756958191307,
+            "details": {
+              "cardId": "HpGRXT8zJVFwke2fKiVd",
+              "cardTitle": "Job Card Title",
+              "sourceLaneId": "qesjwQS3saV9h3wzyYMz",
+              "sourceLaneName": "In Progress",
+              "destinationLaneId": "D8FI6YQaNYQLZavNCnyC",
+              "destinationLaneName": "To Do"
+            }
+          },
+          "YErecfLlgMJKMW3NjdYm": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756052276335,
+            "details": {
+              "cardId": "FIFVO81Kg4EfzdCUpZwI",
+              "cardTitle": "New Cardๅ_กก",
+              "sourceLaneId": "qesjwQS3saV9h3wzyYMz",
+              "sourceLaneName": "In Progress",
+              "destinationLaneId": "nOsAcuKYIaNx4gDblwJO",
+              "destinationLaneName": "1111"
+            }
+          },
+          "dSH0dRhDp5BwwQToUf6j": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756092317443,
+            "details": {
+              "cardId": "FIFVO81Kg4EfzdCUpZwI",
+              "cardTitle": "123456",
+              "sourceLaneId": "nvx4rzpcNcJk8GIw4YsK",
+              "sourceLaneName": "Done",
+              "destinationLaneId": "qesjwQS3saV9h3wzyYMz",
+              "destinationLaneName": "In Progress"
+            }
+          },
+          "k9ZVRhpsMH40xdgDkVx0": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-update-field",
+            "timestamp": 1755857282003,
+            "details": {
+              "cardId": "k2vbyyOc5RkyyA1fWQE0",
+              "cardTitle": "New Cardด",
+              "fieldName": "Expenses"
+            }
+          },
+          "kXdr8iN8j1suwVxoSaZK": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756137392624,
+            "details": {
+              "cardId": "gyJt5atnNjuHOZRxbW0i",
+              "cardTitle": "New Job23",
+              "laneId": "D8FI6YQaNYQLZavNCnyC",
+              "laneName": "To Do"
+            }
+          },
+          "oFT0uQUr8RU7s07AgANu": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-move",
+            "timestamp": 1756052302923,
+            "details": {
+              "cardId": "FIFVO81Kg4EfzdCUpZwI",
+              "cardTitle": "123456",
+              "sourceLaneId": "nOsAcuKYIaNx4gDblwJO",
+              "sourceLaneName": "1111",
+              "destinationLaneId": "nvx4rzpcNcJk8GIw4YsK",
+              "destinationLaneName": "Done"
+            }
+          },
+          "ph1zNpg5zab1TNwWHu6g": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756930238926,
+            "details": {
+              "cardId": "bxcCuQimRU3tmcWvmFGJ",
+              "cardTitle": "Job Card Title",
+              "laneId": "qesjwQS3saV9h3wzyYMz",
+              "laneName": "In Progress"
+            }
+          },
+          "sn9v7FbTImAMRHvA0Nox": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "userDisplayName": "BewLnwZa",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756116207830,
+            "details": {
+              "cardId": "zurP2JTWc5PkQMxferzT",
+              "cardTitle": "New Job",
+              "laneId": "wGzrjxCb85kpTEqvaucY",
+              "laneName": "To Do"
+            }
+          },
+          "u7FPMvrUgjHO34Gvqhb9": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1756975590435,
+            "details": {
+              "cardId": "AhzmaDyKm4wwcMntM3hO",
+              "cardTitle": "Job Card Title",
+              "laneId": "qesjwQS3saV9h3wzyYMz",
+              "laneName": "In Progress"
+            }
+          },
+          "upWg6MSadbQleuGFwRsr": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1757235235152,
+            "details": {
+              "cardId": "RfdPz6jNnTRcoo2RR4nN",
+              "cardTitle": "test filter ",
+              "laneId": "nvx4rzpcNcJk8GIw4YsK",
+              "laneName": "Done"
+            }
+          },
+          "vmRw80PF3umcUg4xyrq5": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-update-field",
+            "timestamp": 1755848033365,
+            "details": {
+              "cardId": "k2vbyyOc5RkyyA1fWQE0",
+              "cardTitle": "New Cardด",
+              "fieldName": "Title",
+              "from": "New Card",
+              "to": "New Cardด"
+            }
+          },
+          "yJmq7O3k8wS7eRUtmgSl": {
+            "boardId": "uysAvnxpDG4EbdbI7r1Y",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "userDisplayName": "bew kiw",
+            "userPhotoURL": null,
+            "type": "card-create",
+            "timestamp": 1757228462972,
+            "details": {
+              "cardId": "gfUJ5fzJdxLAqEZsIMQw",
+              "cardTitle": "Test  archive",
+              "laneId": "Dnar5qTJf0aHEWHc55QY",
+              "laneName": "test"
+            }
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/boards": {
+          "Mop2RUYjlM9kRoXGa001": {
+            "createdAt": {
+              "_seconds": 1755854785,
+              "_nanoseconds": 712489000
+            },
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "lanes": [],
+            "memberUids": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "members": [
+              {
+                "displayName": "Mobile User",
+                "email": "mobile-user@example.com",
+                "language": "en",
+                "photoURL": null,
+                "role": "owner",
+                "uid": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "workspaces": []
+              }
+            ],
+            "name": "New Board",
+            "updatedAt": {
+              "_seconds": 1755854785,
+              "_nanoseconds": 712758000
+            },
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "todoTemplates": [
+              {
+                "id": "template-1756883110952",
+                "name": "bewtest 1111",
+                "todos": [
+                  {
+                    "title": "bewtest 1111 (1)",
+                    "dueInDays": 1
+                  },
+                  {
+                    "title": "bewtest 1111 (2)",
+                    "dueInDays": 1
+                  }
+                ]
+              },
+              {
+                "todos": [
+                  {
+                    "title": "bewtest11112 (1)",
+                    "dueInDays": 1
+                  },
+                  {
+                    "title": "bewtest11112 (2)",
+                    "dueInDays": 1
+                  }
+                ],
+                "id": "template-1756883120551",
+                "name": "bewtest11112"
+              }
+            ]
+          },
+          "uysAvnxpDG4EbdbI7r1Y": {
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "lanes": [],
+            "name": "My First Board",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "memberUids": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "d3z7heLqwYXXC3u3O9uR7iO9ium2"
+            ],
+            "members": [
+              {
+                "displayName": "User",
+                "email": "ja@gmail.com",
+                "language": "en",
+                "photoURL": null,
+                "role": "owner",
+                "uid": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "workspaces": []
+              },
+              {
+                "displayName": "BewLnwZa",
+                "uid": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+                "email": "jarukit.bunchan@gmail.com",
+                "photoURL": null,
+                "workspaces": [
+                  {
+                    "id": "xKnLu20t7n6A0IJxl4NN",
+                    "name": "test1",
+                    "role": "admin"
+                  }
+                ],
+                "language": "en"
+              }
+            ]
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/cards": {
+          "AhzmaDyKm4wwcMntM3hO": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [],
+            "customer": "Bew",
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "company": {
+              "label": "Main",
+              "id": "aVGCGee5LmYsr9oXYfE8",
+              "value": "colaco company"
+            },
+            "watchers": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "collaborators": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "createdAt": 1756975589247,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "startDate": 1756918800000,
+            "descriptionMentions": [],
+            "id": "AhzmaDyKm4wwcMntM3hO",
+            "isVatEnabled": true,
+            "additionalDiscount": {
+              "value": 97,
+              "type": "percentage"
+            },
+            "badges": [],
+            "dueDate": null,
+            "priority": null,
+            "endDate": 1758906000000,
+            "title": "Job Card Title1234",
+            "customId": "JB-250904-00431234",
+            "hashtags": [
+              {
+                "color": "#eab308",
+                "id": "bew1234455",
+                "text": "Bew1234455"
+              }
+            ],
+            "hashtag": "#Bew1234455",
+            "status": "Pending",
+            "notes": [
+              {
+                "id": "note-1756977906169",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userDisplayName": "bew kiw",
+                "userPhotoURL": null,
+                "text": "<p>test</p>",
+                "timestamp": 1756977906169,
+                "mentions": [],
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "cardTitle": "Job Card Title",
+                "type": "text"
+              },
+              {
+                "id": "note-1756977911696",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userDisplayName": "bew kiw",
+                "userPhotoURL": null,
+                "text": "<p>replytest</p>",
+                "timestamp": 1756977911696,
+                "mentions": [],
+                "parentId": "note-1756977906169",
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "cardTitle": "Job Card Title",
+                "type": "text"
+              },
+              {
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "mentions": [],
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "id": "note-1757176026052",
+                "text": "<p>1234</p>",
+                "cardTitle": "Job Card Title1234",
+                "type": "text",
+                "userPhotoURL": null,
+                "userDisplayName": "bew kiw",
+                "timestamp": 1757176026052
+              },
+              {
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "mentions": [],
+                "parentId": "note-1757176026052",
+                "id": "note-1757176041380",
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "text": "<p>1123344</p>",
+                "cardTitle": "Job Card Title1234",
+                "type": "text",
+                "userPhotoURL": null,
+                "userDisplayName": "bew kiw",
+                "timestamp": 1757176041380
+              }
+            ],
+            "attachments": [
+              {
+                "filename": "jpeg2.jpeg",
+                "id": "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/1756977560926-jpeg2.jpeg",
+                "name": "jpeg2.jpeg",
+                "size": 5827,
+                "uploadedAt": 1756977561769,
+                "uploadedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "url": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FxKnLu20t7n6A0IJxl4NN%2Fcards%2FAhzmaDyKm4wwcMntM3hO%2F1756977560926-jpeg2.jpeg?alt=media&token=87e11ad0-6989-4ac3-913f-f43d3741a371"
+              },
+              {
+                "filename": "jpeg1.jpeg",
+                "id": "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/1756977563859-jpeg1.jpeg",
+                "name": "jpeg1.jpeg",
+                "size": 55627,
+                "uploadedAt": 1756977564258,
+                "uploadedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "url": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FxKnLu20t7n6A0IJxl4NN%2Fcards%2FAhzmaDyKm4wwcMntM3hO%2F1756977563859-jpeg1.jpeg?alt=media&token=db6f932e-238b-4c2a-911e-8e2c70b3a5c2"
+              }
+            ],
+            "order": 0,
+            "customerInterest": "เริ่มต้น",
+            "laneId": "qesjwQS3saV9h3wzyYMz",
+            "updatedByDisplayName": "BewLnwZa",
+            "quotationTemplateId": "MwDjGmET9ECYTGveik98",
+            "formatDataExpense": {
+              "subTotal": 11274578,
+              "totalAfterDiscount": 338237.34,
+              "grandTotal": 361913.95,
+              "netTotal": 351766.83
+            },
+            "amount": 0,
+            "withholdingTaxPercentage": 3,
+            "expenses": [
+              {
+                "customInputs": {
+                  "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                  "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
+                  "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                },
+                "description": "",
+                "discount": 20,
+                "discountType": "percentage",
+                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
+                "name": "รายการ1",
+                "pricePerUnit": 1,
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "quantity": 1,
+                "unit": "จำนวน"
+              }
+            ],
+            "relatedDocuments": [
+              {
+                "id": "fan8Q0INnmXPI26bVeOq",
+                "docNo": "EST-250916-0055",
+                "type": "QT"
+              }
+            ],
+            "description": "<p><strong></strong></p><p><strong><strong></strong></strong></p><p><strong><strong><strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><strong></strong></strong></strong></strong></p><p><strong><strong><strong><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Detailstest1111111</u></em></strong></span></strong></strong></strong></p><p></p><p></p><p></p><p></p><p></p><p></p><p></p>",
+            "todos": [
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975522376",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
+              },
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975523853",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p>"
+              }
+            ],
+            "updatedAt": 1758082199776,
+            "subCollection": {
+              "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/expenses": {
+                "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN": {
+                  "customInputs": {
+                    "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
+                    "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                    "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
+                    "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                  },
+                  "description": "",
+                  "discount": 20,
+                  "discountType": "percentage",
+                  "name": "รายการ1",
+                  "order": 0,
+                  "pricePerUnit": 1,
+                  "productId": "34N6d2Az4sYF7ZHvyFHN",
+                  "quantity": 1,
+                  "unit": "จำนวน",
+                  "updatedAt": 1758082200085
+                }
+              }
+            }
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/companies": {
+          "Vr6SXzHlVkWsYJYnyiMJ": {
+            "name": "test112345",
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "customId": "COM-250822-0002",
+            "createdAt": 1755851285082,
+            "updatedAt": 1755851285082,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "associatedCustomerIds": [
+              "IhxyfTOYQ6k1UxmdMTT2"
+            ]
+          },
+          "Z1h1nm9GM2nfusJh7YuD": {
+            "name": "test",
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "customId": "COM-250822-0001",
+            "createdAt": 1755851273203,
+            "updatedAt": 1755851273203,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "associatedCustomerIds": [
+              "IhxyfTOYQ6k1UxmdMTT2"
+            ]
+          },
+          "aVGCGee5LmYsr9oXYfE8": {
+            "name": "colaco company",
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Main",
+                "value": ""
+              }
+            ],
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "customId": "COM-250902-0003",
+            "createdAt": 1756797510936,
+            "updatedAt": 1756797510936,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "associatedCustomerIds": [
+              "WNF9tUB8pFM6QKQw9Fj3"
+            ]
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/customers": {
+          "IhxyfTOYQ6k1UxmdMTT2": {
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Work",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Work",
+                "value": ""
+              }
+            ],
+            "customFields": [],
+            "name": "testssss",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "customId": "CUS-250822-0002",
+            "createdAt": 1755850137421,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "companyNames": [
+              {
+                "id": "Z1h1nm9GM2nfusJh7YuD",
+                "label": "Main",
+                "value": "test"
+              },
+              {
+                "id": "Vr6SXzHlVkWsYJYnyiMJ",
+                "label": "Main",
+                "value": "test112345"
+              }
+            ],
+            "assignees": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "updatedAt": 1757233137045
+          },
+          "WNF9tUB8pFM6QKQw9Fj3": {
+            "emails": [
+              {
+                "id": "email-initial",
+                "label": "Work",
+                "value": ""
+              }
+            ],
+            "phones": [
+              {
+                "id": "phone-initial",
+                "label": "Work",
+                "value": ""
+              }
+            ],
+            "customFields": [],
+            "name": "Bew",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "customId": "CUS-250822-0001",
+            "createdAt": 1755845245761,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "assignees": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "d3z7heLqwYXXC3u3O9uR7iO9ium2"
+            ],
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "companyNames": [
+              {
+                "id": "aVGCGee5LmYsr9oXYfE8",
+                "label": "Main",
+                "value": "colaco company"
+              }
+            ],
+            "updatedAt": 1756797511482
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/documents": {
+          "fan8Q0INnmXPI26bVeOq": {
+            "activityLog": [
+              {
+                "action": "Created",
+                "details": "Created quotation EST-250916-0055 from job card JB-250904-00431234",
+                "timestamp": 1758022559195,
+                "userDisplayName": "BewLnwZa",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+              }
+            ],
+            "createdAt": 1758022559195,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customer": {
+              "assignees": [
+                "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "d3z7heLqwYXXC3u3O9uR7iO9ium2"
+              ],
+              "companyNames": [
+                {
+                  "id": "aVGCGee5LmYsr9oXYfE8",
+                  "label": "Main",
+                  "value": "colaco company"
+                }
+              ],
+              "createdAt": 1755845245761,
+              "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "customFields": [],
+              "customId": "CUS-250822-0001",
+              "emails": [
+                {
+                  "id": "email-initial",
+                  "label": "Work",
+                  "value": ""
+                }
+              ],
+              "name": "Bew",
+              "phones": [
+                {
+                  "id": "phone-initial",
+                  "label": "Work",
+                  "value": ""
+                }
+              ],
+              "updatedAt": 1756797511482,
+              "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+              "workspaceId": "xKnLu20t7n6A0IJxl4NN"
+            },
+            "discount": 1.17,
+            "docNo": "EST-250916-0055",
+            "grandTotal": -0.18189999999999992,
+            "isVatEnabled": true,
+            "items": [
+              {
+                "customInputs": {
+                  "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                  "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
+                  "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                },
+                "description": "",
+                "discount": 20,
+                "discountType": "percentage",
+                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
+                "name": "รายการ1",
+                "pricePerUnit": 1,
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "quantity": 1,
+                "unit": "จำนวน"
+              }
+            ],
+            "jobCardBoardId": "Mop2RUYjlM9kRoXGa001",
+            "jobCardId": "AhzmaDyKm4wwcMntM3hO",
+            "jobName": "Job Card Title1234",
+            "jobcardCustomId": "JB-250904-00431234",
+            "netTotal": -0.17644299999999993,
+            "project": {
+              "name": "",
+              "refId": ""
+            },
+            "seller": {
+              "displayName": "BewLnwZa",
+              "photoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1757477615778-image_picker_ECC7211D-6E2F-4BFD-BF60-26E5C3832B13-18863-000000163018BDCE.jpg?alt=media&token=f34d4f45-4453-4bd5-b5e7-1c214c36fee2",
+              "uid": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            },
+            "sellerName": "BewLnwZa",
+            "status": "DRAFT",
+            "subtotal": 1,
+            "templateId": "MwDjGmET9ECYTGveik98",
+            "type": "QT",
+            "updatedAt": 1758022559195,
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "validUntil": 1760614559194,
+            "vatAmount": -0.011899999999999996,
+            "whtAmount": -0.0054569999999999974,
+            "withholdingTaxPercentage": 3,
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN"
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/lanes": {
+          "qesjwQS3saV9h3wzyYMz": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "cards": [],
+            "createdAt": {
+              "_seconds": 1755854785,
+              "_nanoseconds": 732911000
+            },
+            "hasMoreCards": false,
+            "name": "In Progress",
+            "order": 1,
+            "updatedAt": {
+              "_seconds": 1755854785,
+              "_nanoseconds": 732911000
+            },
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN"
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/products": {
+          "34N6d2Az4sYF7ZHvyFHN": {
+            "status": "draft",
+            "showInCatalog": true,
+            "customFields": [],
+            "imageUrl": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/products%2Fnew_product%2F1756351122351-jpg1.jpg%2F1756351122352-jpg1.jpg?alt=media&token=9c377737-3143-4918-846a-b5bb9dd373c1",
+            "name": "Example html",
+            "unit": "",
+            "costPrice": 0,
+            "initialStock": 0,
+            "reorderLevel": 0,
+            "targetStockLevel": 0,
+            "features": [],
+            "sku": "P-250828-0002",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "createdAt": 1756351145017,
+            "searchableKeywords": [
+              "example",
+              "html",
+              "p-250828-0002"
+            ],
+            "availableStock": 0,
+            "id": "34N6d2Az4sYF7ZHvyFHN",
+            "price": 10,
+            "updatedAt": 1757575916345
+          },
+          "RwedKMymVqN8W3nFYbJP": {
+            "status": "draft",
+            "showInCatalog": true,
+            "customFields": [],
+            "imageUrl": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/products%2Fnew_product%2F1756263863933-jpeg2.jpeg%2F1756263863933-jpeg2.jpeg?alt=media&token=e0953010-4c61-442f-b2ad-599a5725e28f",
+            "name": "test1",
+            "costPrice": 0,
+            "initialStock": 0,
+            "reorderLevel": 0,
+            "targetStockLevel": 0,
+            "features": [],
+            "sku": "P-250827-0001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "createdAt": 1756263867416,
+            "searchableKeywords": [
+              "test1",
+              "p-250827-0001"
+            ],
+            "availableStock": 0,
+            "id": "RwedKMymVqN8W3nFYbJP",
+            "price": 20,
+            "updatedAt": 1757575921843
+          }
+        },
+        "workspaces/xKnLu20t7n6A0IJxl4NN/quotationTemplates": {
+          "Fv9OBceNChku4n8jmx1P": {
+            "headers": [
+              {
+                "id": "header-cm-1",
+                "height": 200,
+                "displayOn": "first_page_only",
+                "components": [
+                  {
+                    "id": "comp-cm-company",
+                    "type": "text",
+                    "x": 50,
+                    "y": 50,
+                    "width": 300,
+                    "height": 50,
+                    "content": "<h1 style=\"font-size: 24px; font-weight: bold;\">{company.name}</h1>",
+                    "style": {
+                      "zIndex": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "footers": [],
+            "name": "Clean Minimal Quotation",
+            "createdAt": 1757575872115,
+            "page": {
+              "width": "210mm",
+              "height": "297mm",
+              "fontFamily": "Lato"
+            },
+            "body": {
+              "components": [
+                {
+                  "id": "comp-cm-customer",
+                  "width": 300,
+                  "height": 80,
+                  "x": 450,
+                  "type": "text",
+                  "style": {
+                    "zIndex": 1,
+                    "lineHeight": "1.6"
+                  },
+                  "content": "<p style=\"text-align: right;\"><b>To:</b> {customer.name}<br/>{customer.address}</p>",
+                  "y": 10
+                },
+                {
+                  "height": 600,
+                  "style": {
+                    "zIndex": 1,
+                    "headerHeight": 30,
+                    "headerStyle": {
+                      "isBold": true,
+                      "isUnderline": true
+                    },
+                    "headerColor": "#ffffff",
+                    "borderColor": "#000000"
+                  },
+                  "content": "",
+                  "x": 50,
+                  "type": "table",
+                  "id": "comp-cm-table",
+                  "y": 120,
+                  "columns": [
+                    {
+                      "sourceField": "name",
+                      "width": "60%",
+                      "isVisible": true,
+                      "type": "product_field",
+                      "id": "zu26Y",
+                      "order": 0,
+                      "isEditable": true,
+                      "style": {
+                        "fontSize": 13,
+                        "isBold": true
+                      },
+                      "label": "Description"
+                    },
+                    {
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "isVisible": true,
+                      "predefinedField": "quantity",
+                      "width": "10%",
+                      "id": "sUKnF",
+                      "order": 1,
+                      "type": "predefined",
+                      "label": "Qty",
+                      "isEditable": true,
+                      "align": "center"
+                    },
+                    {
+                      "isVisible": true,
+                      "align": "right",
+                      "label": "Unit Price",
+                      "isEditable": true,
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "id": "aWmaz",
+                      "order": 2,
+                      "type": "product_field",
+                      "sourceField": "pricePerUnit",
+                      "width": "15%"
+                    },
+                    {
+                      "isVisible": true,
+                      "isEditable": false,
+                      "order": 3,
+                      "style": {
+                        "fontSize": 13
+                      },
+                      "label": "Total",
+                      "align": "right",
+                      "id": "9OOhL",
+                      "predefinedField": "line_total",
+                      "type": "predefined",
+                      "width": "15%"
+                    },
+                    {
+                      "id": "zJ1Gk75NoiV4WxZT1yEZN",
+                      "label": "Test01",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 4,
+                      "prefillSourceField": "category"
+                    }
+                  ],
+                  "width": 700
+                },
+                {
+                  "x": 450,
+                  "summaryFields": {
+                    "subtotal": true,
+                    "grandTotal": true
+                  },
+                  "id": "comp-cm-summary",
+                  "height": 120,
+                  "type": "summary",
+                  "content": "",
+                  "y": 750,
+                  "style": {
+                    "zIndex": 1
+                  },
+                  "width": 300
+                }
+              ]
+            },
+            "updatedAt": 1757585582709
+          },
+          "MwDjGmET9ECYTGveik98": {
+            "headers": [
+              {
+                "id": "header-F9CECD-36OhaODcpp_1zb",
+                "height": 140,
+                "displayOn": "all_pages",
+                "components": [
+                  {
+                    "id": "comp-Vw8R8BE1x550kxTNyQflk",
+                    "type": "image",
+                    "x": 40,
+                    "y": 30,
+                    "width": 120,
+                    "height": 80,
+                    "content": "{company.logoUrl}",
+                    "style": {
+                      "zIndex": 1,
+                      "objectFit": "contain"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "header-x8fq4WhvXIAa4bkxkwslE",
+                "height": 120,
+                "displayOn": "first_page_only",
+                "components": [
+                  {
+                    "id": "comp-pS6iYWamiCS8_k8axiBB2",
+                    "type": "text",
+                    "x": 40,
+                    "y": 10,
+                    "width": 350,
+                    "height": 100,
+                    "content": "<p style=\"font-size: 14px; font-weight: bold;\">{company.name}</p><p style=\"font-size: 12px; color: #4b5563;\">{company.address}</p><p style=\"font-size: 12px; color: #4b5563;\">เลขประจำตัวผู้เสียภาษี: {company.taxId}</p>",
+                    "style": {
+                      "zIndex": 1,
+                      "lineHeight": "1.5"
+                    }
+                  },
+                  {
+                    "id": "comp-dbriUugADdKimGfugnm0S",
+                    "type": "shape",
+                    "x": 40,
+                    "y": 118,
+                    "width": 710,
+                    "height": 2,
+                    "style": {
+                      "zIndex": 0,
+                      "backgroundColor": "#e5e7eb"
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "comp-cpq-title",
+                    "type": "text",
+                    "x": 450,
+                    "y": 40,
+                    "width": 300,
+                    "height": 80,
+                    "content": "<h1 style=\"font-size: 28px; font-weight: bold; color: #111827;\">ใบเสนอราคา</h1><p style=\"font-size: 14px; color: #4b5563;\">QUOTATION</p>",
+                    "style": {
+                      "zIndex": 1,
+                      "textAlign": "right"
+                    }
+                  },
+                  {
+                    "id": "comp-cpq-docinfo",
+                    "type": "text",
+                    "x": 450,
+                    "y": 120,
+                    "width": 300,
+                    "height": 100,
+                    "content": "<table style=\"font-size: 12px; width: 100%;\"><tr><td style=\"font-weight: bold; text-align: right; padding: 2px 8px;\">เลขที่:</td><td style=\"text-align: right; padding: 2px;\">{quotation.docNo}</td></tr><tr><td style=\"font-weight: bold; text-align: right; padding: 2px 8px;\">วันที่:</td><td style=\"text-align: right; padding: 2px;\">{quotation.createdAt}</td></tr><tr><td style=\"font-weight: bold; text-align: right; padding: 2px 8px;\">ยืนราคาถึง:</td><td style=\"text-align: right; padding: 2px;\">{quotation.validUntil}</td></tr></table>",
+                    "style": {
+                      "zIndex": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "footers": [
+              {
+                "id": "footer-_oafkMNGuhswL79TBF9wa",
+                "height": 150,
+                "displayOn": "last_page_only",
+                "components": [
+                  {
+                    "id": "comp-YhIExP3XeMNMvjLhXd7Zt",
+                    "type": "text",
+                    "x": 40,
+                    "y": 20,
+                    "width": 350,
+                    "height": 100,
+                    "content": "<p style=\"font-weight: bold;\">การชำระเงิน:</p><p>{payment.bankName}</p><p>ชื่อบัญชี: {payment.accountName}</p><p>เลขที่บัญชี: {payment.accountNumber}</p>",
+                    "style": {
+                      "zIndex": 1,
+                      "fontSize": 12,
+                      "lineHeight": "1.6"
+                    }
+                  },
+                  {
+                    "id": "comp-Wm-JM6eGm_b4c-wKN3qnA",
+                    "type": "text",
+                    "x": 40,
+                    "y": 100,
+                    "width": 350,
+                    "height": 40,
+                    "content": "<p style=\"font-weight: bold;\">หมายเหตุ:</p><p style=\"color: #4b5563;\">{document.notes}</p>",
+                    "style": {
+                      "zIndex": 1,
+                      "fontSize": 12,
+                      "lineHeight": "1.6"
+                    }
+                  },
+                  {
+                    "id": "comp-POrrUO_zVcmuxUPzYeiIl",
+                    "type": "signature",
+                    "x": 500,
+                    "y": 30,
+                    "width": 200,
+                    "height": 80,
+                    "signatureRoleName": "ผู้อนุมัติ",
+                    "style": {
+                      "zIndex": 1
+                    },
+                    "content": ""
+                  }
+                ]
+              }
+            ],
+            "name": "Classic Professional Quotation",
+            "createdAt": 1757575845672,
+            "page": {
+              "width": "210mm",
+              "height": "297mm",
+              "fontFamily": "Sarabun",
+              "pageNumbering": {
+                "enabled": true,
+                "format": "Page {page}/{total}",
+                "position": "bottom_right"
+              }
+            },
+            "body": {
+              "components": [
+                {
+                  "x": 40,
+                  "type": "text",
+                  "id": "comp-Nv1HxD_6iueREMATlTi6v",
+                  "style": {
+                    "lineHeight": "1.5",
+                    "zIndex": 1
+                  },
+                  "y": 10,
+                  "height": 80,
+                  "content": "<p style=\"font-size: 12px; color: #4b5563;\">เรียน:</p><p style=\"font-size: 14px; font-weight: bold;\">{customer.name}</p><p style=\"font-size: 12px; color: #4b5563;\">{customer.address}</p><p style=\"font-size: 12px; color: #4b5563;\">เลขประจำตัวผู้เสียภาษี: {customer.nationalId}</p>",
+                  "width": 350
+                },
+                {
+                  "x": 40,
+                  "width": 710,
+                  "id": "comp-iIwpjyedgaN3TyTwOq3CV",
+                  "columns": [
+                    {
+                      "label": "รายการ",
+                      "order": 0,
+                      "style": {
+                        "isBold": true
+                      },
+                      "type": "product_field",
+                      "width": "20%",
+                      "isEditable": false,
+                      "id": "jSgce",
+                      "isVisible": true,
+                      "sourceField": "name"
+                    },
+                    {
+                      "width": "20%",
+                      "align": "center",
+                      "isEditable": true,
+                      "type": "predefined",
+                      "predefinedField": "quantity",
+                      "order": 1,
+                      "label": "จำนวน",
+                      "id": "ZD0jX",
+                      "isVisible": true
+                    },
+                    {
+                      "label": "ราคา/หน่วย",
+                      "type": "product_field",
+                      "width": "20%",
+                      "sourceField": "pricePerUnit",
+                      "id": "kHrfQ",
+                      "isEditable": true,
+                      "order": 2,
+                      "isVisible": true,
+                      "align": "right"
+                    },
+                    {
+                      "isEditable": false,
+                      "type": "predefined",
+                      "order": 3,
+                      "predefinedField": "line_total",
+                      "isVisible": true,
+                      "id": "AApPb",
+                      "width": "20%",
+                      "formula": "{quantity} * {pricePerUnit}",
+                      "align": "right",
+                      "label": "ยอดรวม"
+                    },
+                    {
+                      "prefillSourceField": "description",
+                      "isVisible": true,
+                      "inputType": "text",
+                      "id": "BZp1ilY7pFssB5cVhH_RP",
+                      "isEditable": true,
+                      "type": "user_input",
+                      "order": 4,
+                      "label": "BewLnwZa001",
+                      "width": "20%"
+                    },
+                    {
+                      "type": "user_input",
+                      "id": "nWnGJtH7SjOyYsBeK5LhX",
+                      "label": "Bew1150 ",
+                      "isVisible": true,
+                      "prefillSourceField": "name",
+                      "order": 5,
+                      "isEditable": true,
+                      "width": "20%"
+                    }
+                  ],
+                  "type": "table",
+                  "height": 500,
+                  "y": 100,
+                  "style": {
+                    "headerColor": "#f3f4f6",
+                    "headerHeight": 35,
+                    "zIndex": 1,
+                    "borderColor": "#d1d5db",
+                    "headerStyle": {
+                      "isBold": true
+                    }
+                  },
+                  "content": ""
+                },
+                {
+                  "x": 450,
+                  "width": 300,
+                  "height": 150,
+                  "y": 620,
+                  "type": "summary",
+                  "summaryFields": {
+                    "grandTotal": true,
+                    "discount": true,
+                    "subtotal": true,
+                    "vat": true,
+                    "wht": true,
+                    "netTotal": true
+                  },
+                  "style": {
+                    "zIndex": 1
+                  },
+                  "content": "",
+                  "id": "comp-cpq-summary"
+                }
+              ]
+            },
+            "updatedAt": 1757659443801
+          },
+          "v9GCzC6qLDd473ZCdIeD": {
+            "headers": [
+              {
+                "id": "header-ms-1",
+                "height": 100,
+                "displayOn": "all_pages",
+                "components": [
+                  {
+                    "id": "comp-ms-bg",
+                    "type": "shape",
+                    "x": 0,
+                    "y": 0,
+                    "width": 800,
+                    "height": 100,
+                    "content": "",
+                    "style": {
+                      "zIndex": 0,
+                      "backgroundColor": "#4f46e5"
+                    }
+                  },
+                  {
+                    "id": "comp-ms-logo",
+                    "type": "image",
+                    "x": 40,
+                    "y": 30,
+                    "width": 120,
+                    "height": 40,
+                    "content": "{company.logoUrl}",
+                    "style": {
+                      "zIndex": 1,
+                      "objectFit": "contain"
+                    }
+                  }
+                ]
+              }
+            ],
+            "footers": [
+              {
+                "id": "footer-ms-1",
+                "height": 80,
+                "displayOn": "all_pages",
+                "components": [
+                  {
+                    "id": "comp-ms-footer-bg",
+                    "type": "shape",
+                    "x": 0,
+                    "y": 0,
+                    "width": 800,
+                    "height": 80,
+                    "content": "",
+                    "style": {
+                      "zIndex": 0,
+                      "backgroundColor": "#f3f4f6"
+                    }
+                  },
+                  {
+                    "id": "comp-ms-footer-text",
+                    "type": "text",
+                    "x": 40,
+                    "y": 20,
+                    "width": 710,
+                    "height": 40,
+                    "content": "<p style=\"font-size:12px; color:#555; text-align:center;\">ขอบคุณที่ให้ความไว้วางใจ | Thank you for your business!<br/>{company.name} | {company.phone}</p>",
+                    "style": {
+                      "zIndex": 1
+                    }
+                  }
+                ]
+              }
+            ],
+            "name": "Modern Standard Quotation",
+            "createdAt": 1757575864078,
+            "page": {
+              "width": "210mm",
+              "height": "297mm",
+              "fontFamily": "Kanit",
+              "pageNumbering": {
+                "enabled": true,
+                "format": "Page {page}/{total}",
+                "position": "bottom_right"
+              }
+            },
+            "body": {
+              "components": [
+                {
+                  "id": "comp-ms-customer",
+                  "height": 60,
+                  "style": {
+                    "zIndex": 1
+                  },
+                  "type": "text",
+                  "y": 120,
+                  "width": 300,
+                  "x": 40,
+                  "content": "<p style=\"color:#666;\">Prepared for:</p><h2 style=\"font-size: 16px; font-weight: bold;\">{customer.name}</h2>"
+                },
+                {
+                  "x": 40,
+                  "height": 500,
+                  "style": {
+                    "textColor": "#ffffff",
+                    "headerColor": "#4f46e5",
+                    "headerHeight": 40,
+                    "zIndex": 1
+                  },
+                  "id": "comp-ms-table",
+                  "width": 710,
+                  "type": "table",
+                  "y": 200,
+                  "content": "",
+                  "columns": [
+                    {
+                      "prefillSourceField": "sku",
+                      "isVisible": true,
+                      "order": 5,
+                      "type": "user_input",
+                      "label": "SKU",
+                      "isEditable": true,
+                      "id": "Ww9jjpqJA3_-4QBgWvXXP"
+                    },
+                    {
+                      "id": "x5CGZ5H50xV6Dj4iCI2ea",
+                      "label": "Test01234",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 1
+                    },
+                    {
+                      "id": "hDN5ufHcsU0plBqbdLq_o",
+                      "label": "New Column",
+                      "type": "user_input",
+                      "isVisible": true,
+                      "isEditable": true,
+                      "order": 2
+                    }
+                  ]
+                },
+                {
+                  "summaryFields": {
+                    "vat": true,
+                    "grandTotal": true,
+                    "subtotal": true,
+                    "discount": true
+                  },
+                  "style": {
+                    "zIndex": 1
+                  },
+                  "y": 720,
+                  "width": 300,
+                  "id": "comp-ms-summary",
+                  "type": "summary",
+                  "content": "",
+                  "x": 450,
+                  "height": 150
+                }
+              ]
+            },
+            "updatedAt": 1757918450286
+          }
+        }
+      }
+    }
+  }
+}

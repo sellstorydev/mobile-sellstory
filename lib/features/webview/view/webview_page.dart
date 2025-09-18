@@ -161,45 +161,45 @@ class _WebViewPageState extends State<WebViewPage> {
           //   tooltip: 'Reload',
           // ),
           // More options
-          PopupMenuButton<String>(
-            onSelected: (value) => _handleMenuAction(value),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'inject_data',
-                child: Row(
-                  children: [
-                    Icon(Icons.code, size: 20),
-                    SizedBox(width: 12),
-                    Text('Inject Data'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'show_parameters',
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 20),
-                    SizedBox(width: 12),
-                    Text('Show Parameters'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'copy_url',
-                child: Row(
-                  children: [
-                    Icon(Icons.copy, size: 20),
-                    SizedBox(width: 12),
-                    Text('Copy URL'),
-                  ],
-                ),
-              ),
-            ],
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(Icons.more_vert),
-            ),
-          ),
+          // PopupMenuButton<String>(
+          //   onSelected: (value) => _handleMenuAction(value),
+          //   itemBuilder: (context) => [
+          //     const PopupMenuItem(
+          //       value: 'inject_data',
+          //       child: Row(
+          //         children: [
+          //           Icon(Icons.code, size: 20),
+          //           SizedBox(width: 12),
+          //           Text('Inject Data'),
+          //         ],
+          //       ),
+          //     ),
+          //     const PopupMenuItem(
+          //       value: 'show_parameters',
+          //       child: Row(
+          //         children: [
+          //           Icon(Icons.info_outline, size: 20),
+          //           SizedBox(width: 12),
+          //           Text('Show Parameters'),
+          //         ],
+          //       ),
+          //     ),
+          //     const PopupMenuItem(
+          //       value: 'copy_url',
+          //       child: Row(
+          //         children: [
+          //           Icon(Icons.copy, size: 20),
+          //           SizedBox(width: 12),
+          //           Text('Copy URL'),
+          //         ],
+          //       ),
+          //     ),
+          //   ],
+          //   child: const Padding(
+          //     padding: EdgeInsets.all(8.0),
+          //     child: Icon(Icons.more_vert),
+          //   ),
+          // ),
         ],
       ),
       body: Column(

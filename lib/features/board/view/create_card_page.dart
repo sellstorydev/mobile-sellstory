@@ -4,10 +4,12 @@ import '../../../core/theme/app_theme.dart';
 
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
-import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../data/services/firestore_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
+import '../../customers/view/add_edit_customer_page.dart';
+import '../../../core/widgets/hashtag_input_field.dart';
+import '../../../core/services/hashtag_service.dart';
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -39,10 +41,16 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   // HTML Editor controller
   final HtmlEditorController _htmlEditorController = HtmlEditorController();
+  bool _isHtmlEditorReady = false;
+  
+  // Fallback controller for description if HTML editor fails
+  final TextEditingController _descriptionFallbackController = TextEditingController();
 
   
   // Hashtag state
-  List<Map<String, dynamic>> _selectedHashtags = [];
+  List<String> _selectedHashtagIds = [];
+  List<HashtagOption> _availableHashtags = [];
+  final HashtagService _hashtagService = HashtagService();
   
   // Todo state
   List<Map<String, dynamic>> _todoItems = [];
@@ -97,6 +105,61 @@ class _CreateCardPageState extends State<CreateCardPage> {
     _initializeData().then((_) {
       setState(() {});
     });
+    _loadHashtags();
+  }
+
+  List<String> get _selectedHashtagTexts {
+    return _selectedHashtagIds.map((id) {
+      final hashtag = _availableHashtags.firstWhere(
+        (h) => h.id == id,
+        orElse: () => HashtagOption(
+          id: id, 
+          name: id, 
+          color: '#6B7280', 
+          scopes: {},
+          totalUsage: 0,
+          enabled: true,
+        ),
+      );
+      return hashtag.name;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _selectedHashtagsAsMap {
+    return _selectedHashtagIds.map((id) {
+      final hashtag = _availableHashtags.firstWhere(
+        (h) => h.id == id,
+        orElse: () => HashtagOption(
+          id: id, 
+          name: id, 
+          color: '#6B7280', 
+          scopes: {},
+          totalUsage: 0,
+          enabled: true,
+        ),
+      );
+      return {
+        'text': hashtag.name,
+        'color': hashtag.color,
+      };
+    }).toList();
+  }
+
+  Future<void> _loadHashtags() async {
+    try {
+      final wsId = widget.workspaceId;
+      if (wsId == null || wsId.isEmpty) {
+        print('⚠️ Skip loading hashtags: workspaceId is null/empty');
+        return;
+      }
+      final hashtags = await _hashtagService.getHashtagsByScope(wsId, 'jobBoard');
+      _availableHashtags = hashtags;
+      if (mounted) setState(() {});
+      print('✅ Hashtags loaded: ${_availableHashtags.length} hashtags');
+    } catch (e) {
+      if (mounted) setState(() {});
+      print('❌ Failed to load hashtags: $e');
+    }
   }
 
   Future<void> _initializeData() async {
@@ -271,29 +334,35 @@ class _CreateCardPageState extends State<CreateCardPage> {
           };
         }
         
-        setState(() {
-          _availableCompanies = companyMap.values.toList();
-          _selectedCompany = 'none';
-        });
+        if (mounted) {
+          setState(() {
+            _availableCompanies = companyMap.values.toList();
+            _selectedCompany = 'none';
+          });
+        }
         
         print('✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies');
       } else {
+        if (mounted) {
+          setState(() {
+            _availableCompanies = [
+              {'id': 'none', 'name': 'None'},
+            ];
+            _selectedCompany = 'none';
+          });
+        }
+        print('⚠️ No companies found for customer');
+      }
+    } catch (e) {
+      print('❌ Failed to load companies for customer: $e');
+      if (mounted) {
         setState(() {
           _availableCompanies = [
             {'id': 'none', 'name': 'None'},
           ];
           _selectedCompany = 'none';
         });
-        print('⚠️ No companies found for customer');
       }
-    } catch (e) {
-      print('❌ Failed to load companies for customer: $e');
-      setState(() {
-        _availableCompanies = [
-          {'id': 'none', 'name': 'None'},
-        ];
-        _selectedCompany = 'none';
-      });
     }
   }
 
@@ -445,10 +514,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
       todo['controller']?.dispose();
     }
     
+    // Skip HTML editor disposal to prevent JavaScript evaluation errors
+    // The HTML editor will be automatically disposed when the widget tree is destroyed
+    print('⚠️ Skipping HTML editor disposal to prevent JavaScript evaluation errors');
+    
     _jobIdController.dispose();
     _titleController.dispose();
     _assigneeController.dispose();
     _detailsController.dispose();
+    _descriptionFallbackController.dispose();
     super.dispose();
   }
 
@@ -572,11 +646,66 @@ class _CreateCardPageState extends State<CreateCardPage> {
         'mentions': [],
       }).toList();
 
-      // Format description as HTML from HTML editor
+      // Format description as HTML from HTML editor with webview disposal protection
       String htmlDescription = '';
-      final editorContent = await _htmlEditorController.getText();
-      if (editorContent.isNotEmpty) {
-        htmlDescription = editorContent;
+      try {
+        print('🔍 HTML Editor Save Debug (Create):');
+        print('  - _isHtmlEditorReady: $_isHtmlEditorReady');
+        print('  - Fallback controller text: "${_descriptionFallbackController.text}"');
+        
+        // Check if we're in the middle of disposal
+        if (!mounted) {
+          print('⚠️ Widget not mounted, skipping HTML editor access');
+          htmlDescription = _descriptionFallbackController.text;
+        } else if (_isHtmlEditorReady) {
+          // Add additional safety check before getText()
+          try {
+            // Add timeout to prevent indefinite waiting
+            final textFuture = _htmlEditorController.getText();
+            final editorContent = await textFuture.timeout(
+              const Duration(seconds: 3),
+              onTimeout: () {
+                print('⚠️ HTML editor getText timeout, using fallback');
+                return _descriptionFallbackController.text;
+              },
+            );
+            
+            print('  - HTML editor getText() result: "$editorContent"');
+            if (editorContent.isNotEmpty) {
+              htmlDescription = editorContent;
+              print('✅ Successfully retrieved HTML editor content: ${htmlDescription.length} chars');
+            } else {
+              print('⚠️ HTML editor returned empty content, using fallback');
+              htmlDescription = _descriptionFallbackController.text;
+            }
+          } catch (innerE) {
+            print('⚠️ Inner error during getText(): $innerE');
+            htmlDescription = _descriptionFallbackController.text;
+          }
+        } else {
+          print('⚠️ HTML editor not ready, using fallback controller');
+          htmlDescription = _descriptionFallbackController.text;
+        }
+        
+        print('  - Final htmlDescription: "$htmlDescription"');
+      } catch (e) {
+        print('⚠️ Error getting HTML editor content: $e');
+        
+        // Always use fallback for any error
+        htmlDescription = _descriptionFallbackController.text;
+        
+        // For specific MissingPluginException, show more informative error
+        if (e.toString().contains('MissingPluginException') || 
+            e.toString().contains('evaluateJavascript')) {
+          print('⚠️ WebView plugin error detected - using fallback content');
+          
+          if (htmlDescription.isEmpty) {
+            // Show warning that description wasn't saved
+            if (!_isHtmlEditorReady) {
+              _showHtmlEditorWarningDialog();
+            }
+          }
+        }
       }
 
       final card = JobCard(
@@ -589,7 +718,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         dueDate: null, // Not using dueDate anymore
         startDate: _startDate,
         endDate: _endDate,
-        badges: _selectedHashtags.map((h) => h['text'] as String).toList(),
+        badges: _selectedHashtagTexts,
         amount: 0.0,
         laneId: _selectedLane.isNotEmpty ? _selectedLane : '',
         boardId: currentBoardId,
@@ -602,8 +731,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
         company: companyData, // Store company as object with id, label, value
         customerInterest: _selectedCustomerInterest,
-        hashtag: _selectedHashtags.isNotEmpty ? _selectedHashtags.map((h) => '#${h['text']}').join(' ') : null,
-        hashtags: _selectedHashtags,
+        hashtag: _selectedHashtagTexts.isNotEmpty ? _selectedHashtagTexts.map((text) => '#$text').join(' ') : null,
+        hashtags: _selectedHashtagsAsMap,
         expenses: [],
         todos: todosData,
         notes: [],
@@ -632,18 +761,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
       print('✅ Card created successfully with ID: $cardId');
 
-      // Show success message and navigate back immediately
-      Get.snackbar(
-        'Success',
-        'Job Card created successfully',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 1),
-      );
-
-      print('🔄 CreateCardPage._saveCard - Navigating back...');
-      
       // Reset loading state before navigation
       if (mounted) {
         setState(() {
@@ -653,6 +770,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
         // Navigate back immediately after success
         Navigator.of(context).pop();
         print('✅ CreateCardPage._saveCard - Navigation completed');
+        
+        // Show warning dialog if HTML editor was unavailable
+        if (!_isHtmlEditorReady) {
+          _showHtmlEditorWarningDialog();
+        }
       } else {
         print('⚠️ CreateCardPage._saveCard - Widget not mounted, cannot navigate');
       }
@@ -676,6 +798,53 @@ class _CreateCardPageState extends State<CreateCardPage> {
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
       colorText: Colors.white,
+    );
+  }
+
+  void _showHtmlEditorWarningDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.orange,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.white, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Warning',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Description editor unavailable, card will be created without description. You can edit it later.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -720,36 +889,50 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ),
       );
     }
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Job Card'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
+    return PopScope(
+      canPop: _isHtmlEditorReady,
+      onPopInvoked: (didPop) {
+        if (!didPop && !_isHtmlEditorReady) {
+          // Show message to user that they need to wait
+          // Get.snackbar(
+          //   'Please Wait',
+          //   'HTML editor is still loading. Please wait a moment before going back.',
+          //   backgroundColor: Colors.orange,
+          //   colorText: Colors.white,
+          //   duration: const Duration(seconds: 2),
+          // );
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Create Job Card'),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
         actions: [
           // Action menu
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              // Add watcher functionality will be implemented later
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem<String>(
-                value: 'add_watcher',
-                child: Row(
-                  children: [
-                    const Icon(Icons.visibility_outlined, size: 20),
-                    const SizedBox(width: 12),
-                    const Text('Add a watcher'),
-                  ],
-                ),
-              ),
-            ],
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(Icons.more_vert),
-            ),
-          ),
-          // Close button
+          // PopupMenuButton<String>(
+          //   onSelected: (value) {
+          //     // Add watcher functionality will be implemented later
+          //   },
+          //   itemBuilder: (context) => [
+          //     PopupMenuItem<String>(
+          //       value: 'add_watcher',
+          //       child: Row(
+          //         children: [
+          //           const Icon(Icons.visibility_outlined, size: 20),
+          //           const SizedBox(width: 12),
+          //           const Text('Add a watcher'),
+          //         ],
+          //       ),
+          //     ),
+          //   ],
+          //   child: const Padding(
+          //     padding: EdgeInsets.all(8.0),
+          //     child: Icon(Icons.more_vert),
+          //   ),
+          // ),
+          // // Close button
           IconButton(
             onPressed: () => Get.back(),
             icon: const Icon(Icons.close),
@@ -849,6 +1032,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   _buildActionButtons(),
                 ],
               ),
+      ),
     );
   }
 
@@ -1024,103 +1208,32 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ],
         ),
         const SizedBox(height: 12),
-        InkWell(
-          onTap: _openHashtagModal,
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 56),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[50],
-            ),
-            child: _selectedHashtags.isEmpty
-                ? Row(
-                    children: [
-                      Icon(Icons.add_circle_outline, size: 20, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Tap to select hashtags...',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.check_circle, size: 16, color: Colors.purple[700]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Selected (${_selectedHashtags.length})',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.purple[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _selectedHashtags.map((hashtag) {
-                          return Chip(
-                            label: Text(
-                              '#${hashtag['text']}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            backgroundColor: Color(int.parse(hashtag['color'].replaceFirst('#', '0xff'))),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.edit, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Tap to edit selection',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-          ),
+        HashtagInputField(
+          selectedHashtags: _selectedHashtagIds,
+          availableHashtags: _availableHashtags,
+          onHashtagsChanged: (selectedHashtagIds) {
+            setState(() {
+              _selectedHashtagIds = selectedHashtagIds;
+            });
+          },
+          label: 'Hashtags',
+          hintText: 'Select hashtags',
+          workspaceId: widget.workspaceId,
         ),
       ],
     );
   }
-  
-  void _openHashtagModal() {
-    showDialog(
-      context: context,
-      builder: (context) => HashtagSelectionModal(
-        selectedHashtags: _selectedHashtags,
-        onHashtagsSelected: (selectedHashtags) {
-          setState(() {
-            _selectedHashtags = selectedHashtags;
-          });
-        },
-      ),
+
+  Future<void> _openAddCustomerPage() async {
+    final result = await Get.to(
+      () => const AddEditCustomerPage(customerSources: []),
     );
+    
+    if (result == true) {
+      // Refresh customer list after adding new customer
+      await _loadAvailableOptions();
+      setState(() {});
+    }
   }
 
   Widget _buildAssigneeSection() {
@@ -1210,22 +1323,20 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 },
               ),
             ),
-            // const SizedBox(width: 8),
-            // ElevatedButton.icon(
-            //   onPressed: () {
-            //     // New customer functionality will be implemented later
-            //   },
-            //   icon: const Icon(Icons.add, size: 16),
-            //   label: const Text('New'),
-            //   style: ElevatedButton.styleFrom(
-            //     backgroundColor: AppTheme.primaryOrange,
-            //     foregroundColor: Colors.white,
-            //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            //     shape: RoundedRectangleBorder(
-            //       borderRadius: BorderRadius.circular(6),
-            //     ),
-            //   ),
-            // ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _openAddCustomerPage,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
           ],
         ),
       ],
@@ -1906,8 +2017,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
             controller: _htmlEditorController,
             htmlEditorOptions: const HtmlEditorOptions(
               hint: 'Enter description...',
-              shouldEnsureVisible: true,
+              shouldEnsureVisible: false,
               initialText: '',
+              characterLimit: 10000,
             ),
             htmlToolbarOptions: const HtmlToolbarOptions(
               toolbarPosition: ToolbarPosition.aboveEditor,
@@ -1925,6 +2037,21 @@ class _CreateCardPageState extends State<CreateCardPage> {
             ),
             otherOptions: const OtherOptions(
               height: 150,
+            ),
+            callbacks: Callbacks(
+              onInit: () {
+                print('🔄 HTML editor initialized successfully');
+                setState(() {
+                  _isHtmlEditorReady = true;
+                });
+              },
+              onChangeContent: (String? changed) {
+                // Sync HTML editor content to fallback controller for error handling
+                if (changed != null && mounted) {
+                  _descriptionFallbackController.text = changed;
+                  print('🔄 Synced HTML content to fallback: ${changed.length} chars');
+                }
+              },
             ),
           ),
         ),

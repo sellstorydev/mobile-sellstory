@@ -56,6 +56,49 @@ extension FirestoreRepositoryExtras on FirestoreRepository {
     });
   }
 
+  Future<void> updateNoteInCard(String workspaceId, String cardId, String noteId, Map<String, dynamic> updates) async {
+    final cardRef = FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('cards')
+        .doc(cardId);
+    
+    final cardDoc = await cardRef.get();
+    if (!cardDoc.exists) return;
+    
+    final cardData = cardDoc.data()!;
+    final notes = List<Map<String, dynamic>>.from(cardData['notes'] ?? []);
+    
+    // Find and update the note
+    for (int i = 0; i < notes.length; i++) {
+      if (notes[i]['id'] == noteId) {
+        notes[i].addAll(updates);
+        break;
+      }
+    }
+    
+    await cardRef.update({'notes': notes});
+  }
+
+  Future<void> deleteNoteFromCard(String workspaceId, String cardId, String noteId) async {
+    final cardRef = FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('cards')
+        .doc(cardId);
+    
+    final cardDoc = await cardRef.get();
+    if (!cardDoc.exists) return;
+    
+    final cardData = cardDoc.data()!;
+    final notes = List<Map<String, dynamic>>.from(cardData['notes'] ?? []);
+    
+    // Remove the note with matching ID
+    notes.removeWhere((note) => note['id'] == noteId);
+    
+    await cardRef.update({'notes': notes});
+  }
+
   Future<void> deleteCard(String workspaceId, String cardId) async {
     final cardRef = FirebaseFirestore.instance
         .collection('workspaces')
