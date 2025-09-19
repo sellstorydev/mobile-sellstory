@@ -139,6 +139,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ),
       );
       return {
+        'id': hashtag.id,
         'text': hashtag.name,
         'color': hashtag.color,
       };

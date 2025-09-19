@@ -6,6 +6,74 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 
+##
+Topic: fix hashtag.
+Detail: hashtag input on Assignment and tags in create_card_page.dart store wrong data to firestore, hashtag should have id and mapping color in hashtagSettings .
+Path: /workspaces/{workspace id}
+```
+        "hashtagSettings": {
+          "isEnabled": true,
+          "mode": "global",
+          "automation": {
+            "autoCreateFromChat": false
+          },
+          "masterList": [
+            {
+              "count": 0,
+              "color": "#f97316",
+              "name": "Bew213",
+              "id": "bew213",
+              "enabled": true,
+              "scopes": {
+                "chat": true,
+                "company": true,
+                "customer": true,
+                "jobBoard": true,
+                "product": true
+              },
+              "totalUsage": 1,
+              "usage": {
+                "jobBoard": 1
+              }
+            },
+            {
+              "id": "bew1234455",
+              "name": "Bew1234455",
+              "enabled": true,
+              "scopes": {
+                "jobBoard": true,
+                "customer": true,
+                "product": true,
+                "chat": true,
+                "company": true
+              },
+              "count": 0,
+              "color": "#eab308"
+            }
+          ]
+        },
+```
+
+Wrong data
+```
+    {
+        "color": "#6B7280",
+        "text": "Bew213"
+    },
+    {
+        "color": "#6B7280",
+        "text": "Bew1234455"
+    }
+```
+
+True data
+```
+    {
+        "color": "#eab308",
+        "id": "bew1234455",
+        "text": "Bew1234455"
+    }
+```
 
 ## 
 Topic: html editor scroll

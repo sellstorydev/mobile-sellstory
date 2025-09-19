@@ -2,6 +2,13 @@
 
 ## Recent Changes
 
+### Hashtag Save Data Mapping Fix (September 19, 2025)
+
+- Fixed hashtag save mapping in both create and edit card pages to include proper `id` field from masterList
+- Modified `_selectedHashtagsAsMap` getter to return hashtag data with correct structure: `{id, text, color}`
+- Ensures saved hashtags reference actual hashtagSettings masterList entries instead of default gray fallbacks
+- Resolves issue where hashtags saved with generic `#6B7280` color instead of proper masterList colors
+
 ### Auto-Scroll Prevention Fix in edit_card_page.dart (September 19, 2025)
 
 - Disabled `HtmlEditorOptions.shouldEnsureVisible` (set to `false`) in `edit_card_page.dart` to stop the page from auto-scrolling to the HTML editor when it finishes loading. This matches the behavior already applied in `create_card_page.dart` and keeps the scroll position at the top on entry.

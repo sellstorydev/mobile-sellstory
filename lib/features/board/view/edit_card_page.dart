@@ -360,6 +360,7 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       );
       return {
+        'id': hashtag.id,
         'text': hashtag.name,
         'color': hashtag.color,
       };
