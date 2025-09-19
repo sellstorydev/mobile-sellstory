@@ -44,10 +44,24 @@
 ### Document View Page Implementation (September 18, 2025)
 - **Created**: New `DocumentViewPage` widget for viewing documents in webview
 - **Features**:
-  - Displays documents at URL pattern: `http://localhost:3000/doc/{type}/{uid}`
+  - Displays documents using API-based webview URL fetching via `/api/mobile/document/share`
   - Supports all document types: quotations (QT), invoices (INV), receipts (RT)
   - Full-screen webview with loading indicators and error handling
   - Edit button that navigates to document edit page and refreshes view on return
+  - User authentication and workspace context handling
+  - Responsive viewport injection for mobile optimization
+
+### Document Webview API Integration (Latest - September 19, 2025)
+- **Updated WebviewApiService**: Added `getDocumentShareUrl()` method for secure document viewing
+- **API Endpoint**: `/api/mobile/document/share` with userId, workspaceId, documentId, and documentType parameters
+- **Enhanced DocumentViewPage**:
+  - Uses dependency injection to get WebviewApiService from GetX DI container
+  - Automatically fetches current user's workspace from Firestore
+  - Dynamically loads document URLs through API instead of hardcoded patterns
+  - Proper error handling for authentication and API failures
+  - Maps document types (QT→quotation, INV→invoice, RT→receipt) for API calls
+- **Security**: All document access goes through authenticated API endpoints with proper user/workspace validation
+- **Implementation**: Replaces direct URL construction with secure API-based URL fetching for enhanced security and flexibility
   - Floating action button for quick edit access
   - Menu options for reload, open in browser, and share
   - Document type-specific titles using translations

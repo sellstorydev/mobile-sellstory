@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/network/mobile_api.dart';
+import '../../../data/services/webview_api_service.dart';
 import '../view/add_edit_document_page.dart';
 
 class DocumentViewPage extends StatefulWidget {
@@ -22,9 +24,12 @@ class DocumentViewPage extends StatefulWidget {
 }
 
 class _DocumentViewPageState extends State<DocumentViewPage> {
-  late WebViewController _webViewController;
+  WebViewController? _webViewController;
   bool _isLoading = true;
   String _errorMessage = '';
+  late WebviewApiService _webviewApiService;
+  String? _currentUserId;
+  String? _currentWorkspaceId;
 
   String get _documentTypeLabel {
     switch (widget.documentType.toUpperCase()) {
@@ -39,31 +44,85 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
     }
   }
 
-  String get _documentUrl {
-    String type;
+  String get _documentTypeName {
     switch (widget.documentType.toUpperCase()) {
       case 'QT':
-        type = 'quotation';
-        break;
+        return 'quotation';
       case 'INV':
-        type = 'invoice';
-        break;
+        return 'invoice';
       case 'RT':
-        type = 'receipt';
-        break;
+        return 'receipt';
       default:
-        type = 'document';
+        return 'document';
     }
-    return '${MobileApiConfig.baseUrl}/doc/$type/${widget.documentId}';
   }
 
   @override
   void initState() {
     super.initState();
-    _initializeWebView();
+    _initializeServices();
   }
 
-  void _initializeWebView() {
+  Future<void> _initializeServices() async {
+    try {
+      // Initialize WebviewApiService from DI container
+      _webviewApiService = Get.find<WebviewApiService>();
+
+      // Get current user and workspace
+      await _initializeUserAndWorkspace();
+
+      // Initialize WebView
+      await _initializeWebView();
+    } catch (e) {
+      print('❌ Failed to initialize services: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to initialize: $e';
+        });
+      }
+    }
+  }
+
+  Future<void> _initializeUserAndWorkspace() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      _currentUserId = user.uid;
+
+      // Get user's workspace information from Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        if (userData != null && userData['workspaces'] != null) {
+          final workspaces = userData['workspaces'] as List;
+          if (workspaces.isNotEmpty) {
+            _currentWorkspaceId = workspaces[0]['id'] as String;
+          }
+        }
+      }
+
+      if (_currentWorkspaceId == null) {
+        throw Exception('No workspace found for user');
+      }
+    } catch (e) {
+      print('❌ Failed to initialize user and workspace: $e');
+      throw e;
+    }
+  }
+
+  Future<void> _initializeWebView() async {
+    if (_currentUserId == null || _currentWorkspaceId == null) {
+      throw Exception('User ID or Workspace ID not available');
+    }
+
     // Initialize WebView controller
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -91,8 +150,6 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
                 _isLoading = false;
               });
             }
-            // Inject viewport and scaling JavaScript after page loads
-            _injectViewportScript();
           },
           onWebResourceError: (WebResourceError error) {
             if (mounted) {
@@ -105,80 +162,65 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
         ),
       );
 
-    // Load the document URL
-    _webViewController.loadRequest(Uri.parse(_documentUrl));
+    // Get document URL from API
+    try {
+      final documentUrl = await _webviewApiService.getDocumentShareUrl(
+        documentId: widget.documentId,
+        documentType: _documentTypeName,
+      );
+
+      if (documentUrl != null && _webViewController != null) {
+        // Load the document URL
+        _webViewController!.loadRequest(Uri.parse(documentUrl));
+      } else {
+        throw Exception('Failed to get document share URL');
+      }
+    } catch (e) {
+      print('❌ Error getting document URL: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to load document: $e';
+        });
+      }
+    }
   }
 
-  void _reloadPage() {
+  Future<void> _reloadPage() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
-    _webViewController.reload();
+
+    try {
+      if (_currentUserId != null && _currentWorkspaceId != null) {
+        final documentUrl = await _webviewApiService.getDocumentShareUrl(
+          documentId: widget.documentId,
+          documentType: _documentTypeName,
+        );
+
+        if (documentUrl != null && _webViewController != null) {
+          _webViewController!.loadRequest(Uri.parse(documentUrl));
+        } else {
+          throw Exception('Failed to get document share URL');
+        }
+      } else {
+        _webViewController?.reload();
+      }
+    } catch (e) {
+      print('❌ Error reloading document: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to reload document: $e';
+        });
+      }
+    }
   }
 
   void _forceResponsiveReload() {
     // First reload, then inject viewport script after a delay
-    _reloadPage();
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      _injectViewportScript();
-    });
-  }
-
-  void _injectViewportScript() {
-    // Inject viewport meta tag and responsive CSS
-    final viewportScript = '''
-      // Add or update viewport meta tag
-      var viewport = document.querySelector('meta[name="viewport"]');
-      if (!viewport) {
-        viewport = document.createElement('meta');
-        viewport.name = 'viewport';
-        document.head.appendChild(viewport);
-      }
-      viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-      
-      // Add responsive CSS
-      var style = document.createElement('style');
-      style.textContent = `
-        body {
-          -webkit-text-size-adjust: 100% !important;
-          -ms-text-size-adjust: 100% !important;
-          text-size-adjust: 100% !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          overflow-x: auto !important;
-        }
-        
-        * {
-          max-width: 100% !important;
-          box-sizing: border-box !important;
-        }
-        
-        img, video, iframe, embed, object {
-          max-width: 100% !important;
-          height: auto !important;
-        }
-        
-        table {
-          width: 100% !important;
-          table-layout: fixed !important;
-        }
-        
-        .container, .content, .main {
-          width: 100% !important;
-          max-width: 100% !important;
-          padding: 10px !important;
-        }
-      `;
-      document.head.appendChild(style);
-      
-      // Force reflow
-      document.body.style.zoom = '1';
-      
-      console.log('Viewport and responsive CSS injected');
-    ''';
-
-    _webViewController.runJavaScript(viewportScript);
+    // _reloadPage();
   }
 
   void _editDocument() {
@@ -275,7 +317,7 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
               backgroundColor: Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
             ),
-          
+
           // Error message
           if (_errorMessage.isNotEmpty)
             Container(
@@ -308,51 +350,56 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
                 ],
               ),
             ),
-          
+
           // WebView
           Expanded(
-            child: _errorMessage.isEmpty 
-              ? WebViewWidget(
-                  controller: _webViewController,
-                )
-              : Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Failed to load document',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey.shade600,
+            child: _errorMessage.isEmpty && _webViewController != null
+                ? WebViewWidget(controller: _webViewController!)
+                : Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _errorMessage.isNotEmpty
+                              ? Icons.error_outline
+                              : Icons.hourglass_empty,
+                          size: 64,
+                          color: Colors.grey.shade400,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Please check your connection and try again',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage.isNotEmpty
+                              ? 'Failed to load document'
+                              : 'Initializing...',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _reloadPage,
-                        icon: const Icon(Icons.refresh),
-                        label: Text('retry'.tr),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryOrange,
-                          foregroundColor: Colors.white,
+                        const SizedBox(height: 8),
+                        Text(
+                          _errorMessage.isNotEmpty
+                              ? 'Please check your connection and try again'
+                              : 'Please wait while we prepare the document',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 24),
+                        if (_errorMessage.isNotEmpty)
+                          ElevatedButton.icon(
+                            onPressed: _reloadPage,
+                            icon: const Icon(Icons.refresh),
+                            label: Text('retry'.tr),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryOrange,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
           ),
         ],
       ),
@@ -370,7 +417,7 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
       case 'reload':
         _reloadPage();
         break;
-        
+
       case 'fit_screen':
         _forceResponsiveReload();
         Get.snackbar(
@@ -382,18 +429,18 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
           duration: const Duration(seconds: 2),
         );
         break;
-        
+
       case 'open_browser':
-        // TODO: Open in external browser
+        // Show document info since we don't have direct URL anymore
         Get.snackbar(
           'Info',
-          'Opening in browser: $_documentUrl',
+          'Document: ${widget.documentType}-${widget.documentId}',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: AppTheme.primaryOrange,
           colorText: Colors.white,
         );
         break;
-        
+
       case 'share':
         // TODO: Share document URL
         Get.snackbar(
