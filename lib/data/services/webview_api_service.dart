@@ -301,4 +301,25 @@ class WebviewApiService {
       return null;
     }
   }
+
+  /// Get Document Share Webview URL
+  Future<String?> getDocumentShareUrl({
+    required String documentId,
+    required String documentType,
+  }) async {
+    try {
+      final response = await _apiClient.get(
+        '/api/mobile/document/share?documentId=$documentId&documentType=$documentType',
+      );
+
+      if (response.data['success'] == true) {
+        return response.data['webviewUrl'] as String?;
+      }
+      
+      return null;
+    } catch (e) {
+      print('❌ Error getting document share URL: $e');
+      return null;
+    }
+  }
 }
