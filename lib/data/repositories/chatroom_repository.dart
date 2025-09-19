@@ -80,6 +80,40 @@ class ChatroomRepository {
         .set({'chat_pin': pinned ? 'Y' : 'N'}, SetOptions(merge: true));
   }
 
+
+  // Set chatroom status (INPROGRESS/DONE)
+  Future<void> setChatroomStatus({
+    required String workspaceId,
+    required String chatroomId,
+    required bool done,
+  }) async {
+    await _fs
+        .getChatroomsCollection(workspaceId)
+        .doc(chatroomId)
+        .set({'chatroom_status': done ? 'DONE' : 'INPROGRESS'}, SetOptions(merge: true));
+  }
+
+  // Read chatroom meta as a single fetch
+  Future<Map<String, dynamic>> getChatroomMeta({
+    required String workspaceId,
+    required String chatroomId,
+  }) async {
+    final snap = await _fs.getChatroomsCollection(workspaceId).doc(chatroomId).get();
+    return snap.data() ?? <String, dynamic>{};
+  }
+
+  // Watch chatroom meta as a stream
+  Stream<Map<String, dynamic>> watchChatroomMeta({
+    required String workspaceId,
+    required String chatroomId,
+  }) {
+    return _fs
+        .getChatroomsCollection(workspaceId)
+        .doc(chatroomId)
+        .snapshots()
+        .map((d) => d.data() ?? <String, dynamic>{});
+  }
+
   // Fetch a user's display name from users collection
   Future<String> getUserDisplayName(String userId) async {
     try {

@@ -1024,6 +1024,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         _showTopSnack('คุณไม่มีสิทธิ์เชื่อมลูกค้ากับแชท', isError: true);
         return;
       }
+
       // Read customer to get display name
       final cDoc = await FirebaseFirestore.instance
           .collection('workspaces')

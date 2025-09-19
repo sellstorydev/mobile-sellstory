@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sellstory/features/document/view/add_edit_document_page.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_font.dart';
 import '../controller/receipt_list_controller.dart';
@@ -12,7 +13,8 @@ class ReceiptListPage extends StatefulWidget {
   State<ReceiptListPage> createState() => _ReceiptListPageState();
 }
 
-class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingObserver {
+class _ReceiptListPageState extends State<ReceiptListPage>
+    with WidgetsBindingObserver {
   late ReceiptListController controller;
   DateTime? _lastLoadMoreCall;
 
@@ -39,7 +41,6 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
@@ -58,7 +59,29 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => controller.createNewReceipt(),
+            onPressed: () async {
+              try {
+                print(
+                  '📱 Navigating to AddEditDocumentPage with documentType: INV',
+                );
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const AddEditDocumentPage(documentType: 'RT'),
+                  ),
+                );
+                print('📱 Navigation completed, result: $result');
+              } catch (e) {
+                print('❌ Navigation error: $e');
+                Get.snackbar(
+                  'error'.tr,
+                  'Navigation error: $e',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
             icon: const Icon(Icons.add),
             color: AppTheme.primaryOrange,
           ),
@@ -199,15 +222,30 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
     final filters = <String>[];
 
     if (controller.selectedSeller.value != null) {
-      filters.add('seller_filter'.tr.replaceFirst('{name}', controller.selectedSeller.value!.displayName));
+      filters.add(
+        'seller_filter'.tr.replaceFirst(
+          '{name}',
+          controller.selectedSeller.value!.displayName,
+        ),
+      );
     }
 
     if (controller.selectedDateRange.value != null) {
-      filters.add('date_filter'.tr.replaceFirst('{range}', _getDateRangeDisplayText(controller)));
+      filters.add(
+        'date_filter'.tr.replaceFirst(
+          '{range}',
+          _getDateRangeDisplayText(controller),
+        ),
+      );
     }
 
     if (controller.selectedStatuses.isNotEmpty) {
-      filters.add('status_filter'.tr.replaceFirst('{count}', controller.selectedStatuses.length.toString()));
+      filters.add(
+        'status_filter'.tr.replaceFirst(
+          '{count}',
+          controller.selectedStatuses.length.toString(),
+        ),
+      );
     }
 
     return filters.join(' • ');
@@ -272,14 +310,17 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
         onNotification: (ScrollNotification scrollInfo) {
           // Only handle ScrollUpdateNotification (actual scrolling) and ScrollEndNotification
           // This prevents triggering during drag start/drag end events
-          if (scrollInfo is ScrollUpdateNotification || scrollInfo is ScrollEndNotification) {
+          if (scrollInfo is ScrollUpdateNotification ||
+              scrollInfo is ScrollEndNotification) {
             // Check if we're near the bottom and should load more
-            if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+            if (scrollInfo.metrics.pixels >=
+                scrollInfo.metrics.maxScrollExtent - 200) {
               // Only load more if we're not already loading and there's more data to load
               if (!controller.isLoadingMore.value && controller.hasMore.value) {
                 // Add debounce to prevent rapid calls (minimum 500ms between calls)
                 final now = DateTime.now();
-                if (_lastLoadMoreCall == null || now.difference(_lastLoadMoreCall!).inMilliseconds > 500) {
+                if (_lastLoadMoreCall == null ||
+                    now.difference(_lastLoadMoreCall!).inMilliseconds > 500) {
                   _lastLoadMoreCall = now;
                   controller.loadMoreReceipts();
                 }
@@ -293,13 +334,14 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
             horizontal: AppTheme.spacing16,
             vertical: AppTheme.spacing8,
           ),
-          itemCount: controller.receipts.length + (controller.hasMore.value ? 1 : 0),
+          itemCount:
+              controller.receipts.length + (controller.hasMore.value ? 1 : 0),
           itemBuilder: (context, index) {
             // Show loading indicator at the bottom when loading more
             if (index == controller.receipts.length) {
               return _buildLoadingMoreIndicator(controller);
             }
-            
+
             final receipt = controller.receipts[index];
             return _buildReceiptCard(receipt, controller);
           },
@@ -313,7 +355,7 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
       if (!controller.isLoadingMore.value) {
         return const SizedBox.shrink();
       }
-      
+
       return Container(
         padding: const EdgeInsets.all(AppTheme.spacing16),
         child: const Center(
@@ -341,23 +383,25 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
       decoration: BoxDecoration(
-        color: isHighlighted 
-            ? AppTheme.primaryOrange.withOpacity(0.1) 
+        color: isHighlighted
+            ? AppTheme.primaryOrange.withOpacity(0.1)
             : Colors.white,
         borderRadius: BorderRadius.circular(AppTheme.spacing8),
         border: Border.all(
-          color: isHighlighted 
-              ? AppTheme.primaryOrange 
+          color: isHighlighted
+              ? AppTheme.primaryOrange
               : AppTheme.borderGrey.withValues(alpha: 0.3),
           width: isHighlighted ? 2 : 1,
         ),
-        boxShadow: isHighlighted ? [
-          BoxShadow(
-            color: AppTheme.primaryOrange.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ] : null,
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                  color: AppTheme.primaryOrange.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -531,7 +575,29 @@ class _ReceiptListPageState extends State<ReceiptListPage> with WidgetsBindingOb
           ),
           const SizedBox(height: AppTheme.spacing24),
           ElevatedButton.icon(
-            onPressed: () => controller.createNewReceipt(),
+            onPressed: () async {
+              try {
+                print(
+                  '📱 Navigating to AddEditDocumentPage with documentType: INV',
+                );
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const AddEditDocumentPage(documentType: 'RT'),
+                  ),
+                );
+                print('📱 Navigation completed, result: $result');
+              } catch (e) {
+                print('❌ Navigation error: $e');
+                Get.snackbar(
+                  'error'.tr,
+                  'Navigation error: $e',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
             icon: const Icon(Icons.add),
             label: Text('create_receipt'.tr),
             style: ElevatedButton.styleFrom(

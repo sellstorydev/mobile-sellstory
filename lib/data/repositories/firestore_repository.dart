@@ -583,10 +583,28 @@ class FirestoreRepository {
     try {
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
       
+      // Permission-aware lane card query
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('jobcard:view:all');
+      final bool canViewAssigned = perms.can('jobcard:view:assigned');
+
+      // If user has no card view permission, return empty
+      if (!(isOwner || canViewAll || canViewAssigned)) {
+        return Stream.value(<JobCard>[]);
+      }
+
+
       return _firestoreService.getDocumentsStream(
         cardsCollection,
-        queryBuilder: (query) => query
-            .where('laneId', isEqualTo: laneId),
+        queryBuilder: (query) {
+          Query<Map<String, dynamic>> q = query.where('laneId', isEqualTo: laneId);
+          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+            q = q.where('assignedTo', isEqualTo: uid);
+          }
+          return q;
+        },
       ).map((cardsSnapshot) {
         print('📋 Found ${cardsSnapshot.docs.length} cards for lane: $laneId');
         
@@ -595,7 +613,7 @@ class FirestoreRepository {
           print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
           print('📋 Card hashtags data: ${cardData['hashtags']}');
           
-          // Use fromMap to ensure all fields including hashtags are properly mapped
+        // Use fromMap to ensure all fields including hashtags are properly mapped
           return JobCard.fromMap(cardData, doc.id);
         }).toList();
         
@@ -645,13 +663,29 @@ class FirestoreRepository {
       print('🔄 Getting all cards stream for workspace: $workspaceId');
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
       
+      // Permission context
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('jobcard:view:all');
+      final bool canViewAssigned = perms.can('jobcard:view:assigned');
+
+      // Deny if no permission
+      if (!(isOwner || canViewAll || canViewAssigned)) {
+        return Stream.value(<JobCard>[]);
+      }
+
       return _firestoreService.getDocumentsStream(
         cardsCollection,
         queryBuilder: (query) {
+          Query<Map<String, dynamic>> q = query;
           if (boardId != null && boardId.isNotEmpty) {
-            return query.where('boardId', isEqualTo: boardId);
+            q = q.where('boardId', isEqualTo: boardId);
           }
-          return query;
+          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+            q = q.where('assignedTo', isEqualTo: uid);
+          }
+          return q;
         },
       ).map((cardsSnapshot) {
         print('📋 Found ${cardsSnapshot.docs.length} cards in workspace');
@@ -709,10 +743,27 @@ class FirestoreRepository {
     try {
       _logger.methodEntry('FirestoreRepository.getCardsStream', {'workspaceId': workspaceId});
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      
+
+      // Permission context
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('jobcard:view:all');
+      final bool canViewAssigned = perms.can('jobcard:view:assigned');
+
+      if (!(isOwner || canViewAll || canViewAssigned)) {
+        return Stream.value(<JobCard>[]);
+      }
+
       return _firestoreService.getDocumentsStream(
         cardsCollection,
-        queryBuilder: (query) => query.orderBy('order', descending: false),
+        queryBuilder: (query) {
+          Query<Map<String, dynamic>> q = query.orderBy('order', descending: false);
+          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+            q = q.where('assignedTo', isEqualTo: uid);
+          }
+          return q;
+        },
       ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
           final cardData = doc.data();
@@ -735,11 +786,27 @@ class FirestoreRepository {
         'laneId': laneId
       });
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      
+
+      // Permission context
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('jobcard:view:all');
+      final bool canViewAssigned = perms.can('jobcard:view:assigned');
+
+      if (!(isOwner || canViewAll || canViewAssigned)) {
+        return Stream.value(<JobCard>[]);
+      }
+
       return _firestoreService.getDocumentsStream(
         cardsCollection,
-        queryBuilder: (query) => query
-            .where('laneId', isEqualTo: laneId),
+        queryBuilder: (query) {
+          Query<Map<String, dynamic>> q = query.where('laneId', isEqualTo: laneId);
+          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+            q = q.where('assignedTo', isEqualTo: uid);
+          }
+          return q;
+        },
       ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
           final cardData = doc.data();
@@ -811,12 +878,28 @@ class FirestoreRepository {
         'customerId': customerId
       });
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-    
-    return _firestoreService.getDocumentsStream(
+
+      // Permission context (jobcard visibility)
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('jobcard:view:all');
+      final bool canViewAssigned = perms.can('jobcard:view:assigned');
+
+      if (!(isOwner || canViewAll || canViewAssigned)) {
+        return Stream.value(<JobCard>[]);
+      }
+
+      return _firestoreService.getDocumentsStream(
         cardsCollection,
-      queryBuilder: (query) => query
-            .where('customerId', isEqualTo: customerId),
-    ).map((snapshot) {
+        queryBuilder: (query) {
+          Query<Map<String, dynamic>> q = query.where('customerId', isEqualTo: customerId);
+          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+            q = q.where('assignedTo', isEqualTo: uid);
+          }
+          return q;
+        },
+      ).map((snapshot) {
         final cards = snapshot.docs.map((doc) {
           final cardData = doc.data();
           print('📋 Customer card hashtags data: ${cardData['hashtags']}');
@@ -1423,9 +1506,33 @@ class FirestoreRepository {
 
       final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
       final querySnapshot = await _firestoreService.getDocuments(boardsCollection);
-      final boards = querySnapshot.docs.map((doc) {
+      var boards = querySnapshot.docs.map((doc) {
         return Board.fromMap(doc.data(), doc.id);
       }).toList();
+
+      // Permission-aware board filtering: non-owners without view-all see only boards they are a member of
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('jobcard:view:all');
+      final bool canViewAssigned = perms.can('jobcard:view:assigned');
+      if (!(isOwner || canViewAll) && uid.isNotEmpty) {
+        // If assigned-only, also include boards where the user has any assigned cards
+        if (canViewAssigned) {
+          final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+          final assignedCardsSnap = await _firestoreService.getDocuments(
+            cardsCollection,
+            queryBuilder: (q) => q.where('assignedTo', isEqualTo: uid),
+          );
+          final assignedBoardIds = assignedCardsSnap.docs
+              .map((d) => (d.data()['boardId'] as String?) ?? '')
+              .where((id) => id.isNotEmpty)
+              .toSet();
+          boards = boards.where((b) => b.memberUids.contains(uid) || assignedBoardIds.contains(b.id)).toList();
+        } else {
+          boards = boards.where((b) => b.memberUids.contains(uid)).toList();
+        }
+      }
 
       print('✅ Boards loaded successfully - ${boards.length} boards');
       return boards;
@@ -1447,10 +1554,33 @@ class FirestoreRepository {
       print('  - Workspace ID: $workspaceId');
 
       final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
-      return _firestoreService.getDocumentsStream(boardsCollection).map((querySnapshot) {
-        final boards = querySnapshot.docs.map((doc) {
+      return _firestoreService.getDocumentsStream(boardsCollection).asyncMap((querySnapshot) async {
+        var boards = querySnapshot.docs.map((doc) {
           return Board.fromMap(doc.data(), doc.id);
         }).toList();
+
+        // Permission-aware board filtering
+        final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+        final perms = MobilePermissionsService.to;
+        final bool isOwner = perms.isOwner;
+        final bool canViewAll = perms.can('jobcard:view:all');
+        final bool canViewAssigned = perms.can('jobcard:view:assigned');
+        if (!(isOwner || canViewAll) && uid.isNotEmpty) {
+          if (canViewAssigned) {
+            final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+            final assignedCardsSnap = await _firestoreService.getDocuments(
+              cardsCollection,
+              queryBuilder: (q) => q.where('assignedTo', isEqualTo: uid),
+            );
+            final assignedBoardIds = assignedCardsSnap.docs
+                .map((d) => (d.data()['boardId'] as String?) ?? '')
+                .where((id) => id.isNotEmpty)
+                .toSet();
+            boards = boards.where((b) => b.memberUids.contains(uid) || assignedBoardIds.contains(b.id)).toList();
+          } else {
+            boards = boards.where((b) => b.memberUids.contains(uid)).toList();
+          }
+        }
 
         print('✅ Boards stream updated - ${boards.length} boards');
         return boards;

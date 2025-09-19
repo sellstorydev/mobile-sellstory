@@ -315,11 +315,6 @@ class ReceiptListController extends GetxController {
     filteredReceipts.value = List.from(allReceipts);
   }
 
-  void createNewReceipt() {
-    // Implementation for creating new receipt
-    print('Creating new receipt');
-  }
-
   void viewReceipt(Map<String, dynamic> receipt) {
     final receiptId = receipt['id'] as String?;
     if (receiptId != null) {

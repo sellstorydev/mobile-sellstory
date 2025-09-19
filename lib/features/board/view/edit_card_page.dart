@@ -10,13 +10,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
-import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/repositories/firestore_repository.dart';
+import '../../../data/repositories/firestore_repository_extras.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../document/view/create_document_from_card_page.dart';
 import '../../document/view/add_edit_document_page.dart';
 import '../../../core/services/notifications_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
+import '../../customers/view/add_edit_customer_page.dart';
+import '../../../core/widgets/hashtag_input_field.dart';
+import '../../../core/services/hashtag_service.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -228,15 +231,22 @@ class _EditCardPageState extends State<EditCardPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
+  final TextEditingController _editCommentController = TextEditingController();
 
   // HTML Editor controller
   final HtmlEditorController _htmlEditorController = HtmlEditorController();
+  bool _isHtmlEditorReady = false;
 
   // Current user information
   Map<String, dynamic>? _currentUserInfo;
 
+  // Comment editing state
+  int? _editingCommentIndex;
+
   // Hashtag state (same as create page)
-  List<Map<String, dynamic>> _selectedHashtags = [];
+  List<String> _selectedHashtagIds = [];
+  List<HashtagOption> _availableHashtags = [];
+  final HashtagService _hashtagService = HashtagService();
 
   // Todo state
   List<Map<String, dynamic>> _todoItems = [];
@@ -319,12 +329,64 @@ class _EditCardPageState extends State<EditCardPage> {
   // Add history/comment toggle state variable
   bool _showHistory = true; // true = History, false = Comment
 
+  List<String> get _selectedHashtagTexts {
+    return _selectedHashtagIds.map((id) {
+      final hashtag = _availableHashtags.firstWhere(
+        (h) => h.id == id,
+        orElse: () => HashtagOption(
+          id: id, 
+          name: id, 
+          color: '#6B7280', 
+          scopes: {},
+          totalUsage: 0,
+          enabled: true,
+        ),
+      );
+      return hashtag.name;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _selectedHashtagsAsMap {
+    return _selectedHashtagIds.map((id) {
+      final hashtag = _availableHashtags.firstWhere(
+        (h) => h.id == id,
+        orElse: () => HashtagOption(
+          id: id, 
+          name: id, 
+          color: '#6B7280', 
+          scopes: {},
+          totalUsage: 0,
+          enabled: true,
+        ),
+      );
+      return {
+        'id': hashtag.id,
+        'text': hashtag.name,
+        'color': hashtag.color,
+      };
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadHashtags();
     _initializeData().then((_) {
       setState(() {});
     });
+  }
+
+  Future<void> _loadHashtags() async {
+    try {
+      final wsId = widget.card.workspaceId;
+      final hashtags = await _hashtagService.getHashtagsByScope(wsId, 'jobBoard');
+      _availableHashtags = hashtags;
+      if (mounted) setState(() {});
+      print('✅ Hashtags loaded: ${_availableHashtags.length} hashtags');
+    } catch (e) {
+      if (mounted) setState(() {});
+      print('❌ Failed to load hashtags: $e');
+    }
   }
 
   Future<void> _initializeData() async {
@@ -355,19 +417,41 @@ class _EditCardPageState extends State<EditCardPage> {
     _startDate = widget.card.startDate;
     _endDate = widget.card.endDate;
 
-    // Initialize hashtags (same as create page)
-    _selectedHashtags = List<Map<String, dynamic>>.from(widget.card.hashtags);
+    // Initialize hashtags - convert from map format to ID format using masterList lookup
+    _selectedHashtagIds = widget.card.hashtags.map((hashtagMap) {
+      final text = hashtagMap['text'] ?? '';
+      final existingId = hashtagMap['id'] ?? '';
+      
+      // First try to use existing ID if it exists
+      if (existingId.isNotEmpty) {
+        return existingId;
+      }
+      
+      // If no ID, find matching hashtag in available hashtags by name
+      final matchingHashtag = _availableHashtags.firstWhereOrNull(
+        (h) => h.name == text,
+      );
+      
+      if (matchingHashtag != null) {
+        return matchingHashtag.id;
+      }
+      
+      // Fall back to text as ID if no match found
+      return text;
+    }).where((id) => id.isNotEmpty).cast<String>().toList();
 
     // Initialize todos
     _todoItems = List<Map<String, dynamic>>.from(widget.card.todos.map((todo) {
+      // Handle title field from Firestore data structure
+      final titleText = todo['title'] ?? todo['text'] ?? '';
       return {
         'id': todo['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        'text': todo['text'] ?? '',
-        'isCompleted': todo['isCompleted'] ?? false,
+        'text': titleText,
+        'isCompleted': todo['isCompleted'] ?? todo['completed'] ?? false,
         'dueDate': todo['dueDate'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['dueDate']) : null,
         'duration': todo['duration'],
         'endTime': todo['endTime'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['endTime']) : null,
-        'controller': TextEditingController(text: todo['text'] ?? ''),
+        'controller': TextEditingController(text: titleText),
       };
     }));
 
@@ -672,35 +756,41 @@ class _EditCardPageState extends State<EditCardPage> {
           };
         }
 
-        setState(() {
-          _availableCompanies = companyMap.values.toList();
-          // ถ้า company ปัจจุบันไม่มีในรายการใหม่ ให้รีเซ็ต
-          if (_selectedCompany != 'none' &&
-              !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
-            _selectedCompany = 'none';
-          }
-        });
+        if (mounted) {
+          setState(() {
+            _availableCompanies = companyMap.values.toList();
+            // ถ้า company ปัจจุบันไม่มีในรายการใหม่ ให้รีเซ็ต
+            if (_selectedCompany != 'none' &&
+                !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
+              _selectedCompany = 'none';
+            }
+          });
+        }
 
         print(
           '✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies',
         );
       } else {
+        if (mounted) {
+          setState(() {
+            _availableCompanies = [
+              {'id': 'none', 'name': 'None'},
+            ];
+            _selectedCompany = 'none';
+          });
+        }
+        print('⚠️ No companies found for customer');
+      }
+    } catch (e) {
+      print('❌ Failed to load companies for customer: $e');
+      if (mounted) {
         setState(() {
           _availableCompanies = [
             {'id': 'none', 'name': 'None'},
           ];
           _selectedCompany = 'none';
         });
-        print('⚠️ No companies found for customer');
       }
-    } catch (e) {
-      print('❌ Failed to load companies for customer: $e');
-      setState(() {
-        _availableCompanies = [
-          {'id': 'none', 'name': 'None'},
-        ];
-        _selectedCompany = 'none';
-      });
     }
   }
 
@@ -725,9 +815,11 @@ class _EditCardPageState extends State<EditCardPage> {
 
             if (productDoc.exists) {
               final productData = productDoc.data()!;
-              setState(() {
-                _productItems[i]['image'] = productData['imageUrl'];
-              });
+              if (mounted) {
+                setState(() {
+                  _productItems[i]['image'] = productData['imageUrl'];
+                });
+              }
             }
           } catch (e) {
             print('❌ Failed to load image for product $productId: $e');
@@ -775,26 +867,28 @@ class _EditCardPageState extends State<EditCardPage> {
         });
       }
 
-      setState(() {
-        _quotationTemplates = templates;
-        
-        // ตรวจสอบ quotationTemplateId จาก card
-        if (_selectedTemplateId != null && _selectedTemplateId!.isNotEmpty) {
-          // ตรวจสอบว่า template ที่เลือกมีอยู่จริงใน list หรือไม่
-          final templateExists = templates.any((t) => t['id'] == _selectedTemplateId);
-          if (!templateExists && templates.isNotEmpty) {
-            // ถ้าไม่พบ template ที่ระบุ ให้เลือก template แรก
+      if (mounted) {
+        setState(() {
+          _quotationTemplates = templates;
+          
+          // ตรวจสอบ quotationTemplateId จาก card
+          if (_selectedTemplateId != null && _selectedTemplateId!.isNotEmpty) {
+            // ตรวจสอบว่า template ที่เลือกมีอยู่จริงใน list หรือไม่
+            final templateExists = templates.any((t) => t['id'] == _selectedTemplateId);
+            if (!templateExists && templates.isNotEmpty) {
+              // ถ้าไม่พบ template ที่ระบุ ให้เลือก template แรก
+              _selectedTemplateId = templates.first['id'];
+              print('⚠️ Template not found, selected first template: $_selectedTemplateId');
+            }
+          } else if (templates.isNotEmpty) {
+            // ถ้าไม่มี quotationTemplateId ให้เลือก template แรก
             _selectedTemplateId = templates.first['id'];
-            print('⚠️ Template not found, selected first template: $_selectedTemplateId');
+            print('📋 No templateId in card, selected first template: $_selectedTemplateId');
           }
-        } else if (templates.isNotEmpty) {
-          // ถ้าไม่มี quotationTemplateId ให้เลือก template แรก
-          _selectedTemplateId = templates.first['id'];
-          print('📋 No templateId in card, selected first template: $_selectedTemplateId');
-        }
-        
-        _updateVisibleColumns();
-      });
+          
+          _updateVisibleColumns();
+        });
+      }
 
       print('✅ Loaded ${templates.length} quotation templates');
       print('🎯 Selected template: $_selectedTemplateId');
@@ -1228,17 +1322,31 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       );
     }
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          'Edit Job Card',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        centerTitle: false,
+    return PopScope(
+      canPop: _isHtmlEditorReady,
+      onPopInvoked: (didPop) {
+        if (!didPop && !_isHtmlEditorReady) {
+          // Show message to user that they need to wait
+          // Get.snackbar(
+          //   'Please Wait',
+          //   'HTML editor is still loading. Please wait a moment before going back.',
+          //   backgroundColor: Colors.orange,
+          //   colorText: Colors.white,
+          //   duration: const Duration(seconds: 2),
+          // );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: AppBar(
+          title: const Text(
+            'Edit Job Card',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0,
+          centerTitle: false,
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.black54),
@@ -1437,6 +1545,7 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       ),
       bottomNavigationBar: _buildBottomButtons(),
+      ),
     );
   }
 
@@ -1590,7 +1699,7 @@ class _EditCardPageState extends State<EditCardPage> {
         Row(
           children: [
             Icon(Icons.flag, size: 18, color: Colors.orange[700]),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             const Text(
               'Status',
               style: TextStyle(
@@ -1601,76 +1710,60 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: _statusOptions.map((status) {
-            final isSelected = _selectedStatus == status['value'];
-            Color chipColor;
-            Color textColor;
-
-            // Set colors based on status
-            switch (status['value']) {
-              case 'Pending':
-                chipColor = isSelected ? Colors.grey[400]! : Colors.grey[100]!;
-                textColor = isSelected ? Colors.white : Colors.grey[700]!;
-                break;
-              case 'In Progress':
-                chipColor = isSelected ? Colors.orange : Colors.orange[100]!;
-                textColor = isSelected ? Colors.white : Colors.orange[800]!;
-                break;
-              case 'Done':
-                chipColor = isSelected ? Colors.green : Colors.green[100]!;
-                textColor = isSelected ? Colors.white : Colors.green[800]!;
-                break;
-              case 'Cancelled':
-                chipColor = isSelected ? Colors.red : Colors.red[100]!;
-                textColor = isSelected ? Colors.white : Colors.red[800]!;
-                break;
-              default:
-                chipColor = Colors.grey[100]!;
-                textColor = Colors.grey[700]!;
-            }
-
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedStatus = status['value'];
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
+          ),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _statusOptions.map((status) {
+              final isSelected = _selectedStatus == status['value'];
+              return Container(
                 decoration: BoxDecoration(
-                  color: chipColor,
-                  borderRadius: BorderRadius.circular(20),
-                  border: isSelected
-                      ? null
-                      : Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: isSelected ? [
+                    BoxShadow(
+                      color: AppTheme.primaryOrange.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ] : null,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(status['icon'], size: 16, color: textColor),
-                    const SizedBox(width: 6),
-                    Text(
-                      status['label'],
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                        fontSize: 14,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedStatus = status['value'];
+                    });
+                  },
+                  icon: Icon(status['icon'], size: 16),
+                  label: Text(
+                    status['label'],
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isSelected ? AppTheme.primaryOrange : Colors.white,
+                    foregroundColor: isSelected ? Colors.white : Colors.black87,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: BorderSide(
+                        color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
+                        width: isSelected ? 2 : 1,
                       ),
                     ),
-                  ],
+                    elevation: isSelected ? 2 : 0,
+                  ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
@@ -3116,6 +3209,27 @@ class _EditCardPageState extends State<EditCardPage> {
                                       ),
                                     ),
                                     const Spacer(),
+                                    // Edit and Delete icons
+                                    if (note['userId'] == _currentUserInfo?['uid']) ...[
+                                      GestureDetector(
+                                        onTap: () => _editComment(index, note),
+                                        child: Icon(
+                                          Icons.edit,
+                                          size: 16,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () => _deleteComment(index, note),
+                                        child: Icon(
+                                          Icons.delete,
+                                          size: 16,
+                                          color: Colors.red[400],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
                                     Text(
                                       _formatTimestamp(note['timestamp']),
                                       style: TextStyle(
@@ -3126,13 +3240,50 @@ class _EditCardPageState extends State<EditCardPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  _stripHtmlTags(note['text'] ?? ''),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
+                                // Edit mode or display mode
+                                _editingCommentIndex == index 
+                                  ? Column(
+                                      children: [
+                                        TextField(
+                                          controller: _editCommentController,
+                                          decoration: InputDecoration(
+                                            hintText: 'Edit comment...',
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            contentPadding: const EdgeInsets.all(12),
+                                          ),
+                                          maxLines: 3,
+                                          minLines: 1,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            TextButton(
+                                              onPressed: _cancelEditComment,
+                                              child: const Text('Cancel'),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            ElevatedButton(
+                                              onPressed: () => _saveEditComment(index, note),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.orange,
+                                                foregroundColor: Colors.white,
+                                              ),
+                                              child: const Text('Save'),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    )
+                                  : Text(
+                                      _stripHtmlTags(note['text'] ?? ''),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
                                 if (!isReply) ...[
                                   const SizedBox(height: 8),
                                   GestureDetector(
@@ -3408,6 +3559,108 @@ class _EditCardPageState extends State<EditCardPage> {
     }
   }
 
+  // Comment edit/delete methods
+  void _editComment(int index, Map<String, dynamic> note) {
+    setState(() {
+      _editingCommentIndex = index;
+      _editCommentController.text = _stripHtmlTags(note['text'] ?? '');
+    });
+  }
+
+  void _cancelEditComment() {
+    setState(() {
+      _editingCommentIndex = null;
+      _editCommentController.clear();
+    });
+  }
+
+  void _saveEditComment(int index, Map<String, dynamic> note) async {
+    if (_editCommentController.text.trim().isEmpty) return;
+
+    final updatedText = '<p>${_editCommentController.text.trim()}</p>';
+    
+    // Update local state
+    setState(() {
+      _notes[index]['text'] = updatedText;
+      _editingCommentIndex = null;
+      _editCommentController.clear();
+    });
+
+    try {
+      // Update in Firestore
+      await _repository.updateNoteInCard(
+        _controller.currentWorkspaceId.value,
+        widget.card.id,
+        note['id'],
+        {'text': updatedText},
+      );
+      print('✅ Comment updated successfully');
+    } catch (e) {
+      print('❌ Failed to update comment: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to update comment. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void _deleteComment(int index, Map<String, dynamic> note) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Comment'),
+        content: const Text('Are you sure you want to delete this comment? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _confirmDeleteComment(index, note);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteComment(int index, Map<String, dynamic> note) async {
+    // Remove from local state
+    setState(() {
+      _notes.removeAt(index);
+    });
+
+    try {
+      // Remove from Firestore
+      await _repository.deleteNoteFromCard(
+        _controller.currentWorkspaceId.value,
+        widget.card.id,
+        note['id'],
+      );
+      print('✅ Comment deleted successfully');
+    } catch (e) {
+      print('❌ Failed to delete comment: $e');
+      // Add back to local state if failed
+      setState(() {
+        _notes.insert(index, note);
+      });
+      Get.snackbar(
+        'Error',
+        'Failed to delete comment. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   void _addReply(String parentId, String replyText) async {
     if (!_canEditNotes) {
       _showNoPermission();
@@ -3612,11 +3865,66 @@ class _EditCardPageState extends State<EditCardPage> {
           )
           .toList();
 
-      // Format description as HTML from HTML editor
+      // Format description as HTML from HTML editor with webview disposal protection
       String htmlDescription = '';
-      final editorContent = await _htmlEditorController.getText();
-      if (editorContent.isNotEmpty) {
-        htmlDescription = editorContent;
+      try {
+        print('🔍 HTML Editor Save Debug:');
+        print('  - _isHtmlEditorReady: $_isHtmlEditorReady');
+        print('  - Initial description: "${widget.card.description}"');
+        print('  - Fallback controller text: "${_detailsController.text}"');
+        
+        // Check if we're in the middle of disposal
+        if (!mounted) {
+          print('⚠️ Widget not mounted, skipping HTML editor access');
+          htmlDescription = _detailsController.text;
+        } else if (_isHtmlEditorReady) {
+          // Add additional safety check before getText()
+          try {
+            final editorContent = await _htmlEditorController.getText().timeout(
+              const Duration(seconds: 3),
+              onTimeout: () {
+                print('⚠️ HTML editor getText timeout, using fallback');
+                return _detailsController.text;
+              },
+            );
+            
+            print('  - HTML editor getText() result: "$editorContent"');
+            if (editorContent.isNotEmpty) {
+              htmlDescription = editorContent;
+              print('✅ Successfully retrieved HTML editor content: ${htmlDescription.length} chars');
+            } else {
+              print('⚠️ HTML editor returned empty content, using fallback');
+              htmlDescription = _detailsController.text;
+            }
+          } catch (innerE) {
+            print('⚠️ Inner error during getText(): $innerE');
+            htmlDescription = _detailsController.text;
+          }
+        } else {
+          print('⚠️ HTML editor not ready, using fallback controller');
+          htmlDescription = _detailsController.text;
+        }
+        
+        // Additional safety check - if still empty, prompt user
+        if (htmlDescription.isEmpty && widget.card.description.isNotEmpty) {
+          print('⚠️ Description is empty but original card had content, preserving original');
+          htmlDescription = widget.card.description;
+        }
+        
+        print('  - Final htmlDescription: "$htmlDescription"');
+      } catch (e) {
+        print('⚠️ Error getting HTML editor content: $e');
+        
+        // Always use fallback for any error
+        htmlDescription = _detailsController.text.isNotEmpty 
+            ? _detailsController.text 
+            : widget.card.description;
+        
+        // For specific MissingPluginException, use fallback
+        if (e.toString().contains('MissingPluginException') || 
+            e.toString().contains('evaluateJavascript')) {
+          print('⚠️ WebView plugin error detected - using fallback description');
+        }
       }
 
       // Prepare expenses data from product items
@@ -3652,10 +3960,10 @@ class _EditCardPageState extends State<EditCardPage> {
         dueDate: _expectedClosingDate,
         startDate: _startDate,
         endDate: _endDate,
-        hashtag: _selectedHashtags.isNotEmpty
-            ? _selectedHashtags.map((h) => '#${h['text']}').join(' ')
+        hashtag: _selectedHashtagTexts.isNotEmpty
+            ? _selectedHashtagTexts.map((text) => '#$text').join(' ')
             : null,
-        hashtags: _selectedHashtags,
+        hashtags: _selectedHashtagsAsMap,
         todos: todosData,
         collaborators: _selectedCollaborators,
         watchers: _selectedWatchers,
@@ -3804,99 +4112,17 @@ class _EditCardPageState extends State<EditCardPage> {
           ],
         ),
         const SizedBox(height: 12),
-        InkWell(
-          onTap: _openHashtagModal,
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 56),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[50],
-            ),
-            child: _selectedHashtags.isEmpty
-                ? Row(
-                    children: [
-                      Icon(
-                        Icons.add_circle_outline,
-                        size: 20,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Tap to select hashtags...',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: Colors.purple[700],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Selected (${_selectedHashtags.length})',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.purple[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _selectedHashtags.map((hashtag) {
-                          return Chip(
-                            label: Text(
-                              '#${hashtag['text']}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            backgroundColor: Color(
-                              int.parse(
-                                hashtag['color'].replaceFirst('#', '0xff'),
-                              ),
-                            ),
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.edit, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Tap to edit selection',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-          ),
+        HashtagInputField(
+          selectedHashtags: _selectedHashtagIds,
+          availableHashtags: _availableHashtags,
+          onHashtagsChanged: (selectedHashtagIds) {
+            setState(() {
+              _selectedHashtagIds = selectedHashtagIds;
+            });
+          },
+          label: 'Hashtags',
+          hintText: 'Select hashtags',
+          workspaceId: widget.card.workspaceId,
         ),
       ],
     );
@@ -4229,41 +4455,61 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
-          decoration: const InputDecoration(
-            hintText: 'Select customer',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-          isExpanded: true,
-          items: _availableCustomers.map((customer) {
-            return DropdownMenuItem<String>(
-              value: customer['id'],
-              child: Text(
-                customer['name'] ?? customer['id'],
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14),
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedCustomer = value ?? '';
-            });
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
+                decoration: const InputDecoration(
+                  hintText: 'Select customer',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                isExpanded: true,
+                items: _availableCustomers.map((customer) {
+                  return DropdownMenuItem<String>(
+                    value: customer['id'],
+                    child: Text(
+                      customer['name'] ?? customer['id'],
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCustomer = value ?? '';
+                  });
 
-            // Load companies for selected customer
-            if (value != null && value.isNotEmpty) {
-              _loadCompaniesForCustomer(value);
-            } else {
-              setState(() {
-                _availableCompanies = [
-                  {'id': 'none', 'name': 'None'},
-                ];
-                _selectedCompany = 'none';
-              });
-            }
-          },
+                  // Load companies for selected customer
+                  if (value != null && value.isNotEmpty) {
+                    _loadCompaniesForCustomer(value);
+                  } else {
+                    setState(() {
+                      _availableCompanies = [
+                        {'id': 'none', 'name': 'None'},
+                      ];
+                      _selectedCompany = 'none';
+                    });
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _openAddCustomerPage,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
         // Company Section
@@ -4331,8 +4577,26 @@ class _EditCardPageState extends State<EditCardPage> {
             controller: _htmlEditorController,
             htmlEditorOptions: HtmlEditorOptions(
               hint: 'Enter job details...',
-              shouldEnsureVisible: true,
+              // Prevent auto-scrolling to the editor on init (parity with create page)
+              shouldEnsureVisible: false,
               initialText: widget.card.description.isNotEmpty ? widget.card.description : '',
+            ),
+            callbacks: Callbacks(
+              onInit: () {
+                print('✅ HTML Editor initialized in edit card page');
+                setState(() {
+                  _isHtmlEditorReady = true;
+                });
+                // Initialize fallback controller with existing content
+                _detailsController.text = widget.card.description;
+              },
+              onChangeContent: (String? changed) {
+                // Sync HTML editor content to fallback controller for error handling
+                if (changed != null && mounted) {
+                  _detailsController.text = changed;
+                  print('🔄 Synced HTML content to fallback: ${changed.length} chars');
+                }
+              },
             ),
             htmlToolbarOptions: const HtmlToolbarOptions(
               toolbarPosition: ToolbarPosition.aboveEditor,
@@ -6066,18 +6330,16 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  void _openHashtagModal() {
-    showDialog(
-      context: context,
-      builder: (context) => HashtagSelectionModal(
-        selectedHashtags: _selectedHashtags,
-        onHashtagsSelected: (selectedHashtags) {
-          setState(() {
-            _selectedHashtags = selectedHashtags;
-          });
-        },
-      ),
+  Future<void> _openAddCustomerPage() async {
+    final result = await Get.to(
+      () => const AddEditCustomerPage(customerSources: []),
     );
+    
+    if (result == true) {
+      // Refresh customer list after adding new customer
+      await _loadAvailableOptions();
+      setState(() {});
+    }
   }
 
   // Product management methods
@@ -6638,6 +6900,20 @@ class _EditCardPageState extends State<EditCardPage> {
 
   @override
   void dispose() {
+    print('🔄 EditCardPage.dispose - Page being disposed');
+    
+    // Skip HTML editor disposal to prevent JavaScript evaluation errors
+    // The HTML editor will be automatically disposed when the widget tree is destroyed
+    print('⚠️ Skipping HTML editor disposal to prevent JavaScript evaluation errors');
+    
+    // Dispose todo controllers
+    for (var todo in _todoItems) {
+      todo['controller']?.dispose();
+    }
+    
+    // Dispose edit comment controller if exists
+    _editCommentController.dispose();
+    
     _jobIdController.dispose();
     _titleController.dispose();
     _detailsController.dispose();

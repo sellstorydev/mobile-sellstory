@@ -62,3 +62,24 @@ void guardAction(BuildContext context, String permission, VoidCallback onAllowed
     );
   }
 }
+
+/// Guard an action by any of the given [permissions]. If the current user has
+/// any one of them (or is owner), [onAllowed] is executed. Otherwise, a snack
+/// bar is shown with [deniedMessage] or a default message.
+void guardActionAnyOf(
+  BuildContext context,
+  List<String> permissions,
+  VoidCallback onAllowed, {
+  String? deniedMessage,
+}) {
+  final svc = MobilePermissionsService.to;
+  final allowed = svc.isOwner || permissions.any((p) => svc.can(p));
+  if (allowed) {
+    onAllowed();
+  } else {
+    final msg = deniedMessage ?? 'คุณไม่มีสิทธิ์ในการทำรายการนี้';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
+}

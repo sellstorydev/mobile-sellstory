@@ -14,16 +14,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/hashtag',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting hashtag settings URL: $e');
@@ -37,14 +34,13 @@ class WebviewApiService {
     required String workspaceId,
   }) async {
     try {
-      print('🔄 Requesting company settings URL for userId: $userId, workspaceId: $workspaceId');
-      
+      print(
+        '🔄 Requesting company settings URL for userId: $userId, workspaceId: $workspaceId',
+      );
+
       final response = await _apiClient.get(
         '/api/mobile/settings/company',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       print('✅ Company settings response: ${response.data}');
@@ -53,8 +49,6 @@ class WebviewApiService {
         return response.data['webviewUrl'] as String?;
       }
 
-
-      
       print('⚠️ Company settings response indicates failure: ${response.data}');
       return null;
     } on DioException catch (e) {
@@ -63,13 +57,13 @@ class WebviewApiService {
       print('   Message: ${e.message}');
       print('   Response: ${e.response?.data}');
       print('   Status Code: ${e.response?.statusCode}');
-      
+
       // Return a fallback URL for development/testing
       if (e.response?.statusCode == 500) {
         print('🔄 Using fallback URL for company settings');
         return 'https://workspace.sellstory.me/settings/company?token=fallback&workspaceId=$workspaceId';
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Unexpected error getting company settings URL: $e');
@@ -85,16 +79,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/board',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting board settings URL: $e');
@@ -110,16 +101,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/notifications',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting notification settings URL: $e');
@@ -135,16 +123,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/welcome-messages',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting welcome message settings URL: $e');
@@ -160,16 +145,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/chatbot',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting chatbot settings URL: $e');
@@ -185,16 +167,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/id-rules',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting ID generation rules URL: $e');
@@ -210,16 +189,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/roles',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting roles & permissions URL: $e');
@@ -235,16 +211,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/approvals',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting approval conditions URL: $e');
@@ -260,16 +233,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/documents',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting document settings URL: $e');
@@ -285,16 +255,13 @@ class WebviewApiService {
     try {
       final response = await _apiClient.get(
         '/api/mobile/settings/catalog',
-        queryParameters: {
-          'userId': userId,
-          'workspaceId': workspaceId,
-        },
+        queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
-      
+
       return null;
     } catch (e) {
       print('❌ Error getting catalog settings URL: $e');
@@ -303,19 +270,51 @@ class WebviewApiService {
   }
 
   /// Get Document Share Webview URL
-  Future<String?> getDocumentShareUrl({
+  /// This function handles both JSON responses (with webviewUrl) and HTML responses (direct content)
+  Future<dynamic> getDocumentShareUrl({
     required String documentId,
     required String documentType,
   }) async {
     try {
+      print(
+        '🔄 Requesting document share for ID: $documentId, Type: $documentType',
+      );
+
       final response = await _apiClient.get(
         '/api/mobile/document/share?documentId=$documentId&documentType=$documentType',
       );
 
-      if (response.data['success'] == true) {
-        return response.data['webviewUrl'] as String?;
+      print('📄 Response data type: ${response.data.runtimeType}');
+
+      // Check if response is JSON with expected structure
+      if (response.data is Map<String, dynamic>) {
+        final data = response.data as Map<String, dynamic>;
+        print('✅ Received JSON response: $data');
+
+        if (data['success'] == true && data['webviewUrl'] != null) {
+          final url = data['webviewUrl'] as String;
+          print('🔗 Using webview URL: $url');
+          return {'type': 'url', 'content': url};
+        }
+
+        print('⚠️ JSON response missing success=true or webviewUrl field');
+        return null;
       }
-      
+
+      // If response is HTML (String), return the processed HTML content directly
+      if (response.data is String) {
+        final htmlContent = response.data as String;
+
+        // Validate that it's actually HTML content
+        if (htmlContent.trim().toLowerCase().startsWith('<!doctype html') ||
+            htmlContent.trim().toLowerCase().startsWith('<html')) {
+          return {'type': 'html', 'content': htmlContent};
+        } else {
+          return null;
+        }
+      }
+
+      print('⚠️ Unexpected response data type: ${response.data.runtimeType}');
       return null;
     } catch (e) {
       print('❌ Error getting document share URL: $e');

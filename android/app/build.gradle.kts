@@ -9,7 +9,7 @@ plugins {
 }
 
 import java.util.Properties
-import java.io.FileInputStream
+        import java.io.FileInputStream
 
 // Load keystore properties
 val keystoreProperties = Properties()
@@ -26,6 +26,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Enable core library desugaring to support newer Java APIs on older Android
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -64,7 +66,9 @@ android {
             signingConfig = signingConfigs.getByName("release")  // หรือ debug ถ้ายังไม่มีคีย์
             isMinifyEnabled = false  // Disable minification
             isShrinkResources = false  // Disable resource shrinking
-            // Remove NDK configuration to avoid debug symbol issues
+            ndk {
+                debugSymbolLevel = "NONE" // Disable native debug symbol packaging to avoid strip tool requirement
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -82,4 +86,8 @@ configurations.all {
 }
 
 dependencies {
+    // Play Core library needed when Flutter embedding references deferred components classes during minify
+    implementation("com.google.android.play:core:1.10.3")
+    // Core library desugaring for Java 8+ APIs on older Android
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
