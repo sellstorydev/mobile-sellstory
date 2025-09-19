@@ -368,16 +368,18 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
   Widget _buildConversationsList() {
     return Obx(() {
       final loading = _controller.isLoading.value;
+      final assigneeLoading = _controller.isAssigneeLoading.value; // NEW
       final errorText = _controller.error.value;
       final conversations = _controller.filteredConversations;
 
       // First-time load: no data yet -> full-screen loader
-      if (loading && conversations.isEmpty) {
+      if ((loading || assigneeLoading) && conversations.isEmpty) {
         return const Center(child: CircularProgressIndicator());
       }
 
+
       // Error state only when no data to show
-      if (!loading && errorText.isNotEmpty && conversations.isEmpty) {
+      if (!loading && !assigneeLoading && errorText.isNotEmpty && conversations.isEmpty) {
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -414,6 +416,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
         );
       }
 
+
       // Keep current list visible; show thin progress bar while loading
       return Stack(
         children: [
@@ -445,7 +448,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
               );
             },
           ),
-          if (loading)
+          if (loading || assigneeLoading)
             const Positioned(
               top: 0,
               left: 0,
