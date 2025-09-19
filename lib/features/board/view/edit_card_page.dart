@@ -318,6 +318,7 @@ class _EditCardPageState extends State<EditCardPage> {
     {'value': 'REJECTED', 'label': 'ปฏิเสธ'},
     {'value': 'INVOICED', 'label': 'ออกใบแจ้งหนี้แล้ว'},
     {'value': 'FULLY_PAID', 'label': 'ชำระครบแล้ว'},
+    {'value': 'COMPLETED', 'label': 'เสร็จสิ้น'},
   ];
 
   // Customer Interest options (same as create page)
