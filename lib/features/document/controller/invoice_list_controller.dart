@@ -318,10 +318,10 @@ class InvoiceListController extends GetxController {
     filteredInvoices.value = List.from(allInvoices);
   }
 
-  void viewInvoice(Map<String, dynamic> invoice) {
+  void viewInvoice(Map<String, dynamic> invoice) async {
     final invoiceId = invoice['id'] as String?;
     if (invoiceId != null) {
-      Navigator.push(
+      final result = await Navigator.push(
         Get.context!,
         MaterialPageRoute(
           builder: (context) => DocumentViewPage(
@@ -331,6 +331,12 @@ class InvoiceListController extends GetxController {
           ),
         ),
       );
+      
+      // Check if document was deleted and refresh list
+      if (result != null && result is Map && result['deleted'] == true) {
+        print('📄 Document deleted, refreshing invoices list');
+        await refreshData();
+      }
     }
   }
 
