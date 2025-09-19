@@ -6,6 +6,54 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 
+##
+Topic: Fix comment.
+Detail: After preassed post btn comment in edit_card_page.dart,data not store to fire store. And coment store wrong data comment should store to current card.
+Path and example data.
+Path: /workspaces/{workspace id}/cards/{card id}/note
+```
+{
+                {
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "cardTitle": "Job Card Title",
+                "id": "note-1756977906169",
+                "mentions": [],
+                "text": "<p>test</p>",
+                "timestamp": 1756977906169,
+                "type": "text",
+                "userDisplayName": "bew kiw",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userPhotoURL": null
+              },
+              {
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "cardTitle": "Job Card Title",
+                "id": "note-1756977911696",
+                "mentions": [],
+                "parentId": "note-1756977906169",
+                "text": "<p>replytest</p>",
+                "timestamp": 1756977911696,
+                "type": "text",
+                "userDisplayName": "bew kiw",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userPhotoURL": null
+              },
+              {
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "cardTitle": "Job Card Title1234",
+                "id": "note-1757176041380",
+                "mentions": [],
+                "parentId": "note-1757176026052",
+                "text": "<p>1123344</p>",
+                "timestamp": 1757176041380,
+                "type": "text",
+                "userDisplayName": "bew kiw",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userPhotoURL": null
+              }
+}
+
+```
 
 ##
 Topic: status card in board.
