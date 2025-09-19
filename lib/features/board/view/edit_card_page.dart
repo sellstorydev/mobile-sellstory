@@ -360,6 +360,7 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       );
       return {
+        'id': hashtag.id,
         'text': hashtag.name,
         'color': hashtag.color,
       };
@@ -416,10 +417,27 @@ class _EditCardPageState extends State<EditCardPage> {
     _startDate = widget.card.startDate;
     _endDate = widget.card.endDate;
 
-    // Initialize hashtags - convert from map format to ID format
+    // Initialize hashtags - convert from map format to ID format using masterList lookup
     _selectedHashtagIds = widget.card.hashtags.map((hashtagMap) {
-      // Try to find matching hashtag in available hashtags, fall back to text as ID
-      return hashtagMap['text'] ?? hashtagMap['id'] ?? '';
+      final text = hashtagMap['text'] ?? '';
+      final existingId = hashtagMap['id'] ?? '';
+      
+      // First try to use existing ID if it exists
+      if (existingId.isNotEmpty) {
+        return existingId;
+      }
+      
+      // If no ID, find matching hashtag in available hashtags by name
+      final matchingHashtag = _availableHashtags.firstWhereOrNull(
+        (h) => h.name == text,
+      );
+      
+      if (matchingHashtag != null) {
+        return matchingHashtag.id;
+      }
+      
+      // Fall back to text as ID if no match found
+      return text;
     }).where((id) => id.isNotEmpty).cast<String>().toList();
 
     // Initialize todos
@@ -4559,7 +4577,8 @@ class _EditCardPageState extends State<EditCardPage> {
             controller: _htmlEditorController,
             htmlEditorOptions: HtmlEditorOptions(
               hint: 'Enter job details...',
-              shouldEnsureVisible: true,
+              // Prevent auto-scrolling to the editor on init (parity with create page)
+              shouldEnsureVisible: false,
               initialText: widget.card.description.isNotEmpty ? widget.card.description : '',
             ),
             callbacks: Callbacks(

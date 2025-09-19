@@ -5,6 +5,99 @@
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
+
+##
+Topic: fix hashtag.
+Detail: hashtag input on Assignment and tags in create_card_page.dart store wrong data to firestore, hashtag should have id and mapping color in hashtagSettings .
+Path: /workspaces/{workspace id}
+```
+        "hashtagSettings": {
+          "isEnabled": true,
+          "mode": "global",
+          "automation": {
+            "autoCreateFromChat": false
+          },
+          "masterList": [
+            {
+              "count": 0,
+              "color": "#f97316",
+              "name": "Bew213",
+              "id": "bew213",
+              "enabled": true,
+              "scopes": {
+                "chat": true,
+                "company": true,
+                "customer": true,
+                "jobBoard": true,
+                "product": true
+              },
+              "totalUsage": 1,
+              "usage": {
+                "jobBoard": 1
+              }
+            },
+            {
+              "id": "bew1234455",
+              "name": "Bew1234455",
+              "enabled": true,
+              "scopes": {
+                "jobBoard": true,
+                "customer": true,
+                "product": true,
+                "chat": true,
+                "company": true
+              },
+              "count": 0,
+              "color": "#eab308"
+            }
+          ]
+        },
+```
+
+Wrong data
+```
+    {
+        "color": "#6B7280",
+        "text": "Bew213"
+    },
+    {
+        "color": "#6B7280",
+        "text": "Bew1234455"
+    }
+```
+
+True data
+```
+    {
+        "color": "#eab308",
+        "id": "bew1234455",
+        "text": "Bew1234455"
+    }
+```
+
+## 
+Topic: html editor scroll
+Detail: fix scroll in edit card page like create card page
+### Auto-Scroll Prevention Fix in create_card_page.dart (September 18, 2025)
+
+**Issue:** After entering create card page, when HTML editor finishes loading, the page automatically scrolls down to the HTML editor section instead of staying at the top.
+
+**Root Cause:** The `shouldEnsureVisible: true` option in HtmlEditorOptions causes the HTML editor to automatically scroll itself into view when initialization completes.
+
+**Solution Applied:**
+Changed `shouldEnsureVisible` from `true` to `false` in HtmlEditorOptions to prevent automatic scrolling behavior.
+
+**Technical Changes:**
+```dart
+// Before: Auto-scroll enabled
+shouldEnsureVisible: true,
+
+// After: Auto-scroll disabled  
+shouldEnsureVisible: false,
+```
+
+
+
 ##
 Topic:Change ui hashtags
 Detail: hashtag not show after change widget like  hashtag_input_field.dart. You should mapping or get hashtag like hashtag_input_field.dart. If current should show 2 hashtage Bew213,bew1234455. Data and struc you can see in path "firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-18T16-22-35.json"

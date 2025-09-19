@@ -185,7 +185,7 @@
           "company": 3,
           "quotation": 56,
           "customer": 3,
-          "jobCard": 63
+          "jobCard": 71
         }
       },
       "subCollection": {
@@ -919,51 +919,60 @@
               }
             }
           },
-          "fIPtV1kTyO6NDk26MYVF": {
+          "iWPEhSQTFjZ8rZ3Uz9eX": {
             "additionalDiscount": null,
             "amount": 0,
-            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
             "attachments": [],
-            "badges": [],
+            "badges": [
+              "Bew213",
+              "Bew1234455"
+            ],
             "boardId": "Mop2RUYjlM9kRoXGa001",
             "collaborators": [],
             "company": null,
-            "createdAt": 1758212299626,
+            "createdAt": 1758216052179,
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
             "customFields": [],
-            "customId": "JB-180925-0063",
-            "customer": "Bew1123",
+            "customId": "JB-190925-0071",
             "customerId": "UUzr7AJCvjTrlQYrzZfq",
             "customerInterest": "เริ่มต้น",
-            "description": "",
+            "description": "Bew1111",
             "dueDate": null,
             "endDate": null,
             "expenses": [],
-            "hashtag": null,
-            "hashtags": [],
-            "id": "fIPtV1kTyO6NDk26MYVF",
+            "hashtag": "#Bew213 #Bew1234455",
+            "id": "iWPEhSQTFjZ8rZ3Uz9eX",
             "isVatEnabled": false,
-            "laneId": "qesjwQS3saV9h3wzyYMz",
+            "laneId": "TNDqN1seUtOTDXqOnHKk",
             "notes": [],
             "order": 0,
             "priority": null,
-            "quotationTemplateId": null,
             "relatedDocuments": [],
             "startDate": null,
             "status": "Pending",
-            "title": "New Card1234",
+            "title": "test-",
             "todos": [],
-            "updatedAt": {
-              "_nanoseconds": 626000000,
-              "_seconds": 1758212299
-            },
             "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "updatedByDisplayName": "BewLnwZa",
             "watchers": [
               "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
             ],
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "updatedByDisplayName": "BewLnwZa1",
+            "hashtags": [
+              {
+                "color": "#6B7280",
+                "text": "Bew213"
+              },
+              {
+                "color": "#6B7280",
+                "text": "Bew1234455"
+              }
+            ],
             "withholdingTaxPercentage": 0,
-            "workspaceId": "xKnLu20t7n6A0IJxl4NN"
+            "quotationTemplateId": "Fv9OBceNChku4n8jmx1P",
+            "updatedAt": 1758219202277,
+            "customer": ""
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/companies": {
@@ -1349,6 +1358,23 @@
           }
         },
         "workspaces/xKnLu20t7n6A0IJxl4NN/lanes": {
+          "TNDqN1seUtOTDXqOnHKk": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "cards": [],
+            "createdAt": {
+              "_seconds": 1758213105,
+              "_nanoseconds": 712950000
+            },
+            "hasMoreCards": false,
+            "name": "test",
+            "order": 1,
+            "title": "test",
+            "updatedAt": {
+              "_seconds": 1758213105,
+              "_nanoseconds": 713270000
+            },
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN"
+          },
           "qesjwQS3saV9h3wzyYMz": {
             "boardId": "Mop2RUYjlM9kRoXGa001",
             "cards": [],
