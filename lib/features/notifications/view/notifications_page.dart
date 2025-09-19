@@ -8,8 +8,6 @@ import '../../../app/routes.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../domain/entities/job_card.dart';
 import '../../../data/services/mobile_permissions_service.dart';
-import '../../../core/network/mobile_api.dart';
-import '../../chat/view/chat_screen.dart';
 
 class NotificationsPage extends StatefulWidget {
   final String workspaceId;
@@ -95,67 +93,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
     return Uri.tryParse(trimmed);
   }
 
-  Future<String?> _getIdToken() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return null;
-      return await user.getIdToken();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> _openWebview({
-    required String pathOrFullUrl,
-    required String title,
-    Map<String, String>? extraParams,
-  }) async {
-    // Build full URL
-    final isFull = pathOrFullUrl.startsWith('http://') || pathOrFullUrl.startsWith('https://');
-    final base = isFull ? '' : MobileApiConfig.baseUrl;
-    final url = isFull ? pathOrFullUrl : '$base$pathOrFullUrl';
-
-    // Attach token/workspaceId
-    final params = <String, String>{
-      'workspaceId': widget.workspaceId,
-      ...?extraParams,
-    };
-    final token = await _getIdToken();
-    if (token != null && token.isNotEmpty) {
-      params['token'] = token;
-    }
-
-    Get.toNamed(
-      AppRoutes.webview,
-      parameters: {
-        'url': url,
-        'title': title,
-      },
-      arguments: params,
-    );
-  }
-
-  Future<void> _openChat(String chatId) async {
-    try {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            conversationId: chatId,
-            conversationData: {
-              'id': chatId,
-              'name': 'Chat',
-            },
-            workspaceId: widget.workspaceId,
-          ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${'failed_open_chat'.tr}: $e')),
-      );
-    }
-  }
-
   Future<void> _handleLinkTap(String rawLink) async {
     final uri = _parseLink(rawLink);
     if (uri == null) {
@@ -180,48 +117,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     // Handle path-based routes
     final path = uri.path;
-
-    // Live chat: /live-chat?chatId=xxx
-    if (path == '/live-chat') {
-      final chatId = q['chatId'] ?? q['chatID'] ?? q['cid'];
-      if (chatId != null && chatId.isNotEmpty) {
-        await _openChat(chatId);
-        return;
-      }
-    }
-
-    // Approvals: /approvals?quoteId=xxx
-    if (path == '/approvals') {
-      final quoteId = q['quoteId'] ?? q['quotationId'] ?? q['qid'];
-      await _openWebview(
-        pathOrFullUrl: '/approvals',
-        title: 'Approvals',
-        extraParams: {
-          if (quoteId != null && quoteId.isNotEmpty) 'quoteId': quoteId,
-        },
-      );
-      return;
-    }
-
-    // Sales documents: /sales-docs/...
     if (path.startsWith('/sales-docs/')) {
-      await _openWebview(
-        pathOrFullUrl: path,
-        title: 'Document',
+      // Not yet supported in-app; show info
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${'open_document'.tr}: $path')),
       );
       return;
     }
 
-    // Fallback: if it's an absolute URL, open in webview; otherwise show unsupported
-    if (rawLink.startsWith('http://') || rawLink.startsWith('https://')) {
-      await _openWebview(pathOrFullUrl: rawLink, title: 'Web');
-      return;
-    }
-
-    // Optional: ignore silently or notify
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(content: Text('${'unsupported_link'.tr}: ${uri.toString()}')),
-    // );
+    // Fallback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${'unsupported_link'.tr}: ${uri.toString()}')),
+    );
   }
 
   Future<void> _ensureWorkspace(String workspaceId) async {
@@ -253,7 +160,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
     return false;
   }
-
 
   Future<void> _openBoard(String boardId) async {
     try {

@@ -327,10 +327,10 @@ class QuotationsListController extends GetxController {
     Get.to(() => const AddEditDocumentPage(documentType: 'QT'));
   }
 
-  void viewQuotation(Map<String, dynamic> quotation) {
+  void viewQuotation(Map<String, dynamic> quotation) async {
     final quotationId = quotation['id'] as String?;
     if (quotationId != null) {
-      Navigator.push(
+      final result = await Navigator.push(
         Get.context!,
         MaterialPageRoute(
           builder: (context) => DocumentViewPage(
@@ -340,6 +340,12 @@ class QuotationsListController extends GetxController {
           ),
         ),
       );
+      
+      // Check if document was deleted and refresh list
+      if (result != null && result is Map && result['deleted'] == true) {
+        print('📄 Document deleted, refreshing quotations list');
+        await refreshData();
+      }
     }
   }
 

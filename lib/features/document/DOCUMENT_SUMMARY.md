@@ -1,6 +1,40 @@
 # Document System Development Summary
 
 ## Recent Developments (January 27, 2025)
+
+### Document Deletion Functionality (September 19, 2025)
+- **Added**: Delete document functionality to DocumentViewPage
+- **Features Implemented**:
+  - Delete button in popup menu with red styling for destructive action
+  - Confirmation dialog with "Delete Document" title and warning message
+  - Firebase Firestore integration to delete documents from `workspaces/{workspaceId}/documents/{documentId}`
+  - Loading state management during deletion process
+  - Success/error message display using Get.snackbar
+  - Automatic navigation back to previous screen after successful deletion
+  - **List page refresh**: Modified all list controllers to handle deletion result and automatically refresh lists
+- **UI/UX Enhancements**:
+  - Red-colored delete icon and text to indicate destructive action
+  - Two-step confirmation process to prevent accidental deletion
+  - Loading indicator during deletion operation
+  - Clear success/error feedback messages
+  - Seamless list updates when returning from document view after deletion
+- **Technical Implementation**:
+  - Added `_deleteDocument()` method with async Firebase operations
+  - Modified navigation result to return deletion info: `{'deleted': true, 'documentId': documentId}`
+  - Updated all list controllers (`QuotationsListController`, `InvoiceListController`, `ReceiptListController`) to:
+    - Use async/await for navigation to DocumentViewPage
+    - Check navigation result for deletion flag
+    - Automatically call `refreshData()` when document is deleted
+  - Proper error handling and user feedback
+  - State management for loading indicators
+  - Translation key integration for internationalization support
+- **Translation Keys Added**:
+  - `delete_document` - Dialog title
+  - `delete_document_confirmation` - Confirmation message
+  - `document_deleted_successfully` - Success message
+  - `failed_to_delete_document` - Error message
+- **Impact**: Users can now permanently delete documents from the system with proper confirmation and feedback, and document lists automatically refresh to reflect the deletion
+
 ### Template-Based Column Mapping Verification (September 14, 2025)
 - **VERIFICATION COMPLETED**: Flutter mobile P&S implementation correctly follows React web patterns for strict template-based column mapping
 - **Analysis Result**: Current `edit_card_page.dart` implementation is CORRECT and matches React behavior:
@@ -44,10 +78,24 @@
 ### Document View Page Implementation (September 18, 2025)
 - **Created**: New `DocumentViewPage` widget for viewing documents in webview
 - **Features**:
-  - Displays documents at URL pattern: `http://localhost:3000/doc/{type}/{uid}`
+  - Displays documents using API-based webview URL fetching via `/api/mobile/document/share`
   - Supports all document types: quotations (QT), invoices (INV), receipts (RT)
   - Full-screen webview with loading indicators and error handling
   - Edit button that navigates to document edit page and refreshes view on return
+  - User authentication and workspace context handling
+  - Responsive viewport injection for mobile optimization
+
+### Document Webview API Integration (Latest - September 19, 2025)
+- **Updated WebviewApiService**: Added `getDocumentShareUrl()` method for secure document viewing
+- **API Endpoint**: `/api/mobile/document/share` with userId, workspaceId, documentId, and documentType parameters
+- **Enhanced DocumentViewPage**:
+  - Uses dependency injection to get WebviewApiService from GetX DI container
+  - Automatically fetches current user's workspace from Firestore
+  - Dynamically loads document URLs through API instead of hardcoded patterns
+  - Proper error handling for authentication and API failures
+  - Maps document types (QT→quotation, INV→invoice, RT→receipt) for API calls
+- **Security**: All document access goes through authenticated API endpoints with proper user/workspace validation
+- **Implementation**: Replaces direct URL construction with secure API-based URL fetching for enhanced security and flexibility
   - Floating action button for quick edit access
   - Menu options for reload, open in browser, and share
   - Document type-specific titles using translations
