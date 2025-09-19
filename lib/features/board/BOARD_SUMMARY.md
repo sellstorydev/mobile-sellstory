@@ -2,6 +2,13 @@
 
 ## Recent Changes
 
+### Hashtag Initialization Fix in edit_card_page.dart (September 19, 2025)
+
+- Fixed hashtag initialization when opening existing cards to properly map saved hashtag data to masterList IDs
+- Enhanced `_initializeData()` method to lookup hashtag IDs by name from available hashtags when existing ID is missing
+- Ensures hashtag chips display with correct colors from masterList instead of falling back to default gray
+- Resolves issue where existing card hashtags appeared unselected or with wrong colors in HashtagInputField
+
 ### Hashtag Save Data Mapping Fix (September 19, 2025)
 
 - Fixed hashtag save mapping in both create and edit card pages to include proper `id` field from masterList
