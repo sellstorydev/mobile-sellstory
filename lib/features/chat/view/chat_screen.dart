@@ -813,9 +813,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   botEnabled: bot,
                   assignOptions: const ['ทีม A', 'ทีม B', 'ทีม C'],
                   selectedAssign: null,
-                  onStatusChange: (s) => guardAction(context, 'chat:manage', () => _updateStatus(s)),
-                  onPinChanged: (p) => guardAction(context, 'chat:manage', () => _updatePinned(p)),
-                  onBotStatusChanged: (b) => guardAction(context, 'chat:bot:manage', () => _updateBotStatus(b)),
+                  onStatusChange: (s) => guardActionAnyOf(context, ['chat:manage', 'chat:assign'], () => _updateStatus(s)),
+                  onPinChanged: (p) => guardActionAnyOf(context, ['chat:manage', 'chat:assign'], () => _updatePinned(p)),
+                  onBotStatusChanged: (b) => guardActionAnyOf(context, ['chat:bot:manage', 'chat:assign'], () => _updateBotStatus(b)),
                   onAssignChanged: (v) {},
                   onNote: () {},
                   onAddSale: () => guardAction(context, 'chat:assign', _openAddSales),
@@ -866,7 +866,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                           ),
                           PermissionGuard(
-                            permission: 'chat:bot:manage',
+                            anyOf: const ['chat:bot:manage', 'chat:assign'],
                             child: TextButton(
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -874,7 +874,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 backgroundColor: const Color(0xFF111827),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                               ),
-                              onPressed: () => guardAction(context, 'chat:bot:manage', () => _updateBotStatus(false)),
+                              onPressed: () => guardActionAnyOf(context, ['chat:bot:manage', 'chat:assign'], () => _updateBotStatus(false)),
                               child: const Text('แชทแบบแมนนวล', style: TextStyle(fontWeight: FontWeight.w700)),
                             ),
                           ),

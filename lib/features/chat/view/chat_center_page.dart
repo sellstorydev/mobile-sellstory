@@ -438,9 +438,9 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
                   onTap: () => _onConversationTap(conversation),
                   onAddHashtag: () => guardAction(context, 'chat:manage', () => _onAddHashtag(conversation)),
                   onAssignSale: () => guardAction(context, 'chat:assign', () => _onAssignSale(conversation)),
-                  onChangeStatus: () => guardAction(context, 'chat:manage', () => _onChangeStatus(conversation)),
-                  onToggleBot: () => guardAction(context, 'chat:bot:manage', () => _toggleBot(conversation)),
-                  onTogglePin: () => guardAction(context, 'chat:manage', () => _togglePin(conversation)),
+                  onChangeStatus: () => guardActionAnyOf(context, ['chat:manage', 'chat:assign'], () => _onChangeStatus(conversation)),
+                  onToggleBot: () => guardActionAnyOf(context, ['chat:bot:manage', 'chat:assign'], () => _toggleBot(conversation)),
+                  onTogglePin: () => guardActionAnyOf(context, ['chat:manage', 'chat:assign'], () => _togglePin(conversation)),
                 ),
               );
             },
