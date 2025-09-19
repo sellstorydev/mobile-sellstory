@@ -139,8 +139,25 @@ class AppTheme {
       scaffoldBackgroundColor: backgroundWhite,
       fontFamily: AppFont.family,
 
+      // Ensure dialogs use white background (Material 3 compatible)
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+      ),
+      // Ensure popup menus use white background (avoid M3 tint)
+      popupMenuTheme: const PopupMenuThemeData(
+        color: Colors.white,
+        surfaceTintColor: Colors.white,
+      ),
+      // Ensure bottom sheets use white background
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        modalBackgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+      ),
 
       
+
       // App Bar Theme
       appBarTheme: const AppBarTheme(
         surfaceTintColor: Colors.white,
@@ -300,7 +317,24 @@ class AppTheme {
       colorSchemeSeed: primaryOrange,
       scaffoldBackgroundColor: const Color(0xFF121212),
       fontFamily: AppFont.family,
-      
+
+      // Force dialogs to use white background even in dark mode (per request)
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+      ),
+      // Force popup menus to use white background even in dark mode (per request)
+      popupMenuTheme: const PopupMenuThemeData(
+        color: Colors.white,
+        surfaceTintColor: Colors.white,
+      ),
+      // Force bottom sheets to white as well
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        modalBackgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+      ),
+
       // App Bar Theme
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF1E1E1E),
