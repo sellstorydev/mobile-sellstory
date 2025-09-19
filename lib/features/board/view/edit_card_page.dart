@@ -232,6 +232,7 @@ class _EditCardPageState extends State<EditCardPage> {
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _editCommentController = TextEditingController();
+  final ScrollController _commentsScrollController = ScrollController();
 
   // HTML Editor controller
   final HtmlEditorController _htmlEditorController = HtmlEditorController();
@@ -3255,9 +3256,14 @@ class _EditCardPageState extends State<EditCardPage> {
                     ],
                   ),
                 )
-              : ListView.builder(
-                  itemCount: _notes.length,
-                  itemBuilder: (context, index) {
+              : Scrollbar(
+                  thumbVisibility: true,
+                  trackVisibility: true,
+                  controller: _commentsScrollController,
+                  child: ListView.builder(
+                    controller: _commentsScrollController,
+                    itemCount: _notes.length,
+                    itemBuilder: (context, index) {
                     final note = _notes[index];
                     final isReply = note['parentId'] != null;
 
@@ -3405,6 +3411,7 @@ class _EditCardPageState extends State<EditCardPage> {
                       ),
                     );
                   },
+                  ),
                 ),
         ),
         // Add comment input at bottom
@@ -7134,6 +7141,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
     // Dispose edit comment controller if exists
     _editCommentController.dispose();
+    _commentsScrollController.dispose();
 
     _jobIdController.dispose();
     _titleController.dispose();

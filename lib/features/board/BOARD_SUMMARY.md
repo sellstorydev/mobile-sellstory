@@ -2,6 +2,34 @@
 
 ## Recent Changes
 
+### Comment Section Scrollbar Addition (September 20, 2025)
+
+**Topic:** Add scrollbar to comment section in edit_card_page.dart
+
+**Issue:** Comment section in edit_card_page.dart lacked a scrollbar for better navigation when there are many comments.
+
+**Solution Applied:**
+1. **Added Scrollbar Widget**: Wrapped the ListView.builder in comment section with Scrollbar widget
+2. **Enhanced Visibility**: Set `thumbVisibility: true` and `trackVisibility: true` for better user experience
+3. **Maintained Functionality**: All existing comment features (edit, delete, reply) remain intact
+
+**Technical Changes:**
+- **Before**: Simple ListView.builder without scrollbar
+- **After**: ListView.builder wrapped in Scrollbar with visible thumb and track
+- **Location**: `_buildCommentContent()` method in edit_card_page.dart
+
+**Benefits:**
+- **Better Navigation**: Users can easily scroll through long comment lists
+- **Visual Feedback**: Scrollbar indicates scrollable content and current position
+- **Improved UX**: Consistent with modern UI standards for scrollable content
+
+**Files Modified:**
+- `lib/features/board/view/edit_card_page.dart`
+  - Enhanced `_buildCommentContent()` method with Scrollbar widget
+  - Added thumbVisibility and trackVisibility properties for better visibility
+
+## Recent Changes
+
 ### Comment Data Storage Fix (September 20, 2025)
 
 **Topic:** Fix comment posting in edit_card_page.dart - data not storing to Firestore correctly

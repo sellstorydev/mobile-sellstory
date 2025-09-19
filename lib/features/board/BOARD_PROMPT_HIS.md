@@ -8,6 +8,10 @@
 
 ##
 Topic: Fix comment.
+Detail: can add scrollbar on coment section. in edit_card_page.dart
+
+##
+Topic: Fix comment.
 Detail: After preassed post btn comment in edit_card_page.dart,data not store to fire store. And coment store wrong data comment should store to current card.
 Path and example data.
 Path: /workspaces/{workspace id}/cards/{card id}/note
