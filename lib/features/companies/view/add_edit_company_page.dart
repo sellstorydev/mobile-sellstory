@@ -81,6 +81,11 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
         'label': p['label']?.toString() ?? '',
         'value': p['value']?.toString() ?? '',
       }).toList();
+
+      // Attempt preselect after provinces are loaded
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _preselectLocationFromCompany();
+      });
     } else {
       // Initialize with default empty entries
       _emails = [{'label': 'หลัก', 'value': ''}];
@@ -95,6 +100,70 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
       setState(() {
         _provinces = provinces;
       });
+      // If editing, try to preselect once provinces are available
+      if (_isEditMode) {
+        await _preselectLocationFromCompany();
+      }
+    } catch (_) {}
+  }
+
+  // NEW: preselect province/district/subdistrict by matching names from existing company
+  Future<void> _preselectLocationFromCompany() async {
+    if (!_isEditMode || _provinces.isEmpty) return;
+    final c = widget.company!;
+    try {
+      // Province by name
+      if (c.province.isNotEmpty) {
+        final prov = _provinces.firstWhere(
+          (p) => (p['name_th']?.toString() ?? '') == c.province,
+          orElse: () => {},
+        );
+        if (prov.isNotEmpty) {
+          final provId = prov['id']?.toString();
+          if (provId != null && provId.isNotEmpty) {
+            setState(() => _selectedProvinceId = provId);
+            final districts = await _locationService.getDistrictsByProvince(provId);
+            if (!mounted) return;
+            setState(() => _districts = districts);
+          }
+        }
+      }
+      // District by name
+      if (c.district.isNotEmpty && _districts.isNotEmpty) {
+        final dist = _districts.firstWhere(
+          (d) => (d['name_th']?.toString() ?? '') == c.district,
+          orElse: () => {},
+        );
+        if (dist.isNotEmpty) {
+          final distId = dist['id']?.toString();
+          if (distId != null && distId.isNotEmpty) {
+            setState(() => _selectedDistrictId = distId);
+            final subs = await _locationService.getSubdistrictsByDistrict(distId);
+            if (!mounted) return;
+            setState(() => _subdistricts = subs);
+          }
+        }
+      }
+      // Subdistrict by name
+      if (c.subdistrict.isNotEmpty && _subdistricts.isNotEmpty) {
+        final sub = _subdistricts.firstWhere(
+          (s) => (s['name_th']?.toString() ?? '') == c.subdistrict,
+          orElse: () => {},
+        );
+        if (sub.isNotEmpty) {
+          final subId = sub['id']?.toString();
+          if (subId != null && subId.isNotEmpty) {
+            setState(() => _selectedSubdistrictId = subId);
+            // Auto-fill postal code if empty
+            if (_postalCodeController.text.trim().isEmpty) {
+              final zip = await _locationService.getPostalCodeBySubdistrict(subId);
+              if (zip != null && mounted) {
+                setState(() => _postalCodeController.text = zip);
+              }
+            }
+          }
+        }
+      }
     } catch (_) {}
   }
 
@@ -531,6 +600,14 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
           orElse: () => {},
         );
         subdistrictName = subdistrict['name_th'] ?? '';
+      }
+
+      // Preserve existing names on edit when no new selection
+      if (_isEditMode) {
+        final prev = widget.company!;
+        if (provinceName.isEmpty) provinceName = prev.province;
+        if (districtName.isEmpty) districtName = prev.district;
+        if (subdistrictName.isEmpty) subdistrictName = prev.subdistrict;
       }
 
       // Filter out empty contacts
