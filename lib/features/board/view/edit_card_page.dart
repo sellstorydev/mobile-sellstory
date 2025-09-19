@@ -1411,18 +1411,18 @@ class _EditCardPageState extends State<EditCardPage> {
               },
               itemBuilder: (context) {
                 final items = <PopupMenuEntry<String>>[];
-                items.add(
-                  PopupMenuItem(
-                    value: 'copy',
-                    child: Row(
-                      children: const [
-                        Icon(Icons.copy, size: 18),
-                        SizedBox(width: 8),
-                        Text('Copy'),
-                      ],
-                    ),
-                  ),
-                );
+                // items.add(
+                //   PopupMenuItem(
+                //     value: 'copy',
+                //     child: Row(
+                //       children: const [
+                //         Icon(Icons.copy, size: 18),
+                //         SizedBox(width: 8),
+                //         Text('Copy'),
+                //       ],
+                //     ),
+                //   ),
+                // );
                 if (_canMove) {
                   items.add(
                     PopupMenuItem(
