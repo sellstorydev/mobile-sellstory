@@ -2,6 +2,48 @@
 
 ## Recent Changes
 
+### Status Card Count Display (September 19, 2025)
+
+**Topic:** Status card in board - add count card in status card on board.
+
+**Current Implementation Status:** ✅ **ALREADY IMPLEMENTED**
+
+**Analysis:** The status summary cards on the board already display card counts for each status. The implementation is found in `lib/features/board/widgets/status_summary_cards.dart`.
+
+**Current Features:**
+- Each status card displays format: `Status Name (Count)`
+- Count reflects the number of cards in each status (Completed, In Progress, Pending, Cancelled)
+- Count updates dynamically based on filtered cards
+- Visual format: "Completed (2)", "In Progress (10)", "Pending (24)", etc.
+
+**Technical Implementation:**
+```dart
+Text(
+  '$title ($count)', // e.g., "Completed (2)"
+  style: const TextStyle(
+    color: Color(0xFF4D4D4D),
+    fontSize: 8,
+    fontFamily: 'Prompt',
+    fontWeight: FontWeight.w400,
+  ),
+),
+```
+
+**Code Location:**
+- File: `lib/features/board/widgets/status_summary_cards.dart`
+- Method: `_buildSummaryCard()` line 134
+- Count calculation: `_getCountByStatus()` method line 168
+
+**User Experience:**
+- Status cards show both monetary amounts and card counts
+- Counts are displayed in parentheses next to status names
+- Interactive status filtering available by tapping cards
+- Counts respect current search and filter criteria
+
+**No Action Required:** The requested feature is already fully implemented and working as described in the attachment image showing "Completed (2)", "In Progress (10)", "Pending (24)" format.
+
+## Recent Changes
+
 ### Hashtag Initialization Fix in edit_card_page.dart (September 19, 2025)
 
 - Fixed hashtag initialization when opening existing cards to properly map saved hashtag data to masterList IDs

@@ -6,6 +6,11 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 
+
+##
+Topic: status card in board.
+Detail: add count card in status card on board.
+
 ##
 Topic: fix hashtag.
 Detail: hashtag input on Assignment and tags in create_card_page.dart store wrong data to firestore, hashtag should have id and mapping color in hashtagSettings .
