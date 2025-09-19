@@ -24,12 +24,12 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -62,9 +62,9 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")  // หรือ debug ถ้ายังไม่มีคีย์
-            isMinifyEnabled = true
-            isShrinkResources = true
-            ndk { debugSymbolLevel = "NONE" } // Disable native debug symbol packaging to avoid strip tool requirement
+            isMinifyEnabled = false  // Disable minification
+            isShrinkResources = false  // Disable resource shrinking
+            // Remove NDK configuration to avoid debug symbol issues
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -82,6 +82,4 @@ configurations.all {
 }
 
 dependencies {
-    // Play Core library needed when Flutter embedding references deferred components classes during minify
-    implementation("com.google.android.play:core:1.10.3")
 }
