@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -35,6 +36,10 @@ class InvoiceListController extends GetxController {
   
   // Algolia search state
   final useAlgoliaSearch = false.obs;
+  final isSearching = false.obs;
+  
+  // Search debounce timer
+  Timer? _searchDebounceTimer;
 
   @override
   void onInit() {
@@ -45,6 +50,7 @@ class InvoiceListController extends GetxController {
   @override
   void onClose() {
     searchController.dispose();
+    _searchDebounceTimer?.cancel();
     super.onClose();
   }
 
@@ -223,7 +229,21 @@ class InvoiceListController extends GetxController {
   }
 
   void onSearchChanged(String query) {
-    _applyFilters();
+    // Cancel previous timer if exists
+    _searchDebounceTimer?.cancel();
+    
+    // If query is empty, reset search immediately
+    if (query.trim().isEmpty) {
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _applyFilters();
+      return;
+    }
+    
+    // Debounce search for 500ms to avoid too many API calls while typing
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      triggerAlgoliaSearch(query.trim());
+    });
   }
 
   void applyFilters() {
@@ -234,14 +254,21 @@ class InvoiceListController extends GetxController {
     try {
       final searchQuery = searchController.text.trim();
       
-      // Use Algolia search when query is not empty
+      // Don't apply filters if we're currently doing an Algolia search
+      // The search will handle filtering through Algolia instead
+      if (useAlgoliaSearch.value && searchQuery.isNotEmpty) {
+        return;
+      }
+      
+      // If there's a search query but we're not using Algolia, trigger search
       if (searchQuery.isNotEmpty) {
-        _searchWithAlgolia(searchQuery);
+        triggerAlgoliaSearch(searchQuery);
         return;
       }
       
       // Reset to show all when no search query
       useAlgoliaSearch.value = false;
+      isSearching.value = false;
       List<Map<String, dynamic>> filtered = List.from(allInvoices);
       
       // Apply seller filter
@@ -309,14 +336,30 @@ class InvoiceListController extends GetxController {
     selectedStatuses.clear();
     searchController.clear();
     useAlgoliaSearch.value = false;
+    isSearching.value = false;
     invoices.value = List.from(allInvoices);
     filteredInvoices.value = List.from(allInvoices);
+  }
+
+  /// Trigger Algolia search manually (called by search button)
+  void triggerAlgoliaSearch(String query) {
+    if (query.trim().isEmpty) {
+      // If query is empty, reset to show all invoices with current filters
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _applyFilters();
+      return;
+    }
+    
+    isSearching.value = true;
+    _searchWithAlgolia(query.trim());
   }
 
   /// Search invoices using Algolia
   void _searchWithAlgolia(String query) async {
     try {
       useAlgoliaSearch.value = true;
+      isSearching.value = true;
       
       // Build filters for Algolia
       final filters = <String, dynamic>{};
@@ -350,12 +393,15 @@ class InvoiceListController extends GetxController {
           }).toList();
           
           filteredInvoices.value = results;
+          invoices.value = results; // Update the main observable list too
+          isSearching.value = false;
           print('🔍 Algolia search results: ${results.length} invoices found');
         },
         onError: (error) {
           print('❌ Algolia search error: $error');
           // Fallback to local search
           useAlgoliaSearch.value = false;
+          isSearching.value = false;
           _applyLocalSearch(query);
         },
       );
@@ -363,6 +409,7 @@ class InvoiceListController extends GetxController {
     } catch (e) {
       print('❌ Failed to search with Algolia: $e');
       useAlgoliaSearch.value = false;
+      isSearching.value = false;
       _applyLocalSearch(query);
     }
   }
@@ -381,6 +428,8 @@ class InvoiceListController extends GetxController {
     }).toList();
     
     filteredInvoices.value = filtered;
+    invoices.value = filtered; // Update the main observable list too
+    print('🔍 Local search results: ${filtered.length} invoices found');
   }
 
   void viewInvoice(Map<String, dynamic> invoice) {

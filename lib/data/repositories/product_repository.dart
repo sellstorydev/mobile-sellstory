@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../services/firestore_service.dart';
 import '../../domain/entities/product.dart';
 import '../../core/services/logger_service.dart';
+import '../../core/services/algolia_product_sync_service.dart';
 
 class ProductRepository {
   final FirestoreService _firestoreService = Get.find<FirestoreService>();
@@ -136,6 +137,12 @@ class ProductRepository {
           .collection('products')
           .add(product.toMap());
 
+      // Create the product with the generated ID
+      final createdProduct = product.copyWith(id: docRef.id);
+
+      // Sync to Algolia after successful Firestore operation
+      await AlgoliaProductSyncService.syncProductToAlgolia(createdProduct);
+
       _logger.methodExit('ProductRepository.createProduct', {
         'productId': docRef.id,
       });
@@ -162,6 +169,9 @@ class ProductRepository {
           .doc(product.id)
           .update(product.toMap());
 
+      // Sync to Algolia after successful Firestore operation
+      await AlgoliaProductSyncService.syncProductToAlgolia(product);
+
       _logger.methodExit('ProductRepository.updateProduct', {'success': true});
 
       return true;
@@ -185,6 +195,9 @@ class ProductRepository {
           .collection('products')
           .doc(productId)
           .delete();
+
+      // Sync deletion to Algolia after successful Firestore operation
+      await AlgoliaProductSyncService.syncProductDeletionToAlgolia(productId, workspaceId);
 
       _logger.methodExit('ProductRepository.deleteProduct', {'success': true});
 

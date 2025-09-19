@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +9,7 @@ import '../../../domain/entities/product.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/services/algolia_search_service.dart';
+import '../../../core/services/algolia_product_sync_service.dart';
 
 class ProductsController extends GetxController {
   final ProductRepository _repository = Get.find<ProductRepository>();
@@ -30,6 +33,11 @@ class ProductsController extends GetxController {
   
   // Algolia search state
   final RxBool useAlgoliaSearch = false.obs;
+  final RxBool isSearching = false.obs;
+  
+  // Search controller and debounce timer
+  final searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
 
   bool _can(String permission) =>
       MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can(permission);
@@ -38,6 +46,13 @@ class ProductsController extends GetxController {
   void onInit() {
     super.onInit();
     _initializeUserAndWorkspace();
+  }
+
+  @override
+  void onClose() {
+    searchController.dispose();
+    _searchDebounceTimer?.cancel();
+    super.onClose();
   }
 
   Future<void> _initializeUserAndWorkspace() async {
@@ -141,6 +156,40 @@ class ProductsController extends GetxController {
     }
   }
 
+  void onSearchChanged(String query) {
+    // Cancel previous timer if exists
+    _searchDebounceTimer?.cancel();
+    
+    searchQuery.value = query;
+    
+    // If query is empty, reset search immediately
+    if (query.trim().isEmpty) {
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _filterProducts();
+      return;
+    }
+    
+    // Debounce search for 500ms to avoid too many API calls while typing
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      triggerAlgoliaSearch(query.trim());
+    });
+  }
+
+  /// Trigger Algolia search manually (called by search button)
+  void triggerAlgoliaSearch(String query) {
+    if (query.trim().isEmpty) {
+      // If query is empty, reset to show all products with current filters
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _filterProducts();
+      return;
+    }
+    
+    isSearching.value = true;
+    _searchWithAlgolia(query.trim());
+  }
+
   void searchProducts(String query) {
     searchQuery.value = query;
     
@@ -175,6 +224,7 @@ class ProductsController extends GetxController {
   void _searchWithAlgolia(String query) async {
     try {
       useAlgoliaSearch.value = true;
+      isSearching.value = true;
       
       // Search with Algolia
       final searchStream = AlgoliaSearchService.searchProducts(
@@ -199,12 +249,14 @@ class ProductsController extends GetxController {
           }).where((product) => product != null).cast<Product>().toList();
           
           filteredProducts.value = results;
+          isSearching.value = false;
           _logger.info('Algolia search results: ${results.length} products found');
         },
         onError: (error) {
           _logger.error('Algolia search error: $error');
           // Fallback to local search
           useAlgoliaSearch.value = false;
+          isSearching.value = false;
           _filterProducts();
         },
       );
@@ -212,6 +264,7 @@ class ProductsController extends GetxController {
     } catch (e) {
       _logger.error('Failed to search with Algolia: $e');
       useAlgoliaSearch.value = false;
+      isSearching.value = false;
       _filterProducts();
     }
   }
@@ -224,8 +277,36 @@ class ProductsController extends GetxController {
 
   void clearSearch() {
     searchQuery.value = '';
+    searchController.clear();
     useAlgoliaSearch.value = false;
+    isSearching.value = false;
     _filterProducts();
+  }
+
+  /// Sync all existing products to Algolia (for initial population)
+  Future<void> syncAllProductsToAlgolia() async {
+    try {
+      _logger.info('Starting sync of all products to Algolia...');
+      isLoading.value = true;
+      
+      // Get all products from the current data
+      final allProducts = products.toList();
+      
+      if (allProducts.isEmpty) {
+        _logger.warning('No products to sync to Algolia');
+        return;
+      }
+      
+      // Sync to Algolia
+      await AlgoliaProductSyncService.syncMultipleProducts(allProducts);
+      
+      _logger.info('✅ Successfully synced ${allProducts.length} products to Algolia');
+      
+    } catch (e) {
+      _logger.error('❌ Failed to sync products to Algolia: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<void> refreshProducts() async {
