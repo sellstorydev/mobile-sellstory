@@ -1,6 +1,40 @@
 # Document System Development Summary
 
 ## Recent Developments (January 27, 2025)
+
+### Document Deletion Functionality (September 19, 2025)
+- **Added**: Delete document functionality to DocumentViewPage
+- **Features Implemented**:
+  - Delete button in popup menu with red styling for destructive action
+  - Confirmation dialog with "Delete Document" title and warning message
+  - Firebase Firestore integration to delete documents from `workspaces/{workspaceId}/documents/{documentId}`
+  - Loading state management during deletion process
+  - Success/error message display using Get.snackbar
+  - Automatic navigation back to previous screen after successful deletion
+  - **List page refresh**: Modified all list controllers to handle deletion result and automatically refresh lists
+- **UI/UX Enhancements**:
+  - Red-colored delete icon and text to indicate destructive action
+  - Two-step confirmation process to prevent accidental deletion
+  - Loading indicator during deletion operation
+  - Clear success/error feedback messages
+  - Seamless list updates when returning from document view after deletion
+- **Technical Implementation**:
+  - Added `_deleteDocument()` method with async Firebase operations
+  - Modified navigation result to return deletion info: `{'deleted': true, 'documentId': documentId}`
+  - Updated all list controllers (`QuotationsListController`, `InvoiceListController`, `ReceiptListController`) to:
+    - Use async/await for navigation to DocumentViewPage
+    - Check navigation result for deletion flag
+    - Automatically call `refreshData()` when document is deleted
+  - Proper error handling and user feedback
+  - State management for loading indicators
+  - Translation key integration for internationalization support
+- **Translation Keys Added**:
+  - `delete_document` - Dialog title
+  - `delete_document_confirmation` - Confirmation message
+  - `document_deleted_successfully` - Success message
+  - `failed_to_delete_document` - Error message
+- **Impact**: Users can now permanently delete documents from the system with proper confirmation and feedback, and document lists automatically refresh to reflect the deletion
+
 ### Template-Based Column Mapping Verification (September 14, 2025)
 - **VERIFICATION COMPLETED**: Flutter mobile P&S implementation correctly follows React web patterns for strict template-based column mapping
 - **Analysis Result**: Current `edit_card_page.dart` implementation is CORRECT and matches React behavior:

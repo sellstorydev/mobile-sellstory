@@ -241,6 +241,87 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
     });
   }
 
+  Future<void> _deleteDocument() async {
+    // Show confirmation dialog
+    final bool? confirmDelete = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('delete_document'.tr),
+          content: Text('delete_document_confirmation'.tr),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('cancel'.tr),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: Text('delete'.tr),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmDelete == true) {
+      try {
+        // Show loading indicator
+        if (mounted) {
+          setState(() {
+            _isLoading = true;
+          });
+        }
+
+        if (_currentWorkspaceId == null) {
+          throw Exception('Workspace ID not available');
+        }
+
+        // Delete document from Firestore
+        await FirebaseFirestore.instance
+            .collection('workspaces')
+            .doc(_currentWorkspaceId)
+            .collection('documents')
+            .doc(widget.documentId)
+            .delete();
+
+        // Show success message
+        Get.snackbar(
+          'success'.tr,
+          'document_deleted_successfully'.tr,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+
+        // Navigate back to previous screen with deletion result
+        if (mounted) {
+          Navigator.of(context).pop({'deleted': true, 'documentId': widget.documentId}); // Return deletion info
+        }
+      } catch (e) {
+        print('❌ Error deleting document: $e');
+        
+        // Hide loading indicator
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+
+        // Show error message
+        Get.snackbar(
+          'error'.tr,
+          'failed_to_delete_document'.tr,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -320,10 +320,11 @@ class ReceiptListController extends GetxController {
     print('Creating new receipt');
   }
 
-  void viewReceipt(Map<String, dynamic> receipt) {
+
+  void viewReceipt(Map<String, dynamic> receipt) async {
     final receiptId = receipt['id'] as String?;
     if (receiptId != null) {
-      Navigator.push(
+      final result = await Navigator.push(
         Get.context!,
         MaterialPageRoute(
           builder: (context) => DocumentViewPage(
@@ -333,6 +334,12 @@ class ReceiptListController extends GetxController {
           ),
         ),
       );
+      
+      // Check if document was deleted and refresh list
+      if (result != null && result is Map && result['deleted'] == true) {
+        print('📄 Document deleted, refreshing receipts list');
+        await refreshData();
+      }
     }
   }
 
