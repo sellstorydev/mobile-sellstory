@@ -7,6 +7,11 @@
 
 
 ##
+Topic: Fix ui.
+Detail: After change profile image in แก้ไขโปรไฟล์ successed. and go back to more menu profile not change.I attach image for underdstanding 
+
+
+##
 Topic: Fix error Getx in edit_profile_page.dart
 Detail: When open edit profile geting error
 ```

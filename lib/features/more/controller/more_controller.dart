@@ -60,6 +60,11 @@ class MoreController extends GetxController {
     }
   }
 
+  // Public method to refresh user data (called from EditProfilePage)
+  Future<void> refreshUserData() async {
+    await _loadUserDataFromFirestore();
+  }
+
   // Logout with confirmation
   Future<void> logout() async {
     // Show confirmation dialog

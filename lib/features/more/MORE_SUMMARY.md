@@ -1,5 +1,56 @@
 # MORE FEATURE SUMMARY
 
+## Issue Fixed: Profile Image Not Updating in More Menu
+
+### Problem
+- After changing profile image in แก้ไขโปรไฟล์ (Edit Profile) page successfully, returning to More menu shows old profile image
+- User sees updated image in edit profile page but More menu doesn't reflect the change until app restart
+
+### Root Cause Analysis
+- **State Management Issue**: MoreController loads user data only in onInit() and when auth state changes
+- EditProfilePage successfully updates both Firestore and Firebase Auth with new profile image
+- MoreController has no mechanism to refresh cached user data when external updates occur
+- The More menu continues showing cached photoURL until controller is recreated
+
+### Changes Made
+1. **Added Public Refresh Method**: Added `refreshUserData()` method to MoreController
+   - Calls existing `_loadUserDataFromFirestore()` to fetch latest data
+   - Makes the private method accessible for external triggers
+
+2. **Refresh After Profile Update**: Modified EditProfilePage's `_saveProfile()` method
+   - After successful profile update, calls `moreController.refreshUserData()`
+   - Ensures More menu immediately reflects updated profile image
+   - Wrapped in try-catch to handle cases where MoreController might not be initialized
+
+### Technical Details
+- **Data Flow**: EditProfilePage → Firestore/Firebase Auth → MoreController refresh → UI update
+- **Reactive Updates**: MoreController uses RxVars so UI automatically updates when data changes
+- **Error Handling**: Graceful handling if MoreController is not available during refresh
+- **Performance**: Only refreshes when profile is actually updated, not on every navigation
+
+### Code Changes
+```dart
+// MoreController - Added public refresh method
+Future<void> refreshUserData() async {
+  await _loadUserDataFromFirestore();
+}
+
+// EditProfilePage - Added refresh call after successful update
+try {
+  final moreController = Get.find<MoreController>();
+  await moreController.refreshUserData();
+} catch (e) {
+  print('Warning: Could not refresh MoreController: $e');
+}
+```
+
+### Architecture Notes
+- Maintains separation of concerns: EditProfilePage doesn't directly manipulate More menu state
+- Uses GetX controller communication pattern for cross-page updates
+- Preserves existing reactive UI patterns in MoreController
+
+---
+
 ## Issue Fixed: GetX Error in Edit Profile Page
 
 ### Problem
