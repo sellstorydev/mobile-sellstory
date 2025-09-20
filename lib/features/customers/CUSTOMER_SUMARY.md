@@ -46,4 +46,12 @@
 - Verified backup data shows workspace `3w5mum6fnev2IEKF7G9d` (Bew1150) contains multiple customers that should be loaded
 - Fixed the main issue where changing workspace in board didn't update customer list because controllers weren't synchronized
 
+## 2025-09-21 — Customer list update after operations
+
+- Fixed `addCustomer()` method to immediately add new customer to in-memory list and call `_filterCustomers()` for UI update
+- Fixed `updateCustomer()` method to update existing customer in in-memory list and refresh filtered results
+- Fixed `deleteCustomer()` method to remove customer from in-memory list and refresh filtered results
+- All CRUD operations now update the local list immediately for instant UI feedback, while still maintaining database sync
+- Solves the issue where customer list didn't update after add/edit/delete operations
+
 

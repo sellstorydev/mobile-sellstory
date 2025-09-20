@@ -500,6 +500,11 @@ class CustomersController extends GetxController {
         companyNames: customer.companyNames,
       );
 
+      // Add the new customer to the in-memory list immediately
+      final newCustomer = customer.copyWith(id: newId);
+      customers.add(newCustomer);
+      _filterCustomers();
+
       // Optimistically update total count
       totalCustomersCount.value = (totalCustomersCount.value + 1).clamp(0, 1 << 31);
 
@@ -533,6 +538,13 @@ class CustomersController extends GetxController {
 
       // Update customer document
       await _customerRepository.updateCustomer(workspaceId, customer);
+
+      // Update the customer in the in-memory list
+      final index = customers.indexWhere((c) => c.id == customer.id);
+      if (index != -1) {
+        customers[index] = customer;
+        _filterCustomers();
+      }
 
       // Sync company links if we have previous data
       if (prev != null) {
@@ -570,6 +582,10 @@ class CustomersController extends GetxController {
       errorMessage.value = '';
 
       await _customerRepository.deleteCustomer(workspaceId, customerId);
+
+      // Remove the customer from the in-memory list
+      customers.removeWhere((c) => c.id == customerId);
+      _filterCustomers();
 
       // Optionally: clean up company links (arrayRemove)
       try {
