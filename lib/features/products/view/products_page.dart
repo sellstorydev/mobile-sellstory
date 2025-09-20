@@ -71,8 +71,12 @@ class ProductsPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               color: AppTheme.backgroundWhite,
               child: TextField(
-                controller: controller.searchController,
-                onChanged: controller.onSearchChanged,
+                controller: controller.safeSearchController,
+                onChanged: (value) {
+                  if (Get.isRegistered<ProductsController>()) {
+                    controller.onSearchChanged(value);
+                  }
+                },
                 decoration: InputDecoration(
                   hintText: 'search_products'.tr,
                   prefixIcon: const Icon(Icons.search, color: AppTheme.textGrey),
@@ -419,7 +423,8 @@ class ProductsPage extends StatelessWidget {
   }
 
   void _triggerSearch(ProductsController controller) {
-    final query = controller.searchController.text.trim();
+    final searchController = controller.safeSearchController;
+    final query = searchController.text.trim();
     if (query.isNotEmpty) {
       controller.triggerAlgoliaSearch(query);
     }

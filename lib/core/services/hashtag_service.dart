@@ -36,7 +36,7 @@ class HashtagService {
           .map((item) => HashtagOption.fromMap(Map<String, dynamic>.from(item)))
           .toList();
     } catch (e) {
-      print('Error fetching workspace hashtags: $e');
+      print('❌ Error fetching workspace hashtags: $e');
       return [];
     }
   }
@@ -52,7 +52,7 @@ class HashtagService {
           .where((hashtag) => hashtag.scopes[scope] == true)
           .toList();
     } catch (e) {
-      print('Error fetching hashtags by scope: $e');
+      print('❌ Error fetching hashtags by scope: $e');
       return [];
     }
   }
@@ -103,7 +103,7 @@ class HashtagService {
         });
       });
     } catch (e) {
-      print('Error incrementing hashtag usage: $e');
+      print('❌ Error incrementing hashtag usage: $e');
     }
   }
 
@@ -166,7 +166,7 @@ class HashtagService {
 
       return true;
     } catch (e) {
-      print('Error creating hashtag: $e');
+      print('❌ Error creating hashtag: $e');
       return false;
     }
   }
@@ -218,7 +218,7 @@ class HashtagService {
 
       return true;
     } catch (e) {
-      print('Error updating hashtag: $e');
+      print('❌ Error updating hashtag: $e');
       return false;
     }
   }
@@ -254,7 +254,7 @@ class HashtagService {
 
       return true;
     } catch (e) {
-      print('Error deleting hashtag: $e');
+      print('❌ Error deleting hashtag: $e');
       return false;
     }
   }

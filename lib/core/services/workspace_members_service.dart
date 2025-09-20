@@ -52,9 +52,7 @@ class WorkspaceMembersService {
 
       final workspaceData = workspaceDoc.data()!;
       final members = workspaceData['members'] as Map<String, dynamic>? ?? {};
-      
-      print('📋 Found ${members.length} members in workspace');
-      
+            
       // Get full user data for each member
       final List<WorkspaceMember> workspaceMembers = [];
       
@@ -76,16 +74,12 @@ class WorkspaceMembersService {
               permission: permission,
             );
             workspaceMembers.add(member);
-            print('✅ Added member: ${member.displayName} (${member.permission})');
-          } else {
-            print('⚠️ User not found: $memberUid');
           }
         } catch (e) {
           print('❌ Error fetching user data for $memberUid: $e');
         }
       }
       
-      print('📋 Total workspace members loaded: ${workspaceMembers.length}');
       return workspaceMembers;
     } catch (e) {
       print('❌ Error getting workspace members: $e');

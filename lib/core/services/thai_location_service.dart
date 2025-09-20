@@ -37,7 +37,7 @@ class ThaiLocationService extends GetxService {
       // Fallback to hardcoded data if Firestore is not available
       return _getHardcodedProvinces();
     } catch (e) {
-      print('Error fetching provinces: $e');
+      print('❌ Error fetching provinces: $e');
       return _getHardcodedProvinces();
     }
   }
@@ -69,7 +69,7 @@ class ThaiLocationService extends GetxService {
 
       return [];
     } catch (e) {
-      print('Error fetching districts: $e');
+      print('❌ Error fetching districts: $e');
       return [];
     }
   }
@@ -101,7 +101,7 @@ class ThaiLocationService extends GetxService {
 
       return [];
     } catch (e) {
-      print('Error fetching subdistricts: $e');
+      print('❌ Error fetching subdistricts: $e');
       return [];
     }
   }
@@ -129,7 +129,7 @@ class ThaiLocationService extends GetxService {
 
       return null;
     } catch (e) {
-      print('Error fetching postal code: $e');
+      print('❌ Error fetching postal code: $e');
       return null;
     }
   }
@@ -185,7 +185,7 @@ class ThaiLocationService extends GetxService {
         }
       }
     } catch (e) {
-      print('Error fetching location names: $e');
+      print('❌ Error fetching location names: $e');
     }
 
     return names;

@@ -331,12 +331,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
-        actions: [
-          TextButton(
-            onPressed: _canSubmit() ? _saveCustomer : null,
-            child: Text('save'.tr, style: const TextStyle(color: AppTheme.primaryOrange, fontWeight: FontWeight.w600)),
-          ),
-        ],
+        // actions: [
+        //   TextButton(
+        //     onPressed: _canSubmit() ? _saveCustomer : null,
+        //     child: Text('save'.tr, style: const TextStyle(color: AppTheme.primaryOrange, fontWeight: FontWeight.w600)),
+        //   ),
+        // ],
       ),
       body: !canOpen
           ? Center(
@@ -442,7 +442,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: Text('next'.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    child: Text('save'.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
               ),

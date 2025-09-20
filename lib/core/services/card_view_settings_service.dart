@@ -4,34 +4,114 @@ import 'dart:convert';
 
 class CardViewSettingsService extends GetxService {
   static CardViewSettingsService get to => Get.find<CardViewSettingsService>();
-  
+
   final RxList<CardFieldSetting> _cardFields = <CardFieldSetting>[].obs;
   final RxBool _isInitialized = false.obs;
-  
+
   List<CardFieldSetting> get cardFields => _cardFields;
   RxList<CardFieldSetting> get cardFieldsRx => _cardFields;
   bool get isInitialized => _isInitialized.value;
-  
+
   // Default card field settings
   static const List<CardFieldSetting> _defaultFields = [
     CardFieldSetting(id: 'jobId', name: 'Job ID', isVisible: true, order: 1),
     CardFieldSetting(id: 'status', name: 'Status', isVisible: true, order: 2),
-    CardFieldSetting(id: 'dateRange', name: 'Date Range', isVisible: true, order: 3),
-    CardFieldSetting(id: 'createdDate', name: 'Created Date', isVisible: true, order: 4),
-    CardFieldSetting(id: 'assignee', name: 'Assignee', isVisible: true, order: 5),
-    CardFieldSetting(id: 'customerInterest', name: 'Customer Interest', isVisible: true, order: 6),
-    CardFieldSetting(id: 'collaborators', name: 'Collaborators', isVisible: false, order: 7),
-    CardFieldSetting(id: 'customer', name: 'Customer', isVisible: true, order: 8),
-    CardFieldSetting(id: 'company', name: 'Company', isVisible: false, order: 9),
-    CardFieldSetting(id: 'hashtags', name: 'Hashtags', isVisible: false, order: 10),
-    CardFieldSetting(id: 'priority', name: 'Priority', isVisible: true, order: 11),
-    CardFieldSetting(id: 'grandTotal', name: 'Grand Total', isVisible: false, order: 12),
-    CardFieldSetting(id: 'netTotal', name: 'Net Total', isVisible: false, order: 13),
-    CardFieldSetting(id: 'totalBeforeDiscount', name: 'Total (before discount)', isVisible: false, order: 14),
-    CardFieldSetting(id: 'totalAfterDiscount', name: 'Total (after discount)', isVisible: false, order: 15),
-    CardFieldSetting(id: 'totalBeforeVAT', name: 'Total (before VAT)', isVisible: false, order: 16),
-    CardFieldSetting(id: 'description', name: 'Description', isVisible: false, order: 17),
-    CardFieldSetting(id: 'todoList', name: 'To-Do List', isVisible: false, order: 18),
+    CardFieldSetting(
+      id: 'dateRange',
+      name: 'Date Range',
+      isVisible: true,
+      order: 3,
+    ),
+    CardFieldSetting(
+      id: 'createdDate',
+      name: 'Created Date',
+      isVisible: true,
+      order: 4,
+    ),
+    CardFieldSetting(
+      id: 'assignee',
+      name: 'Assignee',
+      isVisible: true,
+      order: 5,
+    ),
+    CardFieldSetting(
+      id: 'customerInterest',
+      name: 'Customer Interest',
+      isVisible: true,
+      order: 6,
+    ),
+    CardFieldSetting(
+      id: 'collaborators',
+      name: 'Collaborators',
+      isVisible: false,
+      order: 7,
+    ),
+    CardFieldSetting(
+      id: 'customer',
+      name: 'Customer',
+      isVisible: true,
+      order: 8,
+    ),
+    CardFieldSetting(
+      id: 'company',
+      name: 'Company',
+      isVisible: false,
+      order: 9,
+    ),
+    CardFieldSetting(
+      id: 'hashtags',
+      name: 'Hashtags',
+      isVisible: false,
+      order: 10,
+    ),
+    CardFieldSetting(
+      id: 'priority',
+      name: 'Priority',
+      isVisible: true,
+      order: 11,
+    ),
+    CardFieldSetting(
+      id: 'grandTotal',
+      name: 'Grand Total',
+      isVisible: false,
+      order: 12,
+    ),
+    CardFieldSetting(
+      id: 'netTotal',
+      name: 'Net Total',
+      isVisible: false,
+      order: 13,
+    ),
+    CardFieldSetting(
+      id: 'totalBeforeDiscount',
+      name: 'Total (before discount)',
+      isVisible: false,
+      order: 14,
+    ),
+    CardFieldSetting(
+      id: 'totalAfterDiscount',
+      name: 'Total (after discount)',
+      isVisible: false,
+      order: 15,
+    ),
+    CardFieldSetting(
+      id: 'totalBeforeVAT',
+      name: 'Total (before VAT)',
+      isVisible: false,
+      order: 16,
+    ),
+    CardFieldSetting(
+      id: 'description',
+      name: 'Description',
+      isVisible: false,
+      order: 17,
+    ),
+    CardFieldSetting(
+      id: 'todoList',
+      name: 'To-Do List',
+      isVisible: false,
+      order: 18,
+    ),
   ];
 
   @override
@@ -42,20 +122,16 @@ class CardViewSettingsService extends GetxService {
 
   Future<void> _initializeSettings() async {
     try {
-      print('🔧 Initializing Card View Settings Service...');
-      
       // Load settings from local storage
       await _loadSettingsFromLocal();
-      
+
       // If no settings found, use defaults
       if (_cardFields.isEmpty) {
-        print('📋 No local settings found, using defaults');
         _cardFields.value = List.from(_defaultFields);
         await _saveSettingsToLocal();
       }
-      
+
       _isInitialized.value = true;
-      print('✅ Card View Settings Service initialized with ${_cardFields.length} fields');
     } catch (e) {
       print('❌ Failed to initialize Card View Settings Service: $e');
       // Fallback to defaults
@@ -66,23 +142,19 @@ class CardViewSettingsService extends GetxService {
 
   /// Public method to refresh settings from local storage
   Future<void> refreshSettings() async {
-    print('🔄 CardViewSettingsService: Manual refresh triggered');
     await _initializeSettings();
-    print('🔄 CardViewSettingsService: Manual refresh completed');
   }
 
   Future<void> _loadSettingsFromLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final settingsJson = prefs.getString('card_view_settings');
-      
+
       if (settingsJson != null) {
         final List<dynamic> settingsList = json.decode(settingsJson);
         _cardFields.value = settingsList
             .map((json) => CardFieldSetting.fromJson(json))
             .toList();
-        
-        print('📱 Loaded ${_cardFields.length} card field settings from local storage');
       }
     } catch (e) {
       print('❌ Failed to load settings from local storage: $e');
@@ -92,15 +164,13 @@ class CardViewSettingsService extends GetxService {
   Future<void> _saveSettingsToLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final settingsJson = json.encode(_cardFields.map((field) => field.toJson()).toList());
+      final settingsJson = json.encode(
+        _cardFields.map((field) => field.toJson()).toList(),
+      );
       await prefs.setString('card_view_settings', settingsJson);
-      
-      print('💾 Saved ${_cardFields.length} card field settings to local storage');
-      print('💾 JSON data: $settingsJson');
-      
+
       // Verify save by reading back
       final savedJson = prefs.getString('card_view_settings');
-      print('💾 Verification read back: $savedJson');
     } catch (e) {
       print('❌ Failed to save settings to local storage: $e');
       rethrow;
@@ -109,9 +179,7 @@ class CardViewSettingsService extends GetxService {
 
   // Get visible fields ordered by their order value
   List<CardFieldSetting> getVisibleFields() {
-    return _cardFields
-        .where((field) => field.isVisible)
-        .toList()
+    return _cardFields.where((field) => field.isVisible).toList()
       ..sort((a, b) => a.order.compareTo(b.order));
   }
 
@@ -134,9 +202,10 @@ class CardViewSettingsService extends GetxService {
   Future<void> updateFieldVisibility(String id, bool isVisible) async {
     final fieldIndex = _cardFields.indexWhere((field) => field.id == id);
     if (fieldIndex != -1) {
-      _cardFields[fieldIndex] = _cardFields[fieldIndex].copyWith(isVisible: isVisible);
+      _cardFields[fieldIndex] = _cardFields[fieldIndex].copyWith(
+        isVisible: isVisible,
+      );
       await _saveSettingsToLocal();
-      print('👁️ Updated field visibility: $id = $isVisible');
     }
   }
 
@@ -144,29 +213,20 @@ class CardViewSettingsService extends GetxService {
   Future<void> updateFieldOrder(String id, int newOrder) async {
     final fieldIndex = _cardFields.indexWhere((field) => field.id == id);
     if (fieldIndex != -1) {
-      _cardFields[fieldIndex] = _cardFields[fieldIndex].copyWith(order: newOrder);
+      _cardFields[fieldIndex] = _cardFields[fieldIndex].copyWith(
+        order: newOrder,
+      );
       await _saveSettingsToLocal();
-      print('📏 Updated field order: $id = $newOrder');
     }
   }
 
   // Update multiple fields at once (for reordering)
-  Future<void> updateMultipleFields(List<CardFieldSetting> updatedFields) async {
-    print('🔄 CardViewSettingsService: Updating ${updatedFields.length} fields');
-    for (var field in updatedFields) {
-      print('   Updating: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
-    }
-    
+  Future<void> updateMultipleFields(
+    List<CardFieldSetting> updatedFields,
+  ) async {
     // Use assignAll to properly trigger RxList listeners
     _cardFields.assignAll(updatedFields);
     await _saveSettingsToLocal();
-    
-    print('🔄 Updated ${updatedFields.length} card field settings');
-    print('🔄 Service now has ${_cardFields.length} fields');
-    for (var field in _cardFields) {
-      print('   Service field: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
-    }
-    print('🔄 RxList listeners should be triggered now');
   }
 
   // Reorder fields
@@ -174,19 +234,18 @@ class CardViewSettingsService extends GetxService {
     if (oldIndex < newIndex) {
       newIndex -= 1;
     }
-    
+
     final List<CardFieldSetting> reorderedFields = List.from(_cardFields);
     final item = reorderedFields.removeAt(oldIndex);
     reorderedFields.insert(newIndex, item);
-    
+
     // Update order values
     for (int i = 0; i < reorderedFields.length; i++) {
       reorderedFields[i] = reorderedFields[i].copyWith(order: i + 1);
     }
-    
+
     _cardFields.value = reorderedFields;
     await _saveSettingsToLocal();
-    print('🔄 Reordered fields: moved item from $oldIndex to $newIndex');
   }
 
   // Save to storage (alias for _saveSettingsToLocal)
@@ -198,7 +257,6 @@ class CardViewSettingsService extends GetxService {
   Future<void> resetToDefaults() async {
     _cardFields.value = List.from(_defaultFields);
     await _saveSettingsToLocal();
-    print('🔄 Reset card view settings to defaults');
   }
 
   // Export settings as JSON
@@ -219,7 +277,6 @@ class CardViewSettingsService extends GetxService {
             .map((json) => CardFieldSetting.fromJson(json))
             .toList();
         await _saveSettingsToLocal();
-        print('📥 Imported ${_cardFields.length} card field settings');
       }
     } catch (e) {
       print('❌ Failed to import settings: $e');
@@ -256,12 +313,7 @@ class CardFieldSetting {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'isVisible': isVisible,
-      'order': order,
-    };
+    return {'id': id, 'name': name, 'isVisible': isVisible, 'order': order};
   }
 
   factory CardFieldSetting.fromJson(Map<String, dynamic> json) {

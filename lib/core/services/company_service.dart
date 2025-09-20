@@ -12,18 +12,13 @@ class CompanyService {
           .collection('companies')
           .get();
 
-      print('CompanyService.getCompanies fetched ${querySnapshot.docs.length} docs for workspace $workspaceId');
-      for (final d in querySnapshot.docs) {
-        print(' - docId=${d.id}');
-      }
-
       return querySnapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id; // Add document ID to the data
         return Company.fromMap(data);
       }).toList();
     } catch (e) {
-      print('Error fetching companies: $e');
+      print('❌ Error fetching companies: $e');
       return [];
     }
   }
@@ -31,14 +26,12 @@ class CompanyService {
 
   // New: realtime stream
   Stream<List<Company>> companiesStream(String workspaceId) {
-    print('CompanyService.companiesStream subscribing for workspace $workspaceId');
     return _firestore
         .collection('workspaces')
         .doc(workspaceId)
         .collection('companies')
         .snapshots()
         .map((snapshot) {
-          print('CompanyService.companiesStream snapshot docs=${snapshot.docs.length}');
           return snapshot.docs.map((doc) {
             final data = doc.data();
             print(data);
@@ -64,7 +57,7 @@ class CompanyService {
       }
       return null;
     } catch (e) {
-      print('Error fetching company: $e');
+      print('❌ Error fetching company: $e');
       return null;
     }
   }
@@ -77,7 +70,7 @@ class CompanyService {
           .collection('companies')
           .add(company.toMap());
     } catch (e) {
-      print('Error adding company: $e');
+      print('❌ Error adding company: $e');
       rethrow;
     }
   }
@@ -91,7 +84,7 @@ class CompanyService {
           .doc(company.id)
           .update(company.toMap());
     } catch (e) {
-      print('Error updating company: $e');
+      print('❌ Error updating company: $e');
       rethrow;
     }
   }
@@ -105,7 +98,7 @@ class CompanyService {
           .doc(companyId)
           .delete();
     } catch (e) {
-      print('Error deleting company: $e');
+      print('❌ Error deleting company: $e');
       rethrow;
     }
   }
@@ -126,7 +119,7 @@ class CompanyService {
         return Company.fromMap(data);
       }).toList();
     } catch (e) {
-      print('Error searching companies: $e');
+      print('❌ Error searching companies: $e');
       return [];
     }
   }
