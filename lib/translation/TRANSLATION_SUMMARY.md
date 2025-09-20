@@ -947,11 +947,13 @@ Successfully completed a comprehensive project to replace all hardcoded "ยื�
 - **User Experience**: Consistent button labeling across all dialogs and modals
 - **Code Quality**: Eliminated hardcoded Thai strings in favor of translation system
 
-### 📊 Translation Coverage Summary:
-- **Translation Keys Added**: 10 new English/Thai key pairs
-- **Files Modified**: 15 files across core widgets, documents, chat, auth, board, and profile modules  
-- **Hardcoded Strings Replaced**: 25+ instances of "ยืนยัน" and "ยกเลิก"
-- **Import Statements Added**: 2 GetX imports for .tr extension support
-- **Const Keywords Removed**: Multiple instances for runtime translation compatibility
+---
 
-```
+## Update - 2025-09-20
+- Localized Chat Center AppBar title in `features/chat/view/chat_center_page.dart` using `chat_center`.tr
+- Localized Chat Center tooltip in `features/chat/widgets/chat_unread_button.dart`
+- Added translation keys in `core/i18n/app_translations.dart`:
+  - `chat_center`: EN "Chat Center" / TH "ศูนย์แชท"
+  - `notification`: EN "Notification" / TH "การแจ้งเตือน"
+- Updated `translation/TRANSLATION_README.md` with a concise bilingual guide (usage, params, fallback, switching language)
+- Static checks: no compile/lint errors in modified files

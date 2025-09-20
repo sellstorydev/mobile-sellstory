@@ -92,11 +92,11 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       backgroundColor: Colors.white,
       centerTitle: false,
       titleSpacing: 0,
-      title: const Padding(
-        padding: EdgeInsets.only(left: 8),
+      title: Padding(
+        padding: const EdgeInsets.only(left: 8),
         child: Text(
-          'Chat Center',
-          style: TextStyle(
+          'chat_center'.tr,
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
             color: Colors.black,
@@ -621,4 +621,3 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     _controller.setCustomerFilter(result.customerId);
   }
 }
-
