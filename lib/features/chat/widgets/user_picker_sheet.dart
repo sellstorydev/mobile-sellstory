@@ -71,16 +71,16 @@ class _UserPickerSheetState extends State<UserPickerSheet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.multiSelect ? 'เลือกเซล (หลายคน)' : 'เลือกเซล'),
+        title: Text(widget.multiSelect ? 'select_sales_multiple'.tr : 'select_sales'.tr),
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'ค้นหาชื่อหรืออีเมล',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                hintText: 'search_name_or_email'.tr,
+                prefixIcon: const Icon(Icons.search),
                 isDense: true,
               ),
               onChanged: (v) => setState(() => _query = v.trim()),
@@ -95,7 +95,7 @@ class _UserPickerSheetState extends State<UserPickerSheet> {
                 }
                 final list = (snap.data ?? []);
                 if (list.isEmpty) {
-                  return const Center(child: Text('ไม่พบบัญชีผู้ใช้ในเวิร์กสเปซ'));
+                  return Center(child: Text('no_users_in_workspace'.tr));
                 }
                 final q = _query.toLowerCase();
                 final filtered = q.isEmpty

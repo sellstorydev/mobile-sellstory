@@ -23,13 +23,12 @@ class ChatFilterChips extends StatelessWidget {
           _buildChip('unread'.tr, 'unread'),
           _buildChip('new'.tr, 'new'),
           _buildChip('pinned'.tr, 'pinned', icon: Icons.push_pin),
-          _buildChip('Group Chat', 'groupOnly', icon: Icons.groups),
+          _buildChip('group_chat'.tr, 'groupOnly', icon: Icons.groups),
           // _buildChip('LINE', 'line', icon: Icons.chat),
         ],
       ),
     );
   }
-
 
   Widget _buildChip(String label, String value, {IconData? icon}) {
     // Don't visually select any chip when activeFilter == 'all'
