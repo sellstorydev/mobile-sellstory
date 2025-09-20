@@ -225,7 +225,7 @@ class JobCardPage extends StatelessWidget {
                   height: 28,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.3),
+                      color: Colors.grey.withOpacity(0.3),
                     ),
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -245,7 +245,7 @@ class JobCardPage extends StatelessWidget {
                   height: 28,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.3),
+                      color: Colors.grey.withOpacity(0.3),
                     ),
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -265,7 +265,7 @@ class JobCardPage extends StatelessWidget {
                   height: 28,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.3),
+                      color: Colors.grey.withOpacity(0.3),
                     ),
                     borderRadius: BorderRadius.circular(6),
                   ),

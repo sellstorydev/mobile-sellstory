@@ -154,7 +154,7 @@ class LoginPage extends StatelessWidget {
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               elevation: controller.canSubmit ? 2 : 0,
-                              shadowColor: AppTheme.primaryOrange.withValues(alpha: 0.3),
+                              shadowColor: AppTheme.primaryOrange.withOpacity(0.3),
                             ),
                             child: controller.isLoading.value
                                 ? const SizedBox(
@@ -225,7 +225,7 @@ class LoginPage extends StatelessWidget {
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               elevation: 2,
-                              shadowColor: Colors.black.withValues(alpha: 0.1),
+                              shadowColor: Colors.black.withOpacity(0.1),
                             ),
                           ),
                         )),
@@ -256,7 +256,7 @@ class LoginPage extends StatelessWidget {
                                 ),
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                                 elevation: 2,
-                                shadowColor: Colors.black.withValues(alpha: 0.1),
+                                shadowColor: Colors.black.withOpacity(0.1),
                               ),
                             ),
                           )),

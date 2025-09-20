@@ -103,7 +103,7 @@ class MoreController extends GetxController {
           'Error',
           'Logout failed: ${e.toString()}',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       } finally {
@@ -175,7 +175,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load hashtag settings',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -184,7 +184,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open hashtag settings: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -216,7 +216,7 @@ class MoreController extends GetxController {
           'Error',
           'ไม่สามารถโหลดตั้งค่าบริษัทได้ กรุณาลองใหม่อีกครั้ง',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
           duration: const Duration(seconds: 3),
         );
@@ -239,7 +239,7 @@ class MoreController extends GetxController {
         'Error',
         errorMessage,
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
         duration: const Duration(seconds: 4),
       );
@@ -249,7 +249,7 @@ class MoreController extends GetxController {
         'Error',
         'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
         duration: const Duration(seconds: 3),
       );
@@ -278,7 +278,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load board settings',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -287,7 +287,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open board settings: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -315,7 +315,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load notification settings',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -324,7 +324,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open notification settings: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -352,7 +352,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load welcome message settings',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -361,7 +361,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open welcome message settings: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -389,7 +389,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load chatbot settings',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -398,7 +398,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open chatbot settings: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -426,7 +426,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load ID generation rules',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -435,7 +435,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open ID generation rules: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -463,7 +463,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load roles & permissions',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -472,7 +472,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open roles & permissions: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -500,7 +500,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load approval conditions',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -509,7 +509,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open approval conditions: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -537,7 +537,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load document settings',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -546,7 +546,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open document settings: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -574,7 +574,7 @@ class MoreController extends GetxController {
           'Error',
           'Failed to load catalog settings',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+          backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
         );
       }
@@ -583,7 +583,7 @@ class MoreController extends GetxController {
         'Error',
         'Failed to open catalog settings: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {

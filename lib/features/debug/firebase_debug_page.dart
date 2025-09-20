@@ -127,8 +127,8 @@ class _FirebaseDebugPageState extends State<FirebaseDebugPage> {
                           padding: const EdgeInsets.all(AppTheme.spacing12),
                           decoration: BoxDecoration(
                             color: _connectionStatus
-                                ? AppTheme.figmaGreen.withValues(alpha: 0.1)
-                                : AppTheme.figmaRed.withValues(alpha: 0.1),
+                                ? AppTheme.figmaGreen.withOpacity(0.1)
+                                : AppTheme.figmaRed.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(
                               AppTheme.radius8,
                             ),
@@ -290,7 +290,7 @@ class _FirebaseDebugPageState extends State<FirebaseDebugPage> {
                                   SnackBar(
                                     content: Text(
                                       result
-                                          ? '✅ ทดสอบการเชื่อมต่อสำเร็จ!'
+                                          ? '��� ทดสอบการเชื่อ���ต่อสำเร็จ!'
                                           : '❌ ทดสอบการเชื่อมต่อล้มเหลว',
                                     ),
                                     backgroundColor: result

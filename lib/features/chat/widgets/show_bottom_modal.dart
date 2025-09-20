@@ -222,7 +222,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   // Remove unused _hexToColor and add hex formatter
   String _colorToHexRGB(Color c) {
     String two(int n) => n.toRadixString(16).padLeft(2, '0');
-    return '#${two(c.red)}${two(c.green)}${two(c.blue)}';
+    final r = ((c.r) * 255.0).round() & 0xff;
+    final g = ((c.g) * 255.0).round() & 0xff;
+    final b = ((c.b) * 255.0).round() & 0xff;
+    return '#${two(r)}${two(g)}${two(b)}';
   }
 
   Future<void> _renameChat() async {
@@ -233,7 +236,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       final newName = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text('chat_rename_title'.tr),
+          title: Text('chat_rename'.tr),
           content: TextField(
             controller: controller,
             decoration: InputDecoration(hintText: 'chat_rename_hint'.tr),
@@ -333,6 +336,35 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     }
   }
 
+  // Load hashtags for chatroom when no customer is linked
+  Future<void> _loadChatroomHashtags() async {
+    setState(() { _loadingHashtags = true; });
+    try {
+      final all = await _hashtagService.getWorkspaceHashtags(widget.workspaceId);
+      final filtered = all.where((h) => (h.scopes['customer'] == true) && h.enabled).toList();
+      filtered.sort((a, b) {
+        final byUsage = (b.totalUsage).compareTo(a.totalUsage);
+        if (byUsage != 0) return byUsage;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+      _availableHashtags = filtered;
+
+      final snap = await _chatroomDoc.get();
+      final m = snap.data() ?? {};
+      final ids = ((m['hashtagIds'] as List?) ?? const []).map((e) => e.toString()).toList();
+      if (!mounted) return;
+      setState(() {
+        _selectedHashtagIds = ids;
+        _pendingHashtagIds = List<String>.from(ids);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() { _availableHashtags = []; _selectedHashtagIds = []; _pendingHashtagIds = []; });
+    } finally {
+      if (mounted) setState(() { _loadingHashtags = false; });
+    }
+  }
+
   bool get _isHashtagDirty {
     final a = _selectedHashtagIds.toSet();
     final b = _pendingHashtagIds.toSet();
@@ -374,6 +406,36 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           .where((s) => s.isNotEmpty)
           .map((s) => s.startsWith('#') ? s : '#$s')
           .toList();
+      await _chatroomDoc.set({
+        'hashtagIds': ids,
+        'hashtags': names,
+      }, SetOptions(merge: true));
+
+      if (!mounted) return;
+      setState(() {
+        _selectedHashtagIds = List<String>.from(ids);
+        _pendingHashtagIds = List<String>.from(ids);
+      });
+      _showTopSnack('chat_hashtag_updated_success'.tr);
+    } catch (e) {
+      if (!mounted) return;
+      _showTopSnack('chat_hashtag_update_failed'.tr + ': $e', isError: true);
+    }
+  }
+
+  // Persist hashtags to chatroom when no customer is linked
+  Future<void> _persistChatroomHashtags(List<String> ids) async {
+    try {
+      // Compose display names with #
+      final names = ids.map((id) {
+        final h = _availableHashtags.firstWhere(
+          (x) => x.id == id,
+          orElse: () => HashtagOption(id: id, name: id, color: '#ef4444', totalUsage: 0, enabled: true, scopes: const {}),
+        );
+        final name = h.name.startsWith('#') ? h.name : '#${h.name}';
+        return name;
+      }).toList();
+
       await _chatroomDoc.set({
         'hashtagIds': ids,
         'hashtags': names,
@@ -649,6 +711,82 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     }
   }
 
+  // Migrate chatroom-level hashtags to customer upon linking
+  Future<void> _migrateHashtagsFromChatroomToCustomer(String customerId) async {
+    try {
+      final ws = FirebaseFirestore.instance.collection('workspaces').doc(widget.workspaceId);
+      final chatRef = ws.collection('chatrooms').doc(widget.chatroomId);
+      final custRef = ws.collection('customers').doc(customerId);
+
+      final chatSnap = await chatRef.get();
+      final custSnap = await custRef.get();
+      final chatData = chatSnap.data() ?? {};
+      final custData = custSnap.data() ?? {};
+
+      final chatIds = ((chatData['hashtagIds'] as List?) ?? const []).map((e) => e.toString()).where((e) => e.isNotEmpty).toSet();
+      if (chatIds.isEmpty) return; // nothing to migrate
+
+      // Parse existing customer hashtags (strings or objects)
+      final rawCustTags = (custData['hashtags'] as List?) ?? const [];
+      final existingIds = <String>{};
+      final existingMapList = <Map<String, dynamic>>[];
+      for (final it in rawCustTags) {
+        if (it is String) {
+          existingIds.add(it);
+          existingMapList.add({'id': it, 'text': it, 'color': '#6B7280'});
+        } else if (it is Map) {
+          final m = Map<String, dynamic>.from(it);
+          final id = (m['id'] ?? m['text'] ?? '').toString();
+          if (id.isNotEmpty) {
+            existingIds.add(id);
+            existingMapList.add({'id': id, 'text': (m['text'] ?? id).toString(), 'color': (m['color'] ?? '#6B7280').toString()});
+          }
+        }
+      }
+
+      // Union
+      final unionIds = {...existingIds, ...chatIds};
+
+      // Build full objects using workspace master list for nice names/colors
+      final master = await _hashtagService.getWorkspaceHashtags(widget.workspaceId);
+      Map<String, HashtagOption> byId = {for (final h in master) h.id: h};
+
+      final mergedObjects = <Map<String, dynamic>>[];
+      for (final id in unionIds) {
+        final existing = existingMapList.firstWhere(
+          (e) => e['id'] == id,
+          orElse: () => <String, dynamic>{},
+        );
+        if (existing.isNotEmpty) {
+          mergedObjects.add(existing);
+        } else {
+          final h = byId[id];
+          final name = h?.name ?? id;
+          final color = h?.color ?? '#6B7280';
+          mergedObjects.add({'id': id, 'text': name, 'color': color});
+        }
+      }
+
+      await custRef.set({'hashtags': mergedObjects}, SetOptions(merge: true));
+
+      // Mirror to chatroom names with # (ids remain same union)
+      final displayNames = mergedObjects
+          .map((m) => (m['text']?.toString() ?? ''))
+          .where((s) => s.isNotEmpty)
+          .map((s) => s.startsWith('#') ? s : '#$s')
+          .toList();
+      await chatRef.set({'hashtagIds': unionIds.toList(), 'hashtags': displayNames}, SetOptions(merge: true));
+
+      if (mounted) {
+        setState(() {
+          _selectedHashtagIds = unionIds.toList();
+          _pendingHashtagIds = unionIds.toList();
+        });
+      }
+    } catch (_) {
+      // silent fail to avoid blocking link flow
+    }
+  }
 
   Future<void> _migrateNotesFromCustomerToChatroom(String customerId) async {
     try {
@@ -682,10 +820,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }
 
       final combined = <String, Map<String, dynamic>>{};
-      for (final n in chatNotes) {
+      // Seed with existing customer notes
+      for (final n in custNotes) {
         combined[keyOf(n)] = n;
       }
-      for (final n in custNotes) {
+      // Merge chat notes; prefer newest timestamp on conflict
+      for (final n in chatNotes) {
         final k = keyOf(n);
         final existing = combined[k];
         if (existing == null) {
@@ -696,15 +836,20 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           combined[k] = b >= a ? n : existing;
         }
       }
+      // Sort desc by timestamp
       final merged = combined.values.toList()
         ..sort((a, b) => ((b['timestamp'] ?? 0) as int).compareTo((a['timestamp'] ?? 0) as int));
 
       await chatRef.set({'notes': merged}, SetOptions(merge: true));
-      if (mounted) _showTopSnack('copied_notes_customer_to_chat'.tr);
+      // Clear notes from customer to avoid confusion
+      await custRef.set({'notes': FieldValue.delete()}, SetOptions(merge: true));
+
+      if (mounted) _showTopSnack('moved_notes_customer_to_chat'.tr);
     } catch (e) {
-      if (mounted) _showTopSnack('copy_notes_failed'.trParams({'error': '$e'}), isError: true);
+      if (mounted) _showTopSnack('move_notes_failed'.trParams({'error': '$e'}), isError: true);
     }
   }
+
 
   Future<void> _unlinkCustomer() async {
     final cid = _currentCustomerId?.trim() ?? '';
@@ -751,6 +896,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     if (_currentCustomerId != null && _currentCustomerId!.isNotEmpty) {
       _loadCustomerNameById(_currentCustomerId!);
       _loadCustomerHashtags(_currentCustomerId!);
+    } else {
+      // Load chatroom-level hashtags when no customer is linked
+      _loadChatroomHashtags();
     }
 
     // Realtime sync with chatroom document
@@ -765,6 +913,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       final cname = (data['customerName'] ?? '').toString();
       final jobId = (data['jobCardId'] ?? data['jobCardID'] ?? '').toString();
       final jobTitle = (data['jobCardTitle'] ?? '').toString();
+      final prevCid = _currentCustomerId ?? '';
       if (!mounted) return;
       setState(() {
         _pinned = pinned;
@@ -784,7 +933,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             _loadCustomerHashtags(_currentCustomerId!);
           } else {
             _currentCustomerName = null;
-            _selectedHashtagIds = [];
+            // Load chat-level hashtags when unlinked
+            _loadChatroomHashtags();
           }
         } else {
           // same id; update name if present in doc
@@ -811,6 +961,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           if (jobTitle.isNotEmpty) _jobCardTitle = jobTitle;
         }
       });
+      // After state applied, if transitioned from no customer to linked, migrate chat hashtags to customer
+      final newCid = (cid ?? '');
+      if (prevCid.isEmpty && newCid.isNotEmpty) {
+        _migrateHashtagsFromChatroomToCustomer(newCid).then((_) => _loadCustomerHashtags(newCid));
+      }
     });
   }
 
@@ -820,6 +975,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     _chatroomSub = null;
     super.dispose();
   }
+
 
   Future<void> _loadAssignees() async {
     setState(() => _loadingAssignees = true);
@@ -1026,6 +1182,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       if (!mounted) return;
       // Migrate any existing chat-level notes into the newly linked customer, then refresh
       await _migrateNotesToCustomer(pickedCustomerId);
+      // Migrate chat-level hashtags into the newly linked customer
+      await _migrateHashtagsFromChatroomToCustomer(pickedCustomerId);
       setState(() {
         _currentCustomerId = pickedCustomerId;
         _currentCustomerName = name.isNotEmpty ? name : null;
@@ -1121,6 +1279,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             if (mounted) {
               // Also migrate notes now that a customer is linked via Job Card
               await _migrateNotesToCustomer(cid);
+              // Migrate chatroom hashtags to customer as well
+              await _migrateHashtagsFromChatroomToCustomer(cid);
               setState(() { _currentCustomerId = cid; _currentCustomerName = cname.isNotEmpty ? cname : _currentCustomerName; });
               _loadAssignees();
               _loadCustomerHashtags(cid);
@@ -1246,15 +1406,15 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                         try {
                           await _chatroomDoc.update({'bot_status': _botEnabled ? 'Y' : 'N'});
                           if (mounted) {
-                            _showTopSnack(_botEnabled ? 'เปิดบอทตอบกลับอัตโนมัติ' : 'ปิดบอทตอบกลับอัตโนมัติ');
+                            _showTopSnack(_botEnabled ? 'bot_enabled'.tr : 'bot_disabled'.tr);
                           }
                         } catch (e) {
                           if (mounted) {
-                            _showTopSnack('อัปเดตการตอบกลับอัตโนมัติไม่สำเร็จ: $e', isError: true);
+                            _showTopSnack('bot_update_failed'.tr + ': $e', isError: true);
                           }
                         }
                       }
-                    }, deniedMessage: 'คุณไม่มีสิทธิ์จัดการบอทแชท');
+                    }, deniedMessage: 'no_permission_chat_bot'.tr);
                   },
                 ),
                 ChatStatusButton(
@@ -1266,7 +1426,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                     guardAction(context, 'chat:assign', () async {
                       setState(() => _status = ChatStatus.inProgress);
                       widget.onStatusChange(_status);
-                    }, deniedMessage: 'คุณไม่มีสิทธิ์เปลี่ยนสถานะห้องแชท');
+                    }, deniedMessage: 'no_permission_chat_status'.tr);
                   },
                 ),
                 ChatStatusButton(
@@ -1278,7 +1438,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                     guardAction(context, 'chat:assign', () async {
                       setState(() => _status = ChatStatus.done);
                       widget.onStatusChange(_status);
-                    }, deniedMessage: 'คุณไม่มีสิทธิ์เปลี่ยนสถานะห้องแชท');
+                    }, deniedMessage: 'no_permission_chat_status'.tr);
                   },
                 ),
                 ChatStatusButton(
@@ -1298,15 +1458,15 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                             'bot_status': _botEnabled ? 'Y' : 'N',
                           });
                           if (mounted) {
-                            _showTopSnack(_pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว');
+                            _showTopSnack(_pinned ? 'chat_pinned'.tr : 'chat_unpinned'.tr);
                           }
                         } catch (e) {
                           if (mounted) {
-                            _showTopSnack('อัปเดตปักหมุดไม่สำเร็จ: $e', isError: true);
+                            _showTopSnack('pin_update_failed'.tr + ': $e', isError: true);
                           }
                         }
                       }
-                    }, deniedMessage: 'คุณไม่มีสิทธิ์ปักหมุดห้องแชท');
+                    }, deniedMessage: 'no_permission_chat_status'.tr);
                   },
                 ),
               ],
@@ -1324,7 +1484,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 if ((hasCustomer && canCustomerEdit) || (!hasCustomer && canChatNote)) {
                   _openNotes();
                 } else {
-                  _showTopSnack('คุณไม่มีสิทธิ์แก้ไขโน้ต', isError: true);
+                  _showTopSnack('no_permission_edit_note'.tr, isError: true);
                 }
               },
               closeOnTap: false,
@@ -1338,7 +1498,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 if (svc.isOwner || svc.can('customer:view:all') || svc.can('customer:view:assigned')) {
                   _openCustomerPicker();
                 } else {
-                  _showTopSnack('คุณไม่มีสิทธิ์ดูรายชื่อลูกค้า', isError: true);
+                  _showTopSnack('no_permission_view_customers'.tr, isError: true);
                 }
               },
               closeOnTap: false,
@@ -1407,65 +1567,92 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                     if (svc.isOwner || svc.can('chat:assign')) {
                       _unlinkCustomer();
                     } else {
-                      _showTopSnack('คุณไม่มีสิทธิ์ยกเลิกเชื่อมต่อลูกค้า', isError: true);
+                      _showTopSnack('no_permission_unlink_customer'.tr, isError: true);
                     }
                   },
                   closeOnTap: false,
                 ),
-              // Hashtags picker for linked customer
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Card(
-                  color: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-
-                         Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: Text('customer_hashtags'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
+            ],
+            // Always show hashtags picker (customer-linked or not)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Card(
+                color: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          (_currentCustomerId ?? '').isNotEmpty ? 'customer_hashtags'.tr : 'hashtags'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                        if (_loadingHashtags)
-                          const LinearProgressIndicator(minHeight: 2)
-                        else ...[
-                          HashtagInputField(
-                            selectedHashtags: _pendingHashtagIds,
-                            availableHashtags: _availableHashtags,
-                            onHashtagsChanged: (ids) {
-                              setState(() => _pendingHashtagIds = ids);
-                            },
-                            label: 'hashtags'.tr,
-                            hintText: 'select_hashtags'.tr,
-                            workspaceId: widget.workspaceId,
-                          ),
-                          const SizedBox(height: 8),
-                          if (_isHashtagDirty)
-                            PermissionGuard(
-                              anyOf: const ['customer:edit:all', 'customer:edit:assigned'],
-                              child: Row(
-                                children: [
-                                  OutlinedButton(
-                                    onPressed: () {
-                                      setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
-                                    },
-                                    child: Text('cancel'.tr),
+                      ),
+                      if (_loadingHashtags)
+                        const LinearProgressIndicator(minHeight: 2),
+                      if (!_loadingHashtags) ...[
+
+                        HashtagInputField(
+                          selectedHashtags: _pendingHashtagIds,
+                          availableHashtags: _availableHashtags,
+                          onHashtagsChanged: (ids) {
+                            setState(() => _pendingHashtagIds = ids);
+                          },
+                          label: 'hashtags'.tr,
+                          hintText: 'select_hashtags'.tr,
+                          workspaceId: widget.workspaceId,
+                        ),
+                        const SizedBox(height: 8),
+                        if (_isHashtagDirty)
+                          (_currentCustomerId ?? '').isNotEmpty
+                              ? PermissionGuard(
+                                  anyOf: const ['customer:edit:all', 'customer:edit:assigned'],
+                                  child: Row(
+                                    children: [
+                                      OutlinedButton(
+                                        onPressed: () {
+                                          setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
+                                        },
+                                        child: Text('cancel'.tr),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () => _persistCustomerHashtags(_pendingHashtagIds),
+                                          child: Text('confirm'.tr),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () => _persistCustomerHashtags(_pendingHashtagIds),
-                                      child: Text('confirm'.tr),
-                                    ),
+                                  fallback: const SizedBox.shrink(),
+                                )
+                              : PermissionGuard(
+                                  anyOf: const ['chat:manage', 'chat:assign', 'chat:send'],
+                                  child: Row(
+                                    children: [
+                                      OutlinedButton(
+                                        onPressed: () {
+                                          setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
+                                        },
+                                        child: Text('cancel'.tr),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () => _persistChatroomHashtags(_pendingHashtagIds),
+                                          child: Text('confirm'.tr),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              fallback: const SizedBox.shrink(),
-                            ),
-                          const SizedBox(height: 8),
+                                  fallback: const SizedBox.shrink(),
+                                ),
+                        const SizedBox(height: 8),
+                        if ((_currentCustomerId ?? '').isNotEmpty)
                           Align(
                             alignment: Alignment.centerLeft,
                             child: PermissionGuard(
@@ -1478,14 +1665,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                               fallback: const SizedBox.shrink(),
                             ),
                           ),
-                        ],
                       ],
-
-                    ),
+                    ],
                   ),
                 ),
               ),
-            ],
+
+            ),
             ChatMenuTile(
               icon: Icons.card_travel_outlined,
               text: 'link_job_card'.tr,
@@ -1494,7 +1680,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 if (svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned')) {
                   _openJobCardPicker();
                 } else {
-                  _showTopSnack('คุณไม่มีสิทธิ์ดู/เชื่อม Job Card', isError: true);
+                  _showTopSnack('no_permission_link_jobcard'.tr, isError: true);
                 }
               },
               closeOnTap: false,
@@ -1508,7 +1694,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                     if (svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned')) {
                       _openJobCardDetail();
                     } else {
-                      _showTopSnack('คุณไม่มีสิทธิ์ดูรายละเอียด Job Card', isError: true);
+                      _showTopSnack('no_permission_view_jobcard_detail'.tr, isError: true);
                     }
                   },
 
@@ -1534,13 +1720,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                                 Text(
                                   (_jobCardTitle?.isNotEmpty == true)
                                       ? _jobCardTitle!
-                                      : 'กำลังดึงชื่อการ์ด...',
+                                      : 'loading_jobcard_title'.tr,
                                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'แตะเพื่อเปิดรายละเอียด',
+                                  'tap_to_open_detail'.tr,
                                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                                 ),
                               ],
@@ -1583,7 +1769,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'ยังไม่มีเซลที่ดูแล กด “เพิ่มเซล” เพื่อเชื่อมผู้ดูแลลูกค้า',
+                          'no_assignees_hint'.tr,
                           style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
                         ),
                       ),

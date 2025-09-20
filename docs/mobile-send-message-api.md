@@ -1,6 +1,6 @@
 # Mobile Send Message API
 
-API สำหรับส่งข้อความจาก Mobile App ไปยัง LINE, Facebook, Instagram
+API สำหรับส่งข้อความจาก Mobile App ไปยัง LINE, Facebook, Instagram (รองรับส่งแบบตอบกลับสำหรับ LINE ด้วย quoteToken)
 
 ## Endpoint
 ```
@@ -12,7 +12,7 @@ POST /api/mobile/send-message
 {
   workspaceId: string;        // ID ของ Workspace
   chatroomId: string;         // ID ของ Chatroom 
-  platform: "line" | "facebook" | "instagram";  // Platform ปลายทาง
+  platform: "line" | "facebook" | "instagram" | "whatsapp";  // Platform ปลายทาง
   message: {
     type: "text" | "image" | "video" | "audio" | "file" | "sticker";
     text?: string;            // ข้อความ (สำหรับ type: text)
@@ -31,10 +31,13 @@ POST /api/mobile/send-message
   };
   // (ออปชัน) ส่งแบบ "ตอบกลับ / อ้างถึง" ข้อความเดิม
   // server จะพยายามหา original message ด้วย messageId -> ถ้าไม่เจอจะ fallback หา platformMessageId
+  // หมายเหตุ: ถ้าอยากให้ LINE แสดงเป็น reply จริง ต้องมี quoteToken ของข้อความเป้าหมาย
   replyTo?: {
-    messageId: string;        // Firestore message id หรือ platformMessageId ของข้อความต้นทาง
-    quotedMessageId?: string; // (ส่วนมากใส่เหมือน messageId) ใช้คงรูปแบบภายใน
-    quoteToken?: string;      // (LINE เท่านั้น) quoteToken จาก event.message.quoteToken ของข้อความต้นทาง
+    messageId: string;        // Firestore doc id หรือ provider platformMessageId ของข้อความต้นทาง
+    quotedMessageId?: string; // ส่วนมากเท่ากับ messageId เพื่อคงรูปแบบภายใน
+    messageText?: string;     // snippet (ออปชัน)
+    senderName?: string;      // ชื่อผู้ส่งต้นฉบับ (ออปชัน)
+    quoteToken?: string;      // (LINE เท่านั้น) quoteToken จากข้อความต้นฉบับ
   };
 }
 ```
@@ -113,14 +116,14 @@ fetch('/api/mobile/send-message', {
 })
 ```
 
-### ส่งข้อความแบบตอบกลับ (Reply / Quoted Message)
+### ส่งข้อความแบบตอบกลับ (Reply / Quoted Message) — LINE
 ```javascript
 // สมมติ เรามี originalMessage (ดึงมาก่อนหน้า) ที่มี field ใด field หนึ่งต่อไปนี้:
 // - originalMessage.id (Firestore doc id)
 // - originalMessage.platformMessageId (LINE / FB / IG provider id)
 // - originalMessage.quoteToken (เฉพาะ LINE ถ้าระบบส่งมาด้วย)
 
-fetch('/api/mobile/send-message', {
+await fetch('/api/mobile/send-message', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -131,6 +134,7 @@ fetch('/api/mobile/send-message', {
       type: 'text',
       text: 'ตอบกลับข้อความด้านบนครับ'
     },
+    // จำเป็นสำหรับ LINE ให้แสดง UI reply จริง ๆ: ต้องส่ง quoteToken ของข้อความต้นฉบับมาด้วย
     replyTo: {
       // ใส่อันใดอันหนึ่งที่มีอยู่ (ถ้ามีทั้งสอง เลือก doc id ก่อน)
       messageId: originalMessage.id || originalMessage.platformMessageId,
@@ -142,10 +146,10 @@ fetch('/api/mobile/send-message', {
 });
 ```
 
-หมายเหตุ:
-- ถ้าเป็น LINE และต้องการให้ฝั่ง LINE แสดง UI reply ของทาง LINE จริง ๆ ต้องระบุ `quoteToken` ของข้อความต้นฉบับ (ระบบเราเก็บไว้ใน field `quoteToken` ของ message ถ้าขาเข้าเป็น reply)
-- ถ้าไม่มี `quoteToken` จะยังคงบันทึกความสัมพันธ์ reply ในระบบ SellStory และ UI ภายในยังแสดงกรอบอ้างอิงได้
-- Facebook / Instagram ปัจจุบันบันทึก reply ในระบบ (internal) ผ่าน `replyTo` แต่ยังไม่ได้ยิง API รูปแบบ reply threading พิเศษเพิ่ม (รองรับในอนาคต)
+หมายเหตุสำคัญ (LINE):
+- ถ้าต้องการให้ LINE แสดงเป็น reply จริง ต้องแนบ `replyTo.quoteToken` ของข้อความต้นฉบับ (ได้จาก webhook ของข้อความนั้น)
+- บอท/ระบบจะไม่ได้รับ quoteToken ใหม่สำหรับข้อความที่บอทส่งเอง ดังนั้นเวลา “กดตอบกลับข้อความที่เราเพิ่งส่ง” จำเป็นต้อง reuse quoteToken ของข้อความเป้าหมายเดิม (ส่วนใหญ่คือข้อความลูกค้า) ซึ่งระบบได้เก็บแนบไว้กับข้อความที่เราส่งหากเราเป็นฝ่ายตอบข้อความลูกค้า
+- ถ้าไม่มี `quoteToken` ระบบยังบันทึกความสัมพันธ์ reply ภายใน SellStory ทำให้ UI ของเรายังเห็นกรอบอ้างอิง แต่ LINE ฝั่งผู้ใช้จะไม่เห็นเป็น reply UI
 
 ---
 
@@ -164,7 +168,7 @@ interface ReplyToInfo {
 ข้อความต้นฉบับเอง (ถ้าอยู่ใน list) จะมีฟิลด์:
 ```typescript
 platformMessageId?: string; // ไอดีจากผู้ให้บริการ (LINE message.id / FB / IG / Lazada / WhatsApp)
-quoteToken?: string;        // LINE quote token (ถ้าข้อความนั้นถูกคนอื่น reply ได้)
+quoteToken?: string;        // LINE quote token (ถ้าข้อความนั้นถูก reply มาจาก upstream หรือเราเก็บแนบไว้ตอนเราตอบข้อความลูกค้า)
 ```
 
 ---
@@ -241,7 +245,7 @@ function focusReply(reply: ReplyToInfo, messages: ChatMessage[], scrollTo: (id: 
 - ต้องมี LINE Connection ที่ active ใน workspace
 - สำหรับ sticker ต้องระบุ `stickerPackageId` และ `stickerId`
 
-### Facebook Platform  
+### Facebook Platform
 - รองรับ: text, image, video, audio, file
 - ต้องมี Facebook Connection ที่ active ใน workspace
 - ใช้ Facebook Messenger API
