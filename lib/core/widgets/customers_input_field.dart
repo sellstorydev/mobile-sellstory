@@ -165,7 +165,6 @@ class CustomersInputField extends StatefulWidget {
 
 class _CustomersInputFieldState extends State<CustomersInputField> {
   final TextEditingController _searchController = TextEditingController();
-
   // Algolia search related
   Timer? _searchDebounceTimer;
   StreamSubscription? _algoliaSearchSubscription;
@@ -464,7 +463,6 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
   List<Customer> _filteredCustomers = [];
   List<String> _tempSelectedCustomerIds = [];
   bool _isSearching = false;
-
   // Algolia search related
   Timer? _searchDebounceTimer;
   StreamSubscription? _algoliaSearchSubscription;
@@ -523,7 +521,6 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
       _searchLocally(query);
       return;
     }
-
     try {
       final searchStream = AlgoliaSearchService.searchCustomers(
         query: query,
