@@ -33,6 +33,9 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
   final ScrollController _listScrollController = ScrollController();
   final ChatroomRepository _chatRepo = ChatroomRepository();
 
+  bool _firstLoadDone = false;
+
+
   // Top snack helper (use GetX snackbar at top)
   void _showTopSnack(String message, {bool isError = false}) {
     // Dismiss existing to avoid stacking many
@@ -52,6 +55,15 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     super.initState();
     _controller = Get.put(ChatController());
     _initializeUser();
+
+    // เพิ่ม delay 2 วิ เฉพาะครั้งแรก
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        setState(() {
+          _firstLoadDone = true;
+        });
+      }
+    });
   }
 
   void _initializeUser() {
@@ -368,15 +380,14 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
   Widget _buildConversationsList() {
     return Obx(() {
       final loading = _controller.isLoading.value;
-      final assigneeLoading = _controller.isAssigneeLoading.value; // NEW
+      final assigneeLoading = _controller.isAssigneeLoading.value;
       final errorText = _controller.error.value;
       final conversations = _controller.filteredConversations;
 
-      // First-time load: no data yet -> full-screen loader
-      if ((loading || assigneeLoading) && conversations.isEmpty) {
+      // First-time load: บังด้วย loading 2 วิ
+      if (!_firstLoadDone || ((loading || assigneeLoading) && conversations.isEmpty)) {
         return const Center(child: CircularProgressIndicator());
       }
-
 
       // Error state only when no data to show
       if (!loading && !assigneeLoading && errorText.isNotEmpty && conversations.isEmpty) {
@@ -610,3 +621,4 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     _controller.setCustomerFilter(result.customerId);
   }
 }
+
