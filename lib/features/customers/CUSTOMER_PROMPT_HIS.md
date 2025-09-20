@@ -5,6 +5,11 @@
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/customers/CUSTOMER_SUMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
+
+##
+Topic: Create card page and Edit card page Customer infomation section
+Detail: In customer section, after pressed "+ New" in customer selection dropdown,
+
 ## 
 Topic: Customer page
 Detail: After add customer, customer list not update. Please fix it.
