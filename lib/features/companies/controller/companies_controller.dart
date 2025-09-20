@@ -8,6 +8,8 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/id_generation_service.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+import '../../../core/services/algolia_company_sync_service.dart';
+import '../../../core/services/algolia_search_service.dart';
 
 
 class CompaniesController extends GetxController {
@@ -82,7 +84,10 @@ class CompaniesController extends GetxController {
         return;
       }
       final data = snap.data() ?? {};
-      final quota = (data['quota'] ?? {}) as Map<String, dynamic>;
+      final quotaData = data['quota'];
+      final quota = quotaData is Map 
+          ? Map<String, dynamic>.from(quotaData) 
+          : <String, dynamic>{};
 
       int asInt(dynamic v, {int fallback = 0}) {
         if (v is int) return v;
@@ -223,8 +228,17 @@ class CompaniesController extends GetxController {
         updatedAt: DateTime.now(),
       );
 
+      // Create company and get the generated document ID
+      final companyId = await _repository.createCompany(currentWorkspaceId.value, newCompany);
 
-      await _repository.createCompany(currentWorkspaceId.value, newCompany);
+      // Sync to Algolia after successful creation with the actual document ID
+      try {
+        final companyWithId = newCompany.copyWith(id: companyId);
+        await AlgoliaCompanySyncService.syncCompanyToAlgolia(companyWithId);
+      } catch (e) {
+        // Log but don't fail the operation if Algolia sync fails
+        print('⚠️ Failed to sync company to Algolia: $e');
+      }
 
       // Reload companies
       await loadCompanies(currentWorkspaceId.value);
@@ -271,6 +285,14 @@ class CompaniesController extends GetxController {
 
       await _repository.updateCompany(currentWorkspaceId.value, updatedCompany);
 
+      // Sync to Algolia after successful update
+      try {
+        await AlgoliaCompanySyncService.syncCompanyToAlgolia(updatedCompany);
+      } catch (e) {
+        // Log but don't fail the operation if Algolia sync fails
+        print('⚠️ Failed to sync company update to Algolia: $e');
+      }
+
       // Update local list
       final index = companies.indexWhere((c) => c.id == company.id);
       if (index != -1) {
@@ -307,6 +329,14 @@ class CompaniesController extends GetxController {
       }
 
       await _repository.deleteCompany(currentWorkspaceId.value, companyId);
+
+      // Sync deletion to Algolia after successful deletion
+      try {
+        await AlgoliaCompanySyncService.syncCompanyDeletionToAlgolia(companyId, currentWorkspaceId.value);
+      } catch (e) {
+        // Log but don't fail the operation if Algolia sync fails
+        print('⚠️ Failed to sync company deletion to Algolia: $e');
+      }
 
       // Remove from local list
       companies.removeWhere((c) => c.id == companyId);
@@ -385,6 +415,93 @@ class CompaniesController extends GetxController {
     } catch (e) {
       errorMessage.value = 'ไม่สามารถยกเลิกการเชื่อมโยงลูกค้ากับบริษัทได้: ${e.toString()}';
       return false;
+    }
+  }
+
+  /// Trigger Algolia search for companies
+  Future<void> triggerAlgoliaSearch(String query) async {
+    if (query.isEmpty) {
+      // If query is empty, show all companies
+      filteredCompanies.value = companies.toList();
+      return;
+    }
+    
+    try {
+      await _searchWithAlgolia(query);
+    } catch (e) {
+      print('⚠️ Algolia search failed, falling back to local search: $e');
+      // Fallback to local search if Algolia fails
+      setSearchQuery(query);
+    }
+  }
+
+  Future<void> _searchWithAlgolia(String query) async {
+    try {
+      if (currentWorkspaceId.value.isEmpty) return;
+      
+      final searchStream = AlgoliaSearchService.searchCompanies(
+        query: query,
+        workspaceId: currentWorkspaceId.value,
+        hitsPerPage: 50,
+      );
+      
+      // Listen to the first result
+      final searchResponse = await searchStream.first;
+      
+      // Convert Algolia results to Company objects
+      final algoliaResults = <Company>[];
+      for (final hit in searchResponse.hits) {
+        try {
+          // Find the company in our local list by ID
+          final companyId = hit['objectID'] as String?;
+          if (companyId != null) {
+            final company = companies.firstWhere(
+              (c) => c.id == companyId,
+              orElse: () => throw StateError('Company not found'),
+            );
+            algoliaResults.add(company);
+          }
+        } catch (e) {
+          print('⚠️ Failed to convert Algolia hit to Company: $e');
+        }
+      }
+      
+      // Update the filtered companies with search results
+      filteredCompanies.value = algoliaResults;
+      
+    } catch (e) {
+      print('⚠️ Algolia search error: $e');
+      // Fallback to local search
+      setSearchQuery(query);
+    }
+  }
+
+  /// Sync all companies to Algolia (for initial population)
+  Future<void> syncAllCompaniesToAlgolia() async {
+    try {
+      isLoading.value = true;
+      
+      if (companies.isEmpty) {
+        print('⚠️ No companies to sync to Algolia');
+        return;
+      }
+      
+      print('🔄 Starting bulk sync of ${companies.length} companies to Algolia...');
+      
+      // Create a list of companies with their workspace ID set
+      final allCompanies = companies.map((company) {
+        return company.copyWith(workspaceId: currentWorkspaceId.value);
+      }).toList();
+      
+      await AlgoliaCompanySyncService.syncMultipleCompanies(allCompanies);
+      
+      print('✅ Successfully synced ${companies.length} companies to Algolia');
+      
+    } catch (e) {
+      print('❌ Failed to sync companies to Algolia: $e');
+      errorMessage.value = 'ไม่สามารถซิงค์ข้อมูลบริษัทกับ Algolia ได้: ${e.toString()}';
+    } finally {
+      isLoading.value = false;
     }
   }
 
