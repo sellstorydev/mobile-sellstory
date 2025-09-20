@@ -360,11 +360,11 @@ class _NotesSheetState extends State<NotesSheet> {
             icon: const Icon(Icons.note_add_outlined),
             tooltip: 'เพิ่มข้อความ',
           ),
-          IconButton(
-            onPressed: _busy ? null : _addFileNote,
-            icon: const Icon(Icons.attach_file),
-            tooltip: 'แนบไฟล์',
-          ),
+          // IconButton(
+          //   onPressed: _busy ? null : _addFileNote,
+          //   icon: const Icon(Icons.attach_file),
+          //   tooltip: 'แนบไฟล์',
+          // ),
         ],
       ),
       body: _busy && _notes.isEmpty
