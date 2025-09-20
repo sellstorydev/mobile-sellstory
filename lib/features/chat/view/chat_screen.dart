@@ -330,20 +330,26 @@ class _ChatScreenState extends State<ChatScreen> {
         'text.length': text.trim().length,
       });
     }
-    final result = await _chatService.sendTextMessage(
-      workspaceId: widget.workspaceId,
-      chatroomId: widget.conversationId,
-      platform: _sourceType,
-      text: text.trim(),
-      replyText: _replyPreviewText,
-      replyToMessageId: _replyToMessageId,
-      replyToMessageType: _replyToMessageType,
-      replyOriginalSenderName: _replyOriginalSenderName,
-      replyQuoteToken: _replyQuoteToken,
-      sender: sender,
-    );
-    if (result['success'] == true && mounted) {
-      setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
+    try {
+      final result = await _chatService.sendTextMessage(
+        workspaceId: widget.workspaceId,
+        chatroomId: widget.conversationId,
+        platform: _sourceType,
+        text: text.trim(),
+        replyText: _replyPreviewText,
+        replyToMessageId: _replyToMessageId,
+        replyToMessageType: _replyToMessageType,
+        replyOriginalSenderName: _replyOriginalSenderName,
+        replyQuoteToken: _replyQuoteToken,
+        sender: sender,
+      );
+      if (result['success'] == true && mounted) {
+        setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
+      }
+    } catch (e, st) {
+      _logger.failure('Send text failed', e, st);
+      setState(() { _error = 'error_occurred_details'.tr.replaceFirst('{error}', '$e'); });
+      _showErrorSnackBar(_error!);
     }
   }
 
