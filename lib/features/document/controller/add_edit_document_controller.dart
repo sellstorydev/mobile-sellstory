@@ -181,15 +181,15 @@ class AddEditDocumentController extends GetxController {
   String? get selectedCompanySealId => _selectedCompanySealId;
 
   // More options section
-  List<String> _selectedPaymentMethods = [];
-  List<String> get selectedPaymentMethods => _selectedPaymentMethods;
+  String? _selectedPaymentMethod;
+  String? get selectedPaymentMethod => _selectedPaymentMethod;
 
-  final List<String> availablePaymentMethods = [
-    'เงินสด',
-    'โอนเงิน',
-    'บัตรเครดิต',
-    'เช็ค',
-  ];
+  List<String> _availablePaymentMethods = [];
+  List<String> get availablePaymentMethods => _availablePaymentMethods;
+
+  // Store full payment details for reference
+  List<Map<String, dynamic>> _paymentDetails = [];
+  List<Map<String, dynamic>> get paymentDetails => _paymentDetails;
 
   final TextEditingController notesController = TextEditingController();
 
@@ -209,19 +209,49 @@ class AddEditDocumentController extends GetxController {
   String? _originalCreatedBy;
 
   // Available document statuses
-  List<String> get availableStatuses => [
-    'DRAFT',
-    'SENT',
-    'PENDING_APPROVAL',
-    'APPROVED',
-    'REJECTED',
-    'VOID',
-    'INVOICED',
-    'FULLY_PAID',
-    'PARTIAL_PAID',
-    'PAID',
-    'OVERDUE',
-  ];
+  List<String> get availableStatuses {
+    switch (documentType) {
+      case 'QT':
+        return [
+          'DRAFT',
+          'SENT',
+          'PENDING_APPROVAL',
+          'APPROVED',
+          'REJECTED',
+          'VOID',
+          'INVOICED',
+          'FULLY_PAID',
+        ];
+      case 'INV':
+        return [
+          'DRAFT',
+          'SENT',
+          'PARTIAL_PAID',
+          'PAID',
+          'OVERDUE',
+          'VOID',
+        ];
+      case 'RT':
+        return [
+          'COMPLETED',
+          'VOID',
+        ];
+      default:
+        return [
+          'DRAFT',
+          'SENT',
+          'PENDING_APPROVAL',
+          'APPROVED',
+          'REJECTED',
+          'VOID',
+          'INVOICED',
+          'FULLY_PAID',
+          'PARTIAL_PAID',
+          'PAID',
+          'OVERDUE',
+        ];
+    }
+  }
 
   // Summary section
   bool _isVatEnabled = false;
@@ -324,12 +354,15 @@ class AddEditDocumentController extends GetxController {
         await loadSignatures();
         await loadCompanySeals();
         await loadDefaultNotes(); // Load default notes for new documents
+        await loadPaymentMethods(); // Load payment methods from workspace
         
         // If editing existing document, load its data
         if (documentId != null) {
           await loadExistingDocument();
         } else {
           _initializeForm();
+          // Set current user as default seller for new documents
+          _setDefaultSellerAsCurrentUser();
         }
         
         // Only set loading to false once at the end
@@ -388,6 +421,18 @@ class AddEditDocumentController extends GetxController {
       if (documentId == null) {
         _documentDate = DateTime.now();
         _validUntilDate = DateTime.now().add(const Duration(days: 30));
+      }
+
+      // Set default status based on document type (only for new documents)
+      if (documentId == null) {
+        switch (documentType) {
+          case 'RT':
+            _documentStatus = 'COMPLETED';
+            break;
+          default:
+            _documentStatus = 'DRAFT';
+            break;
+        }
       }
 
       // Set default WHT percentage (only if not editing existing document)
@@ -486,8 +531,7 @@ class AddEditDocumentController extends GetxController {
         if (customer != null) {
           // Auto-fill customer fields from Firebase data
           customerAddressController.text = customer.address;
-          customerPostalCodeController.text =
-              customer.nationalId; // Using nationalId as postal code for now
+          customerPostalCodeController.text = ''; // Customers don't have postal code field
           customerNationalIdController.text = customer.nationalId;
 
           // Load all phone numbers
@@ -520,10 +564,6 @@ class AddEditDocumentController extends GetxController {
             
             // Load assignee details if available
             _loadAssigneeDetails(firstAssigneeId);
-          } else {
-            // Clear seller selection if no assignees
-            _selectedSellerIds.clear();
-            sellerNameController.clear();
           }
 
           print('✅ Auto-filled customer data for: ${customer.name}');
@@ -567,12 +607,48 @@ class AddEditDocumentController extends GetxController {
       if (companyId != null && companyId != 'individual') {
         final companyData = selectedCompanyData;
         if (companyData != null) {
-          // You can add company-specific auto-fill logic here
-          // For example, if you have company address, tax ID, etc.
           print('✅ Selected company: ${getCompanyDisplayName(companyData)}');
+          
+          // Auto-fill customer fields with company data by fetching from database
+          _loadAndFillCompanyData(companyId);
         }
       } else if (companyId == 'individual') {
         print('✅ Selected individual customer (no company)');
+        // Clear company-related fields when individual is selected
+        _clearCompanyAutoFilledData();
+        
+        // Re-fetch and auto-fill customer data if a customer is selected
+        if (_selectedCustomerId != null) {
+          final customer = _customers.firstWhereOrNull((c) => c.id == _selectedCustomerId);
+          if (customer != null) {
+            print('🔄 Re-filling customer data after switching back to individual');
+            
+            // Re-fill customer fields from original customer data
+            customerAddressController.text = customer.address;
+            customerPostalCodeController.text = ''; // Customers don't have postal code field
+            customerNationalIdController.text = customer.nationalId;
+
+            // Re-load all phone numbers
+            _customerPhones.clear();
+            if (customer.phones.isNotEmpty) {
+              _customerPhones.addAll(customer.phones.map((phone) => Map<String, dynamic>.from(phone)));
+              customerPhoneController.text = customer.phones.first['value'] ?? '';
+            } else {
+              customerPhoneController.text = '';
+            }
+
+            // Re-load all emails
+            _customerEmails.clear();
+            if (customer.emails.isNotEmpty) {
+              _customerEmails.addAll(customer.emails.map((email) => Map<String, dynamic>.from(email)));
+              customerEmailController.text = customer.emails.first['value'] ?? '';
+            } else {
+              customerEmailController.text = '';
+            }
+
+            print('✅ Re-filled customer data for: ${customer.name}');
+          }
+        }
       }
 
       update();
@@ -584,6 +660,121 @@ class AddEditDocumentController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  // Load company data from Firestore and auto-fill customer fields
+  Future<void> _loadAndFillCompanyData(String companyId) async {
+    try {
+      if (_currentWorkspaceId == null) {
+        print('⚠️ No workspace ID available for loading company data');
+        return;
+      }
+
+      print('🏢 Loading company data for auto-fill: $companyId');
+
+      // Fetch company data from Firestore
+      final companyDoc = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(_currentWorkspaceId!)
+          .collection('companies')
+          .doc(companyId)
+          .get();
+
+      if (companyDoc.exists) {
+        final companyData = companyDoc.data()!;
+        
+        // Auto-fill address fields with company address
+        final addressLine1 = companyData['addressLine1']?.toString() ?? '';
+        final subdistrict = companyData['subdistrict']?.toString() ?? '';
+        final district = companyData['district']?.toString() ?? '';
+        final province = companyData['province']?.toString() ?? '';
+        final country = companyData['country']?.toString() ?? '';
+        
+        // Build full address from company data
+        final addressParts = [addressLine1, subdistrict, district, province, country]
+            .where((part) => part.isNotEmpty)
+            .toList();
+        
+        if (addressParts.isNotEmpty) {
+          customerAddressController.text = addressParts.join(', ');
+          print('✅ Auto-filled address: ${addressParts.join(', ')}');
+        }
+
+        // Auto-fill postal code
+        final postalCode = companyData['postalCode']?.toString() ?? '';
+        if (postalCode.isNotEmpty) {
+          customerPostalCodeController.text = postalCode;
+          print('✅ Auto-filled postal code: $postalCode');
+        }
+
+        // Auto-fill tax ID to national ID field
+        final taxId = companyData['taxId']?.toString() ?? '';
+        if (taxId.isNotEmpty) {
+          customerNationalIdController.text = taxId;
+          print('✅ Auto-filled tax ID: $taxId');
+        }
+
+        // Auto-fill emails from company
+        final companyEmails = companyData['emails'] as List<dynamic>?;
+        if (companyEmails != null && companyEmails.isNotEmpty) {
+          _customerEmails.clear();
+          _customerEmails.addAll(companyEmails.map((email) => Map<String, dynamic>.from(email as Map)));
+          
+          // Set first email to legacy controller for backward compatibility
+          final firstEmail = companyEmails.first;
+          if (firstEmail is Map<String, dynamic>) {
+            final emailValue = firstEmail['value']?.toString() ?? '';
+            customerEmailController.text = emailValue;
+            print('✅ Auto-filled emails: ${companyEmails.length} entries');
+          }
+        }
+
+        // Auto-fill phones from company
+        final companyPhones = companyData['phones'] as List<dynamic>?;
+        if (companyPhones != null && companyPhones.isNotEmpty) {
+          _customerPhones.clear();
+          _customerPhones.addAll(companyPhones.map((phone) => Map<String, dynamic>.from(phone as Map)));
+          
+          // Set first phone to legacy controller for backward compatibility
+          final firstPhone = companyPhones.first;
+          if (firstPhone is Map<String, dynamic>) {
+            final phoneValue = firstPhone['value']?.toString() ?? '';
+            customerPhoneController.text = phoneValue;
+            print('✅ Auto-filled phones: ${companyPhones.length} entries');
+          }
+        }
+
+        print('✅ Company data auto-filled successfully');
+        update(); // Refresh UI to show auto-filled data
+        
+      } else {
+        print('⚠️ Company document not found: $companyId');
+      }
+    } catch (e) {
+      print('❌ Failed to load company data for auto-fill: $e');
+    }
+  }
+
+  // Clear company auto-filled data when individual is selected
+  void _clearCompanyAutoFilledData() {
+    try {
+      // Only clear if customer is not already selected (to avoid clearing customer's own data)
+      if (_selectedCustomerId == null) {
+        customerAddressController.clear();
+        customerPostalCodeController.clear();
+        customerNationalIdController.clear();
+        customerPhoneController.clear();
+        customerEmailController.clear();
+        
+        _customerEmails.clear();
+        _customerPhones.clear();
+        
+        print('✅ Cleared company auto-filled data');
+        update();
+      }
+    } catch (e) {
+      print('❌ Failed to clear company auto-filled data: $e');
     }
   }
 
@@ -704,6 +895,33 @@ class AddEditDocumentController extends GetxController {
 
   void _setAssigneesLoading(bool loading) {
     _isLoadingAssignees = loading;
+  }
+
+  // Set current user as default seller for new documents
+  void _setDefaultSellerAsCurrentUser() {
+    try {
+      if (_currentUserId == null || documentId != null) {
+        // Only set default for new documents
+        return;
+      }
+      
+      // Find current user in available assignees
+      final currentUserAssignee = _availableAssignees.firstWhereOrNull(
+        (assignee) => assignee.uid == _currentUserId,
+      );
+      
+      if (currentUserAssignee != null) {
+        _selectedSellerIds = [_currentUserId!];
+        sellerNameController.text = currentUserAssignee.displayName;
+        
+        print('✅ Set default seller as current user: ${currentUserAssignee.displayName}');
+        update();
+      } else {
+        print('⚠️ Current user not found in workspace members');
+      }
+    } catch (e) {
+      print('❌ Failed to set default seller as current user: $e');
+    }
   }
   
   // Load products from database
@@ -982,6 +1200,53 @@ class AddEditDocumentController extends GetxController {
     }
   }
 
+  // Load payment methods from workspace
+  Future<void> loadPaymentMethods() async {
+    try {
+      if (_currentWorkspaceId == null) {
+        print('⚠️ No workspace ID available for loading payment methods');
+        return;
+      }
+
+      final workspaceDoc = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(_currentWorkspaceId!)
+          .get();
+
+      if (workspaceDoc.exists) {
+        final data = workspaceDoc.data() as Map<String, dynamic>;
+        final defaultPaymentDetails = data['companyProfile']?['docSettings']?['defaultPaymentDetails'];
+
+        if (defaultPaymentDetails != null && defaultPaymentDetails is List) {
+          _paymentDetails.clear();
+          _availablePaymentMethods.clear();
+
+          for (var paymentDetail in defaultPaymentDetails) {
+            if (paymentDetail is Map<String, dynamic>) {
+              final accountName = paymentDetail['accountName'] as String?;
+              final bankName = paymentDetail['bankName'] as String?;
+              
+              if (accountName != null && bankName != null) {
+                final displayName = '$accountName ($bankName)';
+                _paymentDetails.add(paymentDetail);
+                _availablePaymentMethods.add(displayName);
+                print('✅ Added payment method: $displayName');
+              }
+            }
+          }
+          
+          print('✅ Loaded ${_availablePaymentMethods.length} payment methods from workspace');
+        } else {
+          print('⚠️ No payment details found in workspace profile: $_currentWorkspaceId');
+        }
+      } else {
+        print('⚠️ Workspace document not found: $_currentWorkspaceId');
+      }
+    } catch (e) {
+      print('❌ Failed to load payment methods: $e');
+    }
+  }
+
   // Handle signature selection
   void onSignatureChanged(String signatureRoleName, String? signatureId) {
     try {
@@ -1140,13 +1405,40 @@ class AddEditDocumentController extends GetxController {
       final refId = documentData['refId']?.toString() ?? '';
       refIdController.text = refId;
       
-      // Payment methods
-      final paymentMethods = documentData['paymentMethod'] as List<dynamic>?;
-      if (paymentMethods != null) {
-        _selectedPaymentMethods = paymentMethods
-            .map((method) => method.toString())
-            .where((method) => method.isNotEmpty)
-            .toList();
+      // Payment methods - handle both string and array formats
+      final paymentMethodData = documentData['paymentMethod'];
+      if (paymentMethodData != null) {
+        String? paymentMethodValue;
+        
+        if (paymentMethodData is List && paymentMethodData.isNotEmpty) {
+          // Handle array format (legacy)
+          paymentMethodValue = paymentMethodData.first.toString();
+        } else if (paymentMethodData is String && paymentMethodData.isNotEmpty) {
+          // Handle string format (current)
+          paymentMethodValue = paymentMethodData;
+        }
+        
+        if (paymentMethodValue != null && paymentMethodValue.isNotEmpty) {
+          // Always set the payment method from the document, even if it's not in current workspace
+          // This preserves data integrity in case workspace configuration changed
+          _selectedPaymentMethod = paymentMethodValue;
+          
+          // Validate that the payment method exists in available methods for UI consistency
+          if (_availablePaymentMethods.contains(paymentMethodValue)) {
+            print('✅ Loaded and validated payment method from document: $paymentMethodValue');
+          } else {
+            // Payment method from document is no longer available in workspace, but keep it for data preservation
+            print('⚠️ Payment method from document not found in current workspace: $paymentMethodValue');
+            print('Available payment methods: $_availablePaymentMethods');
+            print('ℹ️ Keeping original payment method for data preservation');
+            
+            // Add the original payment method to available methods to prevent UI issues
+            if (!_availablePaymentMethods.contains(paymentMethodValue)) {
+              _availablePaymentMethods.add(paymentMethodValue);
+              print('✅ Added original payment method to available options: $paymentMethodValue');
+            }
+          }
+        }
       }
       
       // VAT and WHT settings
@@ -1180,6 +1472,9 @@ class AddEditDocumentController extends GetxController {
       }
       
       print('✅ Basic document info loaded');
+      
+      // Trigger UI update after loading basic info including payment method
+      update();
       
     } catch (e) {
       print('❌ Failed to load basic document info: $e');
@@ -2381,12 +2676,12 @@ class AddEditDocumentController extends GetxController {
   }
 
   // More options section methods
-  void onPaymentMethodsChanged(List<String> methods) {
+  void onPaymentMethodChanged(String? method) {
     try {
-      _selectedPaymentMethods = methods;
+      _selectedPaymentMethod = method;
       update();
     } catch (e) {
-      print('❌ Failed to change payment methods: $e');
+      print('❌ Failed to change payment method: $e');
       Get.snackbar(
         'ข้อผิดพลาด',
         'ไม่สามารถเปลี่ยนช่องทางการชำระเงินได้: $e',
@@ -3141,20 +3436,18 @@ class AddEditDocumentController extends GetxController {
         try {
           final idService = Get.find<IdGenerationService>();
           // Use appropriate document type for ID generation
-          String idType = 'quotation'; // default
           switch (documentType) {
             case 'QT':
-              idType = 'quotation';
+              docNo = await idService.generateDocumentDocNo(_currentWorkspaceId!, 'quotation');
               break;
             case 'INV':
-              idType = 'invoice';
+              docNo = await idService.generateInvoiceDocNo(_currentWorkspaceId!);
               break;
             case 'RT':
-              idType = 'receipt';
+              docNo = await idService.generateReceiptDocNo(_currentWorkspaceId!);
               break;
           }
-          docNo = await idService.generateDocumentDocNo(_currentWorkspaceId!, idType);
-          print('📝 Generated $idType document number: $docNo');
+          print('📝 Generated $documentType document number: $docNo');
         } catch (e) {
           print('❌ Failed to generate document number: $e');
         }
@@ -3302,6 +3595,7 @@ class AddEditDocumentController extends GetxController {
         'sellerName': sellerNameController.text,
         'sellerPhone': sellerPhoneController.text,
         'notes': notesController.text,
+        'paymentMethod': _selectedPaymentMethod,
         'signatureAssignments': _buildSignatureAssignments(),
         'companySealId': _selectedCompanySealId,
         'templateId': _selectedTemplateId ?? '',
@@ -3489,33 +3783,21 @@ class AddEditDocumentController extends GetxController {
 
       // Handle navigation based on create vs update
       if (isUpdate) {
-        // For updates, just refresh the list and stay on edit page
-        _refreshListController();
+        Get.back();
+        print("back");
+        _refreshListController(highlightDocumentId: documentId);
       } else {
         // For new documents, navigate to edit page of the newly created document
         if (newDocumentId != null) {
           // Navigate back to the list first
           Get.back();
           
-          // Then navigate to edit page for the newly created document
-          await Future.delayed(const Duration(milliseconds: 300)); // Small delay for smooth transition
-          
-          // Use Navigator.push to avoid GetX controller conflicts
-          Navigator.push(
-            Get.context!,
-            MaterialPageRoute(
-              builder: (context) => AddEditDocumentPage(
-                documentId: newDocumentId,
-                documentType: documentType,
-              ),
-            ),
-          );
-          
-          // Refresh the list controller
-          _refreshListController();
+          // Refresh the list controller and highlight the new document
+          _refreshListController(highlightDocumentId: newDocumentId);
         } else {
           // Fallback: just go back if something went wrong
           Get.back();
+
           _refreshListController();
         }
       }
@@ -3545,20 +3827,20 @@ class AddEditDocumentController extends GetxController {
     }
   }
   
-  void _refreshListController() {
+  void _refreshListController({String? highlightDocumentId}) {
     try {
       switch (documentType) {
         case 'QT':
           final controller = Get.find<QuotationsListController>();
-          controller.refreshData();
+          controller.refreshData(highlightDocumentId: highlightDocumentId);
           break;
         case 'INV':
           final controller = Get.find<InvoiceListController>();
-          controller.refreshData();
+          controller.refreshData(highlightDocumentId: highlightDocumentId);
           break;
         case 'RT':
           final controller = Get.find<ReceiptListController>();
-          controller.refreshData();
+          controller.refreshData(highlightDocumentId: highlightDocumentId);
           break;
       }
     } catch (e) {

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../view/document_view_page.dart';
 import '../../../core/services/algolia_search_service.dart';
 
 class ReceiptListController extends GetxController {
@@ -31,6 +32,9 @@ class ReceiptListController extends GetxController {
   
   // All receipts for filtering
   final allReceipts = <Map<String, dynamic>>[].obs;
+  
+  // Highlighting variables
+  final highlightedDocumentId = Rx<String?>(null);
   
   // Algolia search state
   final useAlgoliaSearch = false.obs;
@@ -382,15 +386,26 @@ class ReceiptListController extends GetxController {
     filteredReceipts.value = filtered;
   }
 
-  void createNewReceipt() {
-    // Implementation for creating new receipt
-    print('Creating new receipt');
-  }
-
-  void viewReceipt(Map<String, dynamic> receipt) {
+  void viewReceipt(Map<String, dynamic> receipt) async {
     final receiptId = receipt['id'] as String?;
-    // Implementation for viewing receipt
-    print('Viewing receipt: $receiptId');
+    if (receiptId != null) {
+      final result = await Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => DocumentViewPage(
+            documentType: 'RT',
+            documentId: receiptId,
+            title: receipt['docNo'] as String?,
+          ),
+        ),
+      );
+      
+      // Check if document was deleted and refresh list
+      if (result != null && result is Map && result['deleted'] == true) {
+        print('📄 Document deleted, refreshing receipts list');
+        await refreshData();
+      }
+    }
   }
 
   String formatDate(int timestamp) {
@@ -411,7 +426,24 @@ class ReceiptListController extends GetxController {
   }
 
   // Refresh data
-  Future<void> refreshData() async {
+  Future<void> refreshData({String? highlightDocumentId}) async {
+    // Set the document to highlight
+    if (highlightDocumentId != null) {
+      this.highlightedDocumentId.value = highlightDocumentId;
+      // Clear highlighting after 4 seconds for better visibility
+      Future.delayed(const Duration(seconds: 4), () {
+        if (this.highlightedDocumentId.value == highlightDocumentId) {
+          this.highlightedDocumentId.value = null;
+        }
+      });
+    }
+    
     await _loadReceipts();
+  }
+  
+  // Check if a document should be highlighted
+  bool isDocumentHighlighted(String? documentId) {
+    return highlightedDocumentId.value != null && 
+           highlightedDocumentId.value == documentId;
   }
 }

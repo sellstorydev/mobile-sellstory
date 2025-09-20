@@ -127,14 +127,18 @@ dependencies:
   font_awesome_flutter:
 
   # Apple Sign-In
-  sign_in_with_apple: ^6.1.0
+  sign_in_with_apple: ^6.1.1
 
   # Crypto for SHA256 (Apple nonce)
   crypto: ^3.0.3
 
+  # Color picker
+  flutter_colorpicker: ^1.0.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
 
 
   # The "flutter_lints" package below contains a set of recommended lints to

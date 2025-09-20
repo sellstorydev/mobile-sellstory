@@ -33,6 +33,9 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
   final ScrollController _listScrollController = ScrollController();
   final ChatroomRepository _chatRepo = ChatroomRepository();
 
+  bool _firstLoadDone = false;
+
+
   // Top snack helper (use GetX snackbar at top)
   void _showTopSnack(String message, {bool isError = false}) {
     // Dismiss existing to avoid stacking many
@@ -52,6 +55,15 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
     super.initState();
     _controller = Get.put(ChatController());
     _initializeUser();
+
+    // เพิ่ม delay 2 วิ เฉพาะครั้งแรก
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        setState(() {
+          _firstLoadDone = true;
+        });
+      }
+    });
   }
 
   void _initializeUser() {
@@ -80,11 +92,11 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
       backgroundColor: Colors.white,
       centerTitle: false,
       titleSpacing: 0,
-      title: const Padding(
-        padding: EdgeInsets.only(left: 8),
+      title: Padding(
+        padding: const EdgeInsets.only(left: 8),
         child: Text(
-          'Chat Center',
-          style: TextStyle(
+          'chat_center'.tr,
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
             color: Colors.black,
@@ -368,16 +380,17 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
   Widget _buildConversationsList() {
     return Obx(() {
       final loading = _controller.isLoading.value;
+      final assigneeLoading = _controller.isAssigneeLoading.value;
       final errorText = _controller.error.value;
       final conversations = _controller.filteredConversations;
 
-      // First-time load: no data yet -> full-screen loader
-      if (loading && conversations.isEmpty) {
+      // First-time load: บังด้วย loading 2 วิ
+      if (!_firstLoadDone || ((loading || assigneeLoading) && conversations.isEmpty)) {
         return const Center(child: CircularProgressIndicator());
       }
 
       // Error state only when no data to show
-      if (!loading && errorText.isNotEmpty && conversations.isEmpty) {
+      if (!loading && !assigneeLoading && errorText.isNotEmpty && conversations.isEmpty) {
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -414,6 +427,7 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
         );
       }
 
+
       // Keep current list visible; show thin progress bar while loading
       return Stack(
         children: [
@@ -438,14 +452,14 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
                   onTap: () => _onConversationTap(conversation),
                   onAddHashtag: () => guardAction(context, 'chat:manage', () => _onAddHashtag(conversation)),
                   onAssignSale: () => guardAction(context, 'chat:assign', () => _onAssignSale(conversation)),
-                  onChangeStatus: () => guardAction(context, 'chat:manage', () => _onChangeStatus(conversation)),
-                  onToggleBot: () => guardAction(context, 'chat:bot:manage', () => _toggleBot(conversation)),
-                  onTogglePin: () => guardAction(context, 'chat:manage', () => _togglePin(conversation)),
+                  onChangeStatus: () => guardActionAnyOf(context, ['chat:manage', 'chat:assign'], () => _onChangeStatus(conversation)),
+                  onToggleBot: () => guardActionAnyOf(context, ['chat:bot:manage', 'chat:assign'], () => _toggleBot(conversation)),
+                  onTogglePin: () => guardActionAnyOf(context, ['chat:manage', 'chat:assign'], () => _togglePin(conversation)),
                 ),
               );
             },
           ),
-          if (loading)
+          if (loading || assigneeLoading)
             const Positioned(
               top: 0,
               left: 0,

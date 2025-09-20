@@ -36,6 +36,9 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   final _addressController = TextEditingController();
   final _customIdController = TextEditingController();
   final _ageController = TextEditingController(); // NEW age controller
+  // NEW persistent controllers for location
+  final _postalCodeController = TextEditingController();
+  final _countryController = TextEditingController();
 
   final HashtagService _hashtagService = HashtagService();
   final WorkspaceMembersService _workspaceMembersService = Get.find<WorkspaceMembersService>();
@@ -95,6 +98,8 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       _addressController.text = c.address;
       _customIdController.text = c.customId;
       _ageController.text = c.age.toString(); // set age
+      _postalCodeController.text = c.postalCode;
+      _countryController.text = c.country.isNotEmpty ? c.country : 'ไทย';
       if (_genderOptions.contains(c.gender)) _selectedGender = c.gender;
       if (_customerTypeOptions.contains(c.customerType)) _selectedCustomerType = c.customerType;
       _selectedSource = c.source;
@@ -158,8 +163,10 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       _phones = [
         {'id': 'phone-initial', 'label': 'Work', 'value': ''}
       ];
-      _selectedSource = widget.customerSources.isNotEmpty ? widget.customerSources.first : '';
+      _selectedSource = '';
       _ageController.text = '';
+      _postalCodeController.text = '';
+      _countryController.text = 'ไทย';
     }
   }
 
@@ -204,6 +211,10 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     try {
       final provinces = await ThaiLocationService().getProvinces();
       setState(() => _provinces = provinces);
+      // Preselect existing location when editing
+      if (widget.customer != null) {
+        _preselectLocationFromCustomer();
+      }
     } catch (_) {}
   }
 
@@ -231,6 +242,41 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     } catch (_) {}
   }
 
+  // NEW: preselect dropdowns based on existing customer location names
+  Future<void> _preselectLocationFromCustomer() async {
+    final c = widget.customer;
+    if (c == null) return;
+    try {
+      if (c.province.isNotEmpty) {
+        final prov = _provinces.firstWhereOrNull((p) => (p['name_th']?.toString() ?? '') == c.province);
+        if (prov != null) {
+          setState(() => _selectedProvinceId = prov['id']?.toString());
+          await _loadDistricts(_selectedProvinceId!);
+        }
+      }
+      if (c.district.isNotEmpty) {
+        final dist = _districts.firstWhereOrNull((d) => (d['name_th']?.toString() ?? '') == c.district);
+        if (dist != null) {
+          setState(() => _selectedDistrictId = dist['id']?.toString());
+          await _loadSubdistricts(_selectedDistrictId!);
+        }
+      }
+      if (c.subdistrict.isNotEmpty) {
+        final sub = _subdistricts.firstWhereOrNull((s) => (s['name_th']?.toString() ?? '') == c.subdistrict);
+        if (sub != null) {
+          setState(() => _selectedSubdistrictId = sub['id']?.toString());
+          // Auto fill postal code if not set
+          if (_postalCodeController.text.trim().isEmpty) {
+            final zip = await ThaiLocationService().getPostalCodeBySubdistrict(_selectedSubdistrictId!);
+            if (zip != null && mounted) {
+              setState(() => _postalCodeController.text = zip);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -239,6 +285,8 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     _addressController.dispose();
     _customIdController.dispose();
     _ageController.dispose(); // dispose age controller
+    _postalCodeController.dispose();
+    _countryController.dispose();
     super.dispose();
   }
 
@@ -453,7 +501,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       final workspaceId = customersController.currentWorkspaceId.value;
       final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}_${picked.name}';
       final ref = FirebaseStorage.instance.ref().child('customers/$workspaceId/$fileName');
-      final uploadTask = await ref.putFile(file);
+      await ref.putFile(file);
       final url = await ref.getDownloadURL();
       setState(() {
         _profileImageFile = file;
@@ -600,8 +648,10 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(children: [
               Expanded(
+
                 flex: 2,
                 child: TextFormField(
+                  key: ValueKey('email-label-$i-${email['label']}'),
                   initialValue: email['label'],
                   decoration: InputDecoration(labelText: 'type'.tr, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
                   onChanged: (v) => email['label'] = v,
@@ -611,6 +661,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               Expanded(
                 flex: 3,
                 child: TextFormField(
+                  key: ValueKey('email-value-$i-${email['value']}'),
                   initialValue: email['value'],
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(labelText: 'email'.tr, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
@@ -619,8 +670,8 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                onPressed: _emails.length > 1 ? () => _removeEmail(i) : null,
-                icon: Icon(Icons.delete, color: _emails.length > 1 ? Colors.red : Colors.grey),
+                onPressed: () => _removeEmail(i),
+                icon: const Icon(Icons.delete, color: Colors.red),
                 tooltip: 'delete_email'.tr,
               ),
             ]),
@@ -650,6 +701,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               Expanded(
                 flex: 2,
                 child: TextFormField(
+                  key: ValueKey('phone-label-$i-${phone['label']}'),
                   initialValue: phone['label'],
                   decoration: InputDecoration(labelText: 'type'.tr, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
                   onChanged: (v) => phone['label'] = v,
@@ -659,6 +711,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               Expanded(
                 flex: 3,
                 child: TextFormField(
+                  key: ValueKey('phone-value-$i-${phone['value']}'),
                   initialValue: phone['value'],
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(labelText: 'phone'.tr, border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
@@ -667,8 +720,8 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                onPressed: _phones.length > 1 ? () => _removePhone(i) : null,
-                icon: Icon(Icons.delete, color: _phones.length > 1 ? Colors.red : Colors.grey),
+                onPressed: () => _removePhone(i),
+                icon: const Icon(Icons.delete, color: Colors.red),
                 tooltip: 'delete_phone'.tr,
               ),
             ]),
@@ -699,11 +752,19 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           });
         }),
         const SizedBox(height: 16),
-        _buildLocationDropdown('subdistrict'.tr, _selectedSubdistrictId, _subdistricts, (v) => setState(() => _selectedSubdistrictId = v)),
+        _buildLocationDropdown('subdistrict'.tr, _selectedSubdistrictId, _subdistricts, (v) async {
+          setState(() => _selectedSubdistrictId = v);
+          if (v != null) {
+            final zip = await ThaiLocationService().getPostalCodeBySubdistrict(v);
+            if (zip != null && mounted) {
+              setState(() => _postalCodeController.text = zip);
+            }
+          }
+        }),
         const SizedBox(height: 16),
-        _buildTextField('postal_code'.tr, TextEditingController(), keyboardType: TextInputType.number),
+        _buildTextField('postal_code'.tr, _postalCodeController, keyboardType: TextInputType.number),
         const SizedBox(height: 16),
-        _buildTextField('country'.tr, TextEditingController()),
+        _buildTextField('country'.tr, _countryController),
       ]),
     );
   }
@@ -802,7 +863,15 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   }
 
   void _removeEmail(int index) {
-    setState(() => _emails.removeAt(index));
+    setState(() {
+      if (_emails.length > 1) {
+        _emails.removeAt(index);
+      } else {
+        // Only one item left: clear its value instead of removing the row
+        _emails[0]['value'] = '';
+      }
+    });
+
   }
 
   void _addPhone() {
@@ -810,7 +879,14 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
   }
 
   void _removePhone(int index) {
-    setState(() => _phones.removeAt(index));
+    setState(() {
+      if (_phones.length > 1) {
+        _phones.removeAt(index);
+      } else {
+        // Only one item left: clear its value instead of removing the row
+        _phones[0]['value'] = '';
+      }
+    });
   }
 
   Future<void> _saveCustomer() async {
@@ -844,6 +920,23 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
 
       final customId = widget.customer == null ? await _generateCustomerId(workspaceId) : _customIdController.text.trim();
 
+      // Resolve location names from selected IDs
+      String provinceName = '';
+      String districtName = '';
+      String subdistrictName = '';
+      if (_selectedProvinceId != null) {
+        final p = _provinces.firstWhereOrNull((e) => e['id'] == _selectedProvinceId);
+        provinceName = (p?['name_th'] ?? '').toString();
+      }
+      if (_selectedDistrictId != null) {
+        final d = _districts.firstWhereOrNull((e) => e['id'] == _selectedDistrictId);
+        districtName = (d?['name_th'] ?? '').toString();
+      }
+      if (_selectedSubdistrictId != null) {
+        final s = _subdistricts.firstWhereOrNull((e) => e['id'] == _selectedSubdistrictId);
+        subdistrictName = (s?['name_th'] ?? '').toString();
+      }
+
       final customer = Customer(
         id: widget.customer?.id ?? '',
         name: _nameController.text.trim(),
@@ -872,6 +965,12 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         createdBy: widget.customer?.createdBy ?? userId,
         updatedBy: userId,
         profileImageUrl: _profileImageUrl ?? '',
+        // NEW location fields
+        province: provinceName,
+        district: districtName,
+        subdistrict: subdistrictName,
+        postalCode: _postalCodeController.text.trim(),
+        country: _countryController.text.trim(),
       );
 
       if (widget.customer == null) {

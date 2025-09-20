@@ -82,7 +82,7 @@ class ChatService extends GetxService {
   }
 
   // ===== Chatroom queries =====
-  Future<List<Map<String, dynamic>>> getChatroomsForWorkspace(String workspaceId) async {
+  Future<List<Map<String, dynamic>>> getChatroomsForWorkspace(String workspaceId, String userId) async {
     try {
       final qs = await getChatroomsCollection(workspaceId)
           .where('is_deleted', isEqualTo: 'N')
@@ -143,7 +143,7 @@ class ChatService extends GetxService {
       workspaceId ??= await getUserFirstWorkspaceId(userId);
 
       if (workspaceId != null) {
-        return getChatroomsForWorkspace(workspaceId);
+        return getChatroomsForWorkspace(workspaceId, userId);
       }
       return [];
     } catch (e) {

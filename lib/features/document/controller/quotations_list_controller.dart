@@ -6,6 +6,7 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/algolia_search_service.dart';
 import '../view/add_edit_document_page.dart';
+import '../view/document_view_page.dart';
 
 class QuotationsListController extends GetxController {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -32,6 +33,9 @@ class QuotationsListController extends GetxController {
   
   // All quotations for filtering
   final allQuotations = <Map<String, dynamic>>[].obs;
+  
+  // Highlighting variables
+  final highlightedDocumentId = Rx<String?>(null);
   
   // Algolia search variables
   final isSearching = false.obs;
@@ -396,14 +400,26 @@ class QuotationsListController extends GetxController {
     Get.to(() => const AddEditDocumentPage(documentType: 'QT'));
   }
 
-  void viewQuotation(Map<String, dynamic> quotation) {
+  void viewQuotation(Map<String, dynamic> quotation) async {
     final quotationId = quotation['id'] as String?;
-    Navigator.push(
-      Get.context!,
-      MaterialPageRoute(
-        builder: (context) => AddEditDocumentPage(documentType: 'QT', documentId: quotationId),
-      ),
-    );
+    if (quotationId != null) {
+      final result = await Navigator.push(
+        Get.context!,
+        MaterialPageRoute(
+          builder: (context) => DocumentViewPage(
+            documentType: 'QT',
+            documentId: quotationId,
+            title: quotation['docNo'] as String?,
+          ),
+        ),
+      );
+      
+      // Check if document was deleted and refresh list
+      if (result != null && result is Map && result['deleted'] == true) {
+        print('📄 Document deleted, refreshing quotations list');
+        await refreshData();
+      }
+    }
   }
 
   Future<void> reviseQuotationToInvoice(Map<String, dynamic> quotation) async {
@@ -514,7 +530,18 @@ class QuotationsListController extends GetxController {
   }
 
   // Refresh data
-  Future<void> refreshData() async {
+  Future<void> refreshData({String? highlightDocumentId}) async {
+    // Set the document to highlight
+    if (highlightDocumentId != null) {
+      highlightedDocumentId.value = highlightDocumentId;
+      // Clear highlighting after 4 seconds for better visibility
+      Future.delayed(const Duration(seconds: 4), () {
+        if (highlightedDocumentId.value == highlightDocumentId) {
+          highlightedDocumentId.value = null;
+        }
+      });
+    }
+    
     // Store current state
     final int currentItemCount = allQuotations.length;
     print('🔄 Refresh started - Current item count: $currentItemCount');
@@ -540,5 +567,11 @@ class QuotationsListController extends GetxController {
     }
     
     print('🔄 Refresh completed - Final count: ${allQuotations.length}');
+  }
+  
+  // Check if a document should be highlighted
+  bool isDocumentHighlighted(String? documentId) {
+    return highlightedDocumentId.value != null && 
+           highlightedDocumentId.value == documentId;
   }
 }

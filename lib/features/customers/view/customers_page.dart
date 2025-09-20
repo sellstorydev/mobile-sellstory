@@ -25,6 +25,7 @@ class _CustomersPageState extends State<CustomersPage> {
   late CustomersController _controller;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -34,12 +35,22 @@ class _CustomersPageState extends State<CustomersPage> {
       Get.put<CustomersController>(CustomersController(Get.find()));
     }
     _controller = Get.find<CustomersController>();
+
+    _scrollController.addListener(() {
+      if (!_controller.hasMore.value || _controller.isPageLoading.value) return;
+      if (_scrollController.position.maxScrollExtent == 0.0) return; // nothing to scroll
+      final threshold = 200.0; // px before bottom to trigger
+      if (_scrollController.position.pixels + threshold >= _scrollController.position.maxScrollExtent) {
+        _controller.loadMoreCustomers();
+      }
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -207,8 +218,9 @@ class _CustomersPageState extends State<CustomersPage> {
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       child: Row(
         children: [
+
           Obx(() {
-            final count = _controller.filteredCustomerCount;
+            final count = _controller.totalCustomersCount.value; // total across all, ignore pagination
             final used = _controller.customersDisplayUsed; // prefer actual if higher
             final limit = _controller.customersQuotaLimit.value;
             final isUnlimited = limit == -1;
@@ -242,8 +254,8 @@ class _CustomersPageState extends State<CustomersPage> {
                     const SizedBox(width: 4),
                     Text(
                       isUnlimited
-                          ? '${'usage'.tr}: $used / ∞'
-                          : '${'usage'.tr}: $used / $limit',
+                          ? '${'usage'.tr}: $count / ∞'
+                          : '${'usage'.tr}: $count / $limit',
                       style: TextStyle(
                         fontSize: 12,
                         color: isOver ? Colors.red : AppTheme.textSecondary,
@@ -334,37 +346,55 @@ class _CustomersPageState extends State<CustomersPage> {
       return RefreshIndicator(
         color: AppTheme.primaryOrange,
         onRefresh: () async {
-          final workspaceId = _controller.currentWorkspaceId.value;
-          if (workspaceId.isNotEmpty) {
-            await _controller.loadCustomers(workspaceId);
-          }
+          await _controller.refreshCustomers();
         },
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          itemCount: _controller.filteredCustomers.length,
-          separatorBuilder: (_, __) =>
-          const Divider(height: 1, color: Color(0xFFEAEAEA)),
-          itemBuilder: (context, index) {
-            final customer = _controller.filteredCustomers[index];
-            return Material(
-              color: Colors.white,
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CustomerDetailPage(customer: customer),
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: CustomerTile(customer: customer),
+        child: Obx(() {
+          final items = _controller.filteredCustomers;
+          final showFooter = _controller.hasMore.value;
+          final itemCount = items.length + (showFooter ? 1 : 0);
+          return ListView.separated(
+            controller: _scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            itemCount: itemCount,
+            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFEAEAEA)),
+            itemBuilder: (context, index) {
+              if (index >= items.length) {
+                // Footer loader/sentinel
+                if (!_controller.isPageLoading.value && _controller.hasMore.value) {
+                  // Trigger next load when footer becomes visible
+                  _controller.loadMoreCustomers();
+                }
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: _controller.isPageLoading.value
+                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const SizedBox.shrink(),
+                  ),
+                );
+              }
+
+              final customer = items[index];
+              return Material(
+                color: Colors.white,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CustomerDetailPage(customer: customer),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: CustomerTile(customer: customer),
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
+              );
+            },
+          );
+        }),
       );
     });
   }

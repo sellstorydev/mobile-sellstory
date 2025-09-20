@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdfx/pdfx.dart';
+import 'package:get/get.dart';
 
 class PdfViewerPage extends StatefulWidget {
   final String url;
@@ -34,7 +35,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
       });
     } catch (e) {
       setState(() {
-        _error = 'โหลด PDF ไม่สำเร็จ: $e';
+        _error = 'failed_load_pdf'.trParams({'error': '$e'});
         _loading = false;
       });
     }
@@ -58,4 +59,3 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
     );
   }
 }
-

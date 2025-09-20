@@ -1,6 +1,7 @@
 // show_bottom_modal.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'dart:async';
 
 import '../../board/controller/board_controller.dart';
@@ -218,6 +219,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         .toString();
   }
 
+  // Remove unused _hexToColor and add hex formatter
+  String _colorToHexRGB(Color c) {
+    String two(int n) => n.toRadixString(16).padLeft(2, '0');
+    return '#${two(c.red)}${two(c.green)}${two(c.blue)}';
+  }
+
   Future<void> _renameChat() async {
     try {
       final data = await _getChatroomData();
@@ -387,48 +394,171 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   Future<void> _createNewCustomerHashtag() async {
     if ((_currentCustomerId ?? '').isEmpty) return;
     final controller = TextEditingController();
-    final colorController = TextEditingController(text: '#f97316');
+    Color selectedColor = const Color(0xFFF97316); // Default orange color
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('เพิ่มแฮชแท็กใหม่'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(hintText: 'เช่น VIP, Hot, ติดตาม'),
-              autofocus: true,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: colorController,
-              decoration: const InputDecoration(hintText: '#สี (เช่น #f97316)'),
-            ),
-          ],
+        title: Text('add_new_hashtag'.tr),
+        content: StatefulBuilder(
+          builder: (ctx, setStateDialog) {
+            final presets = <Color>[
+              const Color(0xFFF97316), // orange
+              const Color(0xFFEF4444), // red
+              const Color(0xFF22C55E), // green
+              const Color(0xFF3B82F6), // blue
+              const Color(0xFFA855F7), // purple
+              const Color(0xFFEAB308), // yellow
+              const Color(0xFF06B6D4), // cyan
+              const Color(0xFF9CA3AF), // gray
+              const Color(0xFF111827), // near-black
+            ];
+
+            void pickColor(Color color) {
+              setStateDialog(() {
+                selectedColor = color;
+              });
+            }
+
+            void openColorPicker() {
+              showDialog(
+                context: ctx,
+                builder: (context) => AlertDialog(
+                  title: Text('select_color'.tr),
+                  content: SingleChildScrollView(
+                    child: ColorPicker(
+                      pickerColor: selectedColor,
+                      onColorChanged: (Color color) {
+                        selectedColor = color;
+                      },
+                      enableAlpha: false,
+                      displayThumbColor: true,
+                      labelTypes: const [], // Updated from deprecated showLabel
+                      paletteType: PaletteType.hsv,
+                      pickerAreaHeightPercent: 0.8,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('cancel'.tr),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        setStateDialog(() {}); // Update parent dialog
+                        Navigator.pop(context);
+                      },
+                      child: Text('select'.tr),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(hintText: 'hashtag_name_hint'.tr),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                Text('select_color'.tr, style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final color in presets)
+                      InkWell(
+                        onTap: () => pickColor(color),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: (color == selectedColor) ? Colors.black87 : Colors.black12,
+                              width: (color == selectedColor) ? 2.4 : 1,
+                            ),
+                          ),
+                          child: (color == selectedColor)
+                              ? const Icon(Icons.check, size: 18, color: Colors.white)
+                              : null,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: openColorPicker,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: selectedColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black26),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('select_more_color'.tr, style: Theme.of(ctx).textTheme.bodyMedium),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.palette, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: selectedColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black26),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(_colorToHexRGB(selectedColor).toUpperCase(),
+                         style: Theme.of(ctx).textTheme.bodySmall),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('cancel'.tr)),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('เพิ่ม')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: Text('add'.tr)),
         ],
       ),
     );
     if (name == null) return;
     final safeName = name.replaceAll('#', '').trim();
     if (safeName.isEmpty) {
-      _showTopSnack('กรอกชื่อแฮชแท็กก่อน');
+      _showTopSnack('enter_hashtag'.tr);
       return;
     }
 
     setState(() => _creatingHashtag = true);
     try {
-      final color = () {
-        final raw = colorController.text.trim();
-        if (RegExp(r'^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$').hasMatch(raw)) {
-          return raw.startsWith('#') ? raw : '#$raw';
-        }
-        return '#f97316';
-      }();
+      final color = _colorToHexRGB(selectedColor);
       final ok = await _hashtagService.createHashtag(
         widget.workspaceId,
         safeName,
@@ -437,7 +567,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       );
       if (!ok) {
         if (!mounted) return;
-        _showTopSnack('สร้างแฮชแท็กไม่สำเร็จ', isError: true);
+        _showTopSnack('chat_hashtag_create_failed'.tr, isError: true);
         return;
       }
       // Reload available hashtags and keep current selections; then add new tag to pending only
@@ -513,9 +643,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       // Clear notes from chatroom to avoid confusion
       await chatRef.set({'notes': FieldValue.delete()}, SetOptions(merge: true));
 
-      if (mounted) _showTopSnack('ย้ายโน้ตจากห้องแชทไปยังลูกค้าแล้ว');
+      if (mounted) _showTopSnack('moved_notes_chat_to_customer'.tr);
     } catch (e) {
-      if (mounted) _showTopSnack('ย้ายโน้ตไม่สำเร็จ: $e', isError: true);
+      if (mounted) _showTopSnack('move_notes_failed'.trParams({'error': '$e'}), isError: true);
     }
   }
 
@@ -570,9 +700,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         ..sort((a, b) => ((b['timestamp'] ?? 0) as int).compareTo((a['timestamp'] ?? 0) as int));
 
       await chatRef.set({'notes': merged}, SetOptions(merge: true));
-      if (mounted) _showTopSnack('คัดลอกโน้ตของลูกค้ามายังห้องแชทแล้ว');
+      if (mounted) _showTopSnack('copied_notes_customer_to_chat'.tr);
     } catch (e) {
-      if (mounted) _showTopSnack('คัดลอกโน้ตไม่สำเร็จ: $e', isError: true);
+      if (mounted) _showTopSnack('copy_notes_failed'.trParams({'error': '$e'}), isError: true);
     }
   }
 
@@ -582,8 +712,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยกเลิกเชื่อมต่อลูกค้า'),
-        content: const Text('ต้องการยกเลิกการเชื่อมต่อลูกค้ากับห้องแชทนี้หรือไม่?\nโน้ตของลูกค้าจะถูกคัดลอกมายังห้องแชท'),
+        title: Text('unlink_customer_title'.tr),
+        content: Text('unlink_customer_description'.tr),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('confirm'.tr)),
@@ -603,9 +733,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       if (!mounted) return;
       setState(() { _currentCustomerId = null; _currentCustomerName = null; });
       await _loadAssignees();
-      _showTopSnack('ยกเลิกการเชื่อมต่อลูกค้าแล้ว');
+      _showTopSnack('unlink_customer_success'.tr);
     } catch (e) {
-      if (mounted) _showTopSnack('ยกเลิกเชื่อมต่อลูกค้าไม่สำเร็จ: $e', isError: true);
+      if (mounted) _showTopSnack('unlink_customer_failed'.trParams({'error': '$e'}), isError: true);
     }
   }
 
@@ -802,11 +932,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           // Notify external listener if needed (send first uid to keep backward compatibility)
           if (unique.isNotEmpty) widget.onAssignChanged?.call(unique.first);
           if (mounted) {
-            _showTopSnack('ผูกเซลเรียบร้อย (${unique.length} คน)');
+            _showTopSnack('assign_sales_success_count'.trParams({'count': '${unique.length}'}));
           }
         } catch (e) {
           if (mounted) {
-            _showTopSnack('ผูกเซลไม่สำเร็จ: $e', isError: true);
+            _showTopSnack('assign_sales_failed'.trParams({'error': '$e'}), isError: true);
           }
         }
       }
@@ -840,10 +970,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }
       if (!mounted) return;
       setState(() => _assignees.removeWhere((u) => u.uid == user.uid));
-      _showTopSnack('ลบเซลเรียบร้อย');
+      _showTopSnack('remove_assignee_success'.tr);
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('ลบไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('remove_assignee_failed'.trParams({'error': '$e'}), isError: true);
     }
   }
 
@@ -874,9 +1004,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       // Permission to link customer to chat
       final svc = MobilePermissionsService.to;
       if (!(svc.isOwner || svc.can('chat:assign'))) {
-        _showTopSnack('คุณไม่มีสิทธิ์เชื่อมลูกค้ากับแชท', isError: true);
+        _showTopSnack('no_permission_link_customer'.tr, isError: true);
         return;
       }
+
       // Read customer to get display name
       final cDoc = await FirebaseFirestore.instance
           .collection('workspaces')
@@ -921,22 +1052,22 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           await _chatroomDoc.set({'jobCardId': d.id, 'jobCardTitle': title}, SetOptions(merge: true));
           if (mounted) {
             setState(() { _jobCardId = d.id; _jobCardTitle = title; });
-            _showTopSnack('เชื่อม Job Card ล่าสุดแล้ว');
+            _showTopSnack('jobcard_linked_latest'.tr);
           }
         }
       } catch (_) {}
 
-      _showTopSnack('เชื่อมลูกค้ากับห้องแชทแล้ว');
+      _showTopSnack('link_customer_success'.tr);
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('เชื่อมลูกค้าไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('link_customer_failed'.trParams({'error': '$e'}), isError: true);
     }
   }
 
   Future<void> _openJobCardPicker() async {
     // Prevent opening picker if no customer is linked
     if (_currentCustomerId == null || _currentCustomerId!.isEmpty) {
-      _showTopSnack('กรุณาเชื่อมลูกค้าก่อนผูก Job Card', isError: true);
+      _showTopSnack('link_customer_first_for_jobcard'.tr, isError: true);
       return;
     }
     final result = await showModalBottomSheet<JobCardPickerResult>(
@@ -965,7 +1096,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       // Permission to link job card to chat
       final svc = MobilePermissionsService.to;
       if (!(svc.isOwner || svc.can('chat:assign'))) {
-        _showTopSnack('คุณไม่มีสิทธิ์เชื่อม Job Card กับแชท', isError: true);
+        _showTopSnack('no_permission_link_jobcard'.tr, isError: true);
         return;
       }
       await _chatroomDoc.set({
@@ -1003,10 +1134,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         _jobCardId = result.cardId;
         _jobCardTitle = result.title;
       });
-      _showTopSnack('ผูก Job Card แล้ว');
+      _showTopSnack('jobcard_linked_latest'.tr);
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('ผูก Job Card ไม่สำเร็จ: $e', isError: true);
+      _showTopSnack('jobcard_open_failed'.trParams({'error': '$e'}), isError: true);
     }
   }
 
@@ -1021,7 +1152,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           .get();
       if (!snap.exists) {
         if (!mounted) return;
-        _showTopSnack('ไม่พบ Job Card ที่เชื่อม', isError: true);
+        _showTopSnack('jobcard_not_found'.tr, isError: true);
         return;
       }
       final data = snap.data() ?? {};
@@ -1049,7 +1180,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       Get.to(() => EditCardPage(card: job));
     } catch (e) {
       if (!mounted) return;
-      _showTopSnack('เปิด Job Card ไม่สำเร็จ', isError: true);
+      _showTopSnack('jobcard_open_failed'.trParams({'error': '$e'}), isError: true);
     }
   }
 
@@ -1080,13 +1211,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('เมนูเพิ่มเติม',
+                      Text('more_menu'.tr,
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: Colors.black87,
                           )),
                       const SizedBox(height: 6),
-                      Text('เปลี่ยนสถานะห้องแชท',
+                      Text('change_chat_status'.tr,
                           style: textTheme.bodyMedium?.copyWith(
                             color: Colors.black54,
                           )),
@@ -1103,9 +1234,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               children: [
                 ChatStatusButton(
                   icon: Icons.smart_toy_outlined,
-                  label: 'ตอบกลับ\nอัตโนมัติ',
+                  label: 'auto_reply'.tr,
                   selected: _botEnabled,
-                  tooltip: 'ตอบกลับอัตโนมัติ: เปิด/ปิดการทำงานของแชตบอท',
+                  tooltip: 'toggle_auto_reply'.tr,
                   onTap: () async {
                     guardAction(context, 'chat:assign', () async {
                       setState(() => _botEnabled = !_botEnabled);
@@ -1128,9 +1259,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 ),
                 ChatStatusButton(
                   icon: Icons.chat_bubble,
-                  label: 'กำลัง\nดำเนินการ',
+                  label: 'chat_status_in_progress'.tr,
                   selected: _status == ChatStatus.inProgress,
-                  tooltip: 'ห้องแชทกำลังดำเนินการ',
+                  tooltip: 'chat_in_progress_tooltip'.tr,
                   onTap: () async {
                     guardAction(context, 'chat:assign', () async {
                       setState(() => _status = ChatStatus.inProgress);
@@ -1140,9 +1271,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 ),
                 ChatStatusButton(
                   icon: Icons.check,
-                  label: 'สำเร็จ\n',
+                  label: 'chat_status_done'.tr,
                   selected: _status == ChatStatus.done,
-                  tooltip: 'คุยจบแล้ว',
+                  tooltip: 'chat_done_tooltip'.tr,
                   onTap: () async {
                     guardAction(context, 'chat:assign', () async {
                       setState(() => _status = ChatStatus.done);
@@ -1152,9 +1283,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 ),
                 ChatStatusButton(
                   icon: Icons.push_pin_outlined,
-                  label: 'ปักหมุด\n',
+                  label: 'pinned'.tr,
                   selected: _pinned,
-                  tooltip: 'ปักหมุดห้องแชท',
+                  tooltip: 'pin'.tr,
                   onTap: () async {
                     guardAction(context, 'chat:assign', () async {
                       setState(() => _pinned = !_pinned);
@@ -1184,7 +1315,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             const Divider(height: 24),
             ChatMenuTile(
               icon: Icons.sticky_note_2_outlined,
-              text: 'โน้ต',
+              text: 'notes'.tr,
               onTap: () {
                 final svc = MobilePermissionsService.to;
                 final hasCustomer = (_currentCustomerId ?? '').isNotEmpty;
@@ -1201,7 +1332,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
 
             ChatMenuTile(
               icon: Icons.supervised_user_circle_outlined,
-              text: 'เพิ่มลูกค้า',
+              text: 'select_customer'.tr,
               onTap: () {
                 final svc = MobilePermissionsService.to;
                 if (svc.isOwner || svc.can('customer:view:all') || svc.can('customer:view:assigned')) {
@@ -1240,13 +1371,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                               Text(
                                 (_currentCustomerName?.isNotEmpty == true)
                                     ? _currentCustomerName!
-                                    : 'กำลังดึงชื่อลูกค้า...',
+                                    : 'search_placeholder_customers'.tr,
                                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'แก้ไข/เปลี่ยนลูกค้า',
+                                'chat_rename'.tr,
                                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                               ),
                             ],
@@ -1259,7 +1390,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                             minimumSize: const Size(0, 36),
                           ),
                           icon: const Icon(Icons.swap_horiz, size: 16),
-                          label: const Text('เปลี่ยน', style: TextStyle(fontSize: 13)),
+                          label: Text('change'.tr, style: const TextStyle(fontSize: 13)),
                         ),
                       ],
                     ),
@@ -1269,7 +1400,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               if ((_currentCustomerId ?? '').isNotEmpty)
                 ChatMenuTile(
                   icon: Icons.link_off,
-                  text: 'ยกเลิกเชื่อมต่อลูกค้า',
+                  text: 'unlink_customer'.tr,
                   danger: true,
                   onTap: () {
                     final svc = MobilePermissionsService.to;
@@ -1293,9 +1424,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Padding(
+
+                         Padding(
                           padding: EdgeInsets.only(bottom: 8),
-                          child: Text('แฮชแท็กของลูกค้า', style: TextStyle(fontWeight: FontWeight.w700)),
+                          child: Text('customer_hashtags'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
                         ),
                         if (_loadingHashtags)
                           const LinearProgressIndicator(minHeight: 2)
@@ -1306,8 +1438,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                             onHashtagsChanged: (ids) {
                               setState(() => _pendingHashtagIds = ids);
                             },
-                            label: 'แฮชแท็ก',
-                            hintText: 'เลือกแฮชแท็กของลูกค้า',
+                            label: 'hashtags'.tr,
+                            hintText: 'select_hashtags'.tr,
                             workspaceId: widget.workspaceId,
                           ),
                           const SizedBox(height: 8),
@@ -1341,7 +1473,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                               child: OutlinedButton.icon(
                                 onPressed: _creatingHashtag ? null : _createNewCustomerHashtag,
                                 icon: const Icon(Icons.add, size: 16),
-                                label: Text(_creatingHashtag ? 'กำลังเพิ่ม...' : 'เพิ่มแฮชแท็กใหม่  '),
+                                label: Text(_creatingHashtag ? 'loading'.tr : 'add_new_hashtag'.tr),
                               ),
                               fallback: const SizedBox.shrink(),
                             ),
@@ -1356,7 +1488,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             ],
             ChatMenuTile(
               icon: Icons.card_travel_outlined,
-              text: 'ผูก Job Card',
+              text: 'link_job_card'.tr,
               onTap: () {
                 final svc = MobilePermissionsService.to;
                 if (svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned')) {
@@ -1421,7 +1553,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                               minimumSize: const Size(0, 36),
                             ),
                             icon: const Icon(Icons.swap_horiz, size: 16),
-                            label: const Text('เปลี่ยน', style: TextStyle(fontSize: 13)),
+                            label: Text('change'.tr, style: const TextStyle(fontSize: 13)),
                           ),
                         ],
                       ),
@@ -1432,8 +1564,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             ],
             ChatMenuTile(
               icon: Icons.badge_outlined,
-              text: 'เพิ่มเซล',
-              onTap: () => guardAction(context, 'chat:assign', _openUserPicker, deniedMessage: 'คุณไม่มีสิทธิ์มอบหมายห้องแชท'),
+              text: 'select_assignee'.tr,
+              onTap: () => guardAction(context, 'chat:assign', _openUserPicker, deniedMessage: 'no_permission_chat_assign'.tr),
               closeOnTap: false,
             ),
             Padding(
@@ -1481,8 +1613,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                           : null,
                       trailing: IconButton(
                         icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
-                        tooltip: 'ลบออก',
-                        onPressed: () => guardAction(context, 'chat:assign', () => _removeAssignee(u), deniedMessage: 'คุณไม่มีสิทธิ์ลบผู้ดูแล'),
+                        tooltip: 'delete'.tr,
+                        onPressed: () => guardAction(context, 'chat:assign', () => _removeAssignee(u), deniedMessage: 'no_permission_chat_assign'.tr),
                       ),
                     );
                   },
@@ -1497,21 +1629,21 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
 
             ChatMenuTile(
               icon: Icons.edit_outlined,
-              text: 'เปลี่ยนชื่อแชท',
-              onTap: () => guardAction(context, 'chat:assign', _renameChat, deniedMessage: 'คุณไม่มีสิทธิ์เปลี่ยนชื่อแชท'),
+              text: 'chat_rename'.tr,
+              onTap: () => guardAction(context, 'chat:assign', _renameChat, deniedMessage: 'no_permission_chat_assign'.tr),
             ),
             ChatMenuTile(
               icon: Icons.refresh_outlined,
-              text: 'รีเซ็ตชื่อแชท',
-              onTap: () => guardAction(context, 'chat:assign', _resetChatName, deniedMessage: 'คุณไม่มีสิทธิ์รีเซ็ตชื่อแชท'),
+              text: 'chat_reset_name'.tr,
+              onTap: () => guardAction(context, 'chat:assign', _resetChatName, deniedMessage: 'no_permission_chat_assign'.tr),
             ),
             ChatMenuTile(
               icon: Icons.delete_outline,
-              text: 'ลบแชท',
+              text: 'delete'.tr,
               danger: true,
               onTap: () => guardAction(context, 'chat:assign', () {
                 if (widget.onDelete != null) widget.onDelete!();
-              }, deniedMessage: 'คุณไม่มีสิทธิ์ลบแชท'),
+              }, deniedMessage: 'no_permission_chat_assign'.tr),
             ),
           ],
 

@@ -152,22 +152,7 @@ class ChatHeaderLine extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
-        if (onAddSales != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.redAccent, width: 1.6),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.person_add_alt, color: Colors.redAccent),
-                onPressed: onAddSales,
-                splashRadius: 22,
-                tooltip: 'เพิ่มเซล',
-              ),
-            ),
-          ),
+
         IconButton(
           icon: const Icon(Icons.search, color: Colors.black87),
           onPressed: onSearch,

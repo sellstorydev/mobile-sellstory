@@ -10,14 +10,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/job_card.dart';
 import '../controller/board_controller.dart';
-import '../widgets/hashtag_selection_modal.dart';
 import '../../../data/repositories/firestore_repository.dart';
+import '../../../data/repositories/firestore_repository_extras.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../document/view/create_document_from_card_page.dart';
 import '../../document/view/add_edit_document_page.dart';
 import '../../../core/services/notifications_service.dart';
 import '../../../core/services/algolia_document_sync_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
+import '../../customers/view/add_edit_customer_page.dart';
+import '../../../core/widgets/hashtag_input_field.dart';
+import '../../../core/services/hashtag_service.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -229,15 +232,23 @@ class _EditCardPageState extends State<EditCardPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
+  final TextEditingController _editCommentController = TextEditingController();
+  final ScrollController _commentsScrollController = ScrollController();
 
   // HTML Editor controller
   final HtmlEditorController _htmlEditorController = HtmlEditorController();
+  bool _isHtmlEditorReady = false;
 
   // Current user information
   Map<String, dynamic>? _currentUserInfo;
 
+  // Comment editing state
+  int? _editingCommentIndex;
+
   // Hashtag state (same as create page)
-  List<Map<String, dynamic>> _selectedHashtags = [];
+  List<String> _selectedHashtagIds = [];
+  List<HashtagOption> _availableHashtags = [];
+  final HashtagService _hashtagService = HashtagService();
 
   // Todo state
   List<Map<String, dynamic>> _todoItems = [];
@@ -248,7 +259,8 @@ class _EditCardPageState extends State<EditCardPage> {
   // Template and columns state
   List<Map<String, dynamic>> _quotationTemplates = [];
   String? _selectedTemplateId;
-  Map<String, dynamic>? _selectedTemplateData; // เก็บข้อมูล template ที่เลือกทั้งหมด
+  Map<String, dynamic>?
+  _selectedTemplateData; // เก็บข้อมูล template ที่เลือกทั้งหมด
   List<Map<String, dynamic>> _visibleColumns = [];
 
   // VAT and discount state
@@ -307,6 +319,7 @@ class _EditCardPageState extends State<EditCardPage> {
     {'value': 'REJECTED', 'label': 'ปฏิเสธ'},
     {'value': 'INVOICED', 'label': 'ออกใบแจ้งหนี้แล้ว'},
     {'value': 'FULLY_PAID', 'label': 'ชำระครบแล้ว'},
+    {'value': 'COMPLETED', 'label': 'เสร็จสิ้น'},
   ];
 
   // Customer Interest options (same as create page)
@@ -320,12 +333,63 @@ class _EditCardPageState extends State<EditCardPage> {
   // Add history/comment toggle state variable
   bool _showHistory = true; // true = History, false = Comment
 
+  List<String> get _selectedHashtagTexts {
+    return _selectedHashtagIds.map((id) {
+      final hashtag = _availableHashtags.firstWhere(
+        (h) => h.id == id,
+        orElse: () => HashtagOption(
+          id: id,
+          name: id,
+          color: '#6B7280',
+          scopes: {},
+          totalUsage: 0,
+          enabled: true,
+        ),
+      );
+      return hashtag.name;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _selectedHashtagsAsMap {
+    return _selectedHashtagIds.map((id) {
+      final hashtag = _availableHashtags.firstWhere(
+        (h) => h.id == id,
+        orElse: () => HashtagOption(
+          id: id,
+          name: id,
+          color: '#6B7280',
+          scopes: {},
+          totalUsage: 0,
+          enabled: true,
+        ),
+      );
+      return {'id': hashtag.id, 'text': hashtag.name, 'color': hashtag.color};
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadHashtags();
     _initializeData().then((_) {
       setState(() {});
     });
+  }
+
+  Future<void> _loadHashtags() async {
+    try {
+      final wsId = widget.card.workspaceId;
+      final hashtags = await _hashtagService.getHashtagsByScope(
+        wsId,
+        'jobBoard',
+      );
+      _availableHashtags = hashtags;
+      if (mounted) setState(() {});
+      print('✅ Hashtags loaded: ${_availableHashtags.length} hashtags');
+    } catch (e) {
+      if (mounted) setState(() {});
+      print('❌ Failed to load hashtags: $e');
+    }
   }
 
   Future<void> _initializeData() async {
@@ -356,21 +420,53 @@ class _EditCardPageState extends State<EditCardPage> {
     _startDate = widget.card.startDate;
     _endDate = widget.card.endDate;
 
-    // Initialize hashtags (same as create page)
-    _selectedHashtags = List<Map<String, dynamic>>.from(widget.card.hashtags);
+    // Initialize hashtags - convert from map format to ID format using masterList lookup
+    _selectedHashtagIds = widget.card.hashtags
+        .map((hashtagMap) {
+          final text = hashtagMap['text'] ?? '';
+          final existingId = hashtagMap['id'] ?? '';
+
+          // First try to use existing ID if it exists
+          if (existingId.isNotEmpty) {
+            return existingId;
+          }
+
+          // If no ID, find matching hashtag in available hashtags by name
+          final matchingHashtag = _availableHashtags.firstWhereOrNull(
+            (h) => h.name == text,
+          );
+
+          if (matchingHashtag != null) {
+            return matchingHashtag.id;
+          }
+
+          // Fall back to text as ID if no match found
+          return text;
+        })
+        .where((id) => id.isNotEmpty)
+        .cast<String>()
+        .toList();
 
     // Initialize todos
-    _todoItems = List<Map<String, dynamic>>.from(widget.card.todos.map((todo) {
-      return {
-        'id': todo['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        'text': todo['text'] ?? '',
-        'isCompleted': todo['isCompleted'] ?? false,
-        'dueDate': todo['dueDate'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['dueDate']) : null,
-        'duration': todo['duration'],
-        'endTime': todo['endTime'] != null ? DateTime.fromMillisecondsSinceEpoch(todo['endTime']) : null,
-        'controller': TextEditingController(text: todo['text'] ?? ''),
-      };
-    }));
+    _todoItems = List<Map<String, dynamic>>.from(
+      widget.card.todos.map((todo) {
+        // Handle title field from Firestore data structure
+        final titleText = todo['title'] ?? todo['text'] ?? '';
+        return {
+          'id': todo['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          'text': titleText,
+          'isCompleted': todo['isCompleted'] ?? todo['completed'] ?? false,
+          'dueDate': todo['dueDate'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(todo['dueDate'])
+              : null,
+          'duration': todo['duration'],
+          'endTime': todo['endTime'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(todo['endTime'])
+              : null,
+          'controller': TextEditingController(text: titleText),
+        };
+      }),
+    );
 
     // Initialize collaborators and watchers
     _selectedCollaborators = List<String>.from(widget.card.collaborators);
@@ -673,35 +769,41 @@ class _EditCardPageState extends State<EditCardPage> {
           };
         }
 
-        setState(() {
-          _availableCompanies = companyMap.values.toList();
-          // ถ้า company ปัจจุบันไม่มีในรายการใหม่ ให้รีเซ็ต
-          if (_selectedCompany != 'none' &&
-              !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
-            _selectedCompany = 'none';
-          }
-        });
+        if (mounted) {
+          setState(() {
+            _availableCompanies = companyMap.values.toList();
+            // ถ้า company ปัจจุบันไม่มีในรายการใหม่ ให้รีเซ็ต
+            if (_selectedCompany != 'none' &&
+                !_availableCompanies.any((c) => c['id'] == _selectedCompany)) {
+              _selectedCompany = 'none';
+            }
+          });
+        }
 
         print(
           '✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies',
         );
       } else {
+        if (mounted) {
+          setState(() {
+            _availableCompanies = [
+              {'id': 'none', 'name': 'None'},
+            ];
+            _selectedCompany = 'none';
+          });
+        }
+        print('⚠️ No companies found for customer');
+      }
+    } catch (e) {
+      print('❌ Failed to load companies for customer: $e');
+      if (mounted) {
         setState(() {
           _availableCompanies = [
             {'id': 'none', 'name': 'None'},
           ];
           _selectedCompany = 'none';
         });
-        print('⚠️ No companies found for customer');
       }
-    } catch (e) {
-      print('❌ Failed to load companies for customer: $e');
-      setState(() {
-        _availableCompanies = [
-          {'id': 'none', 'name': 'None'},
-        ];
-        _selectedCompany = 'none';
-      });
     }
   }
 
@@ -726,9 +828,11 @@ class _EditCardPageState extends State<EditCardPage> {
 
             if (productDoc.exists) {
               final productData = productDoc.data()!;
-              setState(() {
-                _productItems[i]['image'] = productData['imageUrl'];
-              });
+              if (mounted) {
+                setState(() {
+                  _productItems[i]['image'] = productData['imageUrl'];
+                });
+              }
             }
           } catch (e) {
             print('❌ Failed to load image for product $productId: $e');
@@ -753,7 +857,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
       print('🔄 Loading quotation templates for workspace: $workspaceId');
 
-    // Use Firebase service to get templates
+      // Use Firebase service to get templates
       final firestore = FirebaseFirestore.instance;
       final snapshot = await firestore
           .collection('workspaces')
@@ -776,26 +880,34 @@ class _EditCardPageState extends State<EditCardPage> {
         });
       }
 
-      setState(() {
-        _quotationTemplates = templates;
-        
-        // ตรวจสอบ quotationTemplateId จาก card
-        if (_selectedTemplateId != null && _selectedTemplateId!.isNotEmpty) {
-          // ตรวจสอบว่า template ที่เลือกมีอยู่จริงใน list หรือไม่
-          final templateExists = templates.any((t) => t['id'] == _selectedTemplateId);
-          if (!templateExists && templates.isNotEmpty) {
-            // ถ้าไม่พบ template ที่ระบุ ให้เลือก template แรก
+      if (mounted) {
+        setState(() {
+          _quotationTemplates = templates;
+
+          // ตรวจสอบ quotationTemplateId จาก card
+          if (_selectedTemplateId != null && _selectedTemplateId!.isNotEmpty) {
+            // ตรวจสอบว่า template ที่เลือกมีอยู่จริงใน list หรือไม่
+            final templateExists = templates.any(
+              (t) => t['id'] == _selectedTemplateId,
+            );
+            if (!templateExists && templates.isNotEmpty) {
+              // ถ้าไม่พบ template ที่ระบุ ให้เลือก template แรก
+              _selectedTemplateId = templates.first['id'];
+              print(
+                '⚠️ Template not found, selected first template: $_selectedTemplateId',
+              );
+            }
+          } else if (templates.isNotEmpty) {
+            // ถ้าไม่มี quotationTemplateId ให้เลือก template แรก
             _selectedTemplateId = templates.first['id'];
-            print('⚠️ Template not found, selected first template: $_selectedTemplateId');
+            print(
+              '📋 No templateId in card, selected first template: $_selectedTemplateId',
+            );
           }
-        } else if (templates.isNotEmpty) {
-          // ถ้าไม่มี quotationTemplateId ให้เลือก template แรก
-          _selectedTemplateId = templates.first['id'];
-          print('📋 No templateId in card, selected first template: $_selectedTemplateId');
-        }
-        
-        _updateVisibleColumns();
-      });
+
+          _updateVisibleColumns();
+        });
+      }
 
       print('✅ Loaded ${templates.length} quotation templates');
       print('🎯 Selected template: $_selectedTemplateId');
@@ -820,7 +932,11 @@ class _EditCardPageState extends State<EditCardPage> {
       // Set default state - สร้าง template เปล่าถ้าไม่มี
       setState(() {
         _quotationTemplates = [
-          {'id': 'default', 'name': 'Default Template', 'columns': _getDefaultColumns()},
+          {
+            'id': 'default',
+            'name': 'Default Template',
+            'columns': _getDefaultColumns(),
+          },
         ];
         _selectedTemplateId = 'default';
         _updateVisibleColumns();
@@ -911,7 +1027,9 @@ class _EditCardPageState extends State<EditCardPage> {
 
     if (_selectedTemplateId == null) {
       _visibleColumns = _getDefaultColumns();
-      print('📋 No template selected, using default columns: ${_visibleColumns.length} columns');
+      print(
+        '📋 No template selected, using default columns: ${_visibleColumns.length} columns',
+      );
     } else {
       final template = _quotationTemplates.firstWhereOrNull(
         (t) => t['id'] == _selectedTemplateId,
@@ -962,13 +1080,19 @@ class _EditCardPageState extends State<EditCardPage> {
       } else {
         // เก็บข้อมูล template ทั้งหมดในตัวแปร _selectedTemplateData
         _selectedTemplateData = Map<String, dynamic>.from(template);
-        print('🎯 Template selected and saved: ${template['name']} (ID: $_selectedTemplateId)');
-        print('📋 Template data saved with keys: ${_selectedTemplateData?.keys.toList()}');
-        
+        print(
+          '🎯 Template selected and saved: ${template['name']} (ID: $_selectedTemplateId)',
+        );
+        print(
+          '📋 Template data saved with keys: ${_selectedTemplateData?.keys.toList()}',
+        );
+
         // สร้าง product table จากข้อมูล template และเก็บ template ID ไว้
         _createProductsFromTemplate(template);
-        
-        final columns = List<Map<String, dynamic>>.from(template['columns'] ?? const []);
+
+        final columns = List<Map<String, dynamic>>.from(
+          template['columns'] ?? const [],
+        );
         // Consider only user_input columns; build map id -> column for access to prefillSourceField
         final Map<String, Map<String, dynamic>> userInputCols = {};
         for (final col in columns) {
@@ -980,14 +1104,18 @@ class _EditCardPageState extends State<EditCardPage> {
           }
         }
 
-        print('🔗 Found ${userInputCols.length} user input columns in template');
+        print(
+          '🔗 Found ${userInputCols.length} user input columns in template',
+        );
         userInputCols.forEach((id, col) {
           print('  - Column ID: $id, Label: ${col['label']}');
         });
 
         // เก็บข้อมูลจาก expense เดิมไว้ก่อนการ mapping ใหม่
         print('💾 Preserving existing expense data before template mapping');
-        final originalExpenses = List<Map<String, dynamic>>.from(widget.card.expenses);
+        final originalExpenses = List<Map<String, dynamic>>.from(
+          widget.card.expenses,
+        );
 
         // ล้างค่าใน customInputs ของทุก product items ก่อนการ mapping ใหม่
         print('🧹 Clearing all customInputs before new template mapping');
@@ -1009,17 +1137,21 @@ class _EditCardPageState extends State<EditCardPage> {
           // สร้าง customInputs ใหม่ตาม template columns
           userInputCols.forEach((id, col) {
             String value = '';
-            
+
             // ตรวจสอบว่ามีข้อมูลเดิมที่ตรงกับ column ID นี้หรือไม่
-            if (matchingExpense != null && 
+            if (matchingExpense != null &&
                 matchingExpense['customInputs'] != null &&
                 matchingExpense['customInputs'][id] != null) {
               value = matchingExpense['customInputs'][id].toString();
-              print('  ✅ Preserved existing value for $id (${col['label']}): $value');
+              print(
+                '  ✅ Preserved existing value for $id (${col['label']}): $value',
+              );
             } else {
-              print('  📝 Set empty value for new template column $id (${col['label']})');
+              print(
+                '  📝 Set empty value for new template column $id (${col['label']})',
+              );
             }
-            
+
             newCi[id] = value;
           });
 
@@ -1036,52 +1168,60 @@ class _EditCardPageState extends State<EditCardPage> {
   void _createProductsFromTemplate(Map<String, dynamic> template) {
     try {
       print('🏗️ Creating products from template: ${template['name']}');
-      print('📋 Using existing expenses data: ${widget.card.expenses.length} items');
-      
+      print(
+        '📋 Using existing expenses data: ${widget.card.expenses.length} items',
+      );
+
       // ล้าง product items ที่มีอยู่ก่อน
       _productItems.clear();
-      
+
       // ใช้ข้อมูลจาก card expenses แทนการสร้างใหม่
       final expenses = widget.card.expenses;
-      
+
       if (expenses.isNotEmpty) {
         print('📊 Found ${expenses.length} expense items in card data');
-        
+
         // สร้าง product items จากข้อมูล expenses พร้อม template mapping
         for (int index = 0; index < expenses.length; index++) {
           final expense = expenses[index];
-          
+
           // สร้าง product item จากข้อมูล expense
           final productItem = {
-            'id': expense['id'] ?? 'exp-${DateTime.now().millisecondsSinceEpoch}-$index',
+            'id':
+                expense['id'] ??
+                'exp-${DateTime.now().millisecondsSinceEpoch}-$index',
             'productId': expense['productId'] ?? '',
             'name': expense['name'] ?? 'Product ${index + 1}',
             'description': expense['description'] ?? '',
             'quantity': (expense['quantity'] ?? 1).toInt(),
             'unit': expense['unit'] ?? 'item',
-            'pricePerUnit': (expense['pricePerUnit'] ?? expense['price'] ?? 0).toInt(),
+            'pricePerUnit': (expense['pricePerUnit'] ?? expense['price'] ?? 0)
+                .toInt(),
             'discount': (expense['discount'] ?? 0).toInt(),
             'discountType': expense['discountType'] ?? 'percentage',
             // ล้าง customInputs (จะถูก map ใหม่ใน _onTemplateChanged)
             'customInputs': <String, dynamic>{},
-            'templateId': _selectedTemplateId, // เก็บ template ID สำหรับ mapping
+            'templateId':
+                _selectedTemplateId, // เก็บ template ID สำหรับ mapping
             'image': expense['image'],
             'order': expense['order'] ?? index,
           };
-          
+
           _productItems.add(productItem);
-          
+
           print('✅ Mapped expense to product item:');
           print('  - Name: ${productItem['name']}');
           print('  - Quantity: ${productItem['quantity']}');
           print('  - Price: ${productItem['pricePerUnit']}');
           print('  - CustomInputs: cleared for new template mapping');
         }
-        
-        print('✅ Created ${_productItems.length} product items from card expenses');
+
+        print(
+          '✅ Created ${_productItems.length} product items from card expenses',
+        );
       } else {
         print('📝 No expenses found in card, creating empty product item');
-        
+
         // ถ้าไม่มี expenses ให้สร้าง product item เปล่า
         final emptyProduct = {
           'id': 'template-product-${DateTime.now().millisecondsSinceEpoch}',
@@ -1100,7 +1240,6 @@ class _EditCardPageState extends State<EditCardPage> {
         _productItems.add(emptyProduct);
         print('📋 Created empty product item with template ID');
       }
-      
     } catch (e) {
       print('❌ Error creating products from template: $e');
       // สร้าง product item เปล่าในกรณีเกิดข้อผิดพลาด
@@ -1229,215 +1368,234 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
       );
     }
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          'Edit Job Card',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        centerTitle: false,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.black54),
-            onSelected: (value) {
-              switch (value) {
-                case 'copy':
-                  _onCopy();
-                  break;
-                case 'move':
-                  _onMove();
-                  break;
-                case 'archive':
-                  _onArchive();
-                  break;
-                case 'delete':
-                  _onDeletePermanently();
-                  break;
-              }
-            },
-            itemBuilder: (context) {
-              final items = <PopupMenuEntry<String>>[];
-              items.add(
-                PopupMenuItem(
-                  value: 'copy',
-                  child: Row(
-                    children: const [
-                      Icon(Icons.copy, size: 18),
-                      SizedBox(width: 8),
-                      Text('Copy'),
-                    ],
-                  ),
-                ),
-              );
-              if (_canMove) {
-                items.add(
-                  PopupMenuItem(
-                    value: 'move',
-                    child: Row(
-                      children: const [
-                        Icon(Icons.open_with, size: 18),
-                        SizedBox(width: 8),
-                        Text('Move'),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              if (_canArchive) {
-                items.add(
-                  PopupMenuItem(
-                    value: 'archive',
-                    child: Row(
-                      children: const [
-                        Icon(Icons.archive, size: 18),
-                        SizedBox(width: 8),
-                        Text('Archive'),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              if (_canDelete) {
-                items.add(
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: const [
-                        Icon(Icons.delete_forever, color: Colors.red, size: 18),
-                        SizedBox(width: 8),
-                        Text(
-                          'Delete Permanently',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              return items;
-            },
+    return PopScope(
+      canPop: _isHtmlEditorReady,
+      onPopInvoked: (didPop) {
+        if (!didPop && !_isHtmlEditorReady) {
+          // Show message to user that they need to wait
+          // Get.snackbar(
+          //   'Please Wait',
+          //   'HTML editor is still loading. Please wait a moment before going back.',
+          //   backgroundColor: Colors.orange,
+          //   colorText: Colors.white,
+          //   duration: const Duration(seconds: 2),
+          // );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: AppBar(
+          title: const Text(
+            'Edit Job Card',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Basic Information Section
-            _buildSectionCard(
-              title: 'Basic Information',
-              icon: Icons.info_outline,
-              color: Colors.blue,
-              children: [
-                _buildJobIdSection(),
-                const SizedBox(height: 20),
-                _buildTitleSection(),
-                const SizedBox(height: 20),
-                _buildLaneSection(),
-              ],
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0,
+          centerTitle: false,
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.black54),
+              onSelected: (value) {
+                switch (value) {
+                  case 'copy':
+                    _onCopy();
+                    break;
+                  case 'move':
+                    _onMove();
+                    break;
+                  case 'archive':
+                    _onArchive();
+                    break;
+                  case 'delete':
+                    _onDeletePermanently();
+                    break;
+                }
+              },
+              itemBuilder: (context) {
+                final items = <PopupMenuEntry<String>>[];
+                // items.add(
+                //   PopupMenuItem(
+                //     value: 'copy',
+                //     child: Row(
+                //       children: const [
+                //         Icon(Icons.copy, size: 18),
+                //         SizedBox(width: 8),
+                //         Text('Copy'),
+                //       ],
+                //     ),
+                //   ),
+                // );
+                if (_canMove) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'move',
+                      child: Row(
+                        children: const [
+                          Icon(Icons.open_with, size: 18),
+                          SizedBox(width: 8),
+                          Text('Move'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                if (_canArchive) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'archive',
+                      child: Row(
+                        children: const [
+                          Icon(Icons.archive, size: 18),
+                          SizedBox(width: 8),
+                          Text('Archive'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                if (_canDelete) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: const [
+                          Icon(
+                            Icons.delete_forever,
+                            color: Colors.red,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Delete Permanently',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return items;
+              },
             ),
-            const SizedBox(height: 24),
-
-            // Assignment Section
-            _buildSectionCard(
-              title: 'Assignment & Tags',
-              icon: Icons.assignment_ind,
-              color: Colors.purple,
-              children: [
-                _buildHashtagSection(),
-                const SizedBox(height: 20),
-                _buildAssigneeSection(),
-                const SizedBox(height: 20),
-                _buildCollaboratorsSection(),
-                const SizedBox(height: 20),
-                _buildWatchersSection(),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Customer Information Section
-            _buildSectionCard(
-              title: 'Customer Information',
-              icon: Icons.business,
-              color: Colors.green,
-              children: [
-                _buildCustomerSection(),
-                const SizedBox(height: 20),
-                _buildCustomerInterestSection(),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Product Section
-            _buildSectionCard(
-              title: 'Products & Services',
-              icon: Icons.shopping_cart,
-              color: Colors.deepOrange,
-              children: [_buildProductSection()],
-            ),
-            const SizedBox(height: 24),
-
-            // Related Documents Section
-            _buildSectionCard(
-              title: 'Related Documents',
-              icon: Icons.description,
-              color: Colors.purple,
-              children: [_buildRelatedDocumentsSection()],
-            ),
-            const SizedBox(height: 24),
-
-            // Content Section
-            _buildSectionCard(
-              title: 'Content & Details',
-              icon: Icons.edit_document,
-              color: Colors.indigo,
-              children: [_buildDetailsSection()],
-            ),
-            const SizedBox(height: 24),
-
-            // Content & Tasks Section  
-            _buildSectionCard(
-              title: 'Content & Tasks',
-              icon: Icons.task_alt,
-              color: Colors.purple,
-              children: [_buildTodoListSection()],
-            ),
-            const SizedBox(height: 24),
-
-            // Timeline & Status Section
-            _buildSectionCard(
-              title: 'Timeline & Status',
-              icon: Icons.schedule,
-              color: Colors.orange,
-              children: [
-                _buildExpectedClosingDateSection(),
-                const SizedBox(height: 20),
-                _buildStatusChipsSection(),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Attached Files Section
-            _buildSectionCard(
-              title: 'Attached Files',
-              icon: Icons.attach_file,
-              color: Colors.teal,
-              children: [_buildAttachedFilesContent()],
-            ),
-            const SizedBox(height: 24),
-
-            // History & Comments Section
-            _buildHistoryCommentSection(),
-            const SizedBox(height: 100), // Space for bottom buttons
           ],
         ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Basic Information Section
+              _buildSectionCard(
+                title: 'Basic Information',
+                icon: Icons.info_outline,
+                color: Colors.blue,
+                children: [
+                  _buildJobIdSection(),
+                  const SizedBox(height: 20),
+                  _buildTitleSection(),
+                  const SizedBox(height: 20),
+                  _buildLaneSection(),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Assignment Section
+              _buildSectionCard(
+                title: 'Assignment & Tags',
+                icon: Icons.assignment_ind,
+                color: Colors.purple,
+                children: [
+                  _buildHashtagSection(),
+                  const SizedBox(height: 20),
+                  _buildAssigneeSection(),
+                  const SizedBox(height: 20),
+                  _buildCollaboratorsSection(),
+                  const SizedBox(height: 20),
+                  _buildWatchersSection(),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Customer Information Section
+              _buildSectionCard(
+                title: 'Customer Information',
+                icon: Icons.business,
+                color: Colors.green,
+                children: [
+                  _buildCustomerSection(),
+                  const SizedBox(height: 20),
+                  _buildCustomerInterestSection(),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Product Section
+              _buildSectionCard(
+                title: 'Products & Services',
+                icon: Icons.shopping_cart,
+                color: Colors.deepOrange,
+                children: [_buildProductSection()],
+              ),
+              const SizedBox(height: 24),
+
+              // Related Documents Section
+              _buildSectionCard(
+                title: 'Related Documents',
+                icon: Icons.description,
+                color: Colors.purple,
+                children: [_buildRelatedDocumentsSection()],
+              ),
+              const SizedBox(height: 24),
+
+              // Content Section
+              _buildSectionCard(
+                title: 'Content & Details',
+                icon: Icons.edit_document,
+                color: Colors.indigo,
+                children: [_buildDetailsSection()],
+              ),
+              const SizedBox(height: 24),
+
+              // Content & Tasks Section
+              _buildSectionCard(
+                title: 'Content & Tasks',
+                icon: Icons.task_alt,
+                color: Colors.purple,
+                children: [_buildTodoListSection()],
+              ),
+              const SizedBox(height: 24),
+
+              // Timeline & Status Section
+              _buildSectionCard(
+                title: 'Timeline & Status',
+                icon: Icons.schedule,
+                color: Colors.orange,
+                children: [
+                  _buildExpectedClosingDateSection(),
+                  const SizedBox(height: 20),
+                  _buildStatusChipsSection(),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Attached Files Section
+              _buildSectionCard(
+                title: 'Attached Files',
+                icon: Icons.attach_file,
+                color: Colors.teal,
+                children: [_buildAttachedFilesContent()],
+              ),
+              const SizedBox(height: 24),
+
+              // History & Comments Section
+              _buildHistoryCommentSection(),
+              const SizedBox(height: 100), // Space for bottom buttons
+            ],
+          ),
+        ),
+        bottomNavigationBar: _buildBottomButtons(),
       ),
-      bottomNavigationBar: _buildBottomButtons(),
     );
   }
 
@@ -1591,7 +1749,7 @@ class _EditCardPageState extends State<EditCardPage> {
         Row(
           children: [
             Icon(Icons.flag, size: 18, color: Colors.orange[700]),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             const Text(
               'Status',
               style: TextStyle(
@@ -1602,76 +1760,71 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: _statusOptions.map((status) {
-            final isSelected = _selectedStatus == status['value'];
-            Color chipColor;
-            Color textColor;
-
-            // Set colors based on status
-            switch (status['value']) {
-              case 'Pending':
-                chipColor = isSelected ? Colors.grey[400]! : Colors.grey[100]!;
-                textColor = isSelected ? Colors.white : Colors.grey[700]!;
-                break;
-              case 'In Progress':
-                chipColor = isSelected ? Colors.orange : Colors.orange[100]!;
-                textColor = isSelected ? Colors.white : Colors.orange[800]!;
-                break;
-              case 'Done':
-                chipColor = isSelected ? Colors.green : Colors.green[100]!;
-                textColor = isSelected ? Colors.white : Colors.green[800]!;
-                break;
-              case 'Cancelled':
-                chipColor = isSelected ? Colors.red : Colors.red[100]!;
-                textColor = isSelected ? Colors.white : Colors.red[800]!;
-                break;
-              default:
-                chipColor = Colors.grey[100]!;
-                textColor = Colors.grey[700]!;
-            }
-
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedStatus = status['value'];
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey[50],
+          ),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _statusOptions.map((status) {
+              final isSelected = _selectedStatus == status['value'];
+              return Container(
                 decoration: BoxDecoration(
-                  color: chipColor,
-                  borderRadius: BorderRadius.circular(20),
-                  border: isSelected
-                      ? null
-                      : Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.primaryOrange.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(status['icon'], size: 16, color: textColor),
-                    const SizedBox(width: 6),
-                    Text(
-                      status['label'],
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                        fontSize: 14,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedStatus = status['value'];
+                    });
+                  },
+                  icon: Icon(status['icon'], size: 16),
+                  label: Text(
+                    status['label'],
+                    style: TextStyle(
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isSelected
+                        ? AppTheme.primaryOrange
+                        : Colors.white,
+                    foregroundColor: isSelected ? Colors.white : Colors.black87,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: BorderSide(
+                        color: isSelected
+                            ? AppTheme.primaryOrange
+                            : Colors.grey[300]!,
+                        width: isSelected ? 2 : 1,
                       ),
                     ),
-                  ],
+                    elevation: isSelected ? 2 : 0,
+                  ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
@@ -1867,7 +2020,7 @@ class _EditCardPageState extends State<EditCardPage> {
           ],
         ),
         const SizedBox(height: 16),
-        
+
         if (_isLoadingRelatedDocuments)
           const Center(
             child: Padding(
@@ -1917,10 +2070,15 @@ class _EditCardPageState extends State<EditCardPage> {
               children: [
                 // Table Header
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey[50],
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(8),
+                    ),
                     border: Border(
                       bottom: BorderSide(color: Colors.grey[300]!),
                     ),
@@ -2037,7 +2195,7 @@ class _EditCardPageState extends State<EditCardPage> {
                     ],
                   ),
                 ),
-                
+
                 // Table Rows
                 ...List.generate(_relatedDocuments.length, (index) {
                   return _buildDocumentRow(_relatedDocuments[index], index);
@@ -2052,36 +2210,47 @@ class _EditCardPageState extends State<EditCardPage> {
   Widget _buildDocumentRow(Map<String, dynamic> document, int index) {
     final documentData = document['data'] as Map<String, dynamic>? ?? {};
     final documentId = document['id'] ?? '';
-    final documentType = document['type'] ?? 'QT'; // Default to QT from backup data
+    final documentType =
+        document['type'] ?? 'QT'; // Default to QT from backup data
     final createdAt = document['createdAt'] ?? '';
-    
+
     // Extract data from document based on actual structure
-    final docNumber = document['docNo'] ?? documentData['docNo'] ?? documentId.substring(0, 8);
+    final docNumber =
+        document['docNo'] ??
+        documentData['docNo'] ??
+        documentId.substring(0, 8);
     final jobCardId = widget.card.customId;
-    
+
     // Handle seller information - check multiple possible fields
     String seller = 'N/A';
     if (documentData['seller'] != null) {
       if (documentData['seller'] is Map) {
-        seller = documentData['seller']['displayName'] ?? 
-                documentData['seller']['name'] ?? 
-                documentData['sellerName'] ?? 'N/A';
+        seller =
+            documentData['seller']['displayName'] ??
+            documentData['seller']['name'] ??
+            documentData['sellerName'] ??
+            'N/A';
       }
     } else {
-      seller = documentData['sellerName'] ?? 
-              documentData['createdBy'] ?? 
-              documentData['createdByDisplayName'] ?? 'N/A';
+      seller =
+          documentData['sellerName'] ??
+          documentData['createdBy'] ??
+          documentData['createdByDisplayName'] ??
+          'N/A';
     }
-    
+
     // Handle total amount - check multiple possible fields
-    final totalAmount = documentData['grandTotal'] ?? 
-                       documentData['netTotal'] ?? 
-                       documentData['totalAmount'] ?? 
-                       documentData['total'] ?? 0;
-    
+    final totalAmount =
+        documentData['grandTotal'] ??
+        documentData['netTotal'] ??
+        documentData['totalAmount'] ??
+        documentData['total'] ??
+        0;
+
     final status = documentData['status'] ?? 'DRAFT';
-    final validUntil = documentData['validUntil'] ?? documentData['dueDate'] ?? '';
-    
+    final validUntil =
+        documentData['validUntil'] ?? documentData['dueDate'] ?? '';
+
     // Convert timestamps to readable format
     String createdDate = '';
     if (createdAt != null && createdAt != '') {
@@ -2097,7 +2266,7 @@ class _EditCardPageState extends State<EditCardPage> {
         createdDate = createdAt.toString();
       }
     }
-    
+
     String validUntilDate = '';
     if (validUntil != null && validUntil != '') {
       try {
@@ -2112,14 +2281,14 @@ class _EditCardPageState extends State<EditCardPage> {
         validUntilDate = validUntil.toString();
       }
     }
-    
+
     return InkWell(
       onTap: status == 'NOT_FOUND' ? null : () => viewDocument(document),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           border: Border(
-            bottom: index < _relatedDocuments.length - 1 
+            bottom: index < _relatedDocuments.length - 1
                 ? BorderSide(color: Colors.grey[200]!)
                 : BorderSide.none,
           ),
@@ -2140,235 +2309,241 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
             ),
             const SizedBox(width: 8),
-          
-          // Type
-          Expanded(
-            flex: 2,
-            child: Row(
-              children: [
-                _getDocumentIcon(documentType),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    _getDocumentTypeLabel(documentType),
-                    style: const TextStyle(fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          
-          // Job Card
-          Expanded(
-            flex: 3,
-            child: Text(
-              jobCardId,
-              style: const TextStyle(fontSize: 12, color: Colors.blue),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          
-          // Seller
-          Expanded(
-            flex: 2,
-            child: Text(
-              seller,
-              style: const TextStyle(fontSize: 12),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          
-          // Date
-          Expanded(
-            flex: 2,
-            child: Text(
-              createdDate,
-              style: const TextStyle(fontSize: 12),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          
-          // Valid Until
-          Expanded(
-            flex: 2,
-            child: Text(
-              validUntilDate,
-              style: const TextStyle(fontSize: 12),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          
-          // Amount
-          Expanded(
-            flex: 2,
-            child: Text(
-              '฿${_formatNumber(totalAmount)}',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.green,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
 
-          // Status Dropdown
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getDocumentStatusColor(status).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: _getDocumentStatusColor(status),
-                  width: 1,
-                ),
-              ),
-              child: status == 'NOT_FOUND'
-                ? Center(
+            // Type
+            Expanded(
+              flex: 2,
+              child: Row(
+                children: [
+                  _getDocumentIcon(documentType),
+                  const SizedBox(width: 4),
+                  Expanded(
                     child: Text(
-                      'ไม่พบเอกสาร',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: _getDocumentStatusColor(status),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  )
-                : DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: status,
-                      isDense: true,
-                      isExpanded: true,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: _getDocumentStatusColor(status),
-                        fontWeight: FontWeight.w500,
-                      ),
-                      icon: Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 14,
-                        color: _getDocumentStatusColor(status),
-                      ),
-                      items: _documentStatusOptions.map((option) {
-                        return DropdownMenuItem<String>(
-                          value: option['value'],
-                          child: Text(
-                            option['label'],
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: _getDocumentStatusColor(option['value']),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (newStatus) {
-                        if (newStatus != null && newStatus != status) {
-                          _updateDocumentStatus(documentId, newStatus);
-                        }
-                      },
+                      _getDocumentTypeLabel(documentType),
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          
-          // More Menu
-          SizedBox(
-            width: 40,
-            child: PopupMenuButton<String>(
-              icon: Icon(Icons.more_horiz, size: 18, color: Colors.grey[600]),
-              onSelected: (value) {
-                switch (value) {
-                  case 'download':
-                    _downloadDocument(document);
-                    break;
-                  case 'duplicate':
-                    _duplicateDocument(document);
-                    break;
-                  case 'edit':
-                    _editDocument(document);
-                    break;
-                  case 'delete':
-                    _deleteDocument(document);
-                    break;
-                }
-              },
-              itemBuilder: (context) => status == 'NOT_FOUND' 
-                ? [
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 16, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('ลบอ้างอิง', style: TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                  ]
-                : [
-                    const PopupMenuItem(
-                      value: 'download',
-                      child: Row(
-                        children: [
-                          Icon(Icons.download, size: 16, color: Colors.blue),
-                          SizedBox(width: 8),
-                          Text('ดาวน์โหลด', style: TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'duplicate',
-                      child: Row(
-                        children: [
-                          Icon(Icons.copy, size: 16, color: Colors.orange),
-                          SizedBox(width: 8),
-                          Text('คัดลอก', style: TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 16, color: Colors.green),
-                          SizedBox(width: 8),
-                          Text('แก้ไข', style: TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 16, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('ลบ', style: TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                  ],
+            const SizedBox(width: 8),
+
+            // Job Card
+            Expanded(
+              flex: 3,
+              child: Text(
+                jobCardId,
+                style: const TextStyle(fontSize: 12, color: Colors.blue),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+
+            // Seller
+            Expanded(
+              flex: 2,
+              child: Text(
+                seller,
+                style: const TextStyle(fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Date
+            Expanded(
+              flex: 2,
+              child: Text(
+                createdDate,
+                style: const TextStyle(fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Valid Until
+            Expanded(
+              flex: 2,
+              child: Text(
+                validUntilDate,
+                style: const TextStyle(fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Amount
+            Expanded(
+              flex: 2,
+              child: Text(
+                '฿${_formatNumber(totalAmount)}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.green,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Status Dropdown
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getDocumentStatusColor(status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: _getDocumentStatusColor(status),
+                    width: 1,
+                  ),
+                ),
+                child: status == 'NOT_FOUND'
+                    ? Center(
+                        child: Text(
+                          'ไม่พบเอกสาร',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _getDocumentStatusColor(status),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      )
+                    : DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: status,
+                          isDense: true,
+                          isExpanded: true,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _getDocumentStatusColor(status),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          icon: Icon(
+                            Icons.keyboard_arrow_down,
+                            size: 14,
+                            color: _getDocumentStatusColor(status),
+                          ),
+                          items: _documentStatusOptions.map((option) {
+                            return DropdownMenuItem<String>(
+                              value: option['value'],
+                              child: Text(
+                                option['label'],
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: _getDocumentStatusColor(
+                                    option['value'],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (newStatus) {
+                            if (newStatus != null && newStatus != status) {
+                              _updateDocumentStatus(documentId, newStatus);
+                            }
+                          },
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // More Menu
+            SizedBox(
+              width: 40,
+              child: PopupMenuButton<String>(
+                icon: Icon(Icons.more_horiz, size: 18, color: Colors.grey[600]),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'download':
+                      _downloadDocument(document);
+                      break;
+                    case 'duplicate':
+                      _duplicateDocument(document);
+                      break;
+                    case 'edit':
+                      _editDocument(document);
+                      break;
+                    case 'delete':
+                      _deleteDocument(document);
+                      break;
+                  }
+                },
+                itemBuilder: (context) => status == 'NOT_FOUND'
+                    ? [
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 16, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('ลบอ้างอิง', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      ]
+                    : [
+                        const PopupMenuItem(
+                          value: 'download',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.download,
+                                size: 16,
+                                color: Colors.blue,
+                              ),
+                              SizedBox(width: 8),
+                              Text('ดาวน์โหลด', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'duplicate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.copy, size: 16, color: Colors.orange),
+                              SizedBox(width: 8),
+                              Text('คัดลอก', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 16, color: Colors.green),
+                              SizedBox(width: 8),
+                              Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 16, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('ลบ', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   String _getDocumentTypeLabel(String type) {
@@ -2854,8 +3029,16 @@ class _EditCardPageState extends State<EditCardPage> {
 
       // Determine old/new lane names for notification context
       final oldLaneId = widget.card.laneId;
-      final oldLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == oldLaneId)?['name'] ?? oldLaneId;
-      final newLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == targetLaneId)?['name'] ?? targetLaneId;
+      final oldLaneName =
+          _availableLanes.firstWhereOrNull(
+            (l) => l['id'] == oldLaneId,
+          )?['name'] ??
+          oldLaneId;
+      final newLaneName =
+          _availableLanes.firstWhereOrNull(
+            (l) => l['id'] == targetLaneId,
+          )?['name'] ??
+          targetLaneId;
 
       // Update card with new boardId and laneId before moving
       final updatedCard = widget.card.copyWith(
@@ -2876,7 +3059,9 @@ class _EditCardPageState extends State<EditCardPage> {
       );
 
       // Notify watchers/collaborators/assignee about lane change
-      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      final recipients = _collectNotifyRecipients(
+        excludeUserId: _currentUserInfo?['uid'],
+      );
       if (recipients.isNotEmpty) {
         try {
           await NotificationsService.to.notifyStatusChange(
@@ -3073,9 +3258,14 @@ class _EditCardPageState extends State<EditCardPage> {
                     ],
                   ),
                 )
-              : ListView.builder(
-                  itemCount: _notes.length,
-                  itemBuilder: (context, index) {
+              : Scrollbar(
+                  thumbVisibility: true,
+                  trackVisibility: true,
+                  controller: _commentsScrollController,
+                  child: ListView.builder(
+                    controller: _commentsScrollController,
+                    itemCount: _notes.length,
+                    itemBuilder: (context, index) {
                     final note = _notes[index];
                     final isReply = note['parentId'] != null;
 
@@ -3117,6 +3307,29 @@ class _EditCardPageState extends State<EditCardPage> {
                                       ),
                                     ),
                                     const Spacer(),
+                                    // Edit and Delete icons
+                                    if (note['userId'] ==
+                                        _currentUserInfo?['uid']) ...[
+                                      GestureDetector(
+                                        onTap: () => _editComment(index, note),
+                                        child: Icon(
+                                          Icons.edit,
+                                          size: 16,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () =>
+                                            _deleteComment(index, note),
+                                        child: Icon(
+                                          Icons.delete,
+                                          size: 16,
+                                          color: Colors.red[400],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
                                     Text(
                                       _formatTimestamp(note['timestamp']),
                                       style: TextStyle(
@@ -3127,13 +3340,58 @@ class _EditCardPageState extends State<EditCardPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  _stripHtmlTags(note['text'] ?? ''),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
+                                // Edit mode or display mode
+                                _editingCommentIndex == index
+                                    ? Column(
+                                        children: [
+                                          TextField(
+                                            controller: _editCommentController,
+                                            decoration: InputDecoration(
+                                              hintText: 'Edit comment...',
+                                              border: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              contentPadding:
+                                                  const EdgeInsets.all(12),
+                                            ),
+                                            maxLines: 3,
+                                            minLines: 1,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              TextButton(
+                                                onPressed: _cancelEditComment,
+                                                child: const Text('Cancel'),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              ElevatedButton(
+                                                onPressed: () =>
+                                                    _saveEditComment(
+                                                      index,
+                                                      note,
+                                                    ),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      Colors.orange,
+                                                  foregroundColor: Colors.white,
+                                                ),
+                                                child: const Text('Save'),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      )
+                                    : Text(
+                                        _stripHtmlTags(note['text'] ?? ''),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
                                 if (!isReply) ...[
                                   const SizedBox(height: 8),
                                   GestureDetector(
@@ -3155,6 +3413,7 @@ class _EditCardPageState extends State<EditCardPage> {
                       ),
                     );
                   },
+                  ),
                 ),
         ),
         // Add comment input at bottom
@@ -3378,7 +3637,9 @@ class _EditCardPageState extends State<EditCardPage> {
       print('✅ Comment saved to Firestore successfully');
 
       // Notify watchers/collaborators/assignee
-      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      final recipients = _collectNotifyRecipients(
+        excludeUserId: _currentUserInfo?['uid'],
+      );
       if (recipients.isNotEmpty) {
         try {
           await NotificationsService.to.notifyComment(
@@ -3402,6 +3663,113 @@ class _EditCardPageState extends State<EditCardPage> {
       Get.snackbar(
         'Error',
         'Failed to save comment. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // Comment edit/delete methods
+  void _editComment(int index, Map<String, dynamic> note) {
+    setState(() {
+      _editingCommentIndex = index;
+      _editCommentController.text = _stripHtmlTags(note['text'] ?? '');
+    });
+  }
+
+  void _cancelEditComment() {
+    setState(() {
+      _editingCommentIndex = null;
+      _editCommentController.clear();
+    });
+  }
+
+  void _saveEditComment(int index, Map<String, dynamic> note) async {
+    if (_editCommentController.text.trim().isEmpty) return;
+
+    final updatedText = '<p>${_editCommentController.text.trim()}</p>';
+
+    // Update local state
+    setState(() {
+      _notes[index]['text'] = updatedText;
+      _editingCommentIndex = null;
+      _editCommentController.clear();
+    });
+
+    try {
+      // Update in Firestore
+      await _repository.updateNoteInCard(
+        _controller.currentWorkspaceId.value,
+        widget.card.id,
+        note['id'],
+        {'text': updatedText},
+      );
+      print('✅ Comment updated successfully');
+    } catch (e) {
+      print('❌ Failed to update comment: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to update comment. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void _deleteComment(int index, Map<String, dynamic> note) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Comment'),
+        content: const Text(
+          'Are you sure you want to delete this comment? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _confirmDeleteComment(index, note);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteComment(
+    int index,
+    Map<String, dynamic> note,
+  ) async {
+    // Remove from local state
+    setState(() {
+      _notes.removeAt(index);
+    });
+
+    try {
+      // Remove from Firestore
+      await _repository.deleteNoteFromCard(
+        _controller.currentWorkspaceId.value,
+        widget.card.id,
+        note['id'],
+      );
+      print('✅ Comment deleted successfully');
+    } catch (e) {
+      print('❌ Failed to delete comment: $e');
+      // Add back to local state if failed
+      setState(() {
+        _notes.insert(index, note);
+      });
+      Get.snackbar(
+        'Error',
+        'Failed to delete comment. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -3443,7 +3811,9 @@ class _EditCardPageState extends State<EditCardPage> {
       print('✅ Reply saved to Firestore successfully');
 
       // Notify watchers/collaborators/assignee
-      final recipients = _collectNotifyRecipients(excludeUserId: _currentUserInfo?['uid']);
+      final recipients = _collectNotifyRecipients(
+        excludeUserId: _currentUserInfo?['uid'],
+      );
       if (recipients.isNotEmpty) {
         try {
           await NotificationsService.to.notifyComment(
@@ -3535,7 +3905,6 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-
   List<String> _collectNotifyRecipients({String? excludeUserId}) {
     final set = <String>{};
     if (_selectedAssignee.isNotEmpty) set.add(_selectedAssignee);
@@ -3576,7 +3945,11 @@ class _EditCardPageState extends State<EditCardPage> {
       final originalAssignee = widget.card.assignedTo;
       final originalStatus = widget.card.status;
       final originalLaneId = widget.card.laneId;
-      final originalLaneName = _availableLanes.firstWhereOrNull((l) => l['id'] == originalLaneId)?['name'] ?? originalLaneId;
+      final originalLaneName =
+          _availableLanes.firstWhereOrNull(
+            (l) => l['id'] == originalLaneId,
+          )?['name'] ??
+          originalLaneId;
 
       // Get assignee details for updatedByDisplayName
       String assigneeDisplayName = '';
@@ -3613,11 +3986,72 @@ class _EditCardPageState extends State<EditCardPage> {
           )
           .toList();
 
-      // Format description as HTML from HTML editor
+      // Format description as HTML from HTML editor with webview disposal protection
       String htmlDescription = '';
-      final editorContent = await _htmlEditorController.getText();
-      if (editorContent.isNotEmpty) {
-        htmlDescription = editorContent;
+      try {
+        print('🔍 HTML Editor Save Debug:');
+        print('  - _isHtmlEditorReady: $_isHtmlEditorReady');
+        print('  - Initial description: "${widget.card.description}"');
+        print('  - Fallback controller text: "${_detailsController.text}"');
+
+        // Check if we're in the middle of disposal
+        if (!mounted) {
+          print('⚠️ Widget not mounted, skipping HTML editor access');
+          htmlDescription = _detailsController.text;
+        } else if (_isHtmlEditorReady) {
+          // Add additional safety check before getText()
+          try {
+            final editorContent = await _htmlEditorController.getText().timeout(
+              const Duration(seconds: 3),
+              onTimeout: () {
+                print('⚠️ HTML editor getText timeout, using fallback');
+                return _detailsController.text;
+              },
+            );
+
+            print('  - HTML editor getText() result: "$editorContent"');
+            if (editorContent.isNotEmpty) {
+              htmlDescription = editorContent;
+              print(
+                '✅ Successfully retrieved HTML editor content: ${htmlDescription.length} chars',
+              );
+            } else {
+              print('⚠️ HTML editor returned empty content, using fallback');
+              htmlDescription = _detailsController.text;
+            }
+          } catch (innerE) {
+            print('⚠️ Inner error during getText(): $innerE');
+            htmlDescription = _detailsController.text;
+          }
+        } else {
+          print('⚠️ HTML editor not ready, using fallback controller');
+          htmlDescription = _detailsController.text;
+        }
+
+        // Additional safety check - if still empty, prompt user
+        if (htmlDescription.isEmpty && widget.card.description.isNotEmpty) {
+          print(
+            '⚠️ Description is empty but original card had content, preserving original',
+          );
+          htmlDescription = widget.card.description;
+        }
+
+        print('  - Final htmlDescription: "$htmlDescription"');
+      } catch (e) {
+        print('⚠️ Error getting HTML editor content: $e');
+
+        // Always use fallback for any error
+        htmlDescription = _detailsController.text.isNotEmpty
+            ? _detailsController.text
+            : widget.card.description;
+
+        // For specific MissingPluginException, use fallback
+        if (e.toString().contains('MissingPluginException') ||
+            e.toString().contains('evaluateJavascript')) {
+          print(
+            '⚠️ WebView plugin error detected - using fallback description',
+          );
+        }
       }
 
       // Prepare expenses data from product items
@@ -3634,12 +4068,13 @@ class _EditCardPageState extends State<EditCardPage> {
                   .toInt(), // Use pricePerUnit field first, fallback to price
               'discount': (product['discount'] ?? 0).toInt(),
               'discountType': product['discountType'],
-              'customInputs': product['customInputs'] ?? {}, // Include custom inputs
+              'customInputs':
+                  product['customInputs'] ?? {}, // Include custom inputs
             },
           )
           .toList();
 
-  // Create updated card
+      // Create updated card
       final updatedCard = widget.card.copyWith(
         title: _titleController.text.trim(),
         description: htmlDescription, // Use HTML formatted description
@@ -3653,10 +4088,10 @@ class _EditCardPageState extends State<EditCardPage> {
         dueDate: _expectedClosingDate,
         startDate: _startDate,
         endDate: _endDate,
-        hashtag: _selectedHashtags.isNotEmpty
-            ? _selectedHashtags.map((h) => '#${h['text']}').join(' ')
+        hashtag: _selectedHashtagTexts.isNotEmpty
+            ? _selectedHashtagTexts.map((text) => '#$text').join(' ')
             : null,
-        hashtags: _selectedHashtags,
+        hashtags: _selectedHashtagsAsMap,
         todos: todosData,
         collaborators: _selectedCollaborators,
         watchers: _selectedWatchers,
@@ -3714,7 +4149,9 @@ class _EditCardPageState extends State<EditCardPage> {
             await coll.doc(docId).set(data);
             order++;
           }
-          print('✅ Expenses subcollection synced (${_productItems.length} items)');
+          print(
+            '✅ Expenses subcollection synced (${_productItems.length} items)',
+          );
         }
       } catch (e) {
         print('⚠️ Failed to sync expenses subcollection: $e');
@@ -3780,7 +4217,9 @@ class _EditCardPageState extends State<EditCardPage> {
 
     // If quotation was created successfully, refresh the related documents
     if (result == true) {
-      print('🔄 EditCardPage - Quotation created successfully, refreshing related documents');
+      print(
+        '🔄 EditCardPage - Quotation created successfully, refreshing related documents',
+      );
       await _loadRelatedDocumentsDetails();
     }
   }
@@ -3805,99 +4244,17 @@ class _EditCardPageState extends State<EditCardPage> {
           ],
         ),
         const SizedBox(height: 12),
-        InkWell(
-          onTap: _openHashtagModal,
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 56),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[50],
-            ),
-            child: _selectedHashtags.isEmpty
-                ? Row(
-                    children: [
-                      Icon(
-                        Icons.add_circle_outline,
-                        size: 20,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Tap to select hashtags...',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: Colors.purple[700],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Selected (${_selectedHashtags.length})',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.purple[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _selectedHashtags.map((hashtag) {
-                          return Chip(
-                            label: Text(
-                              '#${hashtag['text']}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            backgroundColor: Color(
-                              int.parse(
-                                hashtag['color'].replaceFirst('#', '0xff'),
-                              ),
-                            ),
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.edit, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Tap to edit selection',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-          ),
+        HashtagInputField(
+          selectedHashtags: _selectedHashtagIds,
+          availableHashtags: _availableHashtags,
+          onHashtagsChanged: (selectedHashtagIds) {
+            setState(() {
+              _selectedHashtagIds = selectedHashtagIds;
+            });
+          },
+          label: 'Hashtags',
+          hintText: 'Select hashtags',
+          workspaceId: widget.card.workspaceId,
         ),
       ],
     );
@@ -4230,41 +4587,67 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
-          decoration: const InputDecoration(
-            hintText: 'Select customer',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-          isExpanded: true,
-          items: _availableCustomers.map((customer) {
-            return DropdownMenuItem<String>(
-              value: customer['id'],
-              child: Text(
-                customer['name'] ?? customer['id'],
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14),
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedCustomer = value ?? '';
-            });
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
+                decoration: const InputDecoration(
+                  hintText: 'Select customer',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                isExpanded: true,
+                items: _availableCustomers.map((customer) {
+                  return DropdownMenuItem<String>(
+                    value: customer['id'],
+                    child: Text(
+                      customer['name'] ?? customer['id'],
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCustomer = value ?? '';
+                  });
 
-            // Load companies for selected customer
-            if (value != null && value.isNotEmpty) {
-              _loadCompaniesForCustomer(value);
-            } else {
-              setState(() {
-                _availableCompanies = [
-                  {'id': 'none', 'name': 'None'},
-                ];
-                _selectedCompany = 'none';
-              });
-            }
-          },
+                  // Load companies for selected customer
+                  if (value != null && value.isNotEmpty) {
+                    _loadCompaniesForCustomer(value);
+                  } else {
+                    setState(() {
+                      _availableCompanies = [
+                        {'id': 'none', 'name': 'None'},
+                      ];
+                      _selectedCompany = 'none';
+                    });
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: _openAddCustomerPage,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
         // Company Section
@@ -4332,26 +4715,75 @@ class _EditCardPageState extends State<EditCardPage> {
             controller: _htmlEditorController,
             htmlEditorOptions: HtmlEditorOptions(
               hint: 'Enter job details...',
-              shouldEnsureVisible: true,
-              initialText: widget.card.description.isNotEmpty ? widget.card.description : '',
+              // Prevent auto-scrolling to the editor on init (parity with create page)
+              shouldEnsureVisible: false,
+              initialText: widget.card.description.isNotEmpty
+                  ? widget.card.description
+                  : '',
+            ),
+            callbacks: Callbacks(
+              onInit: () {
+                print('✅ HTML Editor initialized in edit card page');
+                setState(() {
+                  _isHtmlEditorReady = true;
+                });
+                // Initialize fallback controller with existing content
+                _detailsController.text = widget.card.description;
+              },
+              onChangeContent: (String? changed) {
+                // Sync HTML editor content to fallback controller for error handling
+                if (changed != null && mounted) {
+                  _detailsController.text = changed;
+                  print(
+                    '🔄 Synced HTML content to fallback: ${changed.length} chars',
+                  );
+                }
+              },
             ),
             htmlToolbarOptions: const HtmlToolbarOptions(
               toolbarPosition: ToolbarPosition.aboveEditor,
               toolbarType: ToolbarType.nativeScrollable,
               defaultToolbarButtons: [
                 StyleButtons(style: false),
-                FontSettingButtons(fontName: false, fontSize: false, fontSizeUnit: false),
-                FontButtons(bold: true, italic: true, underline: true, clearAll: false, strikethrough: false, superscript: false, subscript: false),
+                FontSettingButtons(
+                  fontName: false,
+                  fontSize: false,
+                  fontSizeUnit: false,
+                ),
+                FontButtons(
+                  bold: true,
+                  italic: true,
+                  underline: true,
+                  clearAll: false,
+                  strikethrough: false,
+                  superscript: false,
+                  subscript: false,
+                ),
                 ColorButtons(foregroundColor: false, highlightColor: false),
                 ListButtons(ul: true, ol: true, listStyles: false),
-                ParagraphButtons(textDirection: false, lineHeight: false, caseConverter: false),
-                InsertButtons(link: false, picture: false, audio: false, video: false, hr: false, table: false),
-                OtherButtons(fullscreen: false, codeview: false, undo: true, redo: true, help: false),
+                ParagraphButtons(
+                  textDirection: false,
+                  lineHeight: false,
+                  caseConverter: false,
+                ),
+                InsertButtons(
+                  link: false,
+                  picture: false,
+                  audio: false,
+                  video: false,
+                  hr: false,
+                  table: false,
+                ),
+                OtherButtons(
+                  fullscreen: false,
+                  codeview: false,
+                  undo: true,
+                  redo: true,
+                  help: false,
+                ),
               ],
             ),
-            otherOptions: const OtherOptions(
-              height: 150,
-            ),
+            otherOptions: const OtherOptions(height: 150),
           ),
         ),
       ],
@@ -4380,7 +4812,10 @@ class _EditCardPageState extends State<EditCardPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -4394,7 +4829,10 @@ class _EditCardPageState extends State<EditCardPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -4403,7 +4841,7 @@ class _EditCardPageState extends State<EditCardPage> {
           ],
         ),
         const SizedBox(height: 8),
-        
+
         // Todo items list
         if (_todoItems.isEmpty)
           Container(
@@ -4436,7 +4874,7 @@ class _EditCardPageState extends State<EditCardPage> {
     final TextEditingController controller = todo['controller'];
     final DateTime? dueDate = todo['dueDate'];
     final DateTime? endTime = todo['endTime'];
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -4460,7 +4898,7 @@ class _EditCardPageState extends State<EditCardPage> {
                 activeColor: AppTheme.primaryOrange,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              
+
               // Input field
               Expanded(
                 child: TextField(
@@ -4468,46 +4906,52 @@ class _EditCardPageState extends State<EditCardPage> {
                   decoration: const InputDecoration(
                     hintText: 'Enter todo item...',
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                   ),
                   onChanged: (value) {
                     todo['text'] = value;
                   },
                   style: TextStyle(
-                    decoration: (todo['isCompleted'] ?? false) 
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                    color: (todo['isCompleted'] ?? false) 
-                      ? Colors.grey[600] 
-                      : Colors.black87,
+                    decoration: (todo['isCompleted'] ?? false)
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
+                    color: (todo['isCompleted'] ?? false)
+                        ? Colors.grey[600]
+                        : Colors.black87,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              
+
               // Set time button with indicator
               Container(
                 decoration: BoxDecoration(
-                  color: (dueDate != null || endTime != null) 
-                    ? Colors.green 
-                    : Colors.blue,
+                  color: (dueDate != null || endTime != null)
+                      ? Colors.green
+                      : Colors.blue,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: IconButton(
                   onPressed: () => _setTodoTime(index),
                   icon: Icon(
-                    (dueDate != null || endTime != null) 
-                      ? Icons.schedule_send 
-                      : Icons.access_time, 
-                    color: Colors.white, 
-                    size: 20
+                    (dueDate != null || endTime != null)
+                        ? Icons.schedule_send
+                        : Icons.access_time,
+                    color: Colors.white,
+                    size: 20,
                   ),
                   padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              
+
               // Delete button
               Container(
                 decoration: BoxDecoration(
@@ -4518,12 +4962,15 @@ class _EditCardPageState extends State<EditCardPage> {
                   onPressed: () => _removeTodoItem(index),
                   icon: const Icon(Icons.delete, color: Colors.white, size: 20),
                   padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                 ),
               ),
             ],
           ),
-          
+
           // Show time information if any is set
           if (dueDate != null || endTime != null)
             Container(
@@ -4534,7 +4981,10 @@ class _EditCardPageState extends State<EditCardPage> {
                   if (dueDate != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.blue[50],
                         borderRadius: BorderRadius.circular(4),
@@ -4556,12 +5006,15 @@ class _EditCardPageState extends State<EditCardPage> {
                         ],
                       ),
                     ),
-                  
+
                   // Duration/End Time
                   if (endTime != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green[50],
                         borderRadius: BorderRadius.circular(4),
@@ -4616,7 +5069,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
   void _setTodoTime(int index) async {
     if (!mounted) return;
-    
+
     // Show options dialog first
     final String? timeOption = await showDialog<String>(
       context: context,
@@ -4650,46 +5103,57 @@ class _EditCardPageState extends State<EditCardPage> {
                     const SizedBox(height: 4),
                     Text(
                       _getCurrentTimeValue(index),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.blue[600]),
                     ),
                   ],
                 ),
               ),
-            
+
             // Time options
             ListTile(
               leading: Icon(
-                Icons.today, 
-                color: _todoItems[index]['dueDate'] != null ? Colors.green : Colors.blue
+                Icons.today,
+                color: _todoItems[index]['dueDate'] != null
+                    ? Colors.green
+                    : Colors.blue,
               ),
               title: Text(
                 'Set Due Date & Time',
                 style: TextStyle(
-                  fontWeight: _todoItems[index]['dueDate'] != null ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: _todoItems[index]['dueDate'] != null
+                      ? FontWeight.w600
+                      : FontWeight.normal,
                 ),
               ),
-              subtitle: _todoItems[index]['dueDate'] != null 
-                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
-                : null,
+              subtitle: _todoItems[index]['dueDate'] != null
+                  ? Text(
+                      'Currently set',
+                      style: TextStyle(color: Colors.green[700]),
+                    )
+                  : null,
               onTap: () => Navigator.of(context).pop('datetime'),
             ),
             ListTile(
               leading: Icon(
-                Icons.schedule, 
-                color: _todoItems[index]['endTime'] != null ? Colors.green : Colors.green
+                Icons.schedule,
+                color: _todoItems[index]['endTime'] != null
+                    ? Colors.green
+                    : Colors.green,
               ),
               title: Text(
                 'Set Duration',
                 style: TextStyle(
-                  fontWeight: _todoItems[index]['endTime'] != null ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: _todoItems[index]['endTime'] != null
+                      ? FontWeight.w600
+                      : FontWeight.normal,
                 ),
               ),
-              subtitle: _todoItems[index]['endTime'] != null 
-                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
-                : null,
+              subtitle: _todoItems[index]['endTime'] != null
+                  ? Text(
+                      'Currently set',
+                      style: TextStyle(color: Colors.green[700]),
+                    )
+                  : null,
               onTap: () => Navigator.of(context).pop('duration'),
             ),
             if (_todoItems[index]['dueDate'] != null ||
@@ -4726,7 +5190,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
   Future<void> _setDueDateTime(int index) async {
     if (!mounted) return;
-    
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: _todoItems[index]['dueDate'] ?? DateTime.now(),
@@ -4737,9 +5201,9 @@ class _EditCardPageState extends State<EditCardPage> {
     if (pickedDate != null && mounted) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
-        initialTime: _todoItems[index]['dueDate'] != null 
-          ? TimeOfDay.fromDateTime(_todoItems[index]['dueDate'])
-          : TimeOfDay.now(),
+        initialTime: _todoItems[index]['dueDate'] != null
+            ? TimeOfDay.fromDateTime(_todoItems[index]['dueDate'])
+            : TimeOfDay.now(),
       );
 
       if (pickedTime != null && mounted) {
@@ -4758,17 +5222,17 @@ class _EditCardPageState extends State<EditCardPage> {
 
   Future<void> _setDuration(int index) async {
     if (!mounted) return;
-    
+
     final DateTime now = DateTime.now();
     final int? currentDuration = _todoItems[index]['duration'];
-    final DateTime? endTime = currentDuration != null 
-      ? now.add(Duration(minutes: currentDuration))
-      : null;
-    
+    final DateTime? endTime = currentDuration != null
+        ? now.add(Duration(minutes: currentDuration))
+        : null;
+
     final TextEditingController durationController = TextEditingController(
       text: currentDuration?.toString() ?? '',
     );
-    
+
     final int? duration = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
@@ -4856,7 +5320,12 @@ class _EditCardPageState extends State<EditCardPage> {
     }
   }
 
-  Widget _buildDurationChip(String label, int minutes, TextEditingController controller, DateTime now) {
+  Widget _buildDurationChip(
+    String label,
+    int minutes,
+    TextEditingController controller,
+    DateTime now,
+  ) {
     final DateTime endTime = now.add(Duration(minutes: minutes));
     return ActionChip(
       label: Column(
@@ -4916,8 +5385,8 @@ class _EditCardPageState extends State<EditCardPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header with title and template selector
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Product Items',
@@ -4927,54 +5396,57 @@ class _EditCardPageState extends State<EditCardPage> {
                 color: Colors.black87,
               ),
             ),
+            const SizedBox(height: 12),
+            Container(
+              height: 40,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.deepOrange, width: 1.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedTemplateId,
+                  hint: const Text('Select Template'),
+                  items: _quotationTemplates.map((template) {
+                    return DropdownMenuItem<String>(
+                      value: template['id'],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          template['name'],
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    print('🔄 Template dropdown changed: $value');
+                    final selectedTemplate = _quotationTemplates
+                        .firstWhereOrNull((t) => t['id'] == value);
+                    if (selectedTemplate != null) {
+                      print(
+                        '📋 Selected template: ${selectedTemplate['name']}',
+                      );
+                    }
+                    _onTemplateChanged(value);
+                  },
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.deepOrange,
+                  ),
+                  iconSize: 20,
+                  style: const TextStyle(
+                    color: Colors.deepOrange,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             // Template dropdown and buttons row
             Row(
               children: [
-                // Template Dropdown
-                Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.deepOrange, width: 1.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedTemplateId,
-                      hint: const Text('Select Template'),
-                      items: _quotationTemplates.map((template) {
-                        return DropdownMenuItem<String>(
-                          value: template['id'],
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              template['name'],
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        print('🔄 Template dropdown changed: $value');
-                        final selectedTemplate = _quotationTemplates.firstWhereOrNull((t) => t['id'] == value);
-                        if (selectedTemplate != null) {
-                          print('📋 Selected template: ${selectedTemplate['name']}');
-                        }
-                        _onTemplateChanged(value);
-                      },
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.deepOrange,
-                      ),
-                      iconSize: 20,
-                      style: const TextStyle(
-                        color: Colors.deepOrange,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: _addProduct,
                   icon: const Icon(Icons.add, size: 18),
@@ -5515,8 +5987,8 @@ class _EditCardPageState extends State<EditCardPage> {
 
     // Ensure customInputs map exists
     product['customInputs'] ??= <String, dynamic>{};
-    final Map<String, dynamic> customInputs =
-        (product['customInputs'] as Map).cast<String, dynamic>();
+    final Map<String, dynamic> customInputs = (product['customInputs'] as Map)
+        .cast<String, dynamic>();
 
     // Determine initial value: only from existing customInputs (no prefill here)
     String initial = '';
@@ -5535,7 +6007,9 @@ class _EditCardPageState extends State<EditCardPage> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: TextFormField(
-          key: Key('${product['id']}_${columnId}_${_selectedTemplateId}'), // ใช้ key เพื่อ force rebuild เมื่อเปลี่ยน template
+          key: Key(
+            '${product['id']}_${columnId}_${_selectedTemplateId}',
+          ), // ใช้ key เพื่อ force rebuild เมื่อเปลี่ยน template
           initialValue: initial,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
@@ -6067,18 +6541,16 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  void _openHashtagModal() {
-    showDialog(
-      context: context,
-      builder: (context) => HashtagSelectionModal(
-        selectedHashtags: _selectedHashtags,
-        onHashtagsSelected: (selectedHashtags) {
-          setState(() {
-            _selectedHashtags = selectedHashtags;
-          });
-        },
-      ),
+  Future<void> _openAddCustomerPage() async {
+    final result = await Get.to(
+      () => const AddEditCustomerPage(customerSources: []),
     );
+
+    if (result == true) {
+      // Refresh customer list after adding new customer
+      await _loadAvailableOptions();
+      setState(() {});
+    }
   }
 
   // Product management methods
@@ -6121,8 +6593,8 @@ class _EditCardPageState extends State<EditCardPage> {
                   (column['prefillSourceField'] as String?)?.trim();
               newItem['customInputs'] ??= <String, dynamic>{};
               // Prefill from product data if available
-              newItem['customInputs'][columnId] = prefillField != null &&
-                      prefillField.isNotEmpty
+              newItem['customInputs'][columnId] =
+                  prefillField != null && prefillField.isNotEmpty
                   ? (product[prefillField]?.toString() ?? '')
                   : '';
             }
@@ -6156,8 +6628,8 @@ class _EditCardPageState extends State<EditCardPage> {
         if (column['type'] == 'user_input') {
           final String columnId = (column['id'] ?? '').toString();
           newItem['customInputs'] ??= <String, dynamic>{};
-          final Map<String, dynamic> ci =
-              (newItem['customInputs'] as Map).cast<String, dynamic>();
+          final Map<String, dynamic> ci = (newItem['customInputs'] as Map)
+              .cast<String, dynamic>();
           ci[columnId] = '';
           newItem['customInputs'] = ci;
         }
@@ -6202,22 +6674,22 @@ class _EditCardPageState extends State<EditCardPage> {
           .get();
 
       List<Map<String, dynamic>> cardRelatedDocuments = [];
-      
+
       if (cardSnapshot.exists) {
         final cardData = cardSnapshot.data()!;
-        
+
         // Extract relatedDocuments from fresh card data
         final relatedDocsRaw = cardData['relatedDocuments'];
         if (relatedDocsRaw != null && relatedDocsRaw is List) {
           cardRelatedDocuments = List<Map<String, dynamic>>.from(
-            relatedDocsRaw.map((doc) => Map<String, dynamic>.from(doc))
+            relatedDocsRaw.map((doc) => Map<String, dynamic>.from(doc)),
           );
         }
       } else {
         // Fallback to widget card data if Firestore fetch fails
         cardRelatedDocuments = widget.card.relatedDocuments;
       }
-      
+
       if (cardRelatedDocuments.isEmpty) {
         print('ℹ️ No related documents found in card');
         setState(() {
@@ -6259,23 +6731,22 @@ class _EditCardPageState extends State<EditCardPage> {
               'type': docType,
               'docNo': docNo,
               'data': documentData,
-              'createdAt': documentData['createdAt'] ?? DateTime.now().toIso8601String(),
+              'createdAt':
+                  documentData['createdAt'] ?? DateTime.now().toIso8601String(),
             });
-            
-            print('✅ Loaded document: $docNo (${documentData['type'] ?? docType})');
+
+            print(
+              '✅ Loaded document: $docNo (${documentData['type'] ?? docType})',
+            );
           } else {
             print('⚠️ Document $documentId not found in workspace documents');
-            
+
             // Add placeholder data for missing documents
             detailedDocuments.add({
               'id': documentId,
               'type': docType,
               'docNo': docNo,
-              'data': {
-                'status': 'NOT_FOUND',
-                'docNo': docNo,
-                'type': docType,
-              },
+              'data': {'status': 'NOT_FOUND', 'docNo': docNo, 'type': docType},
               'createdAt': DateTime.now().toIso8601String(),
             });
           }
@@ -6299,7 +6770,10 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   // Related Documents management methods
-  Future<void> _updateDocumentStatus(String documentId, String newStatus) async {
+  Future<void> _updateDocumentStatus(
+    String documentId,
+    String newStatus,
+  ) async {
     try {
       final firestore = FirebaseFirestore.instance;
       final workspaceId = widget.card.workspaceId;
@@ -6311,9 +6785,9 @@ class _EditCardPageState extends State<EditCardPage> {
           .collection('documents')
           .doc(documentId)
           .update({
-        'status': newStatus,
-        'updatedAt': DateTime.now().toIso8601String(),
-      });
+            'status': newStatus,
+            'updatedAt': DateTime.now().toIso8601String(),
+          });
 
       // Reload related documents to reflect changes
       await _loadRelatedDocumentsDetails();
@@ -6365,12 +6839,14 @@ class _EditCardPageState extends State<EditCardPage> {
   void _editDocument(Map<String, dynamic> document) {
     final documentId = document['id'] as String?;
     final documentType = document['type'] ?? 'QT';
-    
+
     if (documentId != null && documentId.isNotEmpty) {
-      Get.to(() => AddEditDocumentPage(
-        documentType: documentType,
-        documentId: documentId,
-      ));
+      Get.to(
+        () => AddEditDocumentPage(
+          documentType: documentType,
+          documentId: documentId,
+        ),
+      );
     } else {
       Get.snackbar(
         'Error',
@@ -6387,12 +6863,14 @@ class _EditCardPageState extends State<EditCardPage> {
   void viewDocument(Map<String, dynamic> document) {
     final documentId = document['id'] as String?;
     final documentType = document['type'] ?? 'QT';
-    
+
     if (documentId != null && documentId.isNotEmpty) {
-      Get.to(() => AddEditDocumentPage(
-        documentType: documentType,
-        documentId: documentId,
-      ));
+      Get.to(
+        () => AddEditDocumentPage(
+          documentType: documentType,
+          documentId: documentId,
+        ),
+      );
     } else {
       Get.snackbar(
         'Error',
@@ -6410,16 +6888,18 @@ class _EditCardPageState extends State<EditCardPage> {
     final docNo = document['docNo'] ?? 'N/A';
     final documentData = document['data'] as Map<String, dynamic>? ?? {};
     final status = documentData['status'] ?? 'DRAFT';
-    
+
     final isNotFound = status == 'NOT_FOUND';
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(isNotFound ? 'ลบอ้างอิงเอกสาร' : 'ลบเอกสาร'),
-        content: Text(isNotFound 
-          ? 'คุณแน่ใจหรือไม่ที่จะลบอ้างอิงเอกสาร $docNo?\n\nเอกสารนี้ไม่พบในระบบแล้ว จะลบเฉพาะอ้างอิงออกจากการ์ดนี้'
-          : 'คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้'),
+        content: Text(
+          isNotFound
+              ? 'คุณแน่ใจหรือไม่ที่จะลบอ้างอิงเอกสาร $docNo?\n\nเอกสารนี้ไม่พบในระบบแล้ว จะลบเฉพาะอ้างอิงออกจากการ์ดนี้'
+              : 'คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -6438,11 +6918,14 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  Future<void> _performDeleteDocument(String documentId, String relatedDocId) async {
+  Future<void> _performDeleteDocument(
+    String documentId,
+    String relatedDocId,
+  ) async {
     try {
       final workspaceId = _controller.currentWorkspaceId.value;
       final cardId = widget.card.id;
-      
+
       // Check if this document has NOT_FOUND status
       final document = _relatedDocuments.firstWhere(
         (doc) => doc['id'] == documentId,
@@ -6450,9 +6933,9 @@ class _EditCardPageState extends State<EditCardPage> {
       );
       final documentData = document['data'] as Map<String, dynamic>? ?? {};
       final status = documentData['status'] ?? 'DRAFT';
-      
+
       print('🗑️ Deleting document: $documentId, Status: $status');
-      
+
       // Step 1: Delete from documents collection (if document exists)
       if (status != 'NOT_FOUND') {
         print('🗑️ Deleting from /documents collection...');
@@ -6473,40 +6956,44 @@ class _EditCardPageState extends State<EditCardPage> {
           // Don't throw error - Algolia sync failure shouldn't break the main operation
         }
       } else {
-        print('ℹ️ Skipping /documents deletion - document has NOT_FOUND status');
+        print(
+          'ℹ️ Skipping /documents deletion - document has NOT_FOUND status',
+        );
       }
-      
+
       // Step 2: Update card's relatedDocuments field in Firestore directly
       print('🗑️ Removing reference from card relatedDocuments...');
-      
+
       final firestore = FirebaseFirestore.instance;
       final cardRef = firestore
           .collection('workspaces')
           .doc(workspaceId)
           .collection('cards')
           .doc(cardId);
-      
+
       // Get current card data
       final cardSnapshot = await cardRef.get();
       if (cardSnapshot.exists) {
         final cardData = cardSnapshot.data()!;
         final currentRelatedDocs = List<Map<String, dynamic>>.from(
-          cardData['relatedDocuments'] ?? []
+          cardData['relatedDocuments'] ?? [],
         );
-        
+
         // Remove the document with matching ID
         final originalCount = currentRelatedDocs.length;
         currentRelatedDocs.removeWhere((doc) => doc['id'] == documentId);
         final newCount = currentRelatedDocs.length;
-        
-        print('🗑️ Removed ${originalCount - newCount} reference(s) from relatedDocuments');
-        
+
+        print(
+          '🗑️ Removed ${originalCount - newCount} reference(s) from relatedDocuments',
+        );
+
         // Update the card in Firestore
         await cardRef.update({
           'relatedDocuments': currentRelatedDocs,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        
+
         print('✅ Updated card relatedDocuments in Firestore');
       }
 
@@ -6516,7 +7003,9 @@ class _EditCardPageState extends State<EditCardPage> {
 
       Get.snackbar(
         'Success',
-        status == 'NOT_FOUND' ? 'Document reference removed successfully' : 'Document deleted successfully',
+        status == 'NOT_FOUND'
+            ? 'Document reference removed successfully'
+            : 'Document deleted successfully',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -6650,6 +7139,23 @@ class _EditCardPageState extends State<EditCardPage> {
 
   @override
   void dispose() {
+    print('🔄 EditCardPage.dispose - Page being disposed');
+
+    // Skip HTML editor disposal to prevent JavaScript evaluation errors
+    // The HTML editor will be automatically disposed when the widget tree is destroyed
+    print(
+      '⚠️ Skipping HTML editor disposal to prevent JavaScript evaluation errors',
+    );
+
+    // Dispose todo controllers
+    for (var todo in _todoItems) {
+      todo['controller']?.dispose();
+    }
+
+    // Dispose edit comment controller if exists
+    _editCommentController.dispose();
+    _commentsScrollController.dispose();
+
     _jobIdController.dispose();
     _titleController.dispose();
     _detailsController.dispose();

@@ -17,6 +17,10 @@ class ChatController extends GetxController {
   final RxString searchQuery = ''.obs;
   final RxString activeFilter = 'all'.obs;
 
+  // NEW: Loading flag while resolving assignees for permission-based filtering on first entry
+  final RxBool isAssigneeLoading = false.obs;
+  bool _assigneeInitialSettled = false;
+
   // Current user and workspace
   String? _currentUserId;
   String? _currentWorkspaceId;
@@ -39,6 +43,8 @@ class ChatController extends GetxController {
 
   // Cache assignees for customerId -> [displayNames]
   final Map<String, List<String>> _assigneesCache = {};
+  // NEW: Cache assignee UIDs for customerId -> [uids] to keep IDs when names are cached
+  final Map<String, List<String>> _assigneeUidsCache = {};
 
   // Cache customer hashtags to avoid repeated reads: customerId -> ids/meta
   final Map<String, List<String>> _customerHashtagIdsCache = {};
@@ -105,6 +111,9 @@ class ChatController extends GetxController {
         _logger.info('Workspace changed to $newId -> restart chat realtime');
         _currentWorkspaceId = newId;
         _workspaceData = null; // reset caches bound to workspace
+        // Reset assignee initial settle flags for new workspace
+        _assigneeInitialSettled = false;
+        isAssigneeLoading.value = false;
         await stopRealtime();
         // Soft debounce to avoid rapid restarts while switching
         await Future.delayed(const Duration(milliseconds: 50));
@@ -481,7 +490,17 @@ class ChatController extends GetxController {
         queryBuilder: (q) => q
             .where('is_deleted', isEqualTo: 'N')
             .orderBy('last_message_info.last_upd', descending: true),
-      ).listen((qs) {
+      ).listen((qs) async {
+        // Determine if permission-based filtering depends on assignee resolution
+        final perms = MobilePermissionsService.to;
+        final bool requiresAssigneeForFilter = !(perms.isOwner || perms.can('chat:view:all'))
+            && (perms.can('chat:view:assigned') || perms.can('chat:view:unassigned'));
+
+        // Preserve previous assignee info to avoid flicker on permission filters
+        final Map<String, Map<String, dynamic>> prevById = {
+          for (final c in conversations) (c['id']?.toString() ?? ''): c,
+        }..removeWhere((k, v) => k.isEmpty);
+
         final items = qs.docs.map((doc) {
           final data = Map<String, dynamic>.from(doc.data());
           data['id'] = doc.id;
@@ -513,6 +532,7 @@ class ChatController extends GetxController {
 
           // Attach provider info if possible
           final enriched = _attachProviderInfo(data);
+
           // Carry chatroom-level assignees (when no customer linked)
           try {
             final ids = ((enriched['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
@@ -525,6 +545,27 @@ class ChatController extends GetxController {
           } catch (_) {
             enriched['assigneesKnown'] = false;
           }
+
+
+          // Preserve previous assignee info if we don't have fresh info yet
+          try {
+            final prev = prevById[enriched['id']?.toString() ?? ''];
+            if (prev != null) {
+              // Only overwrite if new info is available; otherwise keep previous
+              if (!(enriched['assigneesKnown'] == true)) {
+                if (prev['assigneeIds'] is List && (prev['assigneeIds'] as List).isNotEmpty) {
+                  enriched['assigneeIds'] = (prev['assigneeIds'] as List).map((e) => e.toString()).toList();
+                }
+                if (prev['assigneeNames'] is List && (prev['assigneeNames'] as List).isNotEmpty) {
+                  enriched['assigneeNames'] = (prev['assigneeNames'] as List).map((e) => e.toString()).toList();
+                }
+                if (prev['assigneesKnown'] == true) {
+                  enriched['assigneesKnown'] = true;
+                }
+              }
+            }
+          } catch (_) {}
+
           // Attach hashtag meta (name + color from master list)
           try {
             enriched['hashtagMeta'] = _buildHashtagMeta(enriched);
@@ -559,17 +600,36 @@ class ChatController extends GetxController {
         isLoading.value = false;
         error.value = '';
 
-        // Asynchronously enrich with assignee display names
-        _augmentAssignees(filtered);
-        // Asynchronously enrich with customer hashtags (merge with chatroom hashtags)
-        _augmentCustomerHashtags(filtered);
+        // If first entry depends on assignee filtering, show loading until we resolve assignees once
+        if (requiresAssigneeForFilter && !_assigneeInitialSettled) {
+          isAssigneeLoading.value = true;
+          try {
+            await _augmentAssignees(filtered);
+          } finally {
+            _assigneeInitialSettled = true;
+            isAssigneeLoading.value = false;
+          }
+          // Also kick off customer hashtags after assignees
+          // (non-blocking for UI)
+          // ignore: unawaited_futures
+          _augmentCustomerHashtags(filtered);
+        } else {
+          // Asynchronously enrich with assignee display names
+          // ignore: unawaited_futures
+          _augmentAssignees(filtered);
+          // Asynchronously enrich with customer hashtags (merge with chatroom hashtags)
+          // ignore: unawaited_futures
+          _augmentCustomerHashtags(filtered);
+        }
       }, onError: (e) {
         isLoading.value = false;
         error.value = 'Failed to get realtime chatrooms: $e';
+        isAssigneeLoading.value = false;
       });
     } catch (e) {
       isLoading.value = false;
       error.value = 'Failed to start realtime: $e';
+      isAssigneeLoading.value = false;
     }
   }
 
@@ -592,6 +652,7 @@ class ChatController extends GetxController {
     activeFilter.value = filter;
     // No server reload; filter is applied client-side on conversations stream
   }
+
 
   void refresh() {
     // Avoid restarting stream to prevent UI flicker
@@ -621,9 +682,18 @@ class ChatController extends GetxController {
         final ids = (conv['assigneeIds'] is List)
             ? (conv['assigneeIds'] as List).map((e) => e.toString()).toSet()
             : <String>{};
-        final bool assignedToMe = canAssigned && uid.isNotEmpty && ids.contains(uid);
         final bool assigneesKnown = (conv['assigneesKnown'] == true);
-        final bool unassigned = canUnassigned && assigneesKnown && ids.isEmpty;
+        // If assignees are not known yet, optimistically include the item so the list doesn't disappear
+        if (!assigneesKnown) {
+          // Only include if the user has any chat view permission (assigned or unassigned)
+          if (canAssigned || canUnassigned) {
+            return true;
+          } else {
+            return false;
+          }
+        }
+        final bool assignedToMe = canAssigned && uid.isNotEmpty && ids.contains(uid);
+        final bool unassigned = canUnassigned && ids.isEmpty;
         if (!(assignedToMe || unassigned)) return false;
       }
 
@@ -704,6 +774,7 @@ class ChatController extends GetxController {
         if (platform.isEmpty && ((conv['channelId'] ?? conv['botId'])?.toString().isNotEmpty ?? false)) platform = 'line';
         if (!platformFilters.contains(platform)) return false;
       }
+
 
       // Status filter
       final sf = statusFilter.value;
@@ -880,10 +951,25 @@ class ChatController extends GetxController {
               names = await Future.wait(futures);
             }
             _assigneesCache[cid] = names;
+            _assigneeUidsCache[cid] = uids; // cache UIDs too
           } catch (_) {
             names = const [];
             uids = const [];
           }
+        } else {
+          // Use cached UIDs if available; fallback to existing item/conversation IDs to avoid wiping
+          uids = _assigneeUidsCache[cid] ?? () {
+            try {
+              final existing = conversations.firstWhere(
+                  (c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''),
+                  orElse: () => const {} as Map<String, dynamic>);
+              final raw = existing['assigneeIds'];
+              if (raw is List) {
+                return raw.map((e) => e.toString()).toList();
+              }
+            } catch (_) {}
+            return const <String>[];
+          }();
         }
 
         // Update the item in conversations list

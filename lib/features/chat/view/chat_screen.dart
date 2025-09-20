@@ -150,8 +150,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text('chat_confirm_assign_sales'.tr),
-          content: Text('chat_confirm_assign_user_question'.tr),
+          title: Text('chat_confirm_assign_sale'.tr),
+          content: Text('chat_confirm_assign_sale_message'.tr),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
             ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('confirm'.tr)),
@@ -191,13 +191,11 @@ class _ChatScreenState extends State<ChatScreen> {
       } catch (_) {}
 
       if (mounted) {
-        _showSuccessSnackBar("chat_assign_sales_success".tr);
-
+        _showSuccessSnackBar('chat_assign_sale_success'.tr);
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar("chat_assign_sales_failed".tr);
-
+        _showErrorSnackBar('chat_assign_sale_failed'.tr);
       }
     }
   }
@@ -305,7 +303,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (result['success'] == true && mounted) {
         setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
       }
-    } catch (e) { setState(() => _error = 'ส่งรูปภาพไม่สำเร็จ'); _showErrorSnackBar(_error!); }
+    } catch (e) { setState(() => _error = 'error_occurred'.tr); _showErrorSnackBar(_error!); }
     finally { if (mounted) setState(() => _isLoading = false); }
   }
 
@@ -329,7 +327,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (result['success'] == true && mounted) {
         setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
       }
-    } catch (e) { setState(() => _error = 'ส่งไฟล์ไม่สำเร็จ'); _showErrorSnackBar(_error!); }
+    } catch (e) { setState(() => _error = 'error_occurred'.tr); _showErrorSnackBar(_error!); }
     finally { if (mounted) setState(() => _isLoading = false); }
   }
 
@@ -353,12 +351,12 @@ class _ChatScreenState extends State<ChatScreen> {
       if (result['success'] == true && mounted) {
         setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
       }
-    } catch (e) { setState(() => _error = 'ส่งวิดีโอไม่สำเร็จ'); _showErrorSnackBar(_error!); }
+    } catch (e) { setState(() => _error = 'error_occurred'.tr); _showErrorSnackBar(_error!); }
     finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   Future<void> _sendStickerMessage(String stickerId, String stickerPackageId) async {
-    if (_sourceType.toLowerCase() != 'line') { _showErrorSnackBar('สติ๊กเกอร์รองรับเฉพาะ LINE เท่านั้น'); return; }
+    if (_sourceType.toLowerCase() != 'line') { _showErrorSnackBar('sticker_line_only'.tr); return; }
     _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
@@ -378,7 +376,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (result['success'] == true && mounted) {
         setState(() { _replyPreviewText = null; _replyToMessageId = null; _replyToMessageType = null; _replyOriginalSenderName = null; _replyQuoteToken = null; });
       }
-    } catch (e) { setState(() => _error = 'ส่งสติ๊กเกอร์ไม่สำเร็จ: $e'); _showErrorSnackBar(_error!); }
+    } catch (e) { setState(() => _error = 'error_occurred_details'.tr.replaceFirst('{error}', '$e')); _showErrorSnackBar(_error!); }
     finally { if (mounted) setState(() => _isLoading = false); }
   }
 
@@ -483,10 +481,9 @@ class _ChatScreenState extends State<ChatScreen> {
       await _chatService.getChatroomsCollection(widget.workspaceId)
           .doc(widget.conversationId)
           .update({'chatroom_status': map[status]});
-      _showSuccessSnackBar("อัปเดตสถานะแล้ว");
-      // setState(() {});
+      _showSuccessSnackBar('chat_status_updated'.tr);
     } catch (e) {
-      _showErrorSnackBar('อัปเดตสถานะไม่สำเร็จ: $e');
+      _showErrorSnackBar('chat_status_update_failed'.tr + ': $e');
     }
   }
 
@@ -502,9 +499,9 @@ class _ChatScreenState extends State<ChatScreen> {
         'chat_pin': pinned ? 'Y' : 'N',
         'bot_status': currentBot ? 'Y' : 'N',
       });
-      _showSuccessSnackBar(pinned ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว');
+      _showSuccessSnackBar(pinned ? 'chat_pinned'.tr : 'chat_unpinned'.tr);
     } catch (e) {
-      _showErrorSnackBar('อัปเดตปักหมุดไม่สำเร็จ: $e');
+      _showErrorSnackBar('pin_update_failed'.tr + ': $e');
     }
   }
   void _showTopSnack(String message, {bool isError = false, String? title}) {
@@ -516,10 +513,9 @@ class _ChatScreenState extends State<ChatScreen> {
       await _chatService.getChatroomsCollection(widget.workspaceId)
           .doc(widget.conversationId)
           .update({'bot_status': enabled ? 'Y' : 'N'});
-      _showTopSnack(enabled ? 'เปิดโหมดตอบกลับอัตโนมัติ' : 'ปิดโหมดตอบกลับอัตโนมัติ');
-
+      _showTopSnack(enabled ? 'bot_enabled'.tr : 'bot_disabled'.tr);
     } catch (e) {
-      _showErrorSnackBar('อัปเดตตอบกลับอัตโนมัติไม่สำเร็จ: $e');
+      _showErrorSnackBar('error_occurred_details'.tr.replaceFirst('{error}', '$e'));
     }
   }
 
@@ -532,10 +528,10 @@ class _ChatScreenState extends State<ChatScreen> {
             'hidden_at': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
       if (mounted) {
-        Navigator.of(context).pop(); // ออกจากหน้าแชท
+        Navigator.of(context).pop();
       }
     } catch (e) {
-      _showErrorSnackBar('ซ่อนแชทไม่สำเร็จ: $e');
+      _showErrorSnackBar('error_occurred_details'.tr.replaceFirst('{error}', '$e'));
     }
   }
 
@@ -547,13 +543,12 @@ class _ChatScreenState extends State<ChatScreen> {
       final data = doc.data();
       if (data != null) {
         setState(() {
-          _chatroomNameState = data['name'] ?? data['who_name'] ?? 'แชท';
+          _chatroomNameState = data['name'] ?? data['who_name'] ?? 'chat_default_name'.tr;
         });
-        _showSuccessSnackBar("โหลดข้อมูลห้องแชทใหม่แล้ว");
-
+        _showSuccessSnackBar('chatroom_reloaded'.tr);
       }
     } catch (e) {
-      _showErrorSnackBar('ดึงข้อมูลไม่สำเร็จ: $e');
+      _showErrorSnackBar('error_occurred_details'.tr.replaceFirst('{error}', '$e'));
     }
   }
 
@@ -693,7 +688,7 @@ class _ChatScreenState extends State<ChatScreen> {
               .snapshots(),
           builder: (context, snap) {
             final data = snap.data?.data() ?? widget.conversationData;
-            String pickName() => (data['name'] ?? data['who_name'] ?? data['displayName'] ?? data['customerName'] ?? 'แชท').toString();
+            String pickName() => (data['name'] ?? data['who_name'] ?? data['displayName'] ?? data['customerName'] ?? 'chat_default_name'.tr).toString();
             final title = _chatroomNameState ?? pickName();
             final avatar = (data['avatar'] ?? widget.conversationData['avatar']) as String?;
             final platformRaw = (data['source_type'] ?? widget.conversationData['source_type'] ?? 'LINE').toString();
@@ -813,9 +808,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   botEnabled: bot,
                   assignOptions: const ['ทีม A', 'ทีม B', 'ทีม C'],
                   selectedAssign: null,
-                  onStatusChange: (s) => guardAction(context, 'chat:manage', () => _updateStatus(s)),
-                  onPinChanged: (p) => guardAction(context, 'chat:manage', () => _updatePinned(p)),
-                  onBotStatusChanged: (b) => guardAction(context, 'chat:bot:manage', () => _updateBotStatus(b)),
+                  onStatusChange: (s) => guardActionAnyOf(context, ['chat:manage', 'chat:assign'], () => _updateStatus(s)),
+                  onPinChanged: (p) => guardActionAnyOf(context, ['chat:manage', 'chat:assign'], () => _updatePinned(p)),
+                  onBotStatusChanged: (b) => guardActionAnyOf(context, ['chat:bot:manage', 'chat:assign'], () => _updateBotStatus(b)),
                   onAssignChanged: (v) {},
                   onNote: () {},
                   onAddSale: () => guardAction(context, 'chat:assign', _openAddSales),
@@ -859,14 +854,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         children: [
                           const Icon(Icons.smart_toy_outlined, color: Colors.white),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'กำลังใช้ข้อความตอบกลับอัตโนมัติ',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                              'bot_in_progress'.tr,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
                             ),
                           ),
                           PermissionGuard(
-                            permission: 'chat:bot:manage',
+                            anyOf: const ['chat:bot:manage', 'chat:assign'],
                             child: TextButton(
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -874,8 +869,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 backgroundColor: const Color(0xFF111827),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                               ),
-                              onPressed: () => guardAction(context, 'chat:bot:manage', () => _updateBotStatus(false)),
-                              child: const Text('แชทแบบแมนนวล', style: TextStyle(fontWeight: FontWeight.w700)),
+                              onPressed: () => guardActionAnyOf(context, ['chat:bot:manage', 'chat:assign'], () => _updateBotStatus(false)),
+                              child: Text('manual_chat'.tr, style: const TextStyle(fontWeight: FontWeight.w700)),
                             ),
                           ),
                         ],
@@ -910,7 +905,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           autofocus: true,
                           textInputAction: TextInputAction.search,
                           decoration: InputDecoration(
-                            hintText: 'ค้นหาในแชท...',
+                            hintText: 'search_in_chat'.tr,
                             prefixIcon: const Icon(Icons.search),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -939,7 +934,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        tooltip: 'ล้าง',
+                        tooltip: 'clear_value'.tr,
                         onPressed: () {
                           setState(() {
                             _showSearch = false;
@@ -965,17 +960,17 @@ class _ChatScreenState extends State<ChatScreen> {
                       Icon(Icons.filter_alt, size: 18, color: Colors.grey[600]),
                       const SizedBox(width: 6),
                       Text(
-                        _matchedIds.isEmpty ? 'ไม่พบผลลัพธ์' : '${_focusedMatchIndex + 1}/${_matchedIds.length}',
+                        _matchedIds.isEmpty ? 'no_results_found'.tr : '${_focusedMatchIndex + 1}/${_matchedIds.length}',
                         style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w600),
                       ),
                       const Spacer(),
                       IconButton(
-                        tooltip: 'ก่อนหน้า',
+                        tooltip: 'previous'.tr,
                         onPressed: _matchedIds.isEmpty ? null : _gotoPrevMatch,
                         icon: const Icon(Icons.keyboard_arrow_up),
                       ),
                       IconButton(
-                        tooltip: 'ถัดไป',
+                        tooltip: 'next'.tr,
                         onPressed: _matchedIds.isEmpty ? null : _gotoNextMatch,
                         icon: const Icon(Icons.keyboard_arrow_down),
                       ),
@@ -996,7 +991,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (snapshot.hasError) {
-                      return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
+                      return Center(child: Text('error_occurred_details'.tr.replaceFirst('{error}', '${snapshot.error}')));
                     }
 
                     final messages = snapshot.data?.docs ?? [];
@@ -1017,8 +1012,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     _prevMessageCount = messages.length;
 
                     if (messages.isEmpty) {
-                      return const Center(
-                        child: Text('ยังไม่มีข้อความในแชทนี้\nเริ่มต้นการสนทนาได้เลย!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey)),
+                      return Center(
+                        child: Text('no_messages_yet'.tr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.grey)),
                       );
                     }
 
@@ -1039,17 +1034,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
                     // if pending focus and message list changed attempt focus
                     if (_pendingFocusMessageId != null) {
-                      // attempt after build frame to ensure indices ready
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         final ok = _tryScrollToMessageId(_pendingFocusMessageId!, silent: true);
                         if (ok) {
                           setState(() { _pendingFocusMessageId = null; });
                         } else {
-                          // escalate limit if possible
                           if (_messageLimit < _maxMessageLimit) {
                             setState(() { _messageLimit = (_messageLimit + 100).clamp(0, _maxMessageLimit); });
                           } else {
-                            _showErrorSnackBar('ไม่พบข้อความต้นฉบับ');
+                            _showErrorSnackBar('original_message_not_found'.tr);
                             setState(() { _pendingFocusMessageId = null; });
                           }
                         }
@@ -1112,10 +1105,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       color: const Color(0xFFF3F4F6),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'คุณไม่มีสิทธิ์ส่งข้อความ',
+                    child: Text(
+                      'no_permission_send_message'.tr,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -1153,12 +1146,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                      SizedBox(width: 8),
-                      Text('กำลังส่ง...', style: TextStyle(color: Colors.white)),
+                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                      const SizedBox(width: 8),
+                      Text('sending'.tr, style: const TextStyle(color: Colors.white)),
                     ],
                   ),
                 ),
@@ -1222,14 +1215,14 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                         ),
                         Text(
-                          'แพลตฟอร์ม: ${_sourceType.toUpperCase()}',
+                          '${'platform'.tr}: ${_sourceType.toUpperCase()}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
                           ),
                         ),
                         Text(
-                          'สถานะ: ${widget.conversationData['chatroom_status'] ?? 'ไม่ระบุ'}',
+                          '${'status'.tr}: ${widget.conversationData['chatroom_status'] ?? 'not_specified'.tr}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -1243,18 +1236,18 @@ class _ChatScreenState extends State<ChatScreen> {
               const SizedBox(height: 24),
               ListTile(
                 leading: const Icon(Icons.info),
-                title: const Text('รายละเอียดแชท'),
+                title: Text('chat_details'.tr),
                 subtitle: Text('ID: ${widget.conversationId}'),
               ),
               ListTile(
                 leading: const Icon(Icons.business),
-                title: const Text('Workspace'),
+                title: Text('workspace'.tr),
                 subtitle: Text('ID: ${widget.workspaceId}'),
               ),
               if (widget.conversationData['customerName'] != null)
                 ListTile(
                   leading: const Icon(Icons.person),
-                  title: const Text('ลูกค้า'),
+                  title: Text('customer'.tr),
                   subtitle: Text(widget.conversationData['customerName']),
                 ),
             ],
@@ -1270,23 +1263,23 @@ class _ChatScreenState extends State<ChatScreen> {
     String text = (m['text'] ?? m['message'] ?? '').toString().trim();
     switch (type) {
       case 'text':
-        return text.isNotEmpty ? text : '[ข้อความ]';
+        return text.isNotEmpty ? text : 'text_message'.tr;
       case 'image':
         if (text.isNotEmpty) return text;
-        return '[รูปภาพ]';
+        return 'image_message'.tr;
       case 'video':
         if (text.isNotEmpty) return text;
-        return '[วิดีโอ]';
+        return 'video_message'.tr;
       case 'audio':
         final name = (m['fileName'] ?? '').toString();
-        return name.isNotEmpty ? 'เสียง: $name' : '[ข้อความเสียง]';
+        return name.isNotEmpty ? 'audio_file'.tr.replaceFirst('{name}', name) : 'audio_message'.tr;
       case 'file':
         final name = (m['fileName'] ?? '').toString();
-        return name.isNotEmpty ? 'ไฟล์: $name' : '[ไฟล์]';
+        return name.isNotEmpty ? 'file_with_name'.tr.replaceFirst('{name}', name) : 'file_message'.tr;
       case 'sticker':
-        return '[สติ๊กเกอร์]';
+        return 'sticker_message'.tr;
       default:
-        return text.isNotEmpty ? text : '[$type]';
+        return text.isNotEmpty ? text : 'unknown_file'.tr;
     }
   }
 
@@ -1313,7 +1306,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
     if (idx == null) {
-      if (!silent) _showErrorSnackBar('ไม่พบข้อความต้นฉบับ');
+      if (!silent) _showErrorSnackBar('original_message_not_found'.tr);
       return false;
     }
     if (!_itemScrollController.isAttached) return false;
@@ -1330,7 +1323,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_messageLimit < _maxMessageLimit) {
       setState(() { _pendingFocusMessageId = id; _messageLimit = (_messageLimit + 100).clamp(0, _maxMessageLimit); });
     } else {
-      _showErrorSnackBar('ไม่พบข้อความต้นฉบับ');
+      _showErrorSnackBar('original_message_not_found'.tr);
     }
   }
 
@@ -1343,7 +1336,7 @@ class _ChatScreenState extends State<ChatScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.reply), title: const Text('Quote Reply'), onTap: () => Navigator.pop(ctx, 'reply')),
+          ListTile(leading: const Icon(Icons.reply), title: Text('quote_reply'.tr), onTap: () => Navigator.pop(ctx, 'reply')),
           const SizedBox(height: 8),
         ]),
       ),

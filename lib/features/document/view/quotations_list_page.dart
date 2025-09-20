@@ -337,17 +337,30 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
     final status = quotation['status'] ?? 'DRAFT';
     // final createdBy = quotation['createdBy']?['displayName'] ?? quotation['createdBy']?['name'] ?? 'ไม่ระบุ';
     final createdAt = quotation['createdAt'] ?? 0;
+    final documentId = quotation['id'] ?? '';
+    final isHighlighted = controller.isDocumentHighlighted(documentId);
 
     return Builder(
       builder: (context) => Container(
         margin: const EdgeInsets.only(bottom: AppTheme.spacing8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isHighlighted 
+              ? AppTheme.primaryOrange.withOpacity(0.1) 
+              : Colors.white,
           borderRadius: BorderRadius.circular(AppTheme.spacing8),
           border: Border.all(
-            color: AppTheme.borderGrey.withValues(alpha: 0.3),
-            width: 1,
+            color: isHighlighted 
+                ? AppTheme.primaryOrange 
+                : AppTheme.borderGrey.withValues(alpha: 0.3),
+            width: isHighlighted ? 2 : 1,
           ),
+          boxShadow: isHighlighted ? [
+            BoxShadow(
+              color: AppTheme.primaryOrange.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ] : null,
         ),
         child: Material(
           color: Colors.transparent,

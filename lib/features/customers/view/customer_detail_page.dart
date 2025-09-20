@@ -11,7 +11,6 @@ import '../../../domain/entities/job_card.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../controller/customers_controller.dart';
 import 'add_edit_customer_page.dart';
-import '../../../core/widgets/permission_guard.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 
 class CustomerDetailPage extends StatefulWidget {
@@ -117,6 +116,42 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   bool _canViewAnyJobcard() {
     final svc = MobilePermissionsService.to;
     return svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned');
+  }
+
+  bool _canDeleteCustomer() {
+    final svc = MobilePermissionsService.to;
+    return svc.isOwner || svc.can('customer:delete');
+  }
+
+  Future<void> _handleDeleteCustomer() async {
+    final customer = _currentCustomer ?? widget.customer;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยืนยันการลบลูกค้า'),
+        content: Text('คุณแน่ใจหรือไม่ว่าต้องการลบลูกค้า "${customer.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final workspaceId = _controller.currentWorkspaceId.value.isNotEmpty
+          ? _controller.currentWorkspaceId.value
+          : customer.workspaceId;
+      await _controller.deleteCustomer(workspaceId, customer.id);
+      if (mounted) {
+        Navigator.of(context).pop(); // leave detail page after delete
+      }
+    }
   }
 
   List<JobCard> _visibleJobcards(List<JobCard> all) {
@@ -908,9 +943,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                   }
                 }
               },
-            )
-          else
-            const SizedBox.shrink(),
+            ),
+          if (_canDeleteCustomer())
+            IconButton(
+              tooltip: 'ลบ',
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              onPressed: _handleDeleteCustomer,
+            ),
         ],
       ),
       body: Builder(
@@ -970,11 +1009,14 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                               ]),
                               const SizedBox(height: 16),
                             ],
+                            // Address section
+                            _buildInfoSection('ที่อยู่', [
+                              _buildAddressDisplay(),
+                            ]),
+                            const SizedBox(height: 16),
                             _buildInfoSection('ข้อมูลเพิ่มเติม', [
                               if (_currentCustomer!.nationalId.isNotEmpty)
                                 _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
-                              if (_currentCustomer!.address.isNotEmpty)
-                                _buildInfoRow('ที่อยู่', _currentCustomer!.address),
                               if (_currentCustomer!.source.isNotEmpty)
                                 _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
                               _buildHashtagDisplay(),
@@ -1600,6 +1642,60 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAddressDisplay() {
+    final c = _currentCustomer ?? widget.customer;
+    // Build two-line address like the screenshot: first line main parts, second line postal + country
+    String joinNonEmpty(List<String> items) {
+      final filtered = items.where((e) => e.trim().isNotEmpty).toList();
+      return filtered.join(', ');
+    }
+
+    final line1 = joinNonEmpty([
+      c.address,
+      c.subdistrict,
+      c.district,
+      c.province,
+    ]);
+    final line2 = joinNonEmpty([
+      c.postalCode,
+      c.country,
+    ]);
+
+    if (line1.isEmpty && line2.isEmpty) {
+      return Text(
+        'ไม่ระบุ',
+        style: const TextStyle(
+          fontSize: 14,
+          color: AppTheme.textPrimary,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (line1.isNotEmpty)
+          Text(
+            line1,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+        if (line2.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            line2,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

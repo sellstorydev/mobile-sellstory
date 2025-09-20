@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -117,7 +118,7 @@ void main() async {
   
   runApp(
     DevicePreview(
-      enabled: true, // Enable device preview
+      enabled: false, // Enable device preview
       builder: (context) => const SellStoryApp(),
     ),
   );

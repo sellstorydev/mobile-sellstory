@@ -22,6 +22,12 @@ class Customer {
   final String createdBy;
   final String updatedBy;
   final String profileImageUrl; // NEW
+  // NEW granular address fields (names, not IDs)
+  final String province;
+  final String district;
+  final String subdistrict;
+  final String postalCode;
+  final String country;
 
   Customer({
     required this.id,
@@ -45,6 +51,12 @@ class Customer {
     required this.createdBy,
     required this.updatedBy,
     this.profileImageUrl = '', // default empty
+    // NEW optional fields with defaults to preserve BC
+    this.province = '',
+    this.district = '',
+    this.subdistrict = '',
+    this.postalCode = '',
+    this.country = '',
   });
 
   Customer copyWith({
@@ -69,6 +81,12 @@ class Customer {
     String? createdBy,
     String? updatedBy,
     String? profileImageUrl,
+    // NEW fields
+    String? province,
+    String? district,
+    String? subdistrict,
+    String? postalCode,
+    String? country,
   }) {
     return Customer(
       id: id ?? this.id,
@@ -92,6 +110,12 @@ class Customer {
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      // NEW
+      province: province ?? this.province,
+      district: district ?? this.district,
+      subdistrict: subdistrict ?? this.subdistrict,
+      postalCode: postalCode ?? this.postalCode,
+      country: country ?? this.country,
     );
   }
 
@@ -118,6 +142,12 @@ class Customer {
       'createdBy': createdBy,
       'updatedBy': updatedBy,
       'profileImageUrl': profileImageUrl,
+      // NEW granular fields
+      'province': province,
+      'district': district,
+      'subdistrict': subdistrict,
+      'postalCode': postalCode,
+      'country': country,
     };
   }
 
@@ -155,6 +185,12 @@ class Customer {
         createdBy: map['createdBy']?.toString() ?? '',
         updatedBy: map['updatedBy']?.toString() ?? '',
         profileImageUrl: (map['profileImageUrl'] ?? '').toString(),
+        // NEW granular fields (names)
+        province: (map['province'] ?? '').toString(),
+        district: (map['district'] ?? '').toString(),
+        subdistrict: (map['subdistrict'] ?? '').toString(),
+        postalCode: (map['postalCode'] ?? '').toString(),
+        country: (map['country'] ?? '').toString(),
       );
     } catch (e) {
       print('Error creating Customer from map: $e');
