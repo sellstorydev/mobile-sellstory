@@ -1,71 +1,112 @@
 import 'package:get/get.dart';
-import 'package:algolia_helper_flutter/algolia_helper_flutter.dart';
 import '../../domain/entities/product.dart';
 import '../../core/services/logger_service.dart';
 import 'algolia_config.dart';
+import 'package:dio/dio.dart';
 
 /// Service for handling product sync with Algolia
-/// WARNING: This implementation has limitations for client-side usage.
-/// In production, sync operations should be handled server-side for security.
+/// This implementation performs actual sync operations to Algolia database
 class AlgoliaProductSyncService {
   static final LoggerService _logger = Get.find<LoggerService>();
+  
+  // Admin API key for write operations (for development/testing purposes)
+  // In production, this should be handled server-side for security
+  static const String _adminApiKey = "a9f2dae0edfbe5795fbdd980179eddca";
+  
+  // Dio instance for HTTP requests
+  static final Dio _dio = Dio(BaseOptions(
+    baseUrl: 'https://${AlgoliaConfig.appId}-dsn.algolia.net',
+    headers: {
+      'X-Algolia-API-Key': _adminApiKey,
+      'X-Algolia-Application-Id': AlgoliaConfig.appId,
+      'Content-Type': 'application/json',
+    },
+  ));
 
   /// Sync product data to Algolia index
-  /// Note: Limited client-side implementation - logs sync preparation
+  /// Performs actual saveObject operation via REST API
   static Future<void> syncProductToAlgolia(Product product) async {
     try {
-      _logger.info('🔍 Preparing product for Algolia sync: ${product.name} (${product.id})');
+      _logger.info('🔍 Syncing product to Algolia: ${product.name} (${product.id})');
       
       // Build Algolia record based on the guide specifications
       final record = buildProductRecord(product);
       
-      // Client-side limitation: We can only prepare the data for sync
-      // In production, this would call a server-side API endpoint
-      _logger.info('📤 Product record prepared for sync: ${product.id}');
-      _logger.debug('Product record: $record');
+      // Save the object to Algolia via REST API
+      final response = await _dio.put(
+        '/1/indexes/${AlgoliaConfig.productsIndex}/${product.id}',
+        data: record,
+      );
       
-      // For development: we'll just mark this as "synced" in logs
-      _logger.info('✅ Product sync completed (mock): ${product.id}');
+      _logger.info('📤 Product synced to Algolia successfully: ${product.id}');
+      _logger.debug('Algolia response: ${response.data}');
+      _logger.info('✅ Product sync completed: ${product.id}');
       
     } catch (e) {
-      _logger.error('❌ Failed to prepare product for Algolia sync: ${product.id}, error: $e');
+      _logger.error('❌ Failed to sync product to Algolia: ${product.id}, error: $e');
+      // Don't throw - we want product operations to succeed even if Algolia fails
     }
   }
 
   /// Remove product from Algolia index
-  /// Note: Limited client-side implementation - logs deletion preparation
+  /// Performs actual deleteObject operation via REST API
   static Future<void> syncProductDeletionToAlgolia(String productId, String workspaceId) async {
     try {
-      _logger.info('🗑️ Preparing product deletion for Algolia sync: $productId');
+      _logger.info('🗑️ Deleting product from Algolia: $productId');
       
-      // Client-side limitation: We can only prepare the deletion request
-      // In production, this would call a server-side API endpoint
-      _logger.info('📤 Product deletion prepared for sync: $productId');
+      // Delete the object from Algolia via REST API
+      final response = await _dio.delete(
+        '/1/indexes/${AlgoliaConfig.productsIndex}/$productId',
+      );
       
-      // For development: we'll just mark this as "deleted" in logs
-      _logger.info('✅ Product deletion completed (mock): $productId');
+      _logger.info('📤 Product deleted from Algolia successfully: $productId');
+      _logger.debug('Algolia response: ${response.data}');
+      _logger.info('✅ Product deletion completed: $productId');
       
     } catch (e) {
-      _logger.error('❌ Failed to prepare product deletion for Algolia sync: $productId, error: $e');
+      _logger.error('❌ Failed to delete product from Algolia: $productId, error: $e');
+      // Don't throw - we want product operations to succeed even if Algolia fails
     }
   }
 
   /// Sync multiple products to Algolia (for initial population)
+  /// Uses batch API for better performance
   static Future<void> syncMultipleProducts(List<Product> products) async {
     try {
       _logger.info('🔄 Syncing ${products.length} products to Algolia...');
       
-      // For now, sync each product individually with proper logging
-      for (final product in products) {
-        await syncProductToAlgolia(product);
-        // Small delay to avoid overwhelming logs
-        await Future.delayed(const Duration(milliseconds: 50));
+      if (products.isEmpty) {
+        _logger.warning('No products to sync to Algolia');
+        return;
       }
       
+      // Build records for all products
+      final records = products.map((product) => buildProductRecord(product)).toList();
+      
+      // Use batch API for better performance
+      final response = await _dio.post(
+        '/1/indexes/${AlgoliaConfig.productsIndex}/batch',
+        data: {
+          'requests': records.map((record) => {
+            'action': 'addObject',
+            'body': record,
+          }).toList(),
+        },
+      );
+      
+      _logger.info('📤 Batch sync to Algolia completed');
+      _logger.debug('Algolia batch response: ${response.data}');
       _logger.info('✅ Successfully synced ${products.length} products to Algolia');
       
     } catch (e) {
       _logger.error('❌ Failed to sync multiple products to Algolia: $e');
+      // Fallback to individual sync
+      _logger.info('📝 Falling back to individual sync...');
+      for (final product in products) {
+        await syncProductToAlgolia(product);
+        // Small delay to avoid overwhelming the API
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
     }
   }
 
@@ -85,8 +126,8 @@ class AlgoliaProductSyncService {
       'description': product.description,
       'unit': product.unit,
       'imageUrl': product.imageUrl,
-      'updatedAt': product.updatedAt,
-      'createdAt': product.createdAt,
+      'updatedAt': product.updatedAt.millisecondsSinceEpoch,
+      'createdAt': product.createdAt.millisecondsSinceEpoch,
       // Additional searchable fields
       'searchableKeywords': product.searchableKeywords,
     };
