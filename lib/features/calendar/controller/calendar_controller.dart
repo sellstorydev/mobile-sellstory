@@ -159,12 +159,30 @@ class CalendarController extends GetxController {
     }
   }
 
+  // Helper method to get user display name from available members
+  String _getUserDisplayName(String? userId) {
+    if (userId == null || userId.isEmpty) return 'Unknown';
+    
+    try {
+      final member = availableMembers.firstWhere(
+        (member) => member['uid'] == userId,
+        orElse: () => <String, dynamic>{},
+      );
+      print(member);
+      return member['displayName'] ?? member['email'] ?? 'Unknown';
+    } catch (e) {
+      print('⚠️ Could not find display name for user: $userId');
+      return 'Unknown';
+    }
+  }
+
   void _processEvents() {
     final allEvents = <Map<String, dynamic>>[];
     
     // Process job cards
     for (final card in jobCards) {
       // Add job card as event
+      final assigneeId = card['assignedTo'];
       allEvents.add({
         'id': card['id'],
         'cardId': card['id'], // Add cardId for navigation
@@ -172,7 +190,8 @@ class CalendarController extends GetxController {
         'type': 'jobcard',
         'date': card['dueDate'] ?? card['createdAt'],
         'status': card['status'] ?? 'TODO',
-        'assignee': card['assignee'],
+        'assignee': assigneeId, // Keep the user ID for filtering
+        'assigneeDisplayName': _getUserDisplayName(assigneeId), // Add display name
         'description': card['description'] ?? '',
         'priority': card['priority'] ?? 'medium',
         'data': card,
@@ -185,13 +204,15 @@ class CalendarController extends GetxController {
       final cardTodos = card['todos'] as List<dynamic>? ?? [];
       for (final todo in cardTodos) {
         if (todo is Map<String, dynamic>) {
+          final todoAssigneeId = todo['assignedTo'] ?? todo['assignee'];
           allEvents.add({
             'id': '${card['id']}_todo_${todo['id']}',
             'title': todo['title'] ?? 'Untitled Todo',
             'type': 'todo',
             'date': todo['dueDate'] ?? todo['createdAt'],
             'status': todo['status'] ?? 'TODO',
-            'assignee': todo['assignee'],
+            'assignee': todoAssigneeId, // Keep the user ID for filtering
+            'assigneeDisplayName': _getUserDisplayName(todoAssigneeId), // Add display name
             'description': todo['description'] ?? '',
             'priority': todo['priority'] ?? 'medium',
             'parentCardId': card['id'],
