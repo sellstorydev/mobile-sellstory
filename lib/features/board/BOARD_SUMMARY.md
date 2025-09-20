@@ -2,6 +2,72 @@
 
 ## Recent Changes
 
+### Add Customer Button Integration (September 21, 2025)
+
+**Topic:** Add button "Add Customer" in Customer information section in edit_card_page.dart and create_card_page.dart
+
+**Requirements:**
+1. Add "New" button next to customer dropdown in both create and edit card pages
+2. Button should navigate to add_edit_customer_page.dart for customer creation
+3. After successful customer creation, return to original page and refresh customer list
+4. Newly created customer should be available in dropdown selection
+
+**Solution Applied:**
+1. **UI Enhancement**: Modified customer section to include Row layout with "New" button next to customer field label
+2. **Button Styling**: Added TextButton.icon with AppTheme.primaryOrange color, "+" icon, and "New" label
+3. **Navigation Logic**: Used existing _openAddCustomerPage() method that navigates to AddEditCustomerPage
+4. **Data Refresh**: After successful customer creation, calls _loadAvailableOptions() to refresh customer list
+
+**Technical Changes:**
+```dart
+// Before: Single customer field label
+const Text('Customer *', ...)
+
+// After: Row with label + button
+Row(
+  children: [
+    const Text('Customer *', ...),
+    const Spacer(),
+    TextButton.icon(
+      onPressed: _openAddCustomerPage,
+      icon: const Icon(Icons.add, size: 16),
+      label: const Text('+ New'),
+      style: TextButton.styleFrom(
+        foregroundColor: AppTheme.primaryOrange,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      ),
+    ),
+  ],
+),
+```
+
+**Files Modified:**
+- `lib/features/board/view/create_card_page.dart`
+  - Modified _buildCustomerSection() to include Row with "+ New" button
+  - Existing _openAddCustomerPage() method already handles navigation and refresh
+
+- `lib/features/board/view/edit_card_page.dart`  
+  - Modified _buildCustomerSection() to include Row with "+ New" button
+  - Existing _openAddCustomerPage() method already handles navigation and refresh
+
+**UI/UX Benefits:**
+- **Streamlined Workflow**: Users can create customers without leaving card creation/editing flow
+- **Consistent Design**: Orange "+ New" button matches app theme and existing UI patterns
+- **Immediate Availability**: Newly created customers appear in dropdown after _loadAvailableOptions() refresh
+- **Reduced Context Switching**: No need to navigate to separate customer management section
+
+**User Impact:**
+- Faster card creation process when new customers are needed
+- Improved workflow efficiency for users managing customer data
+- Consistent experience between create and edit card flows
+- Better integration between customer management and card management features
+
+**Implementation Notes:**
+- AddEditCustomerPage import already existed in both files
+- _openAddCustomerPage() method already existed and handles proper navigation flow
+- _loadAvailableOptions() refreshes customer data from Firestore after new customer creation
+- Button positioned using Spacer() to align right next to customer field label
+
 ### Customer Detail: Address Section (September 20, 2025)
 
 Topic: Added a dedicated Address section to the customer detail page to display full address information using granular fields from the Customer entity.
