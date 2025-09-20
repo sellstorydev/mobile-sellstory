@@ -414,7 +414,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
       _selectedCustomerIds.clear();
       return null;
     }
-
     return firstCustomerId;
   }
 
