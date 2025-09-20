@@ -2,6 +2,24 @@
 
 ## Recent Changes
 
+### Customer Detail: Address Section (September 20, 2025)
+
+Topic: Added a dedicated Address section to the customer detail page to display full address information using granular fields from the Customer entity.
+
+What changed:
+- Inserted a new "ที่อยู่" section in `lib/features/customers/view/customer_detail_page.dart`.
+- Implemented `_buildAddressDisplay()` to render up to two lines:
+  - Line 1: street address, subdistrict, district, province
+  - Line 2: postal code, country
+- Shows "ไม่ระบุ" when no address data is available.
+- Removed older duplicate simple address row from the "ข้อมูลเพิ่มเติม" section to avoid redundancy.
+
+Why:
+- Match the requested UI to show customer address clearly and consistently with available Firestore-backed fields.
+
+Notes:
+- This change affects only the customer detail UI; no backend schema changes.
+
 ### Comment Section Scrollbar Addition (September 20, 2025)
 
 **Topic:** Add scrollbar to comment section in edit_card_page.dart
