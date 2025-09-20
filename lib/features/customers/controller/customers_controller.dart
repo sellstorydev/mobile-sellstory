@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,6 +24,11 @@ class CustomersController extends GetxController {
   final RxBool hasMore = true.obs; // whether more pages are available
   final RxString searchQuery = ''.obs;
   final RxString errorMessage = ''.obs;
+  
+  // Search state management
+  final RxBool isSearching = false.obs;
+  final TextEditingController searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
   final RxList<String> customerSources = <String>[].obs;
   final RxInt totalCustomersCount = 0.obs; // total, ignoring pagination
 
@@ -376,9 +382,49 @@ class CustomersController extends GetxController {
     searchQuery.value = query;
   }
 
+  // Handle search input changes with debouncing
+  void onSearchChanged(String query) {
+    // Cancel previous timer if exists
+    _searchDebounceTimer?.cancel();
+    
+    searchQuery.value = query;
+    
+    // If query is empty, reset search immediately
+    if (query.trim().isEmpty) {
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _filterCustomers();
+      return;
+    }
+    
+    // Debounce search for 500ms to avoid too many API calls while typing
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      triggerAlgoliaSearch(query.trim());
+    });
+  }
+
+  /// Trigger Algolia search manually (called by search button)
+  void triggerAlgoliaSearch(String query) {
+    if (query.trim().isEmpty) {
+      // If query is empty, reset to show all customers
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _filterCustomers();
+      return;
+    }
+    
+    isSearching.value = true;
+    searchWithAlgolia(query.trim());
+  }
+
   // Clear search
   void clearSearch() {
     searchQuery.value = '';
+    searchController.clear();
+    useAlgoliaSearch.value = false;
+    isSearching.value = false;
+    _searchDebounceTimer?.cancel();
+    _filterCustomers();
   }
 
   // Get customer by ID
@@ -797,6 +843,7 @@ class CustomersController extends GetxController {
           
           // Apply permission filtering to results
           _applyPermissionFiltering(results);
+          isSearching.value = false;
           
           print('🔍 Algolia search results: ${results.length} customers found');
         },
@@ -804,6 +851,7 @@ class CustomersController extends GetxController {
           print('❌ Algolia search error: $error');
           // Fallback to local search
           useAlgoliaSearch.value = false;
+          isSearching.value = false;
           _filterCustomers();
         },
       );
@@ -811,6 +859,7 @@ class CustomersController extends GetxController {
     } catch (e) {
       print('❌ Failed to search with Algolia: $e');
       useAlgoliaSearch.value = false;
+      isSearching.value = false;
       _filterCustomers();
     }
   }
@@ -836,6 +885,8 @@ class CustomersController extends GetxController {
 
   @override
   void onClose() {
+    _searchDebounceTimer?.cancel();
+    searchController.dispose();
     _customersSub?.cancel();
     _workspaceQuotaSub?.cancel();
     _authSub?.cancel();

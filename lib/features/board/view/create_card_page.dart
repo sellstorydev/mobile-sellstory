@@ -10,6 +10,7 @@ import 'package:html_editor_enhanced/html_editor.dart';
 import '../../customers/view/add_edit_customer_page.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/services/hashtag_service.dart';
+import '../../../core/widgets/customers_input_field.dart' as cif;
 
 class CreateCardPage extends StatefulWidget {
   final String? laneId;
@@ -58,7 +59,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   // Form state
 
   String _selectedLane = '';
-  String _selectedCustomer = '';
+  List<String> _selectedCustomerIds = [];
   String _selectedCompany = 'none';
   String _selectedCustomerInterest = 'เริ่มต้น';
   String _selectedStatus = 'Pending';
@@ -73,7 +74,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   // Available options
 
   List<Map<String, dynamic>> _availableLanes = [];
-  List<Map<String, dynamic>> _availableCustomers = [];
+  List<cif.Customer> _availableCustomers = [];
   List<Map<String, dynamic>> _availableCompanies = [];
   List<Map<String, dynamic>> _availableUsers = [];
   
@@ -201,23 +202,31 @@ class _CreateCardPageState extends State<CreateCardPage> {
         print('🔄 Loading customers from Firestore...');
         final customers = await _controller.getCustomers();
         
-        // Deduplicate customers by ID to prevent dropdown issues and ensure data consistency
-        final customerMap = <String, Map<String, dynamic>>{};
-        for (final customer in customers) {
-          if (customer.id.isNotEmpty && !customerMap.containsKey(customer.id)) {
-            customerMap[customer.id] = {
-              'id': customer.id,
-              'name': customer.name.isNotEmpty ? customer.name : 'Unknown Customer',
-              'customId': customer.customId ?? '',
-            };
-          }
-        }
-        _availableCustomers = customerMap.values.toList();
+        // Convert domain Customer to cif.Customer objects
+        _availableCustomers = customers.map((customer) => cif.Customer(
+          id: customer.id,
+          name: customer.name,
+          customId: customer.customId,
+          emails: customer.emails,
+          phones: customer.phones,
+          companyNames: customer.companyNames,
+          customFields: [], // Convert if needed
+          workspaceId: customer.workspaceId,
+          createdAt: customer.createdAt,
+          updatedAt: customer.updatedAt,
+          createdBy: customer.createdBy,
+          updatedBy: customer.updatedBy,
+        )).toList();
         
         // Clear invalid customer if current customer is not in available customers
-        if (_selectedCustomer.isNotEmpty && !_availableCustomers.any((customer) => customer['id'] == _selectedCustomer)) {
-          _selectedCustomer = '';
-          _selectedCompany = 'none';
+        if (_selectedCustomerIds.isNotEmpty) {
+          final validIds = _selectedCustomerIds.where(
+            (id) => _availableCustomers.any((customer) => customer.id == id)
+          ).toList();
+          if (validIds.length != _selectedCustomerIds.length) {
+            _selectedCustomerIds = validIds;
+            _selectedCompany = 'none';
+          }
         }
         
         print('✅ Customers loaded: ${_availableCustomers.length} customers');
@@ -225,7 +234,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         print('❌ Failed to load customers: $e');
         _availableCustomers = [];
         // Clear customer and company on error
-        _selectedCustomer = '';
+        _selectedCustomerIds.clear();
         _selectedCompany = 'none';
       }
     
@@ -381,17 +390,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
   }
 
   String? _getValidCustomerValue() {
-    if (_selectedCustomer.isEmpty) return null;
+    if (_selectedCustomerIds.isEmpty) return null;
     
-    // Check if the current customer value exists in available customers
-    final isValidCustomer = _availableCustomers.any((customer) => customer['id'] == _selectedCustomer);
+    // Check if the first selected customer exists in available customers
+    final firstCustomerId = _selectedCustomerIds.first;
+    final isValidCustomer = _availableCustomers.any((customer) => customer.id == firstCustomerId);
     if (!isValidCustomer) {
       // Clear invalid customer
-      _selectedCustomer = '';
+      _selectedCustomerIds.clear();
       return null;
     }
     
-    return _selectedCustomer;
+    return firstCustomerId;
   }
 
   String? _getValidCompanyValue() {
@@ -578,7 +588,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       return;
     }
 
-    if (_selectedCustomer.isEmpty) {
+    if (_selectedCustomerIds.isEmpty) {
       _showError('Customer is required');
       return;
     }
@@ -606,11 +616,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
       
       // Get customer name if selected
       String customerName = '';
-      if (_selectedCustomer.isNotEmpty) {
+      if (_selectedCustomerIds.isNotEmpty) {
         final selectedCustomer = _availableCustomers.firstWhereOrNull(
-          (c) => c['id'] == _selectedCustomer
+          (c) => c.id == _selectedCustomerIds.first
         );
-        customerName = selectedCustomer?['name'] ?? '';
+        customerName = selectedCustomer?.displayName ?? '';
       }
       
       // Get company name if selected
@@ -728,7 +738,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         updatedAt: DateTime.now(),
         customer: customerName,
         updatedByDisplayName: assigneeDisplayName, // Use assignee display name
-        customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
+        customerId: _selectedCustomerIds.isNotEmpty ? _selectedCustomerIds.first : null,
         company: companyData, // Store company as object with id, label, value
         customerInterest: _selectedCustomerInterest,
         hashtag: _selectedHashtagTexts.isNotEmpty ? _selectedHashtagTexts.map((text) => '#$text').join(' ') : null,
@@ -1290,54 +1300,25 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: _getValidCustomerValue(),
-                decoration: const InputDecoration(
-                  hintText: 'Select a customer',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-                isExpanded: true,
-                items: _availableCustomers.map((customer) {
-                  return DropdownMenuItem<String>(
-                    value: customer['id'],
-                    child: Text(
-                      customer['name'],
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCustomer = value!;
-                    _selectedCompany = 'none'; // Reset company selection
-                  });
-                  // Load companies for selected customer
-                  if (value != null && value.isNotEmpty) {
-                    _loadCompaniesForCustomer(value);
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: _openAddCustomerPage,
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('New'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
-          ],
+        cif.CustomersInputField(
+          selectedCustomerIds: _selectedCustomerIds,
+          availableCustomers: _availableCustomers,
+          onCustomersChanged: (List<String> selectedIds) {
+            setState(() {
+              _selectedCustomerIds = selectedIds;
+              _selectedCompany = 'none'; // Reset company selection
+            });
+            // Load companies for selected customer
+            if (selectedIds.isNotEmpty) {
+              _loadCompaniesForCustomer(selectedIds.first);
+            }
+          },
+          label: 'Customer',
+          hintText: 'Select a customer',
+          allowMultipleSelection: false,
+          showBorder: false,
+          workspaceId: widget.workspaceId,
+          enableAlgoliaSearch: true,
         ),
       ],
     );
