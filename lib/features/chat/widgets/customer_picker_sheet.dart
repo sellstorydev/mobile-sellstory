@@ -41,7 +41,7 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
         final first = c.companyNames.first;
         company = (first['value']?.toString() ?? '').isNotEmpty ? first['value'].toString() : null;
       }
-      final displayName = c.name.isNotEmpty ? c.name : '(ไม่มีชื่อ)';
+      final displayName = c.name.isNotEmpty ? c.name : 'no_name'.tr;
       return CustomerItem(
         id: c.id,
         name: displayName,
@@ -57,21 +57,16 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('เลือกลูกค้า'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-          tooltip: 'cancel'.tr,
-        ),
+        title: Text('select_customer'.tr),
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'ค้นหาชื่อลูกค้า / รหัสลูกค้า',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                hintText: 'search_customer_name_or_id'.tr,
+                prefixIcon: const Icon(Icons.search),
                 isDense: true,
               ),
               onChanged: (v) => setState(() => _query = v.trim()),
@@ -86,7 +81,7 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
                 }
                 final list = (snap.data ?? []);
                 if (list.isEmpty) {
-                  return const Center(child: Text('ไม่พบบัญชีลูกค้าในเวิร์กสเปซ'));
+                  return Center(child: Text('no_customers_in_workspace'.tr));
                 }
                 final q = _query.toLowerCase();
                 final filtered = q.isEmpty
@@ -105,10 +100,13 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
                     return ListTile(
                       leading: const CircleAvatar(child: Icon(Icons.person_outline)),
                       title: Text(c.name),
-                      subtitle: Text([
-                        if (c.customId != null && c.customId!.isNotEmpty) 'ID: ${c.customId}',
-                        if (c.company != null && c.company!.isNotEmpty) 'บริษัท: ${c.company}',
-                      ].join('  ')),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (c.company != null && c.company!.isNotEmpty) Text('${'company'.tr}: ${c.company}'),
+                          if (c.customId != null && c.customId!.isNotEmpty) Text(c.customId!),
+                        ],
+                      ),
                       trailing: selected
                           ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
                           : null,

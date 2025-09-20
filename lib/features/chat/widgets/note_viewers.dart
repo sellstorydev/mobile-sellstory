@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'package:get/get.dart';
 
 class ImageViewer extends StatelessWidget {
   const ImageViewer({Key? key, required this.path}) : super(key: key);
@@ -164,13 +165,13 @@ class _PdfViewerState extends State<PdfViewer> {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           _pdfController = PdfController(document: PdfDocument.openData(res.bodyBytes));
         } else {
-          _error = 'โหลดเอกสารไม่สำเร็จ (${res.statusCode})';
+          _error = 'failed_load_pdf'.trParams({'error': 'HTTP ${res.statusCode}'});
         }
       } else {
         _pdfController = PdfController(document: PdfDocument.openFile(widget.path));
       }
     } catch (e) {
-      _error = 'เกิดข้อผิดพลาดในการเปิด PDF';
+      _error = 'failed_load_pdf'.trParams({'error': '$e'});
     } finally {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -194,7 +195,7 @@ class _PdfViewerState extends State<PdfViewer> {
     if (_pdfController == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: Center(child: Text(_error ?? 'ไม่สามารถเปิดไฟล์ได้')),
+        body: Center(child: Text(_error ?? 'cannot_open_file'.tr)),
       );
     }
     return Scaffold(

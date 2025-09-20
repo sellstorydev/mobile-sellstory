@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'package:get/get.dart';
 import '../../../data/services/upload_service.dart';
 import 'canned_responses_sheet.dart';
 
@@ -97,7 +98,7 @@ class _ChatInputState extends State<ChatInput> {
             children: [
               ListTile(
                 leading: const Icon(Icons.description_outlined),
-                title: const Text('เลือกไฟล์เอกสาร'),
+                title: Text('pick_document_file'.tr),
                 onTap: () async {
                   Navigator.pop(ctx);
                   await _pickFile();
@@ -106,7 +107,7 @@ class _ChatInputState extends State<ChatInput> {
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.quickreply_outlined),
-                title: const Text('คำตอบที่ใช้บ่อย'),
+                title: Text('canned_responses_menu'.tr),
                 onTap: () async {
                   Navigator.pop(ctx);
                   // Open canned responses manager in another bottom sheet
@@ -156,7 +157,7 @@ class _ChatInputState extends State<ChatInput> {
       }
       _toggleAttachmentOptions();
     } catch (e) {
-      _showErrorDialog('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+      _showErrorDialog('error_picking_images'.trParams({'error': '$e'}));
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }
@@ -168,7 +169,7 @@ class _ChatInputState extends State<ChatInput> {
     setState(() {
       _isUploading = true;
       _uploadProgress = 0.0;
-      _uploadStatus = 'กำลังอัพโหลดรูปภาพ (0/${files.length})...';
+      _uploadStatus = 'uploading_images_start'.trParams({'total': '${files.length}'});
     });
 
     try {
@@ -186,7 +187,11 @@ class _ChatInputState extends State<ChatInput> {
             if (mounted) {
               setState(() {
                 _uploadProgress = overall;
-                _uploadStatus = 'กำลังอัพโหลดรูปภาพ (${i + 1}/${files.length}) ${( (overall * 100).clamp(0,100) ).toInt()}%';
+                _uploadStatus = 'uploading_images_progress'.trParams({
+                  'current': '${i + 1}',
+                  'total': '${files.length}',
+                  'percent': '${((overall * 100).clamp(0, 100)).toInt()}',
+                });
               });
             }
           },
@@ -230,7 +235,7 @@ class _ChatInputState extends State<ChatInput> {
         _toggleAttachmentOptions();
       }
     } catch (e) {
-      _showErrorDialog('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+      _showErrorDialog('error_picking_image'.trParams({'error': '$e'}));
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }
@@ -252,7 +257,7 @@ class _ChatInputState extends State<ChatInput> {
         _toggleAttachmentOptions();
       }
     } catch (e) {
-      _showErrorDialog('เกิดข้อผิดพลาดในการถ่ายภาพ: $e');
+      _showErrorDialog('error_taking_photo'.trParams({'error': '$e'}));
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }
@@ -273,7 +278,7 @@ class _ChatInputState extends State<ChatInput> {
         }
       }
     } catch (e) {
-      _showErrorDialog('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+      _showErrorDialog('error_picking_file'.trParams({'error': '$e'}));
     }
   }
 
@@ -596,10 +601,10 @@ class _PickingOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: const [
-        SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3)),
-        SizedBox(height: 10),
-        Text('กำลังเตรียมรูปภาพ...', style: TextStyle(color: Colors.white)),
+      children: [
+        const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3)),
+        const SizedBox(height: 10),
+        Text('preparing_images'.tr, style: const TextStyle(color: Colors.white)),
       ],
     );
   }
