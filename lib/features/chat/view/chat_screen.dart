@@ -15,6 +15,7 @@ import '../../../data/services/firestore_service.dart';
 import '../widgets/user_picker_sheet.dart';
 import '../../../core/widgets/top_snack.dart';
 import '../../../core/widgets/permission_guard.dart';
+import '../../../core/services/logger_service.dart';
 class ChatScreen extends StatefulWidget {
   final String conversationId;
   final Map<String, dynamic> conversationData;
@@ -36,6 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
   final ChatService _chatService = ChatService.to;
+  final LoggerService _logger = LoggerService.to;
   bool _isLoading = false;
   String? _error;
   // Use reversed list to show newest at bottom
@@ -73,6 +75,15 @@ class _ChatScreenState extends State<ChatScreen> {
   int _messageLimit = 50;
   final int _maxMessageLimit = 500;
   String? _pendingFocusMessageId; // message id waiting to focus after loading more
+
+  // === New: upward pagination state ===
+  bool _isLoadingMore = false; // loading older messages when scrolled up
+  final int _loadMoreStep = 100; // how many to add per page
+  DateTime? _lastLoadMoreAt; // throttle timestamp
+  int _lastRequestedLimit = 50; // avoid duplicate requests
+  String? _anchorMessageId; // preserve scroll position when loading more
+  Timer? _loadMoreGuardTimer; // timeout to release loading state
+  int _lastLoadAttemptItemCount = 0;
 
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
   String get _chatroomName => _chatroomNameState ?? (widget.conversationData['name'] ?? 'chat_default_name'.tr);
@@ -221,9 +232,49 @@ class _ChatScreenState extends State<ChatScreen> {
       final near = minIndex <= 2; // threshold
       // No rebuild needed; used only to decide auto-scroll later
       _nearBottom = near;
+
+      // Detect near top (older messages) to load more
+      // With reverse=true, top corresponds to the largest visible index
+      int maxIndex = positions.map((p) => p.index).fold<int>(-1, (a, b) => b > a ? b : a);
+      if (_lastItemCount > 0) {
+        final nearTop = maxIndex >= (_lastItemCount - 3); // threshold near oldest
+        if (nearTop) {
+          // Capture anchor: current top-most visible id, if available
+          if (_currentMessages.isNotEmpty && maxIndex >= 0 && maxIndex < _currentMessages.length) {
+            try { _anchorMessageId = _currentMessages[maxIndex].id; } catch (_) {}
+          }
+          _maybeLoadMoreOlder();
+        }
+      }
     });
+  }
 
-
+  void _maybeLoadMoreOlder() {
+    // Throttling and guards
+    if (_isLoadingMore) return;
+    if (_messageLimit >= _maxMessageLimit) return;
+    if (_lastRequestedLimit > _messageLimit) return; // already requested a larger page
+    final now = DateTime.now();
+    if (_lastLoadMoreAt != null && now.difference(_lastLoadMoreAt!) < const Duration(milliseconds: 600)) {
+      return;
+    }
+    _lastLoadMoreAt = now;
+    _isLoadingMore = true;
+    _lastLoadAttemptItemCount = _lastItemCount; // observe baseline count
+    final next = (_messageLimit + _loadMoreStep).clamp(0, _maxMessageLimit);
+    setState(() {
+      _messageLimit = next;
+      _lastRequestedLimit = next;
+    });
+    // Guard timer: if no growth after timeout, release loading state
+    _loadMoreGuardTimer?.cancel();
+    _loadMoreGuardTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (!mounted) return;
+      if (_isLoadingMore && _lastItemCount <= _lastLoadAttemptItemCount) {
+        setState(() { _isLoadingMore = false; });
+      }
+    });
+    // We'll turn off _isLoadingMore after we observe data length growth in the stream builder
   }
 
   @override
@@ -232,6 +283,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // _scrollController.dispose();
     _searchController.dispose();
     _customerSub?.cancel();
+    _loadMoreGuardTimer?.cancel();
     super.dispose();
   }
 
@@ -267,6 +319,17 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.trim().isEmpty) return;
     await _ensureCurrentUserProfile();
     final sender = _buildSenderPayload();
+    if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
+      _logger.ui('Sending REPLY (text)', {
+        'platform': _sourceType,
+        'chatroomId': widget.conversationId,
+        'workspaceId': widget.workspaceId,
+        'replyTo.messageId': _replyToMessageId,
+        'reply.quoteToken': _replyQuoteToken,
+        'reply.type': _replyToMessageType,
+        'text.length': text.trim().length,
+      });
+    }
     final result = await _chatService.sendTextMessage(
       workspaceId: widget.workspaceId,
       chatroomId: widget.conversationId,
@@ -288,6 +351,16 @@ class _ChatScreenState extends State<ChatScreen> {
     _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
+      if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
+        _logger.ui('Sending REPLY (image)', {
+          'platform': _sourceType,
+          'chatroomId': widget.conversationId,
+          'workspaceId': widget.workspaceId,
+          'replyTo.messageId': _replyToMessageId,
+          'reply.quoteToken': _replyQuoteToken,
+          'imageUrl': imageUrl,
+        });
+      }
       final result = await _chatService.sendImageMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
@@ -311,6 +384,16 @@ class _ChatScreenState extends State<ChatScreen> {
     _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
+      if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
+        _logger.ui('Sending REPLY (file)', {
+          'platform': _sourceType,
+          'chatroomId': widget.conversationId,
+          'workspaceId': widget.workspaceId,
+          'replyTo.messageId': _replyToMessageId,
+          'reply.quoteToken': _replyQuoteToken,
+          'fileName': fileName,
+        });
+      }
       final result = await _chatService.sendFileMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
@@ -336,6 +419,16 @@ class _ChatScreenState extends State<ChatScreen> {
     _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
+      if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
+        _logger.ui('Sending REPLY (video)', {
+          'platform': _sourceType,
+          'chatroomId': widget.conversationId,
+          'workspaceId': widget.workspaceId,
+          'replyTo.messageId': _replyToMessageId,
+          'reply.quoteToken': _replyQuoteToken,
+          'videoUrl': videoUrl,
+        });
+      }
       final result = await _chatService.sendVideoMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
@@ -360,6 +453,17 @@ class _ChatScreenState extends State<ChatScreen> {
     _isLoading = true; _error = null; await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
+      if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
+        _logger.ui('Sending REPLY (sticker)', {
+          'platform': _sourceType,
+          'chatroomId': widget.conversationId,
+          'workspaceId': widget.workspaceId,
+          'replyTo.messageId': _replyToMessageId,
+          'reply.quoteToken': _replyQuoteToken,
+          'stickerId': stickerId,
+          'stickerPackageId': stickerPackageId,
+        });
+      }
       final result = await _chatService.sendStickerMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
@@ -1003,11 +1107,30 @@ class _ChatScreenState extends State<ChatScreen> {
                     // determine if we should autoscroll (only when new messages arrive and not searching)
                     final prevCount = _prevMessageCount;
                     final hasNew = messages.length > (prevCount < 0 ? 0 : prevCount);
-                    final shouldAutoScroll = _searchQuery.isEmpty && hasNew && _nearBottom;
+                    final shouldAutoScroll = !_isLoadingMore && _searchQuery.isEmpty && hasNew && _nearBottom;
 
                     // reset visual index map for this build
                     _listIndexById.clear();
                     _altIdIndex.clear();
+                    // If we were loading more and we see growth, clear the flag after frame
+                    if (_isLoadingMore && messages.length > _lastItemCount) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        setState(() { _isLoadingMore = false; });
+                        // Restore anchor position if captured
+                        final anchorId = _anchorMessageId;
+                        _anchorMessageId = null;
+
+                        if (anchorId != null && _itemScrollController.isAttached) {
+                          try {
+                            final idx = _listIndexById[anchorId] ?? _currentMessages.indexWhere((d) => d.id == anchorId);
+                            if (idx >= 0) {
+                              _itemScrollController.jumpTo(index: idx, alignment: 0.0); // keep near top
+                            }
+                          } catch (_) {}
+                        }
+                      });
+                    }
                     _lastItemCount = messages.length;
                     _prevMessageCount = messages.length;
 
@@ -1049,45 +1172,74 @@ class _ChatScreenState extends State<ChatScreen> {
                       });
                     }
 
-                    return ScrollablePositionedList.builder(
-                      itemScrollController: _itemScrollController,
-                      itemPositionsListener: _itemPositionsListener,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: messages.length,
-                      reverse: _isReversed,
-                      itemBuilder: (context, index) {
-                        final messageData = messages[index].data() as Map<String, dynamic>;
-                        final messageId = messages[index].id;
-                        final messageType = (messageData['type'] ?? '').toString();
-                        _listIndexById[messageId] = index; // map
+                    return Stack(
+                      children: [
+                        ScrollablePositionedList.builder(
+                          itemScrollController: _itemScrollController,
+                          itemPositionsListener: _itemPositionsListener,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: messages.length,
+                          reverse: _isReversed,
+                          itemBuilder: (context, index) {
+                            final messageData = messages[index].data() as Map<String, dynamic>;
+                            final messageId = messages[index].id;
+                            final messageType = (messageData['type'] ?? '').toString();
+                            _listIndexById[messageId] = index; // map
 
-                        // index alternative IDs for quicker reply navigation
-                        void addAlt(dynamic v) { if (v == null) return; final s = v.toString(); if (s.isEmpty) return; _altIdIndex[s] = index; }
-                        addAlt(messageData['id']);
-                        addAlt(messageData['messageId']);
-                        addAlt(messageData['platformMessageId']); // NEW ensure platform id focus works
-                        addAlt(messageData['internalId']);
-                        addAlt(messageData['clientMessageId']);
-                        addAlt(messageData['originalMessageId']);
-                        final isSearchHighlighted = _searchQuery.isNotEmpty && _matchesQuery(messageData, _searchQuery);
-                        final isSearchFocused = _searchQuery.isNotEmpty && _matchedIds.isNotEmpty && messageId == _matchedIds[_focusedMatchIndex];
-                        final replyFocused = _focusedReplyMessageId != null && messageId == _focusedReplyMessageId;
-                        final highlight = isSearchHighlighted || replyFocused;
-                        final focused = isSearchFocused || replyFocused;
-                        return RepaintBoundary(
-                          child: MessageBubble(
-                            key: ValueKey(messageId),
-                            messageId: messageId,
-                            messageData: messageData,
-                            isFromCurrentUser: _isMessageFromCurrentUser(messageData),
-                            highlight: highlight,
-                            highlightQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-                            focused: focused,
-                            onLongPress: () => _onLongPressMessage(messageId, messageData, messageType),
-                            onTapReply: (origId) => _focusReplyOriginal(origId),
+                            // index alternative IDs for quicker reply navigation
+                            void addAlt(dynamic v) { if (v == null) return; final s = v.toString(); if (s.isEmpty) return; _altIdIndex[s] = index; }
+                            addAlt(messageData['id']);
+                            addAlt(messageData['messageId']);
+                            addAlt(messageData['platformMessageId']); // NEW ensure platform id focus works
+                            addAlt(messageData['internalId']);
+                            addAlt(messageData['clientMessageId']);
+                            addAlt(messageData['originalMessageId']);
+                            final isSearchHighlighted = _searchQuery.isNotEmpty && _matchesQuery(messageData, _searchQuery);
+                            final isSearchFocused = _searchQuery.isNotEmpty && _matchedIds.isNotEmpty && messageId == _matchedIds[_focusedMatchIndex];
+                            final replyFocused = _focusedReplyMessageId != null && messageId == _focusedReplyMessageId;
+                            final highlight = isSearchHighlighted || replyFocused;
+                            final focused = isSearchFocused || replyFocused;
+                            return RepaintBoundary(
+                              child: MessageBubble(
+                                key: ValueKey(messageId),
+                                messageId: messageId,
+                                messageData: messageData,
+                                isFromCurrentUser: _isMessageFromCurrentUser(messageData),
+                                highlight: highlight,
+                                highlightQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+                                focused: focused,
+                                onLongPress: () => _onLongPressMessage(messageId, messageData, messageType),
+                                onTapReply: (origId) => _focusReplyOriginal(origId),
+                              ),
+                            );
+                          },
+                        ),
+                        // Top loading indicator when fetching older messages
+                        if (_isLoadingMore)
+                          Positioned(
+                            top: 8,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                                    const SizedBox(width: 8),
+                                    Text('loading_older'.tr, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            ),
+
                           ),
-                        );
-                      },
+                      ],
                     );
                   },
                 ),
@@ -1116,6 +1268,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   onSendText: (t) => guardAction(context, 'chat:send', () => _sendMessage(t)),
                   onSendImage: (u) => guardAction(context, 'chat:send', () => _sendImageMessage(u)),
                   onSendFile: (fileUrl, fileName) => guardAction(context, 'chat:send', () => _sendFileMessage(fileUrl, fileName)),
+                  onSendVideo: (u) => guardAction(context, 'chat:send', () => _sendVideoMessage(u)),
                   workspaceId: widget.workspaceId,
                   chatroomId: widget.conversationId,
                   enabled: !_isLoading,
@@ -1174,9 +1327,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   bool _isMessageFromCurrentUser(Map<String, dynamic> messageData) {
-    // Check if message is from current user
-    final senderId = messageData['sender']?['id'] as String?;
-    return senderId == _currentUserId;
+    // Right align when message is from current user OR from bot (per web behavior)
+    final sender = (messageData['sender'] as Map<String, dynamic>?) ?? const {};
+    final senderId = sender['id']?.toString();
+    final senderType = (sender['type'] ?? '').toString().toLowerCase();
+    final isBot = senderType == 'bot' || (senderId != null && senderId.startsWith('bot-'));
+    return isBot || senderId == _currentUserId;
   }
 
   void _showChatInfo() {
@@ -1344,10 +1500,36 @@ class _ChatScreenState extends State<ChatScreen> {
     if (picked == 'reply') {
       final preview = _makeReplyPreview(messageData);
       final originalSenderName = (messageData['sender']?['name'] ?? '').toString();
-      // Prefer Firestore doc id; fallback to platformMessageId if provided in data
-      final platformMsgId = (messageData['platformMessageId'] ?? '').toString();
-      final chosenId = messageId.isNotEmpty ? messageId : platformMsgId;
-      final quoteToken = (messageData['quoteToken'] ?? '').toString();
+      // Build best-effort original message ID depending on platform
+      final p = _sourceType.toLowerCase();
+      String platformMsgId = (messageData['platformMessageId'] ?? '').toString();
+      if (platformMsgId.isEmpty) {
+        platformMsgId = (messageData['messageId'] ?? '').toString();
+      }
+      if (platformMsgId.isEmpty) {
+        platformMsgId = (messageData['originalMessageId'] ?? '').toString();
+      }
+      if (platformMsgId.isEmpty) {
+        platformMsgId = (messageData['clientMessageId'] ?? '').toString();
+      }
+      // For LINE (and most connectors), prefer platform-level message id when available
+      final chosenId = (p == 'line')
+          ? (platformMsgId.isNotEmpty ? platformMsgId : messageId)
+          : (platformMsgId.isNotEmpty ? platformMsgId : messageId);
+      // Prefer LINE quoteToken; fallback to legacy replyToken if present in stored message
+      final rawQuote = (messageData['quoteToken'] ?? messageData['replyToken'] ?? '').toString();
+      final quoteToken = rawQuote;
+      // log selection details to diagnose issues
+      final qPreview = quoteToken.isEmpty ? '(none)' : '${quoteToken.substring(0, quoteToken.length > 6 ? 6 : quoteToken.length)}...(${quoteToken.length})';
+      _logger.ui('Reply target selected', {
+        'platform': p,
+        'docId': messageId,
+        'platformMessageId': platformMsgId,
+        'chosenId': chosenId,
+        'type': messageType,
+        'hasQuoteToken': quoteToken.isNotEmpty,
+        'quoteTokenPreview': qPreview,
+      });
       setState(() { _replyPreviewText = preview; _replyToMessageId = chosenId; _replyToMessageType = messageType; _replyOriginalSenderName = originalSenderName; _replyQuoteToken = quoteToken.isNotEmpty ? quoteToken : null; });
     }
   }

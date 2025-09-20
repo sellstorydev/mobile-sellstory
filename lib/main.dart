@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:device_preview/device_preview.dart';
-import 'package:sellstory/scripts/import_thai_locations.dart';
 import 'firebase_options.dart';
 import 'app/app.dart';
 import 'core/theme/theme_controller.dart';
@@ -13,6 +11,7 @@ import 'core/services/logger_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'core/services/fcm_service.dart';
+import 'app/routes.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -96,6 +95,7 @@ void main() async {
   }
 
   // Init FCM service and auto-register device token on login
+  bool _skippedInitialAuthEvent = false; // avoid racing Splash initial redirect
   try {
     final fcm = await Get.putAsync<FcmService>(() async => FcmService().init(), permanent: true);
     // Register when already signed in
@@ -103,10 +103,22 @@ void main() async {
       await fcm.registerDeviceForPush();
     }
 
-    // Register on any future login
+    // Register on any future login + navigate to login on logout
     FirebaseAuth.instance.authStateChanges().listen((user) async {
-      if (user != null) {
-        await fcm.registerDeviceForPush();
+      // Skip the very first emission; SplashPage handles the initial routing
+      if (!_skippedInitialAuthEvent) { _skippedInitialAuthEvent = true; return; }
+
+      if (user == null) {
+        // User signed out or session dropped -> go to Login
+        if (Get.currentRoute != AppRoutes.login) {
+          Get.offAllNamed(AppRoutes.login);
+        }
+      } else {
+        // User signed in -> ensure device is registered and go to Shell if coming from Login/Splash
+        try { await fcm.registerDeviceForPush(); } catch (_) {}
+        if (Get.currentRoute == AppRoutes.login || Get.currentRoute == AppRoutes.splash || Get.currentRoute.isEmpty) {
+          Get.offAllNamed(AppRoutes.shell);
+        }
       }
     });
   } catch (e) {

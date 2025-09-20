@@ -124,7 +124,7 @@ class ForgotPasswordController extends GetxController {
       'Error',
       message,
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+      backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
       colorText: Get.theme.colorScheme.error,
     );
   }
@@ -134,7 +134,7 @@ class ForgotPasswordController extends GetxController {
       'Info',
       message,
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.08),
+      backgroundColor: AppTheme.primaryOrange.withOpacity(0.08),
       colorText: AppTheme.primaryOrange,
     );
   }
@@ -144,7 +144,7 @@ class ForgotPasswordController extends GetxController {
       'Success',
       message,
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green.withValues(alpha: 0.08),
+      backgroundColor: Colors.green.withOpacity(0.08),
       colorText: Colors.green,
     );
   }
