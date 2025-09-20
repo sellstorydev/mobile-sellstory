@@ -39,6 +39,24 @@ class BoardController extends GetxController implements BoardView {
   final RxList<Lane> filteredLanes = <Lane>[].obs;
   final RxList<Lane> _originalLanes = <Lane>[].obs;
   late TextEditingController searchTextController;
+  bool _isControllerInitialized = false;
+  
+  // Helper to safely access the search controller
+  TextEditingController? get safeSearchTextController {
+    if (!_isControllerInitialized) {
+      print('⚠️ SearchTextController not yet initialized');
+      return null;
+    }
+    
+    try {
+      // Check if controller is disposed by trying to access a property
+      searchTextController.text;
+      return searchTextController;
+    } catch (e) {
+      print('⚠️ SearchTextController is disposed, returning null');
+      return null;
+    }
+  }
   
   // Filter functionality
   final RxList<String> selectedAssignees = <String>[].obs;
@@ -121,6 +139,7 @@ class BoardController extends GetxController implements BoardView {
     super.onInit();
     _presenter = BoardPresenter(this, _repository);
     searchTextController = TextEditingController();
+    _isControllerInitialized = true;
     
     // Initialize display controller if not already available
     if (!Get.isRegistered<LaneDisplayController>()) {
@@ -134,7 +153,15 @@ class BoardController extends GetxController implements BoardView {
   void onClose() {
     print('🔄 BoardController disposed');
     _searchDebounceTimer?.cancel();
-    searchTextController.dispose();
+    _isControllerInitialized = false;
+    
+    // Safe disposal of text controller
+    try {
+      searchTextController.dispose();
+    } catch (e) {
+      print('⚠️ SearchTextController already disposed: $e');
+    }
+    
     super.onClose();
   }
 
@@ -1031,12 +1058,19 @@ class BoardController extends GetxController implements BoardView {
     final trimmedQuery = query.trim();
     searchQuery.value = trimmedQuery;
     
-    // Sync with TextEditingController
-    if (searchTextController.text != query) {
-      searchTextController.text = query;
-      searchTextController.selection = TextSelection.fromPosition(
-        TextPosition(offset: query.length),
-      );
+    // Sync with TextEditingController (with safety check)
+    final controller = safeSearchTextController;
+    if (controller != null) {
+      try {
+        if (controller.text != query) {
+          controller.text = query;
+          controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: query.length),
+          );
+        }
+      } catch (e) {
+        print('⚠️ SearchTextController disposed during updateSearchQuery: $e');
+      }
     }
     
     // Cancel previous timer if exists
@@ -1054,7 +1088,17 @@ class BoardController extends GetxController implements BoardView {
   
   void clearSearch() {
     searchQuery.value = '';
-    searchTextController.clear();
+    
+    // Clear TextEditingController (with safety check)
+    final controller = safeSearchTextController;
+    if (controller != null) {
+      try {
+        controller.clear();
+      } catch (e) {
+        print('⚠️ SearchTextController disposed during clearSearch: $e');
+      }
+    }
+    
     isSearching.value = false;
     filteredLanes.value = _originalLanes;
     print('🔍 Search cleared');

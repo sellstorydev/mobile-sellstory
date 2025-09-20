@@ -37,7 +37,25 @@ class ProductsController extends GetxController {
   
   // Search controller and debounce timer
   final searchController = TextEditingController();
+  bool _isSearchControllerInitialized = false;
   Timer? _searchDebounceTimer;
+  
+  // Helper to safely access the search controller
+  TextEditingController? get safeSearchController {
+    if (!_isSearchControllerInitialized) {
+      print('⚠️ SearchController not yet initialized');
+      return null;
+    }
+    
+    try {
+      // Check if controller is disposed by trying to access a property
+      searchController.text;
+      return searchController;
+    } catch (e) {
+      print('⚠️ SearchController is disposed, returning null');
+      return null;
+    }
+  }
 
   bool _can(String permission) =>
       MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can(permission);
@@ -45,13 +63,22 @@ class ProductsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _isSearchControllerInitialized = true;
     _initializeUserAndWorkspace();
   }
 
   @override
   void onClose() {
-    searchController.dispose();
+    _isSearchControllerInitialized = false;
     _searchDebounceTimer?.cancel();
+    
+    // Safe disposal of search controller
+    try {
+      searchController.dispose();
+    } catch (e) {
+      print('⚠️ SearchController already disposed: $e');
+    }
+    
     super.onClose();
   }
 
@@ -277,7 +304,17 @@ class ProductsController extends GetxController {
 
   void clearSearch() {
     searchQuery.value = '';
-    searchController.clear();
+    
+    // Clear search controller safely
+    final controller = safeSearchController;
+    if (controller != null) {
+      try {
+        controller.clear();
+      } catch (e) {
+        print('⚠️ SearchController disposed during clearSearch: $e');
+      }
+    }
+    
     useAlgoliaSearch.value = false;
     isSearching.value = false;
     _filterProducts();

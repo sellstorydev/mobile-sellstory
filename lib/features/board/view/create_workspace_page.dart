@@ -63,14 +63,19 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
       // Navigate back to shell page (which contains the board page with bottom navigation)
       Get.offAllNamed('/shell');
       
-      // Refresh board controller after navigation
-      try {
-        final boardController = Get.find<BoardController>();
-        await boardController.initializeWithUser(currentUser.uid);
-      } catch (e) {
-        print('⚠️ Failed to refresh board controller: $e');
-        // Continue anyway, user can manually refresh
-      }
+      // Defer board controller refresh to after navigation completes
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          // Safely check if controller is still registered and not disposed
+          if (Get.isRegistered<BoardController>()) {
+            final boardController = Get.find<BoardController>();
+            await boardController.initializeWithUser(currentUser.uid);
+          }
+        } catch (e) {
+          print('⚠️ Failed to refresh board controller: $e');
+          // Continue anyway, user can manually refresh
+        }
+      });
     } catch (e) {
       _showError('Failed to create workspace: ${e.toString()}');
     } finally {
