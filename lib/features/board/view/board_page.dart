@@ -64,17 +64,21 @@ class _BoardPageState extends State<BoardPage> {
         print('🔧 Mapped field: ${field.id} -> $mappedKey (visible: ${field.isVisible}, order: ${field.order})');
       }
       
-      setState(() {
-        _fieldConfigCache = config;
-      });
+      if (mounted) {
+        setState(() {
+          _fieldConfigCache = config;
+        });
+      }
       
       print('🔧 Field config loaded from CardViewSettingsService: ${config.keys.length} fields');
       print('🔧 Field config cache updated, will trigger UI rebuild');
     } catch (e) {
       print('❌ Error loading field config: $e');
-      setState(() {
-        _fieldConfigCache = _defaultFieldConfig();
-      });
+      if (mounted) {
+        setState(() {
+          _fieldConfigCache = _defaultFieldConfig();
+        });
+      }
     }
   }
 
@@ -95,9 +99,11 @@ class _BoardPageState extends State<BoardPage> {
   Future<void> _buildUserNameCache() async {
     try {
       final workspaceUsers = await _controller.getWorkspaceUsers(_controller.currentWorkspaceId.value);
-      setState(() {
-        _userNameCache = { for (final u in workspaceUsers) if (u['id']!=null) u['id']: (u['name']??'') };
-      });
+      if (mounted) {
+        setState(() {
+          _userNameCache = { for (final u in workspaceUsers) if (u['id']!=null) u['id']: (u['name']??'') };
+        });
+      }
     } catch (e) { 
       debugPrint('User name cache build error: $e'); 
     }
@@ -216,10 +222,15 @@ class _BoardPageState extends State<BoardPage> {
   void _refreshDataIfNeeded() {
     // Check if we need to refresh data (e.g., after creating new workspace)
     if (_controller.currentWorkspaceId.value.isEmpty && !_controller.isLoading.value) {
-      _initializeWithCurrentUser();
+      // Defer initialization to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeWithCurrentUser();
+      });
     } else if (_controller.currentWorkspaceId.value.isNotEmpty && _controller.currentBoardId.value.isNotEmpty) {
-      // Refresh board data when returning to this page
-      _controller.refresh();
+      // Defer refresh to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _controller.refresh();
+      });
     }
   }
 

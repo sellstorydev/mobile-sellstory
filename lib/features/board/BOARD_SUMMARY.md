@@ -2,6 +2,135 @@
 
 ## Recent Changes
 
+### setState After Dispose Fix in Workspace Operations (December 19, 2024)
+
+**Issue:** After workspace creation and deletion operations, multiple "setState() called after dispose()" errors occur, causing potential crashes and memory leaks.
+
+**Root Cause:** Async operations in workspace management pages were calling setState after navigation had disposed the widgets. This happened because:
+1. Workspace operations navigate away immediately after completion
+2. Async BoardController refreshes were attempted without checking widget lifecycle
+3. No mounted checks before setState calls in finally blocks
+
+**Solution:** Added proper widget lifecycle management with mounted checks and deferred execution:
+- Added `if (!mounted) return;` checks before all setState calls
+- Used `WidgetsBinding.instance.addPostFrameCallback()` for post-navigation operations
+- Wrapped error handling and loading state updates with mounted checks
+
+**Technical Fixes:**
+- `CreateWorkspacePage._createWorkspace()`: Added mounted checks before setState and deferred BoardController refresh
+- `EditWorkspacePage._deleteWorkspace()`: Added mounted checks and post-frame callback for controller refresh  
+- `EditWorkspacePage._updateWorkspace()`: Added mounted checks and deferred async operations
+
+**Files Modified:**
+- `lib/features/board/view/create_workspace_page.dart`: Fixed setState after dispose in workspace creation
+- `lib/features/board/view/edit_workspace_page.dart`: Fixed setState after dispose in workspace deletion and updates
+
+### TextEditingController Disposal Fix in BoardController (December 19, 2024)
+
+**Issue:** "A TextEditingController was used after being disposed" error in search TextField after workspace creation and deletion operations.
+
+**Root Cause:** The BoardController is a singleton that persists across workspace operations, but the search TextEditingController was getting disposed during workspace switches while the UI was still trying to use it. This happened because:
+1. Workspace operations reinitialize the controller but don't properly manage the TextEditingController lifecycle
+2. The search TextField in BoardPage was accessing a disposed controller
+3. No safety checks when accessing the TextEditingController
+
+**Solution:** Implemented safe TextEditingController management with automatic recreation:
+- Changed from direct TextEditingController to a private nullable field with getter
+- Added error handling that detects disposed controllers and recreates them
+- Added reset method that properly disposes old controller and clears search state
+- Called reset method during workspace initialization and switching
+
+**Technical Fixes:**
+- `BoardController.searchTextController`: Changed to getter that safely recreates disposed controllers
+- `BoardController.resetSearchController()`: New method to properly reset search state
+- `BoardController.initializeWithUser()`: Calls resetSearchController() to prevent disposal issues
+- `BoardController.switchWorkspace()`: Calls resetSearchController() when switching workspaces
+- `BoardController.updateSearchQuery()`: Added try-catch for safe controller access
+- `BoardController.clearSearch()`: Added try-catch for safe controller clearing
+
+**Files Modified:**
+- `lib/features/board/controller/board_controller.dart`: Fixed TextEditingController disposal and lifecycle management
+
+**Pattern Applied:**
+```dart
+// Before: Unsafe direct controller access
+late TextEditingController searchTextController;
+
+// After: Safe controller with automatic recreation
+TextEditingController? _searchTextController;
+TextEditingController get searchTextController {
+  try {
+    if (_searchTextController != null) {
+      _searchTextController!.text; // Test if disposed
+      return _searchTextController!;
+    }
+  } catch (e) {
+    _searchTextController = null; // Recreate on next access
+  }
+  
+  if (_searchTextController == null) {
+    _searchTextController = TextEditingController();
+  }
+  return _searchTextController!;
+}
+```
+
+### setState During Build Fix in BoardPage (December 19, 2024)
+
+**Issue:** "setState() or markNeedsBuild() called during build" error in BoardPage during manual refresh, causing Obx widget build conflicts.
+
+**Root Cause:** The `didChangeDependencies()` lifecycle method was calling `_controller.refresh()` which sets `isLoading.value = true` immediately, triggering Obx widgets to rebuild during the build phase.
+
+**Solution:** Deferred all async operations that trigger reactive updates until after build completion:
+- Used `WidgetsBinding.instance.addPostFrameCallback()` for refresh operations
+- Added mounted checks to setState calls in async methods
+- Protected field config loading and user cache building with mounted guards
+
+**Technical Fixes:**
+- `BoardPage._refreshDataIfNeeded()`: Deferred controller refresh and initialization with addPostFrameCallback
+- `BoardPage._loadPerBoardFieldConfig()`: Added mounted checks before setState calls
+- `BoardPage._buildUserNameCache()`: Added mounted check before setState call
+
+**Files Modified:**
+- `lib/features/board/view/board_page.dart`: Fixed setState during build in refresh operations
+
+**Pattern Applied:**
+```dart
+// Before: Unsafe setState
+setState(() => _isLoading = true);
+// ... async operations
+setState(() => _isLoading = false);
+
+// After: Safe setState with mounted checks  
+if (!mounted) return;
+setState(() => _isLoading = true);
+// ... async operations
+if (mounted) {
+  setState(() => _isLoading = false);
+}
+
+// Deferred operations after navigation
+WidgetsBinding.instance.addPostFrameCallback((_) async {
+  // Safe async operations after navigation
+});
+```
+
+### setState During Build Fix in workspace_app_bar.dart (September 20, 2025)
+
+**Issue:** After creating workspace, error occurs: "setState() or markNeedsBuild() called during build. This Obx widget cannot be marked as needing to build because the framework is already in the process of building widgets."
+
+**Root Cause:** In WorkspaceAppBar modal, async board prefetching for other workspaces triggered setState during widget build phase via `Future.microtask()`.
+
+**Solution:** Replaced `Future.microtask()` with `WidgetsBinding.instance.addPostFrameCallback()` to defer async operations until after current build completes.
+
+**Technical Fix:**
+- Changed async board loading from immediate `Future.microtask()` execution
+- Used `addPostFrameCallback()` to schedule after build completion
+- Preserved existing caching and loading state logic
+
+**Files Modified:**
+- `lib/features/board/widgets/workspace_app_bar.dart`: Fixed async setState timing in modal board prefetch
+
 ### Customer Detail: Address Section (September 20, 2025)
 
 Topic: Added a dedicated Address section to the customer detail page to display full address information using granular fields from the Customer entity.

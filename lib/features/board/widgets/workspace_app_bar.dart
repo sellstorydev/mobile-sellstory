@@ -313,7 +313,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                             final others = otherWorkspacesSnapshot;
 
                           // Prefetch sequentially to avoid many parallel calls on large lists
-                          Future.microtask(() async {
+                          WidgetsBinding.instance.addPostFrameCallback((_) async {
                             for (final ws in others) {
                               final id = ws['id'] as String;
                               if (_loadedWorkspaceBoards.contains(id) || _loadingWorkspaceBoards.contains(id)) {

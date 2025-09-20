@@ -38,7 +38,38 @@ class BoardController extends GetxController implements BoardView {
   final RxBool isSearching = false.obs;
   final RxList<Lane> filteredLanes = <Lane>[].obs;
   final RxList<Lane> _originalLanes = <Lane>[].obs;
-  late TextEditingController searchTextController;
+  TextEditingController? _searchTextController;
+  
+  // Getter to ensure search controller is always valid
+  TextEditingController get searchTextController {
+    try {
+      // Check if current controller is valid by accessing its text
+      if (_searchTextController != null) {
+        _searchTextController!.text; // This will throw if disposed
+        return _searchTextController!;
+      }
+    } catch (e) {
+      // Controller is disposed, create a new one
+      print('🔄 Search controller was disposed, creating new one');
+      _searchTextController = null;
+    }
+    
+    if (_searchTextController == null) {
+      _searchTextController = TextEditingController();
+      print('🔄 Created new search text controller');
+    }
+    return _searchTextController!;
+  }
+  
+  // Method to reset search state and controller
+  void resetSearchController() {
+    print('🔄 Resetting search controller');
+    _searchTextController?.dispose();
+    _searchTextController = null;
+    searchQuery.value = '';
+    isSearching.value = false;
+    // Don't clear filteredLanes here as it will be set when new data loads
+  }
   
   // Filter functionality
   final RxList<String> selectedAssignees = <String>[].obs;
@@ -120,7 +151,7 @@ class BoardController extends GetxController implements BoardView {
   void onInit() {
     super.onInit();
     _presenter = BoardPresenter(this, _repository);
-    searchTextController = TextEditingController();
+    _searchTextController = TextEditingController();
     
     // Initialize display controller if not already available
     if (!Get.isRegistered<LaneDisplayController>()) {
@@ -134,7 +165,8 @@ class BoardController extends GetxController implements BoardView {
   void onClose() {
     print('🔄 BoardController disposed');
     _searchDebounceTimer?.cancel();
-    searchTextController.dispose();
+    _searchTextController?.dispose();
+    _searchTextController = null;
     super.onClose();
   }
 
@@ -175,6 +207,9 @@ class BoardController extends GetxController implements BoardView {
   Future<void> initializeWithUser(String userId) async {
     try {
       print('🔄 Initializing user: $userId');
+      
+      // Reset search controller to prevent disposed controller issues
+      resetSearchController();
       
       currentUserId.value = userId;
       
@@ -251,6 +286,10 @@ class BoardController extends GetxController implements BoardView {
    Future<void> switchWorkspace(String workspaceId) async {
      try {
        print('🔄 Switching to workspace: $workspaceId');
+       
+       // Reset search controller when switching workspaces
+       resetSearchController();
+       
        currentWorkspaceId.value = workspaceId;
 
        // Update current workspace name
@@ -1031,12 +1070,17 @@ class BoardController extends GetxController implements BoardView {
     final trimmedQuery = query.trim();
     searchQuery.value = trimmedQuery;
     
-    // Sync with TextEditingController
-    if (searchTextController.text != query) {
-      searchTextController.text = query;
-      searchTextController.selection = TextSelection.fromPosition(
-        TextPosition(offset: query.length),
-      );
+    // Sync with TextEditingController - use try-catch for safety
+    try {
+      if (searchTextController.text != query) {
+        searchTextController.text = query;
+        searchTextController.selection = TextSelection.fromPosition(
+          TextPosition(offset: query.length),
+        );
+      }
+    } catch (e) {
+      print('⚠️ Error syncing search controller: $e');
+      // Controller might be disposed, recreate it via getter on next access
     }
     
     // Cancel previous timer if exists
@@ -1054,7 +1098,12 @@ class BoardController extends GetxController implements BoardView {
   
   void clearSearch() {
     searchQuery.value = '';
-    searchTextController.clear();
+    try {
+      searchTextController.clear();
+    } catch (e) {
+      print('⚠️ Error clearing search controller: $e');
+      // Controller might be disposed, will be recreated on next access
+    }
     isSearching.value = false;
     filteredLanes.value = _originalLanes;
     print('🔍 Search cleared');

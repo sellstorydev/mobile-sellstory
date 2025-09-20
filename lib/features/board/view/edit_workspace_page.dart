@@ -65,6 +65,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
 
     if (shouldDelete != true) return;
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -72,7 +73,9 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        _showError('User not authenticated');
+        if (mounted) {
+          _showError('User not authenticated');
+        }
         return;
       }
 
@@ -81,6 +84,8 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
         workspaceId: widget.workspaceId,
         userId: currentUser.uid,
       );
+
+      if (!mounted) return;
 
       // Show success message
       Get.snackbar(
@@ -95,20 +100,26 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
       // Navigate back to shell page (which contains the board page with bottom navigation)
       Get.offAllNamed('/shell');
       
-      // Refresh board controller after navigation
-      try {
-        final boardController = Get.find<BoardController>();
-        await boardController.initializeWithUser(currentUser.uid);
-      } catch (e) {
-        print('⚠️ Failed to refresh board controller: $e');
-        // Continue anyway, user can manually refresh
-      }
-    } catch (e) {
-      _showError('Failed to delete workspace: ${e.toString()}');
-    } finally {
-      setState(() {
-        _isLoading = false;
+      // Refresh board controller after navigation - use deferred execution
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          final boardController = Get.find<BoardController>();
+          await boardController.initializeWithUser(currentUser.uid);
+        } catch (e) {
+          print('⚠️ Failed to refresh board controller: $e');
+          // Continue anyway, user can manually refresh
+        }
       });
+    } catch (e) {
+      if (mounted) {
+        _showError('Failed to delete workspace: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -128,6 +139,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -135,7 +147,9 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        _showError('User not authenticated');
+        if (mounted) {
+          _showError('User not authenticated');
+        }
         return;
       }
 
@@ -147,6 +161,8 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
         newName: newWorkspaceName,
         userId: currentUser.uid,
       );
+
+      if (!mounted) return;
 
       // Show success message
       Get.snackbar(
@@ -161,20 +177,26 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
       // Navigate back to shell page (which contains the board page with bottom navigation)
       Get.offAllNamed('/shell');
       
-      // Refresh board controller after navigation
-      try {
-        final boardController = Get.find<BoardController>();
-        await boardController.initializeWithUser(currentUser.uid);
-      } catch (e) {
-        print('⚠️ Failed to refresh board controller: $e');
-        // Continue anyway, user can manually refresh
-      }
-    } catch (e) {
-      _showError('Failed to update workspace: ${e.toString()}');
-    } finally {
-      setState(() {
-        _isLoading = false;
+      // Refresh board controller after navigation - use deferred execution
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          final boardController = Get.find<BoardController>();
+          await boardController.initializeWithUser(currentUser.uid);
+        } catch (e) {
+          print('⚠️ Failed to refresh board controller: $e');
+          // Continue anyway, user can manually refresh
+        }
       });
+    } catch (e) {
+      if (mounted) {
+        _showError('Failed to update workspace: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
