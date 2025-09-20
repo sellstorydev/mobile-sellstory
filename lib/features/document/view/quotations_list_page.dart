@@ -115,7 +115,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
                 Icons.search,
                 color: AppTheme.textSecondary,
               ),
-              suffixIcon: _buildFilterSuffixIcon(controller),
+              suffixIcon: _buildSearchAndFilterSuffixIcons(controller),
               filled: true,
               fillColor: AppTheme.backgroundGrey,
               border: OutlineInputBorder(
@@ -238,21 +238,54 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
     }
   }
 
-  Widget _buildFilterSuffixIcon(QuotationsListController controller) {
+  Widget _buildSearchAndFilterSuffixIcons(QuotationsListController controller) {
     final hasActiveFilters = _hasActiveFilters(controller);
+    final isSearching = controller.searchController.text.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.only(right: AppTheme.spacing8),
-      child: IconButton(
-        onPressed: () => _showFilterCenterDialog(controller),
-        icon: Icon(
-          Icons.tune,
-          color: hasActiveFilters
-              ? AppTheme.primaryOrange
-              : AppTheme.textSecondary,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Search button
+          Obx(() => IconButton(
+            onPressed: () => _triggerSearch(controller),
+            icon: controller.isSearching.value
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  )
+                : Icon(
+                    Icons.search,
+                    color: isSearching 
+                        ? AppTheme.primaryOrange
+                        : AppTheme.textSecondary,
+                  ),
+          )),
+          // Filter button
+          IconButton(
+            onPressed: () => _showFilterCenterDialog(controller),
+            icon: Icon(
+              Icons.tune,
+              color: hasActiveFilters
+                  ? AppTheme.primaryOrange
+                  : AppTheme.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  void _triggerSearch(QuotationsListController controller) {
+    final query = controller.searchController.text.trim();
+    if (query.isNotEmpty) {
+      controller.triggerAlgoliaSearch(query);
+    }
   }
 
   void _showFilterCenterDialog(QuotationsListController controller) {
@@ -332,7 +365,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> with WidgetsBin
     QuotationsListController controller,
   ) {
     final docNo = quotation['docNo'] ?? '';
-    final customerName = quotation['customer']?['name'] ?? '';
+    final customerName = quotation['customer']?['name'] ?? quotation['customerName'] ?? "";
     final grandTotal = quotation['grandTotal']?.toDouble() ?? 0.0;
     final status = quotation['status'] ?? 'DRAFT';
     // final createdBy = quotation['createdBy']?['displayName'] ?? quotation['createdBy']?['name'] ?? 'ไม่ระบุ';

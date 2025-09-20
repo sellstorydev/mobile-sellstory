@@ -353,6 +353,7 @@ class ReceiptListController extends GetxController {
           }).toList();
           
           filteredReceipts.value = results;
+          receipts.value = results; // Update the main observable list too
           print('🔍 Algolia search results: ${results.length} receipts found');
         },
         onError: (error) {
@@ -384,6 +385,7 @@ class ReceiptListController extends GetxController {
     }).toList();
     
     filteredReceipts.value = filtered;
+    receipts.value = filtered; // Update the main observable list too
   }
 
   void viewReceipt(Map<String, dynamic> receipt) async {

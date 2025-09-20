@@ -384,7 +384,7 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
     InvoiceListController controller,
   ) {
     final docNo = invoice['docNo'] ?? '';
-    final customerName = invoice['customer']?['name'] ?? '';
+    final customerName = invoice['customer']?['name'] ?? invoice['customerName'] ?? "";
     final grandTotal = invoice['grandTotal']?.toDouble() ?? 0.0;
     final status = invoice['status'] ?? 'DRAFT';
     final createdAt = invoice['createdAt'] ?? 0;

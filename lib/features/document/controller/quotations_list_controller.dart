@@ -322,6 +322,7 @@ class QuotationsListController extends GetxController {
     selectedStatuses.clear();
     searchController.clear();
     useAlgoliaSearch.value = false;
+    isSearching.value = false;
     quotations.value = List.from(allQuotations);
     filteredQuotations.value = List.from(allQuotations);
   }
@@ -330,6 +331,7 @@ class QuotationsListController extends GetxController {
   void _searchWithAlgolia(String query) async {
     try {
       useAlgoliaSearch.value = true;
+      isSearching.value = true;
       
       // Build filters for Algolia
       final filters = <String, dynamic>{};
@@ -363,12 +365,15 @@ class QuotationsListController extends GetxController {
           }).toList();
           
           filteredQuotations.value = results;
+          quotations.value = results; // Update the main quotations list that the UI observes
+          isSearching.value = false;
           print('🔍 Algolia search results: ${results.length} quotations found');
         },
         onError: (error) {
           print('❌ Algolia search error: $error');
           // Fallback to local search
           useAlgoliaSearch.value = false;
+          isSearching.value = false;
           _applyLocalSearch(query);
         },
       );
@@ -376,6 +381,7 @@ class QuotationsListController extends GetxController {
     } catch (e) {
       print('❌ Failed to search with Algolia: $e');
       useAlgoliaSearch.value = false;
+      isSearching.value = false;
       _applyLocalSearch(query);
     }
   }
@@ -394,6 +400,21 @@ class QuotationsListController extends GetxController {
     }).toList();
     
     filteredQuotations.value = filtered;
+    quotations.value = filtered; // Update the main quotations list that the UI observes
+  }
+
+  /// Trigger Algolia search manually (called by search button)
+  void triggerAlgoliaSearch(String query) {
+    if (query.trim().isEmpty) {
+      // If query is empty, reset to show all quotations with current filters
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _applyFilters();
+      return;
+    }
+    
+    isSearching.value = true;
+    _searchWithAlgolia(query.trim());
   }
 
   void createNewQuotation() {
