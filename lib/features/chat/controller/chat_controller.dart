@@ -683,7 +683,6 @@ class ChatController extends GetxController {
             ? (conv['assigneeIds'] as List).map((e) => e.toString()).toSet()
             : <String>{};
         final bool assigneesKnown = (conv['assigneesKnown'] == true);
-
         // If assignees are not known yet, optimistically include the item so the list doesn't disappear
         if (!assigneesKnown) {
           // Only include if the user has any chat view permission (assigned or unassigned)
@@ -693,7 +692,6 @@ class ChatController extends GetxController {
             return false;
           }
         }
-
         final bool assignedToMe = canAssigned && uid.isNotEmpty && ids.contains(uid);
         final bool unassigned = canUnassigned && ids.isEmpty;
         if (!(assignedToMe || unassigned)) return false;

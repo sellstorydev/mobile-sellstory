@@ -373,7 +373,7 @@ class _ReceiptListPageState extends State<ReceiptListPage>
     ReceiptListController controller,
   ) {
     final docNo = receipt['docNo'] ?? '';
-    final customerName = receipt['customer']?['name'] ?? '';
+    final customerName = receipt['customer']?['name'] ?? receipt['customerName'] ?? '';
     final grandTotal = receipt['grandTotal']?.toDouble() ?? 0.0;
     final status = receipt['status'] ?? 'COMPLETED';
     final createdAt = receipt['createdAt'] ?? 0;

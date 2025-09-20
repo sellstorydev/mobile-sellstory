@@ -45,6 +45,10 @@ dependencies:
   # HTTP client
   dio: ^5.4.0
   
+  # Algolia search
+  algolia_helper_flutter: ^1.4.0
+  algoliasearch: ^1.3.2
+  
   # Kanban board for drag and drop
   appflowy_board: ^0.1.2
   # Alternative drag and drop package

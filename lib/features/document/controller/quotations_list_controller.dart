@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/firestore_repository.dart';
 import '../../../core/services/workspace_members_service.dart';
+import '../../../core/services/algolia_search_service.dart';
 import '../view/add_edit_document_page.dart';
 import '../view/document_view_page.dart';
 
@@ -35,6 +36,11 @@ class QuotationsListController extends GetxController {
   
   // Highlighting variables
   final highlightedDocumentId = Rx<String?>(null);
+  
+  // Algolia search variables
+  final isSearching = false.obs;
+  final searchResults = <Map<String, dynamic>>[].obs;
+  final useAlgoliaSearch = false.obs;
 
   @override
   void onInit() {
@@ -239,21 +245,17 @@ class QuotationsListController extends GetxController {
 
   void _applyFilters() {
     try {
-      List<Map<String, dynamic>> filtered = List.from(allQuotations);
+      final searchQuery = searchController.text.trim();
       
-      // Apply search filter
-      final searchQuery = searchController.text.toLowerCase();
+      // Use Algolia search when query is not empty
       if (searchQuery.isNotEmpty) {
-        filtered = filtered.where((quotation) {
-          final docNo = (quotation['docNo'] ?? '').toString().toLowerCase();
-          final customerName = (quotation['customer']?['name'] ?? '').toString().toLowerCase();
-          final sellerName = (quotation['seller']?['displayName'] ?? '').toString().toLowerCase();
-          
-          return docNo.contains(searchQuery) || 
-                 customerName.contains(searchQuery) ||
-                 sellerName.contains(searchQuery);
-        }).toList();
+        _searchWithAlgolia(searchQuery);
+        return;
       }
+      
+      // Reset to show all when no search query
+      useAlgoliaSearch.value = false;
+      List<Map<String, dynamic>> filtered = List.from(allQuotations);
       
       // Apply seller filter
       if (selectedSeller.value != null) {
@@ -319,8 +321,100 @@ class QuotationsListController extends GetxController {
     selectedCustomDateRange.value = null;
     selectedStatuses.clear();
     searchController.clear();
+    useAlgoliaSearch.value = false;
+    isSearching.value = false;
     quotations.value = List.from(allQuotations);
     filteredQuotations.value = List.from(allQuotations);
+  }
+
+  /// Search quotations using Algolia
+  void _searchWithAlgolia(String query) async {
+    try {
+      useAlgoliaSearch.value = true;
+      isSearching.value = true;
+      
+      // Build filters for Algolia
+      final filters = <String, dynamic>{};
+      
+      // Add seller filter
+      if (selectedSeller.value != null) {
+        filters['seller.uid'] = selectedSeller.value!.uid;
+      }
+      
+      // Add status filter
+      if (selectedStatuses.isNotEmpty) {
+        filters['status'] = selectedStatuses.toList();
+      }
+      
+      // Search with Algolia
+      final searchStream = AlgoliaSearchService.searchQuotations(
+        query: query,
+        workspaceId: currentWorkspaceId.value,
+        filters: filters,
+        hitsPerPage: 50,
+      );
+      
+      // Listen to search results
+      searchStream.listen(
+        (response) {
+          final hits = response.hits;
+          final results = hits.map((hit) {
+            final data = Map<String, dynamic>.from(hit);
+            data['id'] = hit['objectID'] ?? '';
+            return data;
+          }).toList();
+          
+          filteredQuotations.value = results;
+          quotations.value = results; // Update the main quotations list that the UI observes
+          isSearching.value = false;
+          print('🔍 Algolia search results: ${results.length} quotations found');
+        },
+        onError: (error) {
+          print('❌ Algolia search error: $error');
+          // Fallback to local search
+          useAlgoliaSearch.value = false;
+          isSearching.value = false;
+          _applyLocalSearch(query);
+        },
+      );
+      
+    } catch (e) {
+      print('❌ Failed to search with Algolia: $e');
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _applyLocalSearch(query);
+    }
+  }
+
+  /// Fallback local search method
+  void _applyLocalSearch(String query) {
+    final searchQuery = query.toLowerCase();
+    final filtered = allQuotations.where((quotation) {
+      final docNo = (quotation['docNo'] ?? '').toString().toLowerCase();
+      final customerName = (quotation['customer']?['name'] ?? '').toString().toLowerCase();
+      final sellerName = (quotation['seller']?['displayName'] ?? '').toString().toLowerCase();
+      
+      return docNo.contains(searchQuery) || 
+             customerName.contains(searchQuery) ||
+             sellerName.contains(searchQuery);
+    }).toList();
+    
+    filteredQuotations.value = filtered;
+    quotations.value = filtered; // Update the main quotations list that the UI observes
+  }
+
+  /// Trigger Algolia search manually (called by search button)
+  void triggerAlgoliaSearch(String query) {
+    if (query.trim().isEmpty) {
+      // If query is empty, reset to show all quotations with current filters
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _applyFilters();
+      return;
+    }
+    
+    isSearching.value = true;
+    _searchWithAlgolia(query.trim());
   }
 
   void createNewQuotation() {

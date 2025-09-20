@@ -26,8 +26,6 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
   String? _error;
   List<CannedResponseGroup> _groups = [];
 
-
-
   // Multi-select state
   final List<CannedResponse> _selected = [];
   bool _sending = false;
@@ -38,8 +36,6 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
     super.initState();
     _load();
   }
-
-
 
   Future<void> _load() async {
     setState(() {
@@ -61,42 +57,42 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
   }
 
   Future<void> _createGroup() async {
-    final name = await _promptText(title: 'สร้างกลุ่มใหม่', label: 'ชื่อกลุ่ม');
+    final name = await _promptText(title: 'create_new_group'.tr, label: 'group_name'.tr);
     if (name == null || name.trim().isEmpty) return;
     try {
       final group = await _service.createGroup(workspaceId: widget.workspaceId, name: name.trim());
       setState(() => _groups = [..._groups, group]);
     } catch (e) {
-      _showSnack('สร้างกลุ่มไม่สำเร็จ: $e');
+      _showSnack('create_group_failed'.trParams({'error': '$e'}));
     }
   }
 
   Future<void> _renameGroup(CannedResponseGroup group) async {
-    final newName = await _promptText(title: 'แก้ไขชื่อกลุ่ม', label: 'ชื่อกลุ่ม', initial: group.name);
+    final newName = await _promptText(title: 'rename_group'.tr, label: 'group_name'.tr, initial: group.name);
     if (newName == null || newName.trim().isEmpty) return;
     try {
       await _service.updateGroup(workspaceId: widget.workspaceId, groupId: group.id, name: newName.trim());
       setState(() => group.name = newName.trim());
     } catch (e) {
-      _showSnack('อัปเดตกลุ่มไม่สำเร็จ: $e');
+      _showSnack('update_group_failed'.trParams({'error': '$e'}));
     }
   }
 
   Future<void> _deleteGroup(CannedResponseGroup group) async {
-    final ok = await _confirm('ลบกลุ่มนี้และคำตอบทั้งหมดภายใน?');
+    final ok = await _confirm('confirm_delete_group_and_responses'.tr);
     if (ok != true) return;
     try {
       await _service.deleteGroup(workspaceId: widget.workspaceId, groupId: group.id);
       setState(() => _groups = _groups.where((g) => g.id != group.id).toList());
     } catch (e) {
-      _showSnack('ลบกลุ่มไม่สำเร็จ: $e');
+      _showSnack('delete_group_failed'.trParams({'error': '$e'}));
     }
   }
 
   Future<void> _addResponse(CannedResponseGroup group) async {
-    final title = await _promptText(title: 'เพิ่มคำตอบ (ข้อความ)', label: 'ชื่อหัวข้อ');
+    final title = await _promptText(title: 'add_response_text'.tr, label: 'group_name'.tr);
     if (title == null || title.trim().isEmpty) return;
-    final text = await _promptText(title: 'ข้อความที่ตอบ', label: 'ข้อความ');
+    final text = await _promptText(title: 'response_text'.tr, label: 'text'.tr);
     if (text == null || text.trim().isEmpty) return;
     try {
       final resp = await _service.addResponse(
@@ -108,16 +104,16 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
       );
       setState(() => group.responses.add(resp));
     } catch (e) {
-      _showSnack('เพิ่มคำตอบไม่สำเร็จ: $e');
+      _showSnack('update_response_failed'.trParams({'error': '$e'}));
     }
   }
 
   Future<void> _editResponse(CannedResponseGroup group, CannedResponse resp) async {
-    final title = await _promptText(title: 'แก้ไขคำตอบ', label: 'ชื่อหัวข้อ', initial: resp.title);
+    final title = await _promptText(title: 'edit_response'.tr, label: 'group_name'.tr, initial: resp.title);
     if (title == null || title.trim().isEmpty) return;
     String? text;
     if (resp.type == 'text') {
-      text = await _promptText(title: 'แก้ไขข้อความ', label: 'ข้อความ', initial: resp.text ?? '');
+      text = await _promptText(title: 'edit_text'.tr, label: 'text'.tr, initial: resp.text ?? '');
       if (text == null || text.trim().isEmpty) return;
     }
     try {
@@ -134,19 +130,19 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
         resp.text = updated.text;
       });
     } catch (e) {
-      _showSnack('อัปเดตคำตอบไม่สำเร็จ: $e');
+      _showSnack('update_response_failed'.trParams({'error': '$e'}));
     }
   }
 
   Future<void> _deleteResponse(CannedResponseGroup group, CannedResponse resp) async {
-    final ok = await _confirm('ลบคำตอบนี้?');
+    final ok = await _confirm('confirm_delete_response'.tr);
     if (ok != true) return;
     try {
       await _service.deleteResponse(workspaceId: widget.workspaceId, groupId: group.id, responseId: resp.id);
       setState(() => group.responses.removeWhere((r) => r.id == resp.id));
       _selected.removeWhere((s) => s.id == resp.id);
     } catch (e) {
-      _showSnack('ลบคำตอบไม่สำเร็จ: $e');
+      _showSnack('delete_response_failed'.trParams({'error': '$e'}));
     }
   }
 
@@ -176,28 +172,22 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('ตัวอย่างก่อนส่ง', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('preview_before_send'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
               ConstrainedBox(
-
                 constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
                 child: ListView.separated(
-
-
                   shrinkWrap: true,
                   itemCount: _selected.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (_, i) {
-
-
                     final r = _selected[i];
                     return ListTile(
-
                       leading: CircleAvatar(
                         backgroundColor:  Colors.white,
                         child: Icon(r.type == 'image' ? Icons.image_outlined : Icons.text_snippet_outlined, color: Colors.black87),
                       ),
-                      title: Text(r.title.isEmpty ? '(ไม่มีชื่อ)' : r.title),
+                      title: Text(r.title.isEmpty ? 'no_name'.tr : r.title),
                       subtitle: r.type == 'text' ? Text(r.text ?? '', maxLines: 6) : Text(r.imageUrl ?? ''),
                     );
                   },
@@ -210,11 +200,9 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close),
-                      label: const Text('ปิด'),
+                      label: Text('close'.tr),
                     ),
                   ),
-
-
                   const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton.icon(
@@ -223,7 +211,7 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
                         _sendSelected();
                       },
                       icon: const Icon(Icons.send),
-                      label: Text('ส่ง (${_selected.length})'),
+                      label: Text('send_selected'.trParams({'count': '${_selected.length}'})),
                     ),
                   ),
                 ],
@@ -251,7 +239,7 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
       }
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      _showSnack('ส่งไม่สำเร็จ: $e');
+      _showSnack('delete_response_failed'.trParams({'error': '$e'}));
     } finally {
       if (mounted) setState(() { _sending = false; _sendingIndex = 0; });
     }
@@ -306,7 +294,6 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
     final sheetHeight = (desired - bottomInset).clamp(240.0, screenH);
 
     return SafeArea(
-
       child: SizedBox(
         height: sheetHeight,
         child: Column(
@@ -320,20 +307,19 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
             const SizedBox(height: 10),
             Expanded(
               child: CustomScrollView(
-
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Row(
                         children: [
-                          const Expanded(child: Text('คำตอบที่ใช้บ่อย', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                          Expanded(child: Text('canned_responses'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
                           IconButton(
-                            tooltip: 'รีโหลด',
+                            tooltip: 'refresh'.tr,
                             onPressed: _load,
                             icon: const Icon(Icons.refresh),
                           ),
-                          FilledButton.icon(onPressed: _createGroup, icon: const Icon(Icons.add), label: const Text('สร้างกลุ่ม')),
+                          FilledButton.icon(onPressed: _createGroup, icon: const Icon(Icons.add), label: Text('create_group'.tr)),
                         ],
                       ),
                     ),
@@ -344,7 +330,7 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'ค้นหา...',
+                          hintText: 'search_hint'.tr,
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.clear),
@@ -352,6 +338,7 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
                               _searchController.clear();
                               _load();
                             },
+                            tooltip: 'clear'.tr,
                           ),
                           filled: true,
                           fillColor: const Color(0xFFF1F2F4),
@@ -372,9 +359,9 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
                       child: _ErrorRetry(message: _error!, onRetry: _load),
                     )
                   else if (_groups.isEmpty)
-                      const SliverFillRemaining(
+                      SliverFillRemaining(
                         hasScrollBody: false,
-                        child: Center(child: Text('ไม่พบรายการ')),
+                        child: Center(child: Text('no_items_found'.tr)),
                       )
                     else
                       SliverList.builder(
@@ -408,29 +395,27 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
                     ],
                     border: Border(top: BorderSide(color: Colors.grey.shade200)),
                   ),
-                  child:         Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-
-                      Text('${_selected.length} รายการ', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text('items_selected'.trParams({'count': '${_selected.length}'}), style: const TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(width: 8),
                       TextButton.icon(
                         onPressed: _sending ? null : () => setState(() => _selected.clear()),
                         icon: const Icon(Icons.clear_all),
-                        label: const Text('ล้าง'),
+                        label: Text('clear'.tr),
                       ),
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
-
                         onPressed: _sending ? null : _showPreviewDialog,
                         icon: const Icon(Icons.visibility_outlined),
-                        label: const Text('ตัวอย่าง'),
+                        label: Text('preview'.tr),
                       ),
                       const SizedBox(width: 8),
                       FilledButton.icon(
                         onPressed: _sending ? null : _sendSelected,
                         icon: _sending ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.send),
-                        label: Text(_sending ? 'กำลังส่ง ${_sendingIndex}/${_selected.length}' : 'ส่ง (${_selected.length})'),
+                        label: Text(_sending ? 'sending_progress'.trParams({'current': '$_sendingIndex', 'total': '${_selected.length}'}) : 'send_selected'.trParams({'count': '${_selected.length}'})),
                       ),
                     ],
                   )
@@ -441,7 +426,6 @@ class _CannedResponsesSheetState extends State<CannedResponsesSheet> {
     );
   }
 }
-
 
 class _ErrorRetry extends StatelessWidget {
   final String message;
@@ -455,7 +439,7 @@ class _ErrorRetry extends StatelessWidget {
         children: [
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 8),
-          FilledButton(onPressed: onRetry, child: const Text('ลองใหม่')),
+          FilledButton(onPressed: onRetry, child: Text('try_again'.tr)),
         ],
       ),
     );
@@ -487,26 +471,26 @@ class _GroupTileState extends State<_GroupTile> {
       child: ExpansionTile(
         initiallyExpanded: _expanded,
         onExpansionChanged: (v) => setState(() => _expanded = v),
-        title: Text(g.name.isEmpty ? '(ไม่มีชื่อกลุ่ม)' : g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(g.name.isEmpty ? 'group_name_empty'.tr : g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(tooltip: 'เพิ่มคำตอบ', icon: const Icon(Icons.add_comment_outlined), onPressed: widget.onAddResponse),
+            IconButton(tooltip: 'add_response'.tr, icon: const Icon(Icons.add_comment_outlined), onPressed: widget.onAddResponse),
             PopupMenuButton<String>(
               onSelected: (v) {
                 if (v == 'rename') widget.onRename();
                 if (v == 'delete') widget.onDelete();
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'rename', child: Text('เปลี่ยนชื่อกลุ่ม')),
-                PopupMenuItem(value: 'delete', child: Text('ลบกลุ่ม')),
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'rename', child: Text('rename_group'.tr)),
+                PopupMenuItem(value: 'delete', child: Text('delete_group'.tr)),
               ],
             )
           ],
         ),
         children: [
           if (g.responses.isEmpty)
-            const ListTile(title: Text('— ยังไม่มีคำตอบ —'))
+            ListTile(title: Text('no_responses'.tr))
           else
             ...g.responses.map((r) {
               final selected = widget.isSelected(r);
@@ -516,7 +500,7 @@ class _GroupTileState extends State<_GroupTile> {
                   backgroundColor: const Color(0xFFF1F2F4),
                   child: Icon(r.type == 'image' ? Icons.image_outlined : Icons.text_snippet_outlined, color: Colors.black87),
                 ),
-                title: Text(r.title.isEmpty ? '(ไม่มีชื่อ)' : r.title),
+                title: Text(r.title.isEmpty ? 'no_name'.tr : r.title),
                 subtitle: r.type == 'text' && (r.text ?? '').isNotEmpty ? Text(r.text!, maxLines: 2, overflow: TextOverflow.ellipsis) : null,
                 onTap: () => widget.onToggleSelect(r),
                 trailing: Row(
@@ -531,9 +515,9 @@ class _GroupTileState extends State<_GroupTile> {
                         if (v == 'edit') widget.onEditResponse(r);
                         if (v == 'delete') widget.onDeleteResponse(r);
                       },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('แก้ไข')),
-                        PopupMenuItem(value: 'delete', child: Text('ลบ')),
+                      itemBuilder: (_) => [
+                        PopupMenuItem(value: 'edit', child: Text('edit'.tr)),
+                        PopupMenuItem(value: 'delete', child: Text('delete'.tr)),
                       ],
                     ),
                   ],
@@ -579,7 +563,7 @@ class _SelectedPreviewChip extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(response.title.isEmpty ? '(ไม่มีชื่อ)' : response.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(response.title.isEmpty ? 'no_name'.tr : response.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(isImage ? (response.imageUrl ?? '') : (response.text ?? ''), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.black87)),
               ],

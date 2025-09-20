@@ -355,6 +355,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
         );
       }
 
+      // Refresh MoreController to update the profile display
+      try {
+        final moreController = Get.find<MoreController>();
+        await moreController.refreshUserData();
+      } catch (e) {
+        print('Warning: Could not refresh MoreController: $e');
+      }
+
       // Navigate back
       Get.back();
     } catch (e) {
@@ -576,7 +584,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             TextButton(
               onPressed: _saveProfile,
               child: const Text(
-                'บันท���ก',
+                'บันทึก',
                 style: TextStyle(
                   color: AppTheme.primaryOrange,
                   fontWeight: FontWeight.w600,

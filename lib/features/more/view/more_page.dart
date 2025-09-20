@@ -324,27 +324,27 @@ class MorePage extends StatelessWidget {
                     //     }
                     //   },
                     // ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.rule_outlined,
-                      title: 'id_generation_rules'.tr,
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openIdGenerationRules(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            '',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
-                    ),
+                    // _buildDivider(),
+                    // _buildMenuItem(
+                    //   icon: Icons.rule_outlined,
+                    //   title: 'id_generation_rules'.tr,
+                    //   onTap: () {
+                    //     final workspaceId =
+                    //         boardController.currentWorkspaceId.value;
+                    //     if (workspaceId.isNotEmpty) {
+                    //       controller.openIdGenerationRules(workspaceId);
+                    //     } else {
+                    //       Get.snackbar(
+                    //         'Error',
+                    //         '',
+                    //         snackPosition: SnackPosition.BOTTOM,
+                    //         backgroundColor: Get.theme.colorScheme.error
+                    //             .withValues(alpha: 0.1),
+                    //         colorText: Get.theme.colorScheme.error,
+                    //       );
+                    //     }
+                    //   },
+                    // ),
                     // _buildDivider(),
                     // _buildMenuItem(
                     //   icon: Icons.security_outlined,
