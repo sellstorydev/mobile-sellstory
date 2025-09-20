@@ -4,6 +4,18 @@ import '../../domain/entities/customer.dart';
 import '../services/firestore_service.dart';
 import '../services/mobile_permissions_service.dart';
 
+// Paged result for customers pagination
+class PagedCustomersResult {
+  final List<Customer> customers;
+  final QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc;
+  final bool hasMore;
+  PagedCustomersResult({
+    required this.customers,
+    required this.lastDoc,
+    required this.hasMore,
+  });
+}
+
 class CustomerRepository {
   final FirestoreService _firestoreService;
 
@@ -226,6 +238,7 @@ class CustomerRepository {
     }
   }
 
+
   // Search customers by name
   Future<List<Customer>> searchCustomers(String workspaceId, String searchTerm) async {
     try {
@@ -327,6 +340,121 @@ class CustomerRepository {
       return [];
     } catch (e) {
       throw Exception('Failed to fetch customer sources: $e');
+    }
+  }
+
+  // Cursor-based pagination using createdAt (descending)
+  Future<PagedCustomersResult> getCustomersPage(
+    String workspaceId, {
+    int limit = 25,
+    QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
+  }) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('customer:view:all');
+      final bool canViewAssigned = perms.can('customer:view:assigned');
+
+      final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
+
+      Query<Map<String, dynamic>> query = customersCollection
+          .orderBy('createdAt', descending: true)
+          .limit(limit);
+
+      if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+        query = customersCollection
+            .where('assignees', arrayContains: uid)
+            .orderBy('createdAt', descending: true)
+            .limit(limit);
+      }
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final qs = await query.get();
+
+      final List<Customer> items = [];
+      for (final doc in qs.docs) {
+        try {
+          items.add(Customer.fromMap(doc.data(), doc.id));
+        } catch (e) {
+          // Fallback minimal mapping if parsing fails
+          try {
+            final data = doc.data();
+            items.add(Customer(
+              id: doc.id,
+              name: data['name']?.toString() ?? 'Unknown Customer',
+              prefix: data['prefix']?.toString() ?? '',
+              gender: data['gender']?.toString() ?? '',
+              age: (data['age'] is int)
+                  ? (data['age'] as int)
+                  : (data['age'] is String)
+                      ? int.tryParse((data['age'] as String)) ?? 0
+                      : (data['age'] is double)
+                          ? (data['age'] as double).toInt()
+                          : 0,
+              customerType: data['customerType']?.toString() ?? 'Customer',
+              emails: Customer.parseEmailsFromMap(data['emails']),
+              phones: Customer.parsePhonesFromMap(data['phones']),
+              companyNames: Customer.parseCompanyNamesFromMap(data['companyNames']),
+              nationalId: data['nationalId']?.toString() ?? '',
+              address: data['address']?.toString() ?? '',
+              source: data['source']?.toString() ?? '',
+              hashtags: const [],
+              assignees: Customer.parseAssigneesFromMap(data['assignees']),
+              customId: data['customId']?.toString() ?? doc.id,
+              workspaceId: data['workspaceId']?.toString() ?? workspaceId,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+              createdBy: data['createdBy']?.toString() ?? '',
+              updatedBy: data['updatedBy']?.toString() ?? '',
+            ));
+          } catch (_) {
+            // skip if cannot parse at all
+          }
+        }
+      }
+
+      final last = qs.docs.isNotEmpty ? qs.docs.last : null;
+      final hasMore = qs.docs.length == limit;
+
+      // For assigned-only fallback filter (in case server couldn't apply)
+      if (!(isOwner || canViewAll)) {
+        if (canViewAssigned && uid.isNotEmpty) {
+          final filtered = items.where((c) => c.assignees.contains(uid)).toList();
+          return PagedCustomersResult(customers: filtered, lastDoc: last, hasMore: hasMore);
+        }
+        return PagedCustomersResult(customers: const [], lastDoc: last, hasMore: false);
+      }
+
+      return PagedCustomersResult(customers: items, lastDoc: last, hasMore: hasMore);
+    } catch (e) {
+      throw Exception('Failed to fetch customers page: $e');
+    }
+  }
+
+  // Aggregate count of customers for a workspace (respecting permissions)
+  Future<int> getCustomersCount(String workspaceId) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final perms = MobilePermissionsService.to;
+      final bool isOwner = perms.isOwner;
+      final bool canViewAll = perms.can('customer:view:all');
+      final bool canViewAssigned = perms.can('customer:view:assigned');
+
+      final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
+
+      Query<Map<String, dynamic>> query = customersCollection;
+      if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
+        query = query.where('assignees', arrayContains: uid);
+      }
+
+      final agg = await query.count().get();
+      return agg.count!;
+    } catch (e) {
+      throw Exception('Failed to fetch customers count: $e');
     }
   }
 }

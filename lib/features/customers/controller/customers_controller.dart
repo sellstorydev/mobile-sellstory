@@ -17,9 +17,16 @@ class CustomersController extends GetxController {
   final RxList<Customer> customers = <Customer>[].obs;
   final RxList<Customer> filteredCustomers = <Customer>[].obs;
   final RxBool isLoading = false.obs;
+  final RxBool isPageLoading = false.obs; // loading next page
+  final RxBool hasMore = true.obs; // whether more pages are available
   final RxString searchQuery = ''.obs;
   final RxString errorMessage = ''.obs;
   final RxList<String> customerSources = <String>[].obs;
+  final RxInt totalCustomersCount = 0.obs; // total, ignoring pagination
+
+  // Pagination cursor
+  QueryDocumentSnapshot<Map<String, dynamic>>? _lastDoc;
+  final int _pageSize = 25;
 
   // Quota (cached from workspace subscription)
   final RxInt customersQuotaUsed = 0.obs;
@@ -176,34 +183,78 @@ class CustomersController extends GetxController {
     }
   }
 
-  // Load customers for a workspace
+  // Load customers for a workspace (initial page)
   Future<void> loadCustomers(String workspaceId) async {
-    print('[CustomersController] loadCustomers workspaceId=$workspaceId');
-    // Cancel any previous subscription to avoid leaks/duplicates
-    await _customersSub?.cancel();
+    print('[CustomersController] loadCustomers (paged) workspaceId=$workspaceId');
+    await _customersSub?.cancel(); // stop any previous stream
     _subscribeWorkspaceQuota(workspaceId); // ensure quota subscription
+
     isLoading.value = true;
+    isPageLoading.value = false;
     errorMessage.value = '';
+    customers.clear();
+    filteredCustomers.clear();
+    hasMore.value = true;
+    _lastDoc = null;
+
     try {
-      _customersSub = _customerRepository.getCustomersStream(workspaceId).listen(
-        (customersList) {
-          print('[CustomersController] customers stream update count=${customersList.length}');
-          customers.value = customersList;
-          _filterCustomers();
-          isLoading.value = false;
-        },
-        onError: (e) {
-          print('[CustomersController] customers stream error: $e');
-          errorMessage.value = 'Failed to load customers: $e';
-          isLoading.value = false;
-        },
-        cancelOnError: false,
+      // Fetch first page
+      final result = await _customerRepository.getCustomersPage(
+        workspaceId,
+        limit: _pageSize,
+        startAfter: null,
       );
+      customers.addAll(result.customers);
+      _lastDoc = result.lastDoc;
+      hasMore.value = result.hasMore;
+      _filterCustomers();
+
+      // Fetch total count (not limited by pagination)
+      try {
+        final count = await _customerRepository.getCustomersCount(workspaceId);
+        totalCustomersCount.value = count;
+      } catch (e) {
+        print('[CustomersController] total count error: $e');
+      }
     } catch (e) {
       print('[CustomersController] loadCustomers exception: $e');
       errorMessage.value = 'Failed to load customers: $e';
+    } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<void> loadMoreCustomers() async {
+    final wsId = currentWorkspaceId.value;
+    if (wsId.isEmpty) return;
+    if (!hasMore.value) return;
+    if (isPageLoading.value) return;
+
+    isPageLoading.value = true;
+    try {
+      final result = await _customerRepository.getCustomersPage(
+        wsId,
+        limit: _pageSize,
+        startAfter: _lastDoc,
+      );
+      if (result.customers.isNotEmpty) {
+        customers.addAll(result.customers);
+        _filterCustomers();
+      }
+      _lastDoc = result.lastDoc;
+      hasMore.value = result.hasMore;
+    } catch (e) {
+      print('[CustomersController] loadMoreCustomers error: $e');
+      // Don't set global error to avoid replacing current list; log only
+    } finally {
+      isPageLoading.value = false;
+    }
+  }
+
+  Future<void> refreshCustomers() async {
+    final wsId = currentWorkspaceId.value;
+    if (wsId.isEmpty) return;
+    await loadCustomers(wsId);
   }
 
   // Load customer sources from workspace
@@ -444,10 +495,14 @@ class CustomersController extends GetxController {
         companyNames: customer.companyNames,
       );
 
+      // Optimistically update total count
+      totalCustomersCount.value = (totalCustomersCount.value + 1).clamp(0, 1 << 31);
+
       // Increment customers usage (shared pool)
       try { await QuotaUsageService.incrementUsed(workspaceId, 'customers', delta: 1); } catch (_) {}
     } catch (e) {
       errorMessage.value = 'Failed to add customer: $e';
+      // Optionally refresh total count on failure next time
     } finally {
       isLoading.value = false;
     }
@@ -523,6 +578,9 @@ class CustomersController extends GetxController {
           );
         }
       } catch (_) {}
+
+      // Optimistically update total count
+      totalCustomersCount.value = (totalCustomersCount.value - 1).clamp(0, 1 << 31);
 
       // Decrement customers usage (shared pool)
       try { await QuotaUsageService.decrementUsed(workspaceId, 'customers', delta: 1); } catch (_) {}
