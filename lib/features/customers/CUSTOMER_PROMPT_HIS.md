@@ -6,6 +6,15 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 ##
+Topic: Customer lists
+Detail: Check again plz, is still error. if i logout then login again customer list is back. But restart application by 'RUN AND DEBUG' customer list is gone
+
+##
+Topic: Customer lists
+Detail: After restart application, Customer list is missing. But logout and login again is back. I attach image of case for understanding.
+
+
+##
 Topic:Function and section in customer dtail.
 Detail: Add icon delete for delete customer. After pressed icon alert confirm dialog. pressed confirm go to delete customer from path "/workspaces/{workspace id}/customers/{customer id}".Can see structure from attach file .json
 

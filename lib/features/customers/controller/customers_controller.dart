@@ -36,6 +36,7 @@ class CustomersController extends GetxController {
   final Map<String, Map<String, String>> _companyIndex = {};
   StreamSubscription<List<Customer>>? _customersSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _workspaceQuotaSub;
+  StreamSubscription<User?>? _authSub;
 
   CustomersController(this._customerRepository);
 
@@ -50,7 +51,41 @@ class CustomersController extends GetxController {
 
     // Initialize with current user
     print('[CustomersController] onInit');
+    // Subscribe to auth state to handle app restarts where FirebaseAuth restores session asynchronously
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (user != null) {
+        if (currentUserId.value != user.uid) {
+          print('[CustomersController] auth user available -> initialize');
+          await initializeWithUser(user.uid);
+        } else if (customers.isEmpty && currentWorkspaceId.value.isNotEmpty) {
+          // Re-subscribe if needed
+          await loadCustomers(currentWorkspaceId.value);
+        }
+      } else {
+        // Signed out: clear state
+        print('[CustomersController] auth signed out -> clear customers');
+        await _customersSub?.cancel();
+        customers.clear();
+        filteredCustomers.clear();
+        currentUserId.value = '';
+        currentWorkspaceId.value = '';
+      }
+    });
+
+    // Also attempt immediate initialization in case currentUser is already available
     _initializeWithCurrentUser();
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    // Extra safety: if after full initialization the customers list is still empty but we have workspace
+    Future.delayed(Duration(seconds: 2), () async {
+      if (customers.isEmpty && currentWorkspaceId.value.isNotEmpty && FirebaseAuth.instance.currentUser != null) {
+        print('[CustomersController] onReady: customers still empty, forcing reload');
+        await loadCustomers(currentWorkspaceId.value);
+      }
+    });
   }
 
   // Initialize with current user from Firebase Auth
@@ -636,6 +671,7 @@ class CustomersController extends GetxController {
   void onClose() {
     _customersSub?.cancel();
     _workspaceQuotaSub?.cancel();
+    _authSub?.cancel();
     super.onClose();
   }
 }
