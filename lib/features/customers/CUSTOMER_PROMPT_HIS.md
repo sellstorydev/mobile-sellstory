@@ -1,11 +1,13 @@
  # PRE PROMPT
     - *important* You don't need to explain what you did. I don't want to know, it's a waste of time. Focus on editing the file to meet the task I gave you.
-    - First read `lib/features/board/BOARD_SUMMARY.md` file for review your memory and brainstrom your self. 
-    - For better answer me please read your mememory inside file `lib/features/board/BOARD_SUMMARY.md`
-    - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
+    - First read `lib/features/customers/CUSTOMER_SUMARY.md` file for review your memory and brainstrom your self. 
+    - For better answer me please read your mememory inside file `lib/features/customers/CUSTOMER_SUMARY.md`
+    - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/customers/CUSTOMER_SUMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
-
+##
+Topic:Function and section in customer dtail.
+Detail: Add icon delete for delete customer. After pressed icon alert confirm dialog. pressed confirm go to delete customer from path "/workspaces/{workspace id}/customers/{customer id}".Can see structure from attach file .json
 
 ##
 Topic:Function and section customer.

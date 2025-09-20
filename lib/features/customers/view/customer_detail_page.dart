@@ -118,6 +118,42 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     return svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned');
   }
 
+  bool _canDeleteCustomer() {
+    final svc = MobilePermissionsService.to;
+    return svc.isOwner || svc.can('customer:delete');
+  }
+
+  Future<void> _handleDeleteCustomer() async {
+    final customer = _currentCustomer ?? widget.customer;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยืนยันการลบลูกค้า'),
+        content: Text('คุณแน่ใจหรือไม่ว่าต้องการลบลูกค้า "${customer.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final workspaceId = _controller.currentWorkspaceId.value.isNotEmpty
+          ? _controller.currentWorkspaceId.value
+          : customer.workspaceId;
+      await _controller.deleteCustomer(workspaceId, customer.id);
+      if (mounted) {
+        Navigator.of(context).pop(); // leave detail page after delete
+      }
+    }
+  }
+
   List<JobCard> _visibleJobcards(List<JobCard> all) {
     final svc = MobilePermissionsService.to;
     if (svc.isOwner || svc.can('jobcard:view:all')) return all;
@@ -907,9 +943,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                   }
                 }
               },
-            )
-          else
-            const SizedBox.shrink(),
+            ),
+          if (_canDeleteCustomer())
+            IconButton(
+              tooltip: 'ลบ',
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              onPressed: _handleDeleteCustomer,
+            ),
         ],
       ),
       body: Builder(
