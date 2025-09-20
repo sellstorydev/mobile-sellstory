@@ -424,11 +424,9 @@ class ProductsPage extends StatelessWidget {
 
   void _triggerSearch(ProductsController controller) {
     final searchController = controller.safeSearchController;
-    if (searchController != null) {
-      final query = searchController.text.trim();
-      if (query.isNotEmpty) {
-        controller.triggerAlgoliaSearch(query);
-      }
+    final query = searchController.text.trim();
+    if (query.isNotEmpty) {
+      controller.triggerAlgoliaSearch(query);
     }
   }
 }

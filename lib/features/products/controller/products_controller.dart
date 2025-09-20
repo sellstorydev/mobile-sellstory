@@ -40,11 +40,15 @@ class ProductsController extends GetxController {
   bool _isSearchControllerInitialized = false;
   Timer? _searchDebounceTimer;
   
+  // Fallback controller for when main controller is disposed
+  TextEditingController? _fallbackController;
+  
   // Helper to safely access the search controller
-  TextEditingController? get safeSearchController {
+  TextEditingController get safeSearchController {
     if (!_isSearchControllerInitialized) {
-      print('⚠️ SearchController not yet initialized');
-      return null;
+      print('⚠️ SearchController not yet initialized, using fallback');
+      _fallbackController ??= TextEditingController();
+      return _fallbackController!;
     }
     
     try {
@@ -52,8 +56,9 @@ class ProductsController extends GetxController {
       searchController.text;
       return searchController;
     } catch (e) {
-      print('⚠️ SearchController is disposed, returning null');
-      return null;
+      print('⚠️ SearchController is disposed, using fallback');
+      _fallbackController ??= TextEditingController();
+      return _fallbackController!;
     }
   }
 
@@ -77,6 +82,14 @@ class ProductsController extends GetxController {
       searchController.dispose();
     } catch (e) {
       print('⚠️ SearchController already disposed: $e');
+    }
+    
+    // Dispose fallback controller if it was created
+    try {
+      _fallbackController?.dispose();
+      _fallbackController = null;
+    } catch (e) {
+      print('⚠️ Fallback controller disposal error: $e');
     }
     
     super.onClose();
@@ -306,13 +319,10 @@ class ProductsController extends GetxController {
     searchQuery.value = '';
     
     // Clear search controller safely
-    final controller = safeSearchController;
-    if (controller != null) {
-      try {
-        controller.clear();
-      } catch (e) {
-        print('⚠️ SearchController disposed during clearSearch: $e');
-      }
+    try {
+      safeSearchController.clear();
+    } catch (e) {
+      print('⚠️ SearchController disposed during clearSearch: $e');
     }
     
     useAlgoliaSearch.value = false;

@@ -6,6 +6,10 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 ##
+Topic Customer lists
+Detail: Customer list in 
+
+##
 Topic: Customer lists
 Detail: Check again plz, is still error. if i logout then login again customer list is back. But restart application by 'RUN AND DEBUG' customer list is gone
 
