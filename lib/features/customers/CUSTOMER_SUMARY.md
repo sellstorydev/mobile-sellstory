@@ -11,3 +11,16 @@
 - On press: show confirm dialog (ยืนยัน/ยกเลิก). If confirmed, delete document at `/workspaces/{workspaceId}/customers/{customerId}` via `CustomersController.deleteCustomer()` and pop the page.
 - No schema changes; relies on existing `CustomerRepository.deleteCustomer()` implementation.
 
+## 2025-09-20 — Customer workspace switching fix
+
+- Modified `switchWorkspace()` method in `CustomersController` to clear existing customer lists before loading new workspace data
+- Added `customers.clear()` and `filteredCustomers.clear()` at the beginning of workspace switch to prevent showing old customer data
+- This ensures clean slate when switching workspaces, solving the issue where old customer list was showing when switching to a workspace that has different or no customers
+
+## 2025-09-21 — Debugging and cleanup
+
+- Added extensive debug logging to track workspace switching and customer loading processes
+- Removed all non-essential print statements while keeping error logging for debugging purposes
+- Focus on core functionality without cluttering console output
+
+

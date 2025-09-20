@@ -6,8 +6,27 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 ##
-Topic Customer lists
-Detail: Customer list in 
+Topic: Customer Page
+Detail: After change workspace customer list not get from new workspace. It should clear old customer list and get new customer list from new workspace.
+
+##
+Topic: Customer Page
+Detail: customer list show in customer page is not have customer. When change workspace should clear customer list and get new customer list from new workspace. But now is not clear customer list when change workspace. So it show old customer list from old workspace.
+
+
+##
+Topic: Customer Page
+Detail: /fix Customer list in addy"ajKydLWgXNQdBNJP3Efj" not have customer but is show 117 customer it should not show 0,I think app use customer from Bew1150 "3w5mum6fnev2IEKF7G9d"
+
+
+##
+Topic: Customer Page
+Detail: Customer list not show. path customer "/workspaces/{workspaces}/customers" You can get data for example on "firestore/backup-workspaces-3w5mum6fnev2IEKF7G9d-2025-09-20T16-10-05.json" and "firestore/backup-workspaces-ajKydLWgXNQdBNJP3Efj-2025-09-20T16-06-32.json" those file is data in workspace.
+
+##
+Topic Customer Page
+Detail: Customer list in customer page show list custom that is not in workspace.customer should show only in workspaces
+Path: /workspaces/{workspaces}/customers
 
 ##
 Topic: Customer lists

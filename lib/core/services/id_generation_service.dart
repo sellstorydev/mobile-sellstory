@@ -59,7 +59,7 @@ class IdGenerationService {
         separator: '-',
       );
     } catch (e) {
-      print('Error fetching ID generation rules: $e');
+      print('❌ Error fetching ID generation rules: $e');
       // Return default rules on error
       return IdGenerationRules(
         dateFormat: 'YYMMDD',
@@ -89,7 +89,7 @@ class IdGenerationService {
       // Combine all parts
       return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
     } catch (e) {
-      print('Error generating customer ID: $e');
+      print('❌ Error generating customer ID: $e');
       // Fallback to simple ID generation
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       return 'CUS-$timestamp';
@@ -114,7 +114,7 @@ class IdGenerationService {
       // Combine all parts
       return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
     } catch (e) {
-      print('Error generating company ID: $e');
+      print('❌ Error generating company ID: $e');
       // Fallback to simple ID generation
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       return 'COM-$timestamp';
@@ -139,7 +139,7 @@ class IdGenerationService {
       // Combine all parts
       return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
     } catch (e) {
-      print('Error generating product SKU: $e');
+      print('❌ Error generating product SKU: $e');
       // Fallback to simple ID generation
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       return 'P-$timestamp';
@@ -164,7 +164,7 @@ class IdGenerationService {
       // Combine all parts
       return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
     } catch (e) {
-      print('Error generating document document number: $e');
+      print('❌ Error generating document document number: $e');
       // Fallback to simple ID generation
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       return 'DOC-$timestamp';
@@ -189,7 +189,7 @@ class IdGenerationService {
       // Combine all parts
       return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
     } catch (e) {
-      print('Error generating invoice document number: $e');
+      print('❌ Error generating invoice document number: $e');
       // Fallback to simple ID generation
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       return 'INV-$timestamp';
@@ -214,7 +214,7 @@ class IdGenerationService {
       // Combine all parts
       return '${rules.prefix}${rules.separator}$dateString${rules.separator}$sequenceString';
     } catch (e) {
-      print('Error generating receipt document number: $e');
+      print('❌ Error generating receipt document number: $e');
       // Fallback to simple ID generation
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       return 'RE-$timestamp';
@@ -258,7 +258,7 @@ class IdGenerationService {
 
       return result;
     } catch (e) {
-      print('Error getting sequence from lastUsedCounters: $e');
+      print('❌ Error getting sequence from lastUsedCounters: $e');
       // Fallback to timestamp-based sequence
       return DateTime.now().millisecondsSinceEpoch % 10000;
     }

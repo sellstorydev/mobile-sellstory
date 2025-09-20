@@ -226,7 +226,6 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
       _initializeAllWorkspaces();
     } else if (widget.workspaceId != null && widget.workspaceId!.isNotEmpty) {
       _currentWorkspaceId = widget.workspaceId!;
-      print('🏷️ CompanyPicker using provided workspaceId: $_currentWorkspaceId');
       _loadCompanies();
     } else {
       _initializeUserAndWorkspace();
@@ -262,7 +261,6 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
     // Workspace override changed (only if not locked and not in all mode)
     if (!widget.showAllWorkspaces && !widget.lockWorkspaceId && oldWidget.workspaceId != widget.workspaceId && widget.workspaceId != null && widget.workspaceId!.isNotEmpty) {
       _currentWorkspaceId = widget.workspaceId!;
-      print('🔄 Workspace override changed -> reload companies for $_currentWorkspaceId');
       _loadCompanies();
     }
     // If explicit Company objects change
@@ -322,16 +320,13 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
       setState(() { _isLoading = true; });
 
       if (_currentWorkspaceId.isEmpty) {
-        print('⚠️ CompanyPicker: No workspace ID available for companies');
         setState(() { _isLoading = false; });
         return;
       }
 
       // Cancel previous subscription if any
       await _companiesSub?.cancel();
-      print('🔁 Subscribing to companiesStream for workspace: $_currentWorkspaceId');
       _companiesSub = _companyService.companiesStream(_currentWorkspaceId).listen((companies) {
-        print('📡 Realtime companies update: ${companies.length} docs');
         if (!mounted) return;
         setState(() {
           _availableCompanies = companies;
@@ -874,17 +869,13 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        print('❌ CompanyPicker: no authenticated user');
         setState(() { _isLoading = false; });
         return;
       }
       _currentUserId = currentUser.uid;
-      print('👤 CompanyPicker init for user $_currentUserId');
 
       final workspaces = await _repository.getUserWorkspaces(_currentUserId);
-      print('📋 User workspaces count: ${workspaces.length}');
       if (workspaces.isEmpty) {
-        print('⚠️ No workspaces for user $_currentUserId');
         setState(() { _isLoading = false; });
         return;
       }
@@ -894,14 +885,12 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
         final lastActive = await _repository.getUserLastActiveWorkspaceId(_currentUserId);
         if (lastActive != null && lastActive.isNotEmpty && workspaces.any((w) => w['id'] == lastActive)) {
           chosenId = lastActive;
-          print('✅ Using lastActive workspace $chosenId');
         }
       } catch (e) {
-        print('ℹ️ Could not get last active workspace: $e');
+        // Ignore error, will use first workspace
       }
       chosenId ??= workspaces.first['id'] as String? ?? '';
       _currentWorkspaceId = chosenId;
-      print('🏢 Final workspaceId: $_currentWorkspaceId');
       await _loadCompanies();
     } catch (e) {
       print('❌ _initializeUserAndWorkspace error: $e');
@@ -954,10 +943,8 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
   }
 
   void _subscribeWorkspace(String workspaceId) async {
-    print('🔁 Subscribing workspace $workspaceId (all mode)');
     final sub = _companyService.companiesStream(workspaceId).listen((companies) {
       if (!mounted) return;
-      print('📡 Update from $workspaceId count=${companies.length}');
       // tag each company with its workspaceId (already present)
       final grouped = <String, List<Company>>{};
       // Rebuild grouped from existing subscriptions

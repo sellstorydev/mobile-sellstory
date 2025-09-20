@@ -13,8 +13,8 @@ import '../services/mobile_permissions_service.dart';
 class FirestoreRepository {
   final FirestoreService _firestoreService = Get.find<FirestoreService>();
   final LoggerService _logger = Get.find<LoggerService>();
-  
-  // Create workspace with default structure 
+
+  // Create workspace with default structure
   Future<void> createWorkspace({
     required String name,
     required String ownerId,
@@ -28,7 +28,10 @@ class FirestoreRepository {
       });
 
       // Generate workspace ID
-      final workspaceId = FirebaseFirestore.instance.collection('workspaces').doc().id;
+      final workspaceId = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc()
+          .id;
       final boardId = FirebaseFirestore.instance.collection('boards').doc().id;
       final now = DateTime.now().millisecondsSinceEpoch;
 
@@ -36,9 +39,7 @@ class FirestoreRepository {
       final workspaceData = {
         'name': name,
         'ownerId': ownerId,
-        'members': {
-          ownerId: 'owner',
-        },
+        'members': {ownerId: 'owner'},
         'createdAt': now,
         'companyProfile': {
           'roles': [
@@ -82,10 +83,7 @@ class FirestoreRepository {
             {
               'id': 'member',
               'name': 'Member',
-              'permissions': [
-                'jobcard:view:assigned',
-                'jobcard:create',
-              ],
+              'permissions': ['jobcard:view:assigned', 'jobcard:create'],
             },
           ],
           'idGenerationRules': {
@@ -155,14 +153,9 @@ class FirestoreRepository {
             'isEnabled': true,
             'mode': 'global',
             'masterList': [],
-            'automation': {
-              'autoCreateFromChat': false,
-            },
+            'automation': {'autoCreateFromChat': false},
           },
-          'catalogSettings': {
-            'isPublished': false,
-            'enableAddToCart': true,
-          },
+          'catalogSettings': {'isPublished': false, 'enableAddToCart': true},
         },
       };
 
@@ -197,7 +190,9 @@ class FirestoreRepository {
       final batch = FirebaseFirestore.instance.batch();
 
       // Add workspace document
-      final workspaceRef = FirebaseFirestore.instance.collection('workspaces').doc(workspaceId);
+      final workspaceRef = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(workspaceId);
       batch.set(workspaceRef, workspaceData);
 
       // Add board document
@@ -216,7 +211,7 @@ class FirestoreRepository {
             .doc(workspaceId)
             .collection('lanes')
             .doc(laneId);
-        
+
         batch.set(laneRef, {
           'boardId': boardId,
           'workspaceId': workspaceId,
@@ -228,14 +223,12 @@ class FirestoreRepository {
       }
 
       // Update user document to add workspace reference
-      final userRef = FirebaseFirestore.instance.collection('users').doc(ownerId);
+      final userRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(ownerId);
       batch.update(userRef, {
         'workspaces': FieldValue.arrayUnion([
-          {
-            'id': workspaceId,
-            'name': name,
-            'role': 'owner',
-          },
+          {'id': workspaceId, 'name': name, 'role': 'owner'},
         ]),
       });
 
@@ -243,9 +236,13 @@ class FirestoreRepository {
       await batch.commit();
 
       // Verify workspace was created successfully
-      final createdWorkspace = await _firestoreService.workspacesCollection.doc(workspaceId).get();
+      final createdWorkspace = await _firestoreService.workspacesCollection
+          .doc(workspaceId)
+          .get();
       if (!createdWorkspace.exists) {
-        throw Exception('Failed to create workspace - document not found after creation');
+        throw Exception(
+          'Failed to create workspace - document not found after creation',
+        );
       }
 
       _logger.methodExit('FirestoreRepository.createWorkspace', {
@@ -277,35 +274,32 @@ class FirestoreRepository {
       final batch = FirebaseFirestore.instance.batch();
 
       // Update workspace document
-      final workspaceRef = _firestoreService.workspacesCollection.doc(workspaceId);
-      batch.update(workspaceRef, {
-        'name': newName,
-      });
+      final workspaceRef = _firestoreService.workspacesCollection.doc(
+        workspaceId,
+      );
+      batch.update(workspaceRef, {'name': newName});
 
       // Update user document to reflect the new workspace name
-      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
-      
+      final userRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId);
+
       // Get current user data to update the workspace reference
       final userDoc = await userRef.get();
       if (userDoc.exists) {
         final userData = userDoc.data()!;
         final workspacesList = userData['workspaces'] as List<dynamic>? ?? [];
-        
+
         // Find and update the specific workspace in the user's workspace list
         final updatedWorkspaces = workspacesList.map((workspace) {
           final workspaceData = workspace as Map<String, dynamic>;
           if (workspaceData['id'] == workspaceId) {
-            return {
-              ...workspaceData,
-              'name': newName,
-            };
+            return {...workspaceData, 'name': newName};
           }
           return workspace;
         }).toList();
 
-        batch.update(userRef, {
-          'workspaces': updatedWorkspaces,
-        });
+        batch.update(userRef, {'workspaces': updatedWorkspaces});
       }
 
       // Commit the batch
@@ -337,7 +331,9 @@ class FirestoreRepository {
       final batch = FirebaseFirestore.instance.batch();
 
       // Delete workspace document
-      final workspaceRef = _firestoreService.workspacesCollection.doc(workspaceId);
+      final workspaceRef = _firestoreService.workspacesCollection.doc(
+        workspaceId,
+      );
       batch.delete(workspaceRef);
 
       // Delete all boards in the workspace
@@ -345,7 +341,7 @@ class FirestoreRepository {
           .collection('workspaces')
           .doc(workspaceId)
           .collection('boards');
-      
+
       final boardsSnapshot = await boardsCollection.get();
       for (final boardDoc in boardsSnapshot.docs) {
         batch.delete(boardDoc.reference);
@@ -356,7 +352,7 @@ class FirestoreRepository {
           .collection('workspaces')
           .doc(workspaceId)
           .collection('lanes');
-      
+
       final lanesSnapshot = await lanesCollection.get();
       for (final laneDoc in lanesSnapshot.docs) {
         batch.delete(laneDoc.reference);
@@ -367,7 +363,7 @@ class FirestoreRepository {
           .collection('workspaces')
           .doc(workspaceId)
           .collection('cards');
-      
+
       final cardsSnapshot = await cardsCollection.get();
       for (final cardDoc in cardsSnapshot.docs) {
         batch.delete(cardDoc.reference);
@@ -378,32 +374,30 @@ class FirestoreRepository {
           .collection('workspaces')
           .doc(workspaceId)
           .collection('customers');
-      
+
       final customersSnapshot = await customersCollection.get();
       for (final customerDoc in customersSnapshot.docs) {
         batch.delete(customerDoc.reference);
       }
 
       // Update user document to remove workspace reference
-      final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
-      
+      final userRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId);
+
       // Get current user data to remove the workspace reference
       final userDoc = await userRef.get();
       if (userDoc.exists) {
         final userData = userDoc.data()!;
         final workspacesList = userData['workspaces'] as List<dynamic>? ?? [];
-        
-        // Remove the specific workspace from the user's workspace list
-        final updatedWorkspaces = workspacesList
-            .where((workspace) {
-              final workspaceData = workspace as Map<String, dynamic>;
-              return workspaceData['id'] != workspaceId;
-            })
-            .toList();
 
-        batch.update(userRef, {
-          'workspaces': updatedWorkspaces,
-        });
+        // Remove the specific workspace from the user's workspace list
+        final updatedWorkspaces = workspacesList.where((workspace) {
+          final workspaceData = workspace as Map<String, dynamic>;
+          return workspaceData['id'] != workspaceId;
+        }).toList();
+
+        batch.update(userRef, {'workspaces': updatedWorkspaces});
       }
 
       // Commit the batch
@@ -426,43 +420,40 @@ class FirestoreRepository {
   // Get user's workspaces
   Future<List<Map<String, dynamic>>> getUserWorkspaces(String userId) async {
     try {
-      print('🔄 Getting user workspaces for user: $userId');
-      
       // Get user document to find their workspaces
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-      
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
       if (!userDoc.exists) {
-        print('⚠️ User document not found for user: $userId');
         return [];
       }
-      
+
       final userData = userDoc.data()!;
       final workspacesList = userData['workspaces'] as List<dynamic>? ?? [];
-      
-      print('📋 Found ${workspacesList.length} workspaces in user data');
-      
+
       final workspaces = <Map<String, dynamic>>[];
-      
+
       // Process workspace data directly from user document
       for (final workspaceItem in workspacesList) {
         try {
           final workspaceData = workspaceItem as Map<String, dynamic>;
           final workspaceId = workspaceData['id'] as String? ?? '';
-          final workspaceName = workspaceData['name'] as String? ?? 'Untitled Workspace';
-          
-          print('📋 Processing workspace: $workspaceName ($workspaceId)');
-          
+          final workspaceName =
+              workspaceData['name'] as String? ?? 'Untitled Workspace';
+
           workspaces.add({
             'id': workspaceId,
             'name': workspaceName,
-            'role': 'member', // Default role, you might want to get this from user's workspace membership
+            'role':
+                'member', // Default role, you might want to get this from user's workspace membership
           });
         } catch (e) {
           print('❌ Failed to process workspace data: $e');
         }
       }
-      
-      print('✅ User workspaces loaded: ${workspaces.length} workspaces');
+
       return workspaces;
     } catch (e) {
       print('❌ Failed to get user workspaces: $e');
@@ -473,19 +464,19 @@ class FirestoreRepository {
   // Get user's last active workspace ID
   Future<String?> getUserLastActiveWorkspaceId(String userId) async {
     try {
-      print('🔄 Getting user last active workspace for user: $userId');
-      
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-      
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
       if (!userDoc.exists) {
-        print('⚠️ User document not found for user: $userId');
         return null;
       }
-      
+
       final userData = userDoc.data()!;
-      final lastActiveWorkspaceId = userData['lastActiveWorkspaceId'] as String?;
-      
-      print('📋 Last active workspace ID: $lastActiveWorkspaceId');
+      final lastActiveWorkspaceId =
+          userData['lastActiveWorkspaceId'] as String?;
+
       return lastActiveWorkspaceId;
     } catch (e) {
       print('❌ Failed to get user last active workspace: $e');
@@ -493,96 +484,113 @@ class FirestoreRepository {
     }
   }
 
-
   // Update user's last active workspace ID
-  Future<void> updateUserLastActiveWorkspaceId(String userId, String workspaceId) async {
+  Future<void> updateUserLastActiveWorkspaceId(
+    String userId,
+    String workspaceId,
+  ) async {
     try {
-      print('🔄 Updating user last active workspace:');
-      print('  - User ID: $userId');
-      print('  - Workspace ID: $workspaceId');
-      
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'lastActiveWorkspaceId': workspaceId,
       });
-      
-      print('✅ User last active workspace updated successfully');
     } catch (e) {
       print('❌ Failed to update user last active workspace: $e');
       rethrow;
     }
   }
-  
+
   // Get workspace data
   Future<Map<String, dynamic>?> getWorkspace(String workspaceId) async {
     try {
-      _logger.methodEntry('FirestoreRepository.getWorkspace', {'workspaceId': workspaceId});
+      _logger.methodEntry('FirestoreRepository.getWorkspace', {
+        'workspaceId': workspaceId,
+      });
       final workspace = await _firestoreService.getWorkspace(workspaceId);
-      _logger.methodExit('FirestoreRepository.getWorkspace', {'workspaceFound': workspace != null});
+      _logger.methodExit('FirestoreRepository.getWorkspace', {
+        'workspaceFound': workspace != null,
+      });
       return workspace;
     } catch (e) {
       _logger.error('Failed to get workspace', e);
       rethrow;
     }
   }
-  
+
   // Get lanes for a specific workspace with real-time updates
   Stream<List<Lane>> getLanesStream(String workspaceId, {String? boardId}) {
     try {
       print('🔄 Getting lanes stream for workspace: $workspaceId');
-      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
-      
-      return _firestoreService.getDocumentsStream(
-        lanesCollection,
-        queryBuilder: (query) {
-          var filteredQuery = query.orderBy('order', descending: false);
-          if (boardId != null && boardId.isNotEmpty) {
-            filteredQuery = filteredQuery.where('boardId', isEqualTo: boardId);
-          }
-          return filteredQuery;
-        },
-      ).asyncMap((lanesSnapshot) async {
-        print('📋 Found ${lanesSnapshot.docs.length} lanes in workspace');
-        final lanes = <Lane>[];
-        
-        for (final laneDoc in lanesSnapshot.docs) {
-          final laneData = laneDoc.data();
-          final laneId = laneDoc.id;
-          final laneTitle = laneData['name'] as String? ?? 'Untitled Lane';
-          final laneOrder = laneData['order'] as int? ?? 0;
-          final boardId = laneData['boardId'] as String? ?? '';
-          
-          print('📋 Processing lane: $laneTitle ($laneId)');
-          
-          // Get cards for this lane using stream
-          final cards = await _getCardsStreamForLane(workspaceId, laneId).first;
-          
-          lanes.add(Lane(
-            id: laneId,
-            title: laneTitle,
-            boardId: boardId,
-            order: laneOrder,
-            cards: cards,
-          ));
-        }
-        
-        // Sort lanes by order
-        lanes.sort((a, b) => a.order.compareTo(b.order));
-        
-        print('✅ Lanes updated from Firestore: ${lanes.length} lanes');
-        
-        return lanes;
-      });
+      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
+        workspaceId,
+      );
+
+      return _firestoreService
+          .getDocumentsStream(
+            lanesCollection,
+            queryBuilder: (query) {
+              var filteredQuery = query.orderBy('order', descending: false);
+              if (boardId != null && boardId.isNotEmpty) {
+                filteredQuery = filteredQuery.where(
+                  'boardId',
+                  isEqualTo: boardId,
+                );
+              }
+              return filteredQuery;
+            },
+          )
+          .asyncMap((lanesSnapshot) async {
+            print('📋 Found ${lanesSnapshot.docs.length} lanes in workspace');
+            final lanes = <Lane>[];
+
+            for (final laneDoc in lanesSnapshot.docs) {
+              final laneData = laneDoc.data();
+              final laneId = laneDoc.id;
+              final laneTitle = laneData['name'] as String? ?? 'Untitled Lane';
+              final laneOrder = laneData['order'] as int? ?? 0;
+              final boardId = laneData['boardId'] as String? ?? '';
+
+              print('📋 Processing lane: $laneTitle ($laneId)');
+
+              // Get cards for this lane using stream
+              final cards = await _getCardsStreamForLane(
+                workspaceId,
+                laneId,
+              ).first;
+
+              lanes.add(
+                Lane(
+                  id: laneId,
+                  title: laneTitle,
+                  boardId: boardId,
+                  order: laneOrder,
+                  cards: cards,
+                ),
+              );
+            }
+
+            // Sort lanes by order
+            lanes.sort((a, b) => a.order.compareTo(b.order));
+
+            print('✅ Lanes updated from Firestore: ${lanes.length} lanes');
+
+            return lanes;
+          });
     } catch (e) {
       print('❌ Failed to get lanes stream: $e');
       rethrow;
     }
   }
-  
+
   // Helper method to get cards stream for a specific lane
-  Stream<List<JobCard>> _getCardsStreamForLane(String workspaceId, String laneId) {
+  Stream<List<JobCard>> _getCardsStreamForLane(
+    String workspaceId,
+    String laneId,
+  ) {
     try {
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
+
       // Permission-aware lane card query
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
       final perms = MobilePermissionsService.to;
@@ -595,74 +603,96 @@ class FirestoreRepository {
         return Stream.value(<JobCard>[]);
       }
 
+      return _firestoreService
+          .getDocumentsStream(
+            cardsCollection,
+            queryBuilder: (query) {
+              Query<Map<String, dynamic>> q = query.where(
+                'laneId',
+                isEqualTo: laneId,
+              );
+              if (!(isOwner || canViewAll) &&
+                  canViewAssigned &&
+                  uid.isNotEmpty) {
+                q = q.where('assignedTo', isEqualTo: uid);
+              }
+              return q;
+            },
+          )
+          .map((cardsSnapshot) {
+            print(
+              '📋 Found ${cardsSnapshot.docs.length} cards for lane: $laneId',
+            );
 
-      return _firestoreService.getDocumentsStream(
-        cardsCollection,
-        queryBuilder: (query) {
-          Query<Map<String, dynamic>> q = query.where('laneId', isEqualTo: laneId);
-          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
-            q = q.where('assignedTo', isEqualTo: uid);
-          }
-          return q;
-        },
-      ).map((cardsSnapshot) {
-        print('📋 Found ${cardsSnapshot.docs.length} cards for lane: $laneId');
-        
-        final cards = cardsSnapshot.docs.map((doc) {
-          final cardData = doc.data();
-          print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
-          print('📋 Card hashtags data: ${cardData['hashtags']}');
-          
-        // Use fromMap to ensure all fields including hashtags are properly mapped
-          return JobCard.fromMap(cardData, doc.id);
-        }).toList();
-        
-        // Sort cards by order after fetching
-        cards.sort((a, b) => a.order.compareTo(b.order));
-        
-        return cards;
-      });
+            final cards = cardsSnapshot.docs.map((doc) {
+              final cardData = doc.data();
+              print(
+                '📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}',
+              );
+              print('📋 Card hashtags data: ${cardData['hashtags']}');
+
+              // Use fromMap to ensure all fields including hashtags are properly mapped
+              return JobCard.fromMap(cardData, doc.id);
+            }).toList();
+
+            // Sort cards by order after fetching
+            cards.sort((a, b) => a.order.compareTo(b.order));
+
+            return cards;
+          });
     } catch (e) {
       print('❌ Failed to get cards stream for lane $laneId: $e');
       return Stream.value([]);
     }
   }
-  
+
   // Helper method to get cards for a specific lane (for backward compatibility)
-  Future<List<JobCard>> _getCardsForLane(String workspaceId, String laneId) async {
+  Future<List<JobCard>> _getCardsForLane(
+    String workspaceId,
+    String laneId,
+  ) async {
     try {
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
       final cardsSnapshot = await cardsCollection
           .where('laneId', isEqualTo: laneId)
           .get();
-      
+
       print('📋 Found ${cardsSnapshot.docs.length} cards for lane: $laneId');
-      
+
       final cards = cardsSnapshot.docs.map((doc) {
         final cardData = doc.data();
-        print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
+        print(
+          '📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}',
+        );
         print('📋 Card hashtags data: ${cardData['hashtags']}');
-        
+
         // Use fromMap to ensure all fields including hashtags are properly mapped
         return JobCard.fromMap(cardData, doc.id);
       }).toList();
-      
+
       // Sort cards by order after fetching
       cards.sort((a, b) => a.order.compareTo(b.order));
-      
+
       return cards;
     } catch (e) {
       print('❌ Failed to get cards for lane $laneId: $e');
       return [];
     }
   }
-  
+
   // Get all cards for a workspace with real-time updates
-  Stream<List<JobCard>> getAllCardsStream(String workspaceId, {String? boardId}) {
+  Stream<List<JobCard>> getAllCardsStream(
+    String workspaceId, {
+    String? boardId,
+  }) {
     try {
       print('🔄 Getting all cards stream for workspace: $workspaceId');
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
+
       // Permission context
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
       final perms = MobilePermissionsService.to;
@@ -675,56 +705,62 @@ class FirestoreRepository {
         return Stream.value(<JobCard>[]);
       }
 
-      return _firestoreService.getDocumentsStream(
-        cardsCollection,
-        queryBuilder: (query) {
-          Query<Map<String, dynamic>> q = query;
-          if (boardId != null && boardId.isNotEmpty) {
-            q = q.where('boardId', isEqualTo: boardId);
-          }
-          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
-            q = q.where('assignedTo', isEqualTo: uid);
-          }
-          return q;
-        },
-      ).map((cardsSnapshot) {
-        print('📋 Found ${cardsSnapshot.docs.length} cards in workspace');
-        
-        final cards = cardsSnapshot.docs.map((doc) {
-          final cardData = doc.data();
-          print('📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}');
-          print('📋 Card hashtags data: ${cardData['hashtags']}');
-          
-          // Use fromMap to ensure all fields including hashtags are properly mapped
-          return JobCard.fromMap(cardData, doc.id);
-        }).toList();
-        
-        // Sort cards by order after fetching
-        cards.sort((a, b) => a.order.compareTo(b.order));
-        
-        print('✅ All cards updated from Firestore: ${cards.length} cards');
-        return cards;
-      });
+      return _firestoreService
+          .getDocumentsStream(
+            cardsCollection,
+            queryBuilder: (query) {
+              Query<Map<String, dynamic>> q = query;
+              if (boardId != null && boardId.isNotEmpty) {
+                q = q.where('boardId', isEqualTo: boardId);
+              }
+              if (!(isOwner || canViewAll) &&
+                  canViewAssigned &&
+                  uid.isNotEmpty) {
+                q = q.where('assignedTo', isEqualTo: uid);
+              }
+              return q;
+            },
+          )
+          .map((cardsSnapshot) {
+            print('📋 Found ${cardsSnapshot.docs.length} cards in workspace');
+
+            final cards = cardsSnapshot.docs.map((doc) {
+              final cardData = doc.data();
+              print(
+                '📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}',
+              );
+              print('📋 Card hashtags data: ${cardData['hashtags']}');
+
+              // Use fromMap to ensure all fields including hashtags are properly mapped
+              return JobCard.fromMap(cardData, doc.id);
+            }).toList();
+
+            // Sort cards by order after fetching
+            cards.sort((a, b) => a.order.compareTo(b.order));
+
+            print('✅ All cards updated from Firestore: ${cards.length} cards');
+            return cards;
+          });
     } catch (e) {
       print('❌ Failed to get all cards stream: $e');
       rethrow;
     }
   }
-  
+
   // Helper method to parse timestamp from different formats
   DateTime _parseTimestamp(dynamic timestamp) {
     if (timestamp == null) {
       return DateTime.now();
     }
-    
+
     if (timestamp is Timestamp) {
       return timestamp.toDate();
     }
-    
+
     if (timestamp is int) {
       return DateTime.fromMillisecondsSinceEpoch(timestamp);
     }
-    
+
     if (timestamp is String) {
       try {
         return DateTime.parse(timestamp);
@@ -733,16 +769,20 @@ class FirestoreRepository {
         return DateTime.now();
       }
     }
-    
+
     print('❌ Unknown timestamp format: ${timestamp.runtimeType}');
     return DateTime.now();
   }
-  
+
   // Get cards for a specific workspace
   Stream<List<JobCard>> getCardsStream(String workspaceId) {
     try {
-      _logger.methodEntry('FirestoreRepository.getCardsStream', {'workspaceId': workspaceId});
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+      _logger.methodEntry('FirestoreRepository.getCardsStream', {
+        'workspaceId': workspaceId,
+      });
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
 
       // Permission context
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -755,37 +795,52 @@ class FirestoreRepository {
         return Stream.value(<JobCard>[]);
       }
 
-      return _firestoreService.getDocumentsStream(
-        cardsCollection,
-        queryBuilder: (query) {
-          Query<Map<String, dynamic>> q = query.orderBy('order', descending: false);
-          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
-            q = q.where('assignedTo', isEqualTo: uid);
-          }
-          return q;
-        },
-      ).map((snapshot) {
-        final cards = snapshot.docs.map((doc) {
-          final cardData = doc.data();
-          return JobCard.fromMap(cardData, doc.id);
-        }).toList();
-        _logger.systemEvent('Cards loaded', {'workspaceId': workspaceId, 'cardsCount': cards.length});
-        return cards;
-      });
+      return _firestoreService
+          .getDocumentsStream(
+            cardsCollection,
+            queryBuilder: (query) {
+              Query<Map<String, dynamic>> q = query.orderBy(
+                'order',
+                descending: false,
+              );
+              if (!(isOwner || canViewAll) &&
+                  canViewAssigned &&
+                  uid.isNotEmpty) {
+                q = q.where('assignedTo', isEqualTo: uid);
+              }
+              return q;
+            },
+          )
+          .map((snapshot) {
+            final cards = snapshot.docs.map((doc) {
+              final cardData = doc.data();
+              return JobCard.fromMap(cardData, doc.id);
+            }).toList();
+            _logger.systemEvent('Cards loaded', {
+              'workspaceId': workspaceId,
+              'cardsCount': cards.length,
+            });
+            return cards;
+          });
     } catch (e) {
       _logger.error('Failed to get cards stream', e);
       rethrow;
     }
   }
-  
+
   // Get cards for a specific lane
-  Stream<List<JobCard>> getCardsForLaneStream(String workspaceId, String laneId) {
+  Stream<List<JobCard>> getCardsForLaneStream(
+    String workspaceId,
+    String laneId,
+  ) {
     try {
       _logger.methodEntry('FirestoreRepository.getCardsForLaneStream', {
         'workspaceId': workspaceId,
-        'laneId': laneId
+        'laneId': laneId,
       });
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
 
       // Permission context
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -798,72 +853,88 @@ class FirestoreRepository {
         return Stream.value(<JobCard>[]);
       }
 
-      return _firestoreService.getDocumentsStream(
-        cardsCollection,
-        queryBuilder: (query) {
-          Query<Map<String, dynamic>> q = query.where('laneId', isEqualTo: laneId);
-          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
-            q = q.where('assignedTo', isEqualTo: uid);
-          }
-          return q;
-        },
-      ).map((snapshot) {
-        final cards = snapshot.docs.map((doc) {
-          final cardData = doc.data();
-          print('📋 Lane card hashtags data: ${cardData['hashtags']}');
-          
-          // Use fromMap to ensure all fields including hashtags are properly mapped
-          return JobCard.fromMap(cardData, doc.id);
-        }).toList();
-        
-        // Sort cards by order after fetching
-        cards.sort((a, b) => a.order.compareTo(b.order));
-        
-        _logger.systemEvent('Lane cards loaded', {
-          'workspaceId': workspaceId,
-          'laneId': laneId,
-          'cardsCount': cards.length
-        });
-        return cards;
-      });
+      return _firestoreService
+          .getDocumentsStream(
+            cardsCollection,
+            queryBuilder: (query) {
+              Query<Map<String, dynamic>> q = query.where(
+                'laneId',
+                isEqualTo: laneId,
+              );
+              if (!(isOwner || canViewAll) &&
+                  canViewAssigned &&
+                  uid.isNotEmpty) {
+                q = q.where('assignedTo', isEqualTo: uid);
+              }
+              return q;
+            },
+          )
+          .map((snapshot) {
+            final cards = snapshot.docs.map((doc) {
+              final cardData = doc.data();
+              print('📋 Lane card hashtags data: ${cardData['hashtags']}');
+
+              // Use fromMap to ensure all fields including hashtags are properly mapped
+              return JobCard.fromMap(cardData, doc.id);
+            }).toList();
+
+            // Sort cards by order after fetching
+            cards.sort((a, b) => a.order.compareTo(b.order));
+
+            _logger.systemEvent('Lane cards loaded', {
+              'workspaceId': workspaceId,
+              'laneId': laneId,
+              'cardsCount': cards.length,
+            });
+            return cards;
+          });
     } catch (e) {
       _logger.error('Failed to get cards for lane stream', e);
       rethrow;
     }
   }
-  
+
   // Get user's assigned cards
-  Stream<List<JobCard>> getUserAssignedCardsStream(String workspaceId, String userId) {
+  Stream<List<JobCard>> getUserAssignedCardsStream(
+    String workspaceId,
+    String userId,
+  ) {
     try {
       _logger.methodEntry('FirestoreRepository.getUserAssignedCardsStream', {
         'workspaceId': workspaceId,
-        'userId': userId
+        'userId': userId,
       });
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-    
-    return _firestoreService.getDocumentsStream(
-        cardsCollection,
-      queryBuilder: (query) => query
-            .where('assignedTo', isEqualTo: userId),
-    ).map((snapshot) {
-        final cards = snapshot.docs.map((doc) {
-          final cardData = Map<String, dynamic>.from(doc.data());
-          print('📋 User assigned card hashtags data: ${cardData['hashtags']}');
-          
-          // Use fromMap to ensure all fields including hashtags are properly mapped
-          return JobCard.fromMap(cardData, doc.id);
-      }).toList();
-      
-      // Sort cards by order after fetching
-      cards.sort((a, b) => a.order.compareTo(b.order));
-      
-        _logger.systemEvent('User assigned cards loaded', {
-          'workspaceId': workspaceId,
-          'userId': userId,
-          'cardsCount': cards.length
-        });
-        return cards;
-      });
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
+
+      return _firestoreService
+          .getDocumentsStream(
+            cardsCollection,
+            queryBuilder: (query) =>
+                query.where('assignedTo', isEqualTo: userId),
+          )
+          .map((snapshot) {
+            final cards = snapshot.docs.map((doc) {
+              final cardData = Map<String, dynamic>.from(doc.data());
+              print(
+                '📋 User assigned card hashtags data: ${cardData['hashtags']}',
+              );
+
+              // Use fromMap to ensure all fields including hashtags are properly mapped
+              return JobCard.fromMap(cardData, doc.id);
+            }).toList();
+
+            // Sort cards by order after fetching
+            cards.sort((a, b) => a.order.compareTo(b.order));
+
+            _logger.systemEvent('User assigned cards loaded', {
+              'workspaceId': workspaceId,
+              'userId': userId,
+              'cardsCount': cards.length,
+            });
+            return cards;
+          });
     } catch (e) {
       _logger.error('Failed to get user assigned cards stream', e);
       rethrow;
@@ -871,13 +942,18 @@ class FirestoreRepository {
   }
 
   // Get cards for a specific customer
-  Stream<List<JobCard>> getCardsForCustomerStream(String workspaceId, String customerId) {
+  Stream<List<JobCard>> getCardsForCustomerStream(
+    String workspaceId,
+    String customerId,
+  ) {
     try {
       _logger.methodEntry('FirestoreRepository.getCardsForCustomerStream', {
         'workspaceId': workspaceId,
-        'customerId': customerId
+        'customerId': customerId,
       });
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
 
       // Permission context (jobcard visibility)
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -890,96 +966,115 @@ class FirestoreRepository {
         return Stream.value(<JobCard>[]);
       }
 
-      return _firestoreService.getDocumentsStream(
-        cardsCollection,
-        queryBuilder: (query) {
-          Query<Map<String, dynamic>> q = query.where('customerId', isEqualTo: customerId);
-          if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
-            q = q.where('assignedTo', isEqualTo: uid);
-          }
-          return q;
-        },
-      ).map((snapshot) {
-        final cards = snapshot.docs.map((doc) {
-          final cardData = doc.data();
-          print('📋 Customer card hashtags data: ${cardData['hashtags']}');
-          
-          // Use fromMap to ensure all fields including hashtags are properly mapped
-          return JobCard.fromMap(cardData, doc.id);
-      }).toList();
-      
-      // Sort cards by order after fetching
-      cards.sort((a, b) => a.order.compareTo(b.order));
-      
-        _logger.systemEvent('Customer cards loaded', {
-          'workspaceId': workspaceId,
-          'customerId': customerId,
-          'cardsCount': cards.length
-        });
-        return cards;
-      });
+      return _firestoreService
+          .getDocumentsStream(
+            cardsCollection,
+            queryBuilder: (query) {
+              Query<Map<String, dynamic>> q = query.where(
+                'customerId',
+                isEqualTo: customerId,
+              );
+              if (!(isOwner || canViewAll) &&
+                  canViewAssigned &&
+                  uid.isNotEmpty) {
+                q = q.where('assignedTo', isEqualTo: uid);
+              }
+              return q;
+            },
+          )
+          .map((snapshot) {
+            final cards = snapshot.docs.map((doc) {
+              final cardData = doc.data();
+              print('📋 Customer card hashtags data: ${cardData['hashtags']}');
+
+              // Use fromMap to ensure all fields including hashtags are properly mapped
+              return JobCard.fromMap(cardData, doc.id);
+            }).toList();
+
+            // Sort cards by order after fetching
+            cards.sort((a, b) => a.order.compareTo(b.order));
+
+            _logger.systemEvent('Customer cards loaded', {
+              'workspaceId': workspaceId,
+              'customerId': customerId,
+              'cardsCount': cards.length,
+            });
+            return cards;
+          });
     } catch (e) {
       _logger.error('Failed to get customer cards stream', e);
       rethrow;
     }
-  }  // Create a new lane
+  } // Create a new lane
+
   Future<String> createLane(String workspaceId, Lane lane) async {
     try {
       _logger.methodEntry('FirestoreRepository.createLane', {
         'workspaceId': workspaceId,
         'laneTitle': lane.title,
       });
-      
-      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
-      
+
+      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
+        workspaceId,
+      );
+
       // Get base lane data from toMap()
       final laneData = lane.toMap();
-      
+
       // Add missing fields to match backup structure
       laneData['workspaceId'] = workspaceId;
-      laneData['name'] = lane.title; // Use 'name' instead of 'title' to match backup
+      laneData['name'] =
+          lane.title; // Use 'name' instead of 'title' to match backup
       laneData['boardId'] = lane.boardId; // Ensure boardId is set correctly
       laneData['cards'] = [];
       laneData['hasMoreCards'] = false;
       laneData['createdAt'] = Timestamp.fromDate(DateTime.now());
       laneData['updatedAt'] = Timestamp.fromDate(DateTime.now());
-      
+
       print('🔄 Creating lane with data:');
       print('  - Name: ${lane.title}');
       print('  - Order: ${lane.order}');
       print('  - Board ID: ${lane.boardId}');
-      
+
       final docRef = await lanesCollection.add(laneData);
-      
+
       _logger.database('Lane created in repository');
-      _logger.methodExit('FirestoreRepository.createLane', {'laneId': docRef.id});
-      
+      _logger.methodExit('FirestoreRepository.createLane', {
+        'laneId': docRef.id,
+      });
+
       return docRef.id;
     } catch (e) {
       _logger.error('Failed to create lane', e);
       rethrow;
     }
   }
-  
+
   // Update lane
-  Future<void> updateLane(String workspaceId, String laneId, Map<String, dynamic> data) async {
+  Future<void> updateLane(
+    String workspaceId,
+    String laneId,
+    Map<String, dynamic> data,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.updateLane', {
         'workspaceId': workspaceId,
-        'laneId': laneId
+        'laneId': laneId,
       });
-      
+
       print('🔄 FirestoreRepository.updateLane:');
       print('  - Workspace ID: $workspaceId');
       print('  - Lane ID: $laneId');
       print('  - Data: $data');
-      
-      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
+
+      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
+        workspaceId,
+      );
       final docRef = lanesCollection.doc(laneId);
-      
+
       print('🔄 Updating document: ${docRef.path}');
       await _firestoreService.updateDocument(docRef, data);
-      
+
       print('✅ Lane updated successfully');
       _logger.methodExit('FirestoreRepository.updateLane');
     } catch (e) {
@@ -988,51 +1083,59 @@ class FirestoreRepository {
       rethrow;
     }
   }
-  
+
   // Delete lane
   Future<void> deleteLane(String workspaceId, String laneId) async {
     try {
       _logger.methodEntry('FirestoreRepository.deleteLane', {
         'workspaceId': workspaceId,
-        'laneId': laneId
+        'laneId': laneId,
       });
-      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
+      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
+        workspaceId,
+      );
       final docRef = lanesCollection.doc(laneId);
-    await _firestoreService.deleteDocument(docRef);
+      await _firestoreService.deleteDocument(docRef);
       _logger.methodExit('FirestoreRepository.deleteLane');
     } catch (e) {
       _logger.error('Failed to delete lane', e);
       rethrow;
     }
   }
-  
+
   // Create card
   Future<String> createCard(String workspaceId, JobCard card) async {
     try {
       _logger.methodEntry('FirestoreRepository.createCard', {
         'workspaceId': workspaceId,
-        'cardTitle': card.title
+        'cardTitle': card.title,
       });
 
       // Use Firestore transaction to ensure atomic counter increment and card creation
-      final cardId = await _firestoreService.runTransaction<String>((transaction) async {
+      final cardId = await _firestoreService.runTransaction<String>((
+        transaction,
+      ) async {
         // Get workspace document to read current counter
-        final workspaceRef = _firestoreService.workspacesCollection.doc(workspaceId);
+        final workspaceRef = _firestoreService.workspacesCollection.doc(
+          workspaceId,
+        );
         final workspaceDoc = await transaction.get(workspaceRef);
-        
+
         if (!workspaceDoc.exists) {
           throw Exception('Workspace not found: $workspaceId');
         }
 
         final workspaceData = workspaceDoc.data()!;
-        
+
         // Get current counter value
         int currentCounter = 1; // Default counter
         try {
-          final companyProfile = workspaceData['companyProfile'] as Map<String, dynamic>?;
-          final lastUsedCounters = companyProfile?['lastUsedCounters'] as Map<String, dynamic>?;
+          final companyProfile =
+              workspaceData['companyProfile'] as Map<String, dynamic>?;
+          final lastUsedCounters =
+              companyProfile?['lastUsedCounters'] as Map<String, dynamic>?;
           final jobCardCounter = lastUsedCounters?['jobCard'];
-          
+
           if (jobCardCounter is int) {
             currentCounter = jobCardCounter + 1;
           } else if (jobCardCounter is String) {
@@ -1045,16 +1148,19 @@ class FirestoreRepository {
 
         // Generate Job ID with counter
         final now = DateTime.now();
-        final dateStr = '${now.day.toString().padLeft(2, '0')}${now.month.toString().padLeft(2, '0')}${now.year.toString().substring(2)}';
-        final jobId = 'JB-$dateStr-${currentCounter.toString().padLeft(4, '0')}';
+        final dateStr =
+            '${now.day.toString().padLeft(2, '0')}${now.month.toString().padLeft(2, '0')}${now.year.toString().substring(2)}';
+        final jobId =
+            'JB-$dateStr-${currentCounter.toString().padLeft(4, '0')}';
 
         // Create card document
-        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+          workspaceId,
+        );
         final cardDocRef = cardsCollection.doc();
-        final cardData = card.copyWith(
-          id: cardDocRef.id,
-          customId: jobId,
-        ).toMap();
+        final cardData = card
+            .copyWith(id: cardDocRef.id, customId: jobId)
+            .toMap();
 
         // Convert updatedAt to Firestore Timestamp format to match web structure
         if (cardData['updatedAt'] != null) {
@@ -1070,11 +1176,15 @@ class FirestoreRepository {
         print('  - Original card title: "${card.title}"');
         print('  - Original card watchers: ${card.watchers}');
         print('  - Original card collaborators: ${card.collaborators}');
-        print('  - Original card updatedByDisplayName: "${card.updatedByDisplayName}"');
+        print(
+          '  - Original card updatedByDisplayName: "${card.updatedByDisplayName}"',
+        );
         print('  - Card data title: "${cardData['title']}"');
         print('  - Card data watchers: ${cardData['watchers']}');
         print('  - Card data collaborators: ${cardData['collaborators']}');
-        print('  - Card data updatedByDisplayName: "${cardData['updatedByDisplayName']}"');
+        print(
+          '  - Card data updatedByDisplayName: "${cardData['updatedByDisplayName']}"',
+        );
         print('  - Card data keys: ${cardData.keys.toList()}');
 
         // Set card document
@@ -1098,15 +1208,20 @@ class FirestoreRepository {
   }
 
   // Add card (simplified version)
-  Future<void> addCard(String workspaceId, String laneId, String title, String assignee) async {
+  Future<void> addCard(
+    String workspaceId,
+    String laneId,
+    String title,
+    String assignee,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.addCard', {
         'workspaceId': workspaceId,
         'laneId': laneId,
         'title': title,
-        'assignee': assignee
+        'assignee': assignee,
       });
-      
+
       final card = JobCard(
         id: '',
         title: title,
@@ -1119,7 +1234,7 @@ class FirestoreRepository {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-      
+
       await createCard(workspaceId, card);
       _logger.methodExit('FirestoreRepository.addCard');
     } catch (e) {
@@ -1134,14 +1249,16 @@ class FirestoreRepository {
       _logger.methodEntry('FirestoreRepository.updateCard', {
         'workspaceId': workspaceId,
         'cardId': card.id,
-        'title': card.title
+        'title': card.title,
       });
-      
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
       final docRef = cardsCollection.doc(card.id);
-      
+
       final cardData = card.toMap();
-      
+
       // Debug logging
       print('🔄 Sending card data to Firebase:');
       print('  - customId: ${cardData['customId']}');
@@ -1149,10 +1266,10 @@ class FirestoreRepository {
       print('  - status: ${cardData['status']}');
       print('  - customer: ${cardData['customer']}');
       print('  - title: ${cardData['title']}');
-      
+
       // Use merge option to prevent overwriting existing fields
       await docRef.set(cardData, SetOptions(merge: true));
-      
+
       _logger.methodExit('FirestoreRepository.updateCard');
     } catch (e) {
       _logger.error('Failed to update card', e);
@@ -1164,21 +1281,26 @@ class FirestoreRepository {
   Future<List<Customer>> getCustomers(String workspaceId) async {
     try {
       _logger.methodEntry('FirestoreRepository.getCustomers', {
-        'workspaceId': workspaceId
+        'workspaceId': workspaceId,
       });
-      
+
       print('🔄 FirestoreRepository.getCustomers:');
       print('  - Workspace ID: $workspaceId');
-      
-      final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
-      final querySnapshot = await _firestoreService.getDocuments(customersCollection);
+
+      final customersCollection = _firestoreService
+          .getWorkspaceCustomersCollection(workspaceId);
+      final querySnapshot = await _firestoreService.getDocuments(
+        customersCollection,
+      );
 
       final customers = querySnapshot.docs.map((doc) {
         return Customer.fromMap(doc.data(), doc.id);
       }).toList();
-      
+
       print('✅ Customers loaded successfully - ${customers.length} customers');
-      _logger.methodExit('FirestoreRepository.getCustomers', {'count': customers.length});
+      _logger.methodExit('FirestoreRepository.getCustomers', {
+        'count': customers.length,
+      });
 
       // Permission-based filtering
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -1195,7 +1317,6 @@ class FirestoreRepository {
       }
       // No permission to view
       return <Customer>[];
-
     } catch (e) {
       print('❌ Failed to get customers: $e');
       _logger.error('Failed to get customers', e);
@@ -1207,18 +1328,19 @@ class FirestoreRepository {
   Stream<List<Customer>> getCustomersStream(String workspaceId) {
     try {
       _logger.methodEntry('FirestoreRepository.getCustomersStream', {
-        'workspaceId': workspaceId
+        'workspaceId': workspaceId,
       });
-      
+
       print('🔄 FirestoreRepository.getCustomersStream:');
       print('  - Workspace ID: $workspaceId');
-      
-      final customersCollection = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
-      return _firestoreService.getDocumentsStream(customersCollection).map((querySnapshot) {
 
+      final customersCollection = _firestoreService
+          .getWorkspaceCustomersCollection(workspaceId);
+      return _firestoreService.getDocumentsStream(customersCollection).map((
+        querySnapshot,
+      ) {
         final customers = querySnapshot.docs.map((doc) {
           return Customer.fromMap(doc.data(), doc.id);
-
         }).toList();
         print('✅ Customers stream updated - ${customers.length} customers');
 
@@ -1236,7 +1358,6 @@ class FirestoreRepository {
           return customers.where((c) => c.assignees.contains(uid)).toList();
         }
         return <Customer>[];
-
       });
     } catch (e) {
       print('❌ Failed to get customers stream: $e');
@@ -1249,18 +1370,21 @@ class FirestoreRepository {
   Future<List<Company>> getCompanies(String workspaceId) async {
     try {
       _logger.methodEntry('FirestoreRepository.getCompanies', {
-        'workspaceId': workspaceId
+        'workspaceId': workspaceId,
       });
-      
+
       print('🔄 FirestoreRepository.getCompanies:');
       print('  - Workspace ID: $workspaceId');
-      
-      final companiesCollection = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
-      final querySnapshot = await _firestoreService.getDocuments(companiesCollection);
+
+      final companiesCollection = _firestoreService
+          .getWorkspaceCompaniesCollection(workspaceId);
+      final querySnapshot = await _firestoreService.getDocuments(
+        companiesCollection,
+      );
       final companies = querySnapshot.docs.map((doc) {
         return Company.fromMap(doc.data(), doc.id);
       }).toList();
-      
+
       print('✅ Companies loaded successfully - ${companies.length} companies');
       return companies;
     } catch (e) {
@@ -1274,18 +1398,21 @@ class FirestoreRepository {
   Stream<List<Company>> getCompaniesStream(String workspaceId) {
     try {
       _logger.methodEntry('FirestoreRepository.getCompaniesStream', {
-        'workspaceId': workspaceId
+        'workspaceId': workspaceId,
       });
-      
+
       print('🔄 FirestoreRepository.getCompaniesStream:');
       print('  - Workspace ID: $workspaceId');
-      
-      final companiesCollection = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
-      return _firestoreService.getDocumentsStream(companiesCollection).map((querySnapshot) {
+
+      final companiesCollection = _firestoreService
+          .getWorkspaceCompaniesCollection(workspaceId);
+      return _firestoreService.getDocumentsStream(companiesCollection).map((
+        querySnapshot,
+      ) {
         final companies = querySnapshot.docs.map((doc) {
           return Company.fromMap(doc.data(), doc.id);
         }).toList();
-        
+
         print('✅ Companies stream updated - ${companies.length} companies');
         return companies;
       });
@@ -1304,7 +1431,8 @@ class FirestoreRepository {
         'name': company.name,
       });
 
-      final companiesCollection = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
+      final companiesCollection = _firestoreService
+          .getWorkspaceCompaniesCollection(workspaceId);
       final data = company.copyWith(workspaceId: workspaceId).toMap();
       await companiesCollection.add(data);
 
@@ -1323,7 +1451,8 @@ class FirestoreRepository {
         'companyId': company.id,
       });
 
-      final companiesCollection = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
+      final companiesCollection = _firestoreService
+          .getWorkspaceCompaniesCollection(workspaceId);
       final docRef = companiesCollection.doc(company.id);
 
       // Use merge to avoid overwriting arrays unintentionally
@@ -1344,7 +1473,8 @@ class FirestoreRepository {
         'companyId': companyId,
       });
 
-      final companiesCollection = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
+      final companiesCollection = _firestoreService
+          .getWorkspaceCompaniesCollection(workspaceId);
       await companiesCollection.doc(companyId).delete();
 
       _logger.methodExit('FirestoreRepository.deleteCompany');
@@ -1355,7 +1485,11 @@ class FirestoreRepository {
   }
 
   // Link a customer to a company (two-way)
-  Future<void> linkCustomerToCompany(String workspaceId, String companyId, String customerId) async {
+  Future<void> linkCustomerToCompany(
+    String workspaceId,
+    String companyId,
+    String customerId,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.linkCustomerToCompany', {
         'workspaceId': workspaceId,
@@ -1364,8 +1498,12 @@ class FirestoreRepository {
       });
 
       await _firestoreService.runTransaction((transaction) async {
-        final companiesCol = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
-        final customersCol = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
+        final companiesCol = _firestoreService.getWorkspaceCompaniesCollection(
+          workspaceId,
+        );
+        final customersCol = _firestoreService.getWorkspaceCustomersCollection(
+          workspaceId,
+        );
         final companyRef = companiesCol.doc(companyId);
         final customerRef = customersCol.doc(customerId);
 
@@ -1382,7 +1520,9 @@ class FirestoreRepository {
         final customerData = customerSnap.data()!;
 
         // Update company's associatedCustomerIds
-        final assocIds = List<String>.from(companyData['associatedCustomerIds'] ?? []);
+        final assocIds = List<String>.from(
+          companyData['associatedCustomerIds'] ?? [],
+        );
         if (!assocIds.contains(customerId)) {
           assocIds.add(customerId);
         }
@@ -1402,11 +1542,15 @@ class FirestoreRepository {
           }
         }
 
-        final alreadyLinked = companyNames.any((m) => (m['id']?.toString() ?? '') == companyId);
+        final alreadyLinked = companyNames.any(
+          (m) => (m['id']?.toString() ?? '') == companyId,
+        );
         if (!alreadyLinked) {
           companyNames.add({
             'id': companyId,
-            'label': (companyData['branch'] as String?)?.isNotEmpty == true ? companyData['branch'] as String : 'Main',
+            'label': (companyData['branch'] as String?)?.isNotEmpty == true
+                ? companyData['branch'] as String
+                : 'Main',
             'value': (companyData['name'] as String?) ?? '',
           });
         }
@@ -1429,7 +1573,11 @@ class FirestoreRepository {
   }
 
   // Unlink a customer from a company (two-way)
-  Future<void> unlinkCustomerFromCompany(String workspaceId, String companyId, String customerId) async {
+  Future<void> unlinkCustomerFromCompany(
+    String workspaceId,
+    String companyId,
+    String customerId,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.unlinkCustomerFromCompany', {
         'workspaceId': workspaceId,
@@ -1438,8 +1586,12 @@ class FirestoreRepository {
       });
 
       await _firestoreService.runTransaction((transaction) async {
-        final companiesCol = _firestoreService.getWorkspaceCompaniesCollection(workspaceId);
-        final customersCol = _firestoreService.getWorkspaceCustomersCollection(workspaceId);
+        final companiesCol = _firestoreService.getWorkspaceCompaniesCollection(
+          workspaceId,
+        );
+        final customersCol = _firestoreService.getWorkspaceCustomersCollection(
+          workspaceId,
+        );
         final companyRef = companiesCol.doc(companyId);
         final customerRef = customersCol.doc(customerId);
 
@@ -1456,7 +1608,9 @@ class FirestoreRepository {
         final customerData = customerSnap.data()!;
 
         // Remove customerId from company's associatedCustomerIds
-        final assocIds = List<String>.from(companyData['associatedCustomerIds'] ?? []);
+        final assocIds = List<String>.from(
+          companyData['associatedCustomerIds'] ?? [],
+        );
         assocIds.removeWhere((id) => id == customerId);
 
         // Remove company entry from customer's companyNames
@@ -1498,14 +1652,18 @@ class FirestoreRepository {
   Future<List<Board>> getBoards(String workspaceId) async {
     try {
       _logger.methodEntry('FirestoreRepository.getBoards', {
-        'workspaceId': workspaceId
+        'workspaceId': workspaceId,
       });
 
       print('🔄 FirestoreRepository.getBoards:');
       print('  - Workspace ID: $workspaceId');
 
-      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
-      final querySnapshot = await _firestoreService.getDocuments(boardsCollection);
+      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(
+        workspaceId,
+      );
+      final querySnapshot = await _firestoreService.getDocuments(
+        boardsCollection,
+      );
       var boards = querySnapshot.docs.map((doc) {
         return Board.fromMap(doc.data(), doc.id);
       }).toList();
@@ -1519,7 +1677,9 @@ class FirestoreRepository {
       if (!(isOwner || canViewAll) && uid.isNotEmpty) {
         // If assigned-only, also include boards where the user has any assigned cards
         if (canViewAssigned) {
-          final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+          final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+            workspaceId,
+          );
           final assignedCardsSnap = await _firestoreService.getDocuments(
             cardsCollection,
             queryBuilder: (q) => q.where('assignedTo', isEqualTo: uid),
@@ -1528,7 +1688,13 @@ class FirestoreRepository {
               .map((d) => (d.data()['boardId'] as String?) ?? '')
               .where((id) => id.isNotEmpty)
               .toSet();
-          boards = boards.where((b) => b.memberUids.contains(uid) || assignedBoardIds.contains(b.id)).toList();
+          boards = boards
+              .where(
+                (b) =>
+                    b.memberUids.contains(uid) ||
+                    assignedBoardIds.contains(b.id),
+              )
+              .toList();
         } else {
           boards = boards.where((b) => b.memberUids.contains(uid)).toList();
         }
@@ -1547,14 +1713,18 @@ class FirestoreRepository {
   Stream<List<Board>> getBoardsStream(String workspaceId) {
     try {
       _logger.methodEntry('FirestoreRepository.getBoardsStream', {
-        'workspaceId': workspaceId
+        'workspaceId': workspaceId,
       });
 
       print('🔄 FirestoreRepository.getBoardsStream:');
       print('  - Workspace ID: $workspaceId');
 
-      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
-      return _firestoreService.getDocumentsStream(boardsCollection).asyncMap((querySnapshot) async {
+      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(
+        workspaceId,
+      );
+      return _firestoreService.getDocumentsStream(boardsCollection).asyncMap((
+        querySnapshot,
+      ) async {
         var boards = querySnapshot.docs.map((doc) {
           return Board.fromMap(doc.data(), doc.id);
         }).toList();
@@ -1567,7 +1737,8 @@ class FirestoreRepository {
         final bool canViewAssigned = perms.can('jobcard:view:assigned');
         if (!(isOwner || canViewAll) && uid.isNotEmpty) {
           if (canViewAssigned) {
-            final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+            final cardsCollection = _firestoreService
+                .getWorkspaceCardsCollection(workspaceId);
             final assignedCardsSnap = await _firestoreService.getDocuments(
               cardsCollection,
               queryBuilder: (q) => q.where('assignedTo', isEqualTo: uid),
@@ -1576,7 +1747,13 @@ class FirestoreRepository {
                 .map((d) => (d.data()['boardId'] as String?) ?? '')
                 .where((id) => id.isNotEmpty)
                 .toSet();
-            boards = boards.where((b) => b.memberUids.contains(uid) || assignedBoardIds.contains(b.id)).toList();
+            boards = boards
+                .where(
+                  (b) =>
+                      b.memberUids.contains(uid) ||
+                      assignedBoardIds.contains(b.id),
+                )
+                .toList();
           } else {
             boards = boards.where((b) => b.memberUids.contains(uid)).toList();
           }
@@ -1607,14 +1784,17 @@ class FirestoreRepository {
       print('  - Workspace ID: $workspaceId');
       print('  - Limit: $limit');
 
-      final documentsCollection = _firestoreService.getWorkspaceDocumentsCollection(workspaceId);
+      final documentsCollection = _firestoreService
+          .getWorkspaceDocumentsCollection(workspaceId);
 
       Query<Map<String, dynamic>> query = documentsCollection;
       if (limit != null) {
         query = query.limit(limit);
       }
 
-      final querySnapshot = await query.orderBy('createdAt', descending: true).get();
+      final querySnapshot = await query
+          .orderBy('createdAt', descending: true)
+          .get();
 
       final documents = querySnapshot.docs.map((doc) {
         final data = doc.data();
@@ -1652,16 +1832,19 @@ class FirestoreRepository {
       print('  - Limit: $limit');
       print('  - Start after: ${startAfter != null ? 'Yes' : 'No'}');
 
-      final documentsCollection = _firestoreService.getWorkspaceDocumentsCollection(workspaceId);
+      final documentsCollection = _firestoreService
+          .getWorkspaceDocumentsCollection(workspaceId);
 
-      Query<Map<String, dynamic>> query = documentsCollection
-          .orderBy('createdAt', descending: true);
-      
+      Query<Map<String, dynamic>> query = documentsCollection.orderBy(
+        'createdAt',
+        descending: true,
+      );
+
       // Add type filter if specified
       if (documentType != null) {
         query = query.where('type', isEqualTo: documentType);
       }
-      
+
       query = query.limit(limit);
 
       if (startAfter != null) {
@@ -1677,10 +1860,14 @@ class FirestoreRepository {
       }).toList();
 
       final hasMore = documents.length == limit;
-      final lastDocument = querySnapshot.docs.isNotEmpty ? querySnapshot.docs.last : null;
+      final lastDocument = querySnapshot.docs.isNotEmpty
+          ? querySnapshot.docs.last
+          : null;
 
-      print('✅ Documents loaded successfully - ${documents.length} documents, hasMore: $hasMore');
-      
+      print(
+        '✅ Documents loaded successfully - ${documents.length} documents, hasMore: $hasMore',
+      );
+
       return {
         'documents': documents,
         'hasMore': hasMore,
@@ -1708,8 +1895,12 @@ class FirestoreRepository {
       print('  - Workspace ID: $workspaceId');
       print('  - Document type: ${documentData['type']}');
 
-      final documentsCollection = _firestoreService.getWorkspaceDocumentsCollection(workspaceId);
-      final documentRef = await _firestoreService.addDocument(documentsCollection, documentData);
+      final documentsCollection = _firestoreService
+          .getWorkspaceDocumentsCollection(workspaceId);
+      final documentRef = await _firestoreService.addDocument(
+        documentsCollection,
+        documentData,
+      );
 
       print('✅ Document created successfully with ID: ${documentRef.id}');
       return documentRef.id;
@@ -1738,7 +1929,10 @@ class FirestoreRepository {
       print('  - Document ID: $documentId');
       print('  - Document type: ${documentData['type']}');
 
-      final documentRef = _firestoreService.getDocumentReference(workspaceId, documentId);
+      final documentRef = _firestoreService.getDocumentReference(
+        workspaceId,
+        documentId,
+      );
       await _firestoreService.updateDocument(documentRef, documentData);
 
       print('✅ Document updated successfully');
@@ -1750,7 +1944,9 @@ class FirestoreRepository {
   }
 
   // Get users for a specific workspace
-  Future<List<Map<String, dynamic>>> getWorkspaceUsers(String workspaceId) async {
+  Future<List<Map<String, dynamic>>> getWorkspaceUsers(
+    String workspaceId,
+  ) async {
     try {
       print('🔄 Getting users for workspace: $workspaceId');
 
@@ -1780,7 +1976,7 @@ class FirestoreRepository {
           try {
             final workspaceData = workspaces.firstWhere(
               (w) => w is Map<String, dynamic> && w['id'] == workspaceId,
-              orElse: () => <String, dynamic>{}
+              orElse: () => <String, dynamic>{},
             );
             if (workspaceData is Map<String, dynamic>) {
               userRole = workspaceData['role'] as String? ?? 'member';
@@ -1791,9 +1987,11 @@ class FirestoreRepository {
 
           // Extract display name - prefer displayName, fallback to email
           String displayName = '';
-          if (userData['displayName'] != null && userData['displayName'].toString().isNotEmpty) {
+          if (userData['displayName'] != null &&
+              userData['displayName'].toString().isNotEmpty) {
             displayName = userData['displayName'].toString();
-          } else if (userData['email'] != null && userData['email'].toString().isNotEmpty) {
+          } else if (userData['email'] != null &&
+              userData['email'].toString().isNotEmpty) {
             displayName = userData['email'].toString();
           } else {
             displayName = 'Unknown User';
@@ -1808,7 +2006,9 @@ class FirestoreRepository {
             'role': userRole,
           });
 
-          print('👤 User found: ${displayName} (${userData['uid']}) - Role: $userRole');
+          print(
+            '👤 User found: ${displayName} (${userData['uid']}) - Role: $userRole',
+          );
         }
       }
 
@@ -1821,18 +2021,26 @@ class FirestoreRepository {
   }
 
   // Create board
-  Future<String> createBoard(String workspaceId, String name, String createdBy) async {
+  Future<String> createBoard(
+    String workspaceId,
+    String name,
+    String createdBy,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.createBoard', {
         'workspaceId': workspaceId,
         'name': name,
-        'createdBy': createdBy
+        'createdBy': createdBy,
       });
 
       // Use Firestore transaction to ensure atomic board creation with default lanes
-      final boardId = await _firestoreService.runTransaction<String>((transaction) async {
+      final boardId = await _firestoreService.runTransaction<String>((
+        transaction,
+      ) async {
         // Create board document
-        final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
+        final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(
+          workspaceId,
+        );
         final boardDocRef = boardsCollection.doc();
 
         final boardData = {
@@ -1866,9 +2074,14 @@ class FirestoreRepository {
           {'name': 'Done', 'order': 2},
         ];
 
-        final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
+        final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
+          workspaceId,
+        );
         for (final laneData in defaultLanes) {
-          final laneId = FirebaseFirestore.instance.collection('lanes').doc().id;
+          final laneId = FirebaseFirestore.instance
+              .collection('lanes')
+              .doc()
+              .id;
           final laneRef = lanesCollection.doc(laneId);
 
           transaction.set(laneRef, {
@@ -1887,7 +2100,9 @@ class FirestoreRepository {
         return boardDocRef.id;
       });
 
-      _logger.methodExit('FirestoreRepository.createBoard', {'boardId': boardId});
+      _logger.methodExit('FirestoreRepository.createBoard', {
+        'boardId': boardId,
+      });
       return boardId;
     } catch (e) {
       _logger.error('Failed to create board', e);
@@ -1896,15 +2111,21 @@ class FirestoreRepository {
   }
 
   // Update board
-  Future<void> updateBoard(String workspaceId, String boardId, String newName) async {
+  Future<void> updateBoard(
+    String workspaceId,
+    String boardId,
+    String newName,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.updateBoard', {
         'workspaceId': workspaceId,
         'boardId': boardId,
-        'newName': newName
+        'newName': newName,
       });
 
-      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
+      final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(
+        workspaceId,
+      );
       final boardRef = boardsCollection.doc(boardId);
 
       await _firestoreService.updateDocument(boardRef, {
@@ -1925,18 +2146,22 @@ class FirestoreRepository {
     try {
       _logger.methodEntry('FirestoreRepository.deleteBoard', {
         'workspaceId': workspaceId,
-        'boardId': boardId
+        'boardId': boardId,
       });
 
       // Use Firestore transaction to ensure atomic deletion
       await _firestoreService.runTransaction<void>((transaction) async {
         // Delete board document
-        final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(workspaceId);
+        final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(
+          workspaceId,
+        );
         final boardRef = boardsCollection.doc(boardId);
         transaction.delete(boardRef);
 
         // Delete all lanes in this board
-        final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
+        final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
+          workspaceId,
+        );
         final lanesQuery = await _firestoreService.getDocuments(
           lanesCollection,
           queryBuilder: (query) => query.where('boardId', isEqualTo: boardId),
@@ -1947,7 +2172,9 @@ class FirestoreRepository {
         }
 
         // Delete all cards in this board
-        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+          workspaceId,
+        );
         final cardsQuery = await _firestoreService.getDocuments(
           cardsCollection,
           queryBuilder: (query) => query.where('boardId', isEqualTo: boardId),
@@ -1972,10 +2199,12 @@ class FirestoreRepository {
     try {
       _logger.methodEntry('FirestoreRepository.deleteCard', {
         'workspaceId': workspaceId,
-        'cardId': cardId
+        'cardId': cardId,
       });
 
-      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+      final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+        workspaceId,
+      );
       final cardDocRef = cardsCollection.doc(cardId);
 
       // Check if card exists
@@ -1996,65 +2225,73 @@ class FirestoreRepository {
   }
 
   // Move card between lanes
-  Future<void> moveCard(String workspaceId, String cardId, String fromLaneId, String toLaneId, int newOrder) async {
+  Future<void> moveCard(
+    String workspaceId,
+    String cardId,
+    String fromLaneId,
+    String toLaneId,
+    int newOrder,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.moveCard', {
         'workspaceId': workspaceId,
         'cardId': cardId,
         'fromLaneId': fromLaneId,
         'toLaneId': toLaneId,
-        'newOrder': newOrder
+        'newOrder': newOrder,
       });
 
-    await _firestoreService.runTransaction((transaction) async {
-        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
+      await _firestoreService.runTransaction((transaction) async {
+        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+          workspaceId,
+        );
 
-      // Update the card's lane and order
+        // Update the card's lane and order
         final cardRef = cardsCollection.doc(cardId);
-      transaction.update(cardRef, {
-        'laneId': toLaneId,
-        'order': newOrder,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+        transaction.update(cardRef, {
+          'laneId': toLaneId,
+          'order': newOrder,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
 
-      // Reorder cards in the source lane
-      final fromLaneCards = await _firestoreService.getDocuments(
+        // Reorder cards in the source lane
+        final fromLaneCards = await _firestoreService.getDocuments(
           cardsCollection,
-        queryBuilder: (query) => query
-            .where('laneId', isEqualTo: fromLaneId)
-            .orderBy('order', descending: false),
-      );
+          queryBuilder: (query) => query
+              .where('laneId', isEqualTo: fromLaneId)
+              .orderBy('order', descending: false),
+        );
 
-      int order = 0;
-      for (final doc in fromLaneCards.docs) {
-        if (doc.id != cardId) {
-          transaction.update(doc.reference, {
-            'order': order,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+        int order = 0;
+        for (final doc in fromLaneCards.docs) {
+          if (doc.id != cardId) {
+            transaction.update(doc.reference, {
+              'order': order,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+            order++;
+          }
+        }
+
+        // Reorder cards in the destination lane
+        final toLaneCards = await _firestoreService.getDocuments(
+          cardsCollection,
+          queryBuilder: (query) => query
+              .where('laneId', isEqualTo: toLaneId)
+              .orderBy('order', descending: false),
+        );
+
+        order = 0;
+        for (final doc in toLaneCards.docs) {
+          if (order >= newOrder) {
+            transaction.update(doc.reference, {
+              'order': order + 1,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
           order++;
         }
-      }
-
-      // Reorder cards in the destination lane
-      final toLaneCards = await _firestoreService.getDocuments(
-          cardsCollection,
-        queryBuilder: (query) => query
-            .where('laneId', isEqualTo: toLaneId)
-            .orderBy('order', descending: false),
-      );
-
-      order = 0;
-      for (final doc in toLaneCards.docs) {
-        if (order >= newOrder) {
-          transaction.update(doc.reference, {
-            'order': order + 1,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-        order++;
-      }
-    });
+      });
 
       _logger.methodExit('FirestoreRepository.moveCard');
     } catch (e) {
@@ -2064,24 +2301,30 @@ class FirestoreRepository {
   }
 
   // Reorder cards within the same lane
-  Future<void> reorderCardsInLane(String workspaceId, String laneId, List<String> cardIds) async {
+  Future<void> reorderCardsInLane(
+    String workspaceId,
+    String laneId,
+    List<String> cardIds,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.reorderCardsInLane', {
         'workspaceId': workspaceId,
         'laneId': laneId,
-        'cardIdsCount': cardIds.length
+        'cardIdsCount': cardIds.length,
       });
 
-    await _firestoreService.runTransaction((transaction) async {
-        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(workspaceId);
-      for (int i = 0; i < cardIds.length; i++) {
+      await _firestoreService.runTransaction((transaction) async {
+        final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
+          workspaceId,
+        );
+        for (int i = 0; i < cardIds.length; i++) {
           final cardRef = cardsCollection.doc(cardIds[i]);
-        transaction.update(cardRef, {
-          'order': i,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-    });
+          transaction.update(cardRef, {
+            'order': i,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
 
       _logger.methodExit('FirestoreRepository.reorderCardsInLane');
     } catch (e) {
@@ -2095,10 +2338,12 @@ class FirestoreRepository {
     try {
       _logger.methodEntry('FirestoreRepository.updateLanes', {
         'workspaceId': workspaceId,
-        'lanesCount': lanes.length
+        'lanesCount': lanes.length,
       });
 
-      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(workspaceId);
+      final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
+        workspaceId,
+      );
       final batch = _firestoreService.firestore.batch();
 
       for (final lane in lanes) {
@@ -2115,14 +2360,19 @@ class FirestoreRepository {
   }
 
   // Update user's view settings for card display
-  Future<void> updateUserViewSettings(String userId, Map<String, dynamic> viewSettings) async {
+  Future<void> updateUserViewSettings(
+    String userId,
+    Map<String, dynamic> viewSettings,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.updateUserViewSettings', {
         'userId': userId,
         'viewSettingsKeys': viewSettings.keys.toList(),
       });
 
-      final userRef = _firestoreService.firestore.collection('users').doc(userId);
+      final userRef = _firestoreService.firestore
+          .collection('users')
+          .doc(userId);
 
       await userRef.update({
         'viewSettings': viewSettings,
@@ -2143,7 +2393,9 @@ class FirestoreRepository {
         'userId': userId,
       });
 
-      final userRef = _firestoreService.firestore.collection('users').doc(userId);
+      final userRef = _firestoreService.firestore
+          .collection('users')
+          .doc(userId);
       final userDoc = await userRef.get();
 
       if (userDoc.exists) {
@@ -2176,17 +2428,21 @@ class FirestoreRepository {
         'userId': userId,
       });
 
-      final userRef = _firestoreService.firestore.collection('users').doc(userId);
+      final userRef = _firestoreService.firestore
+          .collection('users')
+          .doc(userId);
       final userDoc = await userRef.get();
 
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
-        
+
         // Extract display name - prefer displayName, fallback to email
         String displayName = '';
-        if (userData['displayName'] != null && userData['displayName'].toString().isNotEmpty) {
+        if (userData['displayName'] != null &&
+            userData['displayName'].toString().isNotEmpty) {
           displayName = userData['displayName'].toString();
-        } else if (userData['email'] != null && userData['email'].toString().isNotEmpty) {
+        } else if (userData['email'] != null &&
+            userData['email'].toString().isNotEmpty) {
           displayName = userData['email'].toString();
         } else {
           displayName = 'Unknown User';
@@ -2198,18 +2454,18 @@ class FirestoreRepository {
           'displayName': displayName,
           'photoURL': userData['photoURL'],
         };
-        
+
         _logger.methodExit('FirestoreRepository.getCurrentUserInfo', {
           'displayName': displayName,
         });
-        
+
         return userInfo;
       }
 
       _logger.methodExit('FirestoreRepository.getCurrentUserInfo', {
         'userNotFound': true,
       });
-      
+
       return null;
     } catch (e) {
       _logger.error('Failed to get current user info', e);
@@ -2218,7 +2474,11 @@ class FirestoreRepository {
   }
 
   // Add note to card
-  Future<void> addNoteToCard(String workspaceId, String cardId, Map<String, dynamic> note) async {
+  Future<void> addNoteToCard(
+    String workspaceId,
+    String cardId,
+    Map<String, dynamic> note,
+  ) async {
     try {
       _logger.methodEntry('FirestoreRepository.addNoteToCard', {
         'workspaceId': workspaceId,
@@ -2226,11 +2486,13 @@ class FirestoreRepository {
         'noteId': note['id'],
       });
 
-      final cardRef = _firestoreService.getWorkspaceCardsCollection(workspaceId).doc(cardId);
-      
+      final cardRef = _firestoreService
+          .getWorkspaceCardsCollection(workspaceId)
+          .doc(cardId);
+
       // Add note to the notes array using arrayUnion
       await cardRef.update({
-        'notes': FieldValue.arrayUnion([note])
+        'notes': FieldValue.arrayUnion([note]),
       });
 
       print('✅ Note added to card successfully');
@@ -2285,7 +2547,10 @@ class FirestoreRepository {
       print('  - Workspace ID: $workspaceId');
       print('  - Document ID: $documentId');
 
-      final documentRef = _firestoreService.getDocumentReference(workspaceId, documentId);
+      final documentRef = _firestoreService.getDocumentReference(
+        workspaceId,
+        documentId,
+      );
       await _firestoreService.deleteDocument(documentRef);
 
       print('✅ Document deleted successfully');
