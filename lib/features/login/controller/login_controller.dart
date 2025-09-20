@@ -91,7 +91,7 @@ class LoginController extends GetxController {
         'Error',
         'Invalid email or password',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -204,7 +204,7 @@ class LoginController extends GetxController {
         'Error',
         'Invalid email or password',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -220,7 +220,7 @@ class LoginController extends GetxController {
         'Unavailable',
         'Apple sign-in is available only on iOS devices',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
       return;
@@ -269,7 +269,7 @@ class LoginController extends GetxController {
         'Error',
         'Invalid email or password',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
       );
     } finally {
@@ -294,7 +294,7 @@ class LoginController extends GetxController {
       'Error',
       message,
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
+      backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
       colorText: Get.theme.colorScheme.error,
     );
   }

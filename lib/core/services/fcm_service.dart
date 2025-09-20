@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:sellstory/app/routes.dart';
 import 'package:sellstory/features/board/controller/board_controller.dart';
 import 'package:sellstory/features/shell/shell_controller.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../domain/entities/job_card.dart';
 import 'logger_service.dart';
@@ -242,6 +243,7 @@ class FcmService extends GetxService {
 
   Future<void> _requestPermission() async {
     try {
+      // iOS/web style permission request via Firebase API
       final settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -258,6 +260,17 @@ class FcmService extends GetxService {
         'badge': settings.badge,
         'sound': settings.sound,
       });
+
+      // Android 13+ requires runtime POST_NOTIFICATIONS; request via permission_handler
+      if (Platform.isAndroid) {
+        final statusAndroid = await Permission.notification.status;
+        if (!statusAndroid.isGranted) {
+          final req = await Permission.notification.request();
+          LoggerService.to.addFcmLog('permission_android', data: {'requested': true, 'granted': req.isGranted});
+        } else {
+          LoggerService.to.addFcmLog('permission_android', data: {'requested': false, 'granted': true});
+        }
+      }
     } catch (e) {
       LoggerService.to.failure('Requesting notification permission failed', e);
       LoggerService.to.addFcmLog('permission_error', data: {'error': e.toString()});

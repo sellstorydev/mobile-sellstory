@@ -11,6 +11,7 @@ class ChatInput extends StatefulWidget {
   final Function(String) onSendText;
   final Function(String) onSendImage;
   final Function(String, String) onSendFile;
+  final Function(String) onSendVideo; // NEW: send video URL
   final bool enabled;
   final String workspaceId;
   final String chatroomId;
@@ -24,6 +25,7 @@ class ChatInput extends StatefulWidget {
     required this.onSendText,
     required this.onSendImage,
     required this.onSendFile,
+    required this.onSendVideo,
     required this.workspaceId,
     required this.chatroomId,
     this.enabled = true,
@@ -97,6 +99,15 @@ class _ChatInputState extends State<ChatInput> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                leading: const Icon(Icons.video_library_outlined),
+                title: Text('pick_video_from_gallery'.tr),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _pickVideo();
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: Text('pick_document_file'.tr),
                 onTap: () async {
@@ -104,6 +115,7 @@ class _ChatInputState extends State<ChatInput> {
                   await _pickFile();
                 },
               ),
+
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.quickreply_outlined),
@@ -286,7 +298,7 @@ class _ChatInputState extends State<ChatInput> {
     setState(() {
       _isUploading = true;
       _uploadProgress = 0.0;
-      _uploadStatus = 'กำลังอัพโหลดรูปภาพ...';
+      _uploadStatus = 'uploading_image'.tr;
     });
 
     try {
@@ -297,20 +309,20 @@ class _ChatInputState extends State<ChatInput> {
         onProgress: (progress) {
           setState(() {
             _uploadProgress = progress;
-            _uploadStatus = 'กำลังอัพโหลดรูปภาพ... ${(progress * 100).toInt()}%';
+            _uploadStatus = 'uploading_image_percent'.trParams({'percent': '${(progress * 100).toInt()}'});
           });
         },
       );
 
       setState(() {
-        _uploadStatus = 'ส่งรูปภาพ...';
+        _uploadStatus = 'sending_image'.tr;
       });
 
       // ส่งรูปภาพผ่าน API
       widget.onSendImage(imageUrl);
 
     } catch (e) {
-      _showErrorDialog('อัพโหลดรูปภาพไม่สำเร็จ: $e');
+      _showErrorDialog('upload_image_failed_details'.trParams({'error': '$e'}));
     } finally {
       setState(() {
         _isUploading = false;
@@ -324,7 +336,7 @@ class _ChatInputState extends State<ChatInput> {
     setState(() {
       _isUploading = true;
       _uploadProgress = 0.0;
-      _uploadStatus = 'กำลังอัพโหลดไฟล์...';
+      _uploadStatus = 'uploading_file'.tr;
     });
 
     try {
@@ -335,20 +347,67 @@ class _ChatInputState extends State<ChatInput> {
         onProgress: (progress) {
           setState(() {
             _uploadProgress = progress;
-            _uploadStatus = 'กำลังอัพโหลดไฟล์... ${(progress * 100).toInt()}%';
+            _uploadStatus = 'uploading_file_percent'.trParams({'percent': '${(progress * 100).toInt()}'});
           });
         },
       );
 
       setState(() {
-        _uploadStatus = 'ส่งไฟล์...';
+        _uploadStatus = 'sending_file'.tr;
       });
 
       // ส่งไฟล์ผ่าน API
       widget.onSendFile(fileUrl, fileName);
 
     } catch (e) {
-      _showErrorDialog('อัพโหลดไฟล์ไม่สำเร็จ: $e');
+      _showErrorDialog('upload_file_failed_details'.trParams({'error': '$e'}));
+    } finally {
+      setState(() {
+        _isUploading = false;
+        _uploadProgress = 0.0;
+        _uploadStatus = '';
+      });
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    try {
+      if (mounted) setState(() => _isPicking = true);
+      final ImagePicker picker = ImagePicker();
+      final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+      if (video == null) return; // user canceled
+      await _uploadAndSendVideo(File(video.path));
+      _toggleAttachmentOptions();
+    } catch (e) {
+      _showErrorDialog('pick_video_failed'.trParams({'error': '$e'}));
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
+  Future<void> _uploadAndSendVideo(File file) async {
+    setState(() {
+      _isUploading = true;
+      _uploadProgress = 0.0;
+      _uploadStatus = 'uploading_video'.tr;
+    });
+
+    try {
+      final videoUrl = await _uploadService.uploadVideo(
+        file: file,
+        workspaceId: widget.workspaceId,
+        chatroomId: widget.chatroomId,
+        onProgress: (progress) {
+          setState(() {
+            _uploadProgress = progress;
+            _uploadStatus = 'uploading_video_percent'.trParams({'percent': '${(progress * 100).toInt()}'});
+          });
+        },
+      );
+      setState(() { _uploadStatus = 'sending_video'.tr; });
+      widget.onSendVideo(videoUrl);
+    } catch (e) {
+      _showErrorDialog('upload_video_failed_details'.trParams({'error': '$e'}));
     } finally {
       setState(() {
         _isUploading = false;
@@ -385,7 +444,7 @@ class _ChatInputState extends State<ChatInput> {
               BoxShadow(
                 offset: const Offset(0, -1),
                 blurRadius: 6,
-                color: Colors.black.withValues(alpha: 0.06),
+                color: Colors.black.withOpacity(0.06),
               ),
             ],
           ),
@@ -549,7 +608,7 @@ class _ChatInputState extends State<ChatInput> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.08),
+                                        color: Colors.black.withOpacity(0.08),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),
@@ -586,7 +645,7 @@ class PositionedFillOverlay extends StatelessWidget {
       child: AbsorbPointer(
         absorbing: true,
         child: Container(
-          color: maskColor.withValues(alpha: alpha),
+          color: maskColor.withOpacity(alpha),
           alignment: Alignment.center,
           child: child,
         ),

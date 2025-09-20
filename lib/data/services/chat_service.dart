@@ -3,12 +3,47 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../core/network/mobile_api.dart';
+import '../../../core/services/logger_service.dart';
 
 class ChatService extends GetxService {
   static ChatService get to => Get.find();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _baseApiUrl = MobileApiConfig.baseUrl;
+  final LoggerService _logger = Get.find<LoggerService>();
+
+
+  // Build final payload for send-message (exposed for tests)
+  static Map<String, dynamic> buildSendMessagePayload({
+    required String workspaceId,
+    required String chatroomId,
+    required String platform,
+    required Map<String, dynamic> message,
+    Map<String, dynamic>? sender,
+  }) {
+    // The mobile API expects `replyTo` at top-level; some call-sites embed it inside message
+    Map<String, dynamic> msg = Map<String, dynamic>.from(message);
+    Map<String, dynamic>? topLevelReplyTo;
+    if (msg.containsKey('replyTo')) {
+      final v = msg['replyTo'];
+      if (v is Map<String, dynamic>) {
+        topLevelReplyTo = Map<String, dynamic>.from(v);
+      }
+      msg.remove('replyTo');
+    }
+
+    final effectivePlatform = platform.toLowerCase();
+
+    final body = <String, dynamic>{
+      'workspaceId': workspaceId,
+      'chatroomId': chatroomId,
+      'platform': effectivePlatform,
+      'message': msg,
+      if (topLevelReplyTo != null) 'replyTo': topLevelReplyTo,
+      if (sender != null) 'sender': sender,
+    };
+    return body;
+  }
 
   // ===== Firestore refs =====
   CollectionReference<Map<String, dynamic>> getChatroomsCollection(String workspaceId) =>
@@ -199,36 +234,54 @@ class ChatService extends GetxService {
     Map<String, dynamic>? sender,
   }) async {
     try {
-      // The mobile API expects `replyTo` at the TOP LEVEL (see docs/mobile-send-message-api.md)
-      // but current helper methods were embedding it inside the `message` map.
-      // Extract and move it so the backend can process quote / reply correctly.
-      Map<String, dynamic>? topLevelReplyTo;
-      if (message.containsKey('replyTo')) {
-        final v = message['replyTo'];
-        if (v is Map<String, dynamic>) {
-          topLevelReplyTo = Map<String, dynamic>.from(v);
-        }
-        // Avoid sending duplicate / incorrect nesting
-        message = Map<String, dynamic>.from(message);
-        message.remove('replyTo');
-      }
+      final body = ChatService.buildSendMessagePayload(
+        workspaceId: workspaceId,
+        chatroomId: chatroomId,
+        platform: platform,
+        message: message,
+        sender: sender,
+      );
+
+      // Log request summary (avoid leaking full token/text)
+      final msg = body['message'] as Map<String, dynamic>? ?? const {};
+      final type = (msg['type'] ?? 'unknown').toString();
+      final reply = body['replyTo'] as Map<String, dynamic>?;
+      final replyMsgId = reply != null ? (reply['messageId'] ?? reply['quotedMessageId'])?.toString() : null;
+      final q = reply != null ? (reply['quoteToken']?.toString() ?? '') : '';
+      final qPreview = q.isEmpty ? '(none)' : '${q.substring(0, q.length > 6 ? 6 : q.length)}...(${q.length})';
+      _logger.api('POST /api/mobile/send-message');
+      _logger.debugStructured('send-message request', {
+        'workspaceId': workspaceId,
+        'chatroomId': chatroomId,
+        'platform': (body['platform'] ?? platform).toString(),
+        'type': type,
+        'hasReplyTo': reply != null,
+        'replyTo.messageId': replyMsgId,
+        'replyTo.hasQuoteToken': q.isNotEmpty,
+        'replyTo.quoteTokenPreview': qPreview,
+      });
 
       final response = await http.post(
         Uri.parse('$_baseApiUrl/api/mobile/send-message'),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'workspaceId': workspaceId,
-          'chatroomId': chatroomId,
-          'platform': platform,
-          'message': message,
-          if (topLevelReplyTo != null) 'replyTo': topLevelReplyTo,
-          if (sender != null) 'sender': sender,
-        }),
+        body: json.encode(body),
       );
 
-      final responseData = json.decode(response.body);
+      final raw = response.body;
+      Map<String, dynamic> responseData = const {};
+      try {
+        responseData = json.decode(raw) as Map<String, dynamic>;
+      } catch (_) {
+        // keep raw
+      }
+
+      _logger.api('Response ${response.statusCode} from /api/mobile/send-message');
+      _logger.debugStructured('send-message response', {
+        'status': response.statusCode,
+        'body': responseData.isNotEmpty ? responseData : {'raw': raw},
+      });
 
       if (response.statusCode == 200 && responseData['success'] == true) {
         return {
@@ -238,7 +291,8 @@ class ChatService extends GetxService {
       } else {
         throw Exception(responseData['error'] ?? 'Failed to send message');
       }
-    } catch (e) {
+    } catch (e, st) {
+      _logger.failure('send-message failed', e, st);
       throw Exception('Network error: $e');
     }
   }
