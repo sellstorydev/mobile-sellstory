@@ -21,6 +21,7 @@ import 'package:html_editor_enhanced/html_editor.dart';
 import '../../customers/view/add_edit_customer_page.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/services/hashtag_service.dart';
+import '../../../core/widgets/customers_input_field.dart' as cif;
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -271,7 +272,7 @@ class _EditCardPageState extends State<EditCardPage> {
   // Form state
   String _selectedLane = '';
   String _selectedAssignee = '';
-  String _selectedCustomer = '';
+  List<String> _selectedCustomerIds = [];
   String _selectedCompany = 'none';
   String _selectedCustomerInterest = 'เริ่มต้น';
   String _selectedStatus = 'Pending';
@@ -297,7 +298,7 @@ class _EditCardPageState extends State<EditCardPage> {
   // Available options
   List<Map<String, dynamic>> _availableLanes = [];
   List<Map<String, dynamic>> _availableAssignees = [];
-  List<Map<String, dynamic>> _availableCustomers = [];
+  List<cif.Customer> _availableCustomers = [];
   List<Map<String, dynamic>> _availableCompanies = [];
   List<Map<String, dynamic>> _availableUsers = [];
 
@@ -408,8 +409,8 @@ class _EditCardPageState extends State<EditCardPage> {
 
     _selectedLane = widget.card.laneId;
     _selectedAssignee = widget.card.assignedTo;
-    _selectedCustomer =
-        widget.card.customerId ?? ''; // ใช้ customerId แทน customer
+    _selectedCustomerIds =
+        widget.card.customerId != null ? [widget.card.customerId!] : []; // ใช้ customerId แทน customer
     _selectedCompany =
         widget.card.company?['id'] ?? 'none'; // Initialize company from JobCard
     _selectedCustomerInterest =
@@ -506,8 +507,8 @@ class _EditCardPageState extends State<EditCardPage> {
     await _loadQuotationTemplates();
 
     // โหลด companies ของ customer ที่เลือกไว้
-    if (_selectedCustomer.isNotEmpty && _selectedCustomer != 'none') {
-      await _loadCompaniesForCustomer(_selectedCustomer);
+    if (_selectedCustomerIds.isNotEmpty && _selectedCustomerIds.first != 'none') {
+      await _loadCompaniesForCustomer(_selectedCustomerIds.first);
     }
   }
 
@@ -670,31 +671,45 @@ class _EditCardPageState extends State<EditCardPage> {
           };
         }
       }
-      _availableCustomers = customerMap.values.toList();
+      // Convert domain Customer to cif.Customer objects
+      _availableCustomers = customers.map((customer) => cif.Customer(
+        id: customer.id,
+        name: customer.name,
+        customId: customer.customId,
+        emails: customer.emails,
+        phones: customer.phones,
+        companyNames: customer.companyNames,
+        customFields: [], // Convert if needed
+        workspaceId: customer.workspaceId,
+        createdAt: customer.createdAt,
+        updatedAt: customer.updatedAt,
+        createdBy: customer.createdBy,
+        updatedBy: customer.updatedBy,
+      )).toList();
 
       print('✅ Customers loaded: ${_availableCustomers.length} customers');
 
       // Validate selected customer exists in available customers
-      if (_selectedCustomer.isNotEmpty) {
+      if (_selectedCustomerIds.isNotEmpty) {
         final customerExists = _availableCustomers.any(
-          (customer) => customer['id'] == _selectedCustomer,
+          (customer) => customer.id == _selectedCustomerIds.first,
         );
         if (!customerExists) {
           print(
-            '⚠️ Selected customer $_selectedCustomer not found in available customers, resetting',
+            '⚠️ Selected customer ${_selectedCustomerIds.first} not found in available customers, resetting',
           );
-          _selectedCustomer = '';
+          _selectedCustomerIds.clear();
         }
       }
     } catch (e) {
       print('❌ Failed to load customers: $e');
       _availableCustomers = [];
-      _selectedCustomer = '';
+      _selectedCustomerIds.clear();
     }
 
     // Initialize company selection if customer is already selected
-    if (_selectedCustomer.isNotEmpty) {
-      await _loadCompaniesForCustomer(_selectedCustomer);
+    if (_selectedCustomerIds.isNotEmpty) {
+      await _loadCompaniesForCustomer(_selectedCustomerIds.first);
     } else {
       // Initialize with default "None" option
       _availableCompanies = [
@@ -3965,11 +3980,11 @@ class _EditCardPageState extends State<EditCardPage> {
 
       // Get customer name if selected
       String customerName = '';
-      if (_selectedCustomer.isNotEmpty) {
+      if (_selectedCustomerIds.isNotEmpty) {
         final selectedCustomer = _availableCustomers.firstWhereOrNull(
-          (c) => c['id'] == _selectedCustomer,
+          (c) => c.id == _selectedCustomerIds.first,
         );
-        customerName = selectedCustomer?['name'] ?? '';
+        customerName = selectedCustomer?.displayName ?? '';
       }
 
       // Prepare todos data in correct format
@@ -4082,7 +4097,7 @@ class _EditCardPageState extends State<EditCardPage> {
         status: _selectedStatus,
         assignedTo: _selectedAssignee,
         customer: customerName, // Store customer name, not ID
-        customerId: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
+        customerId: _selectedCustomerIds.isNotEmpty ? _selectedCustomerIds.first : null,
         customerInterest: _selectedCustomerInterest,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,
@@ -4587,67 +4602,32 @@ class _EditCardPageState extends State<EditCardPage> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: _selectedCustomer.isNotEmpty ? _selectedCustomer : null,
-                decoration: const InputDecoration(
-                  hintText: 'Select customer',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                ),
-                isExpanded: true,
-                items: _availableCustomers.map((customer) {
-                  return DropdownMenuItem<String>(
-                    value: customer['id'],
-                    child: Text(
-                      customer['name'] ?? customer['id'],
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCustomer = value ?? '';
-                  });
-
-                  // Load companies for selected customer
-                  if (value != null && value.isNotEmpty) {
-                    _loadCompaniesForCustomer(value);
-                  } else {
-                    setState(() {
-                      _availableCompanies = [
-                        {'id': 'none', 'name': 'None'},
-                      ];
-                      _selectedCompany = 'none';
-                    });
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: _openAddCustomerPage,
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('New'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ),
-          ],
+        cif.CustomersInputField(
+          selectedCustomerIds: _selectedCustomerIds,
+          availableCustomers: _availableCustomers,
+          onCustomersChanged: (List<String> selectedIds) {
+            setState(() {
+              _selectedCustomerIds = selectedIds;
+              _selectedCompany = 'none'; // Reset company selection
+            });
+            // Load companies for selected customer
+            if (selectedIds.isNotEmpty) {
+              _loadCompaniesForCustomer(selectedIds.first);
+            } else {
+              setState(() {
+                _availableCompanies = [
+                  {'id': 'none', 'name': 'None'},
+                ];
+                _selectedCompany = 'none';
+              });
+            }
+          },
+          label: 'Customer',
+          hintText: 'Select a customer',
+          allowMultipleSelection: false,
+          showBorder: false,
+          workspaceId: widget.card.workspaceId,
+          enableAlgoliaSearch: true,
         ),
         const SizedBox(height: 20),
         // Company Section
