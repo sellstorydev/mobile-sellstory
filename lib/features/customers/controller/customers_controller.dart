@@ -9,6 +9,7 @@ import '../../../domain/entities/customer.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/services/quota_usage_service.dart';
 import '../../../core/services/algolia_search_service.dart';
+import '../../board/controller/board_controller.dart';
 
 class CustomersController extends GetxController {
   final CustomerRepository _customerRepository;
@@ -604,8 +605,22 @@ class CustomersController extends GetxController {
   // Switch to a different workspace
   Future<void> switchWorkspace(String workspaceId) async {
     try {
+      print('🔄 Starting workspace switch to: $workspaceId');
+      
+      // Clear existing customer lists immediately to prevent old data showing
+      customers.clear();
+      filteredCustomers.clear();
+      totalCustomersCount.value = 0;
+      
+      // Cancel any existing subscriptions to prevent data conflicts
+      await _customersSub?.cancel();
+      _customersSub = null;
+      
+      // Update workspace ID only after clearing data
       currentWorkspaceId.value = workspaceId;
-      print('🔄 Switched to workspace: $workspaceId');
+      
+      print('📊 Current board: ${Get.find<BoardController>().currentBoardId.value}');
+      print('📈 Customer count after clear: ${customers.length}');
 
       // Update last active workspace ID in user document
       try {
@@ -620,6 +635,8 @@ class CustomersController extends GetxController {
       await loadCustomers(workspaceId);
       await loadCustomerSources(workspaceId);
       await _loadCompaniesIndex(workspaceId);
+      
+      print('📈 Final customer count: ${customers.length}');
     } catch (e) {
       print('❌ Failed to switch workspace: $e');
       errorMessage.value = 'Failed to switch workspace';

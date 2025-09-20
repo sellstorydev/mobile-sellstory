@@ -13,6 +13,7 @@ import '../state/board_state.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import 'lane_display_controller.dart';
 import '../../../core/services/quota_usage_service.dart';
+import '../../customers/controller/customers_controller.dart';
 
 class BoardController extends GetxController implements BoardView {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -297,6 +298,17 @@ class BoardController extends GetxController implements BoardView {
        try {
          await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
        } catch (_) {}
+
+       // Notify CustomersController of workspace change if it's registered
+       if (Get.isRegistered<CustomersController>()) {
+         try {
+           final customersController = Get.find<CustomersController>();
+           print('🔄 Notifying CustomersController of workspace switch');
+           await customersController.switchWorkspace(workspaceId);
+         } catch (e) {
+           print('⚠️ Failed to notify CustomersController: $e');
+         }
+       }
 
        // Clear current data
        lanes.clear();

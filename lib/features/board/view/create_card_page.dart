@@ -252,7 +252,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
         'name': lane.title,
       }).toList();
       
-      print('✅ Lanes loaded for board $boardId: ${_availableLanes.length} lanes');
       
       // Update selected lane based on available lanes
       if (widget.laneId != null && _availableLanes.any((lane) => lane['id'] == widget.laneId)) {
