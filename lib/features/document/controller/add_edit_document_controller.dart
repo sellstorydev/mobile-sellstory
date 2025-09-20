@@ -6,6 +6,7 @@ import '../../../data/repositories/firestore_repository.dart';
 import '../../../domain/entities/customer.dart';
 import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/id_generation_service.dart';
+import '../../../core/services/algolia_document_sync_service.dart';
 import 'quotations_list_controller.dart';
 import 'invoice_list_controller.dart';
 import 'receipt_list_controller.dart';
@@ -3652,6 +3653,17 @@ class AddEditDocumentController extends GetxController {
           documentData: documentData,
         );
         print('📝 Updated document: $documentId');
+        
+        // Sync updated document to Algolia
+        try {
+          final docToSync = Map<String, dynamic>.from(documentData);
+          docToSync['id'] = documentId;
+          await AlgoliaDocumentSyncService.syncDocumentToAlgolia(docToSync);
+          print('🔍 Successfully synced updated document to Algolia');
+        } catch (algoliaError) {
+          print('⚠️ Failed to sync updated document to Algolia: $algoliaError');
+          // Don't throw error - Algolia sync failure shouldn't break the main operation
+        }
       } else {
         // Create new document
         newDocumentId = await _repository.createDocument(
@@ -3659,6 +3671,17 @@ class AddEditDocumentController extends GetxController {
           documentData: documentData,
         );
         print('📝 Created new document with ID: $newDocumentId');
+        
+        // Sync new document to Algolia
+        try {
+          final docToSync = Map<String, dynamic>.from(documentData);
+          docToSync['id'] = newDocumentId;
+          await AlgoliaDocumentSyncService.syncDocumentToAlgolia(docToSync);
+          print('🔍 Successfully synced new document to Algolia');
+        } catch (algoliaError) {
+          print('⚠️ Failed to sync new document to Algolia: $algoliaError');
+          // Don't throw error - Algolia sync failure shouldn't break the main operation
+        }
       }
 
       // Show success notification with document ID

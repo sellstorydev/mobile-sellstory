@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +8,7 @@ import '../../../core/services/workspace_members_service.dart';
 import '../../../core/services/id_generation_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../view/document_view_page.dart';
+import '../../../core/services/algolia_search_service.dart';
 import '../view/add_edit_document_page.dart';
 
 class InvoiceListController extends GetxController {
@@ -37,6 +39,13 @@ class InvoiceListController extends GetxController {
   
   // Highlighting variables
   final highlightedDocumentId = Rx<String?>(null);
+  
+  // Algolia search state
+  final useAlgoliaSearch = false.obs;
+  final isSearching = false.obs;
+  
+  // Search debounce timer
+  Timer? _searchDebounceTimer;
 
   @override
   void onInit() {
@@ -47,6 +56,7 @@ class InvoiceListController extends GetxController {
   @override
   void onClose() {
     searchController.dispose();
+    _searchDebounceTimer?.cancel();
     super.onClose();
   }
 
@@ -225,7 +235,21 @@ class InvoiceListController extends GetxController {
   }
 
   void onSearchChanged(String query) {
-    _applyFilters();
+    // Cancel previous timer if exists
+    _searchDebounceTimer?.cancel();
+    
+    // If query is empty, reset search immediately
+    if (query.trim().isEmpty) {
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _applyFilters();
+      return;
+    }
+    
+    // Debounce search for 500ms to avoid too many API calls while typing
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      triggerAlgoliaSearch(query.trim());
+    });
   }
 
   void applyFilters() {
@@ -234,21 +258,24 @@ class InvoiceListController extends GetxController {
 
   void _applyFilters() {
     try {
-      List<Map<String, dynamic>> filtered = List.from(allInvoices);
+      final searchQuery = searchController.text.trim();
       
-      // Apply search filter
-      final searchQuery = searchController.text.toLowerCase();
-      if (searchQuery.isNotEmpty) {
-        filtered = filtered.where((invoice) {
-          final docNo = (invoice['docNo'] ?? '').toString().toLowerCase();
-          final customerName = (invoice['customer']?['name'] ?? '').toString().toLowerCase();
-          final sellerName = (invoice['seller']?['displayName'] ?? '').toString().toLowerCase();
-          
-          return docNo.contains(searchQuery) || 
-                 customerName.contains(searchQuery) ||
-                 sellerName.contains(searchQuery);
-        }).toList();
+      // Don't apply filters if we're currently doing an Algolia search
+      // The search will handle filtering through Algolia instead
+      if (useAlgoliaSearch.value && searchQuery.isNotEmpty) {
+        return;
       }
+      
+      // If there's a search query but we're not using Algolia, trigger search
+      if (searchQuery.isNotEmpty) {
+        triggerAlgoliaSearch(searchQuery);
+        return;
+      }
+      
+      // Reset to show all when no search query
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      List<Map<String, dynamic>> filtered = List.from(allInvoices);
       
       // Apply seller filter
       if (selectedSeller.value != null) {
@@ -314,8 +341,101 @@ class InvoiceListController extends GetxController {
     selectedCustomDateRange.value = null;
     selectedStatuses.clear();
     searchController.clear();
+    useAlgoliaSearch.value = false;
+    isSearching.value = false;
     invoices.value = List.from(allInvoices);
     filteredInvoices.value = List.from(allInvoices);
+  }
+
+  /// Trigger Algolia search manually (called by search button)
+  void triggerAlgoliaSearch(String query) {
+    if (query.trim().isEmpty) {
+      // If query is empty, reset to show all invoices with current filters
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _applyFilters();
+      return;
+    }
+    
+    isSearching.value = true;
+    _searchWithAlgolia(query.trim());
+  }
+
+  /// Search invoices using Algolia
+  void _searchWithAlgolia(String query) async {
+    try {
+      useAlgoliaSearch.value = true;
+      isSearching.value = true;
+      
+      // Build filters for Algolia
+      final filters = <String, dynamic>{};
+      
+      // Add seller filter
+      if (selectedSeller.value != null) {
+        filters['seller.uid'] = selectedSeller.value!.uid;
+      }
+      
+      // Add status filter
+      if (selectedStatuses.isNotEmpty) {
+        filters['status'] = selectedStatuses.toList();
+      }
+      
+      // Search with Algolia
+      final searchStream = AlgoliaSearchService.searchInvoices(
+        query: query,
+        workspaceId: currentWorkspaceId.value,
+        filters: filters,
+        hitsPerPage: 50,
+      );
+      
+      // Listen to search results
+      searchStream.listen(
+        (response) {
+          final hits = response.hits;
+          final results = hits.map((hit) {
+            final data = Map<String, dynamic>.from(hit);
+            data['id'] = hit['objectID'] ?? '';
+            return data;
+          }).toList();
+          
+          filteredInvoices.value = results;
+          invoices.value = results; // Update the main observable list too
+          isSearching.value = false;
+          print('🔍 Algolia search results: ${results.length} invoices found');
+        },
+        onError: (error) {
+          print('❌ Algolia search error: $error');
+          // Fallback to local search
+          useAlgoliaSearch.value = false;
+          isSearching.value = false;
+          _applyLocalSearch(query);
+        },
+      );
+      
+    } catch (e) {
+      print('❌ Failed to search with Algolia: $e');
+      useAlgoliaSearch.value = false;
+      isSearching.value = false;
+      _applyLocalSearch(query);
+    }
+  }
+
+  /// Fallback local search method
+  void _applyLocalSearch(String query) {
+    final searchQuery = query.toLowerCase();
+    final filtered = allInvoices.where((invoice) {
+      final docNo = (invoice['docNo'] ?? '').toString().toLowerCase();
+      final customerName = (invoice['customer']?['name'] ?? '').toString().toLowerCase();
+      final sellerName = (invoice['seller']?['displayName'] ?? '').toString().toLowerCase();
+      
+      return docNo.contains(searchQuery) || 
+             customerName.contains(searchQuery) ||
+             sellerName.contains(searchQuery);
+    }).toList();
+    
+    filteredInvoices.value = filtered;
+    invoices.value = filtered; // Update the main observable list too
+    print('🔍 Local search results: ${filtered.length} invoices found');
   }
 
   void viewInvoice(Map<String, dynamic> invoice) async {

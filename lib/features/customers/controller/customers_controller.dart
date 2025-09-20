@@ -8,6 +8,7 @@ import '../../../data/services/firestore_service.dart';
 import '../../../domain/entities/customer.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/services/quota_usage_service.dart';
+import '../../../core/services/algolia_search_service.dart';
 
 class CustomersController extends GetxController {
   final CustomerRepository _customerRepository;
@@ -44,6 +45,9 @@ class CustomersController extends GetxController {
   StreamSubscription<List<Customer>>? _customersSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _workspaceQuotaSub;
   StreamSubscription<User?>? _authSub;
+
+  // Algolia search state
+  final RxBool useAlgoliaSearch = false.obs;
 
   CustomersController(this._customerRepository);
 
@@ -723,6 +727,78 @@ class CustomersController extends GetxController {
     if (limit == -1) return false;
     if (limit <= 0) return false;
     return usersQuotaUsed.value >= limit;
+  }
+
+  /// Search customers using Algolia (alternative to local search)
+  void searchWithAlgolia(String query) async {
+    if (query.trim().isEmpty) {
+      useAlgoliaSearch.value = false;
+      _filterCustomers();
+      return;
+    }
+
+    try {
+      useAlgoliaSearch.value = true;
+      
+      // Search with Algolia
+      final searchStream = AlgoliaSearchService.searchCustomers(
+        query: query,
+        workspaceId: currentWorkspaceId.value,
+        hitsPerPage: 100,
+      );
+      
+      // Listen to search results
+      searchStream.listen(
+        (response) {
+          final hits = response.hits;
+          final results = hits.map((hit) {
+            try {
+              final data = Map<String, dynamic>.from(hit);
+              data['id'] = hit['objectID'] ?? '';
+              return Customer.fromMap(data, data['id']);
+            } catch (e) {
+              print('❌ Error parsing customer from Algolia: $e');
+              return null;
+            }
+          }).where((customer) => customer != null).cast<Customer>().toList();
+          
+          // Apply permission filtering to results
+          _applyPermissionFiltering(results);
+          
+          print('🔍 Algolia search results: ${results.length} customers found');
+        },
+        onError: (error) {
+          print('❌ Algolia search error: $error');
+          // Fallback to local search
+          useAlgoliaSearch.value = false;
+          _filterCustomers();
+        },
+      );
+      
+    } catch (e) {
+      print('❌ Failed to search with Algolia: $e');
+      useAlgoliaSearch.value = false;
+      _filterCustomers();
+    }
+  }
+
+  /// Apply permission filtering to search results
+  void _applyPermissionFiltering(List<Customer> searchResults) {
+    final isOwner = MobilePermissionsService.to.isOwner;
+    final canViewAll = MobilePermissionsService.to.can('customer:view:all');
+    final canViewAssigned = MobilePermissionsService.to.can('customer:view:assigned');
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    List<Customer> baseList;
+    if (isOwner || canViewAll) {
+      baseList = searchResults;
+    } else if (canViewAssigned && userId.isNotEmpty) {
+      baseList = searchResults.where((c) => c.assignees.contains(userId)).toList();
+    } else {
+      baseList = [];
+    }
+    
+    filteredCustomers.value = baseList;
   }
 
   @override

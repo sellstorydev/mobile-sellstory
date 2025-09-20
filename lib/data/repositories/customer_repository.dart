@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/customer.dart';
 import '../services/firestore_service.dart';
 import '../services/mobile_permissions_service.dart';
+import '../../core/services/algolia_customer_sync_service.dart';
 
 // Paged result for customers pagination
 class PagedCustomersResult {
@@ -208,6 +209,11 @@ class CustomerRepository {
       final docRef = await _firestoreService
           .getWorkspaceCustomersCollection(workspaceId)
           .add(customer.toMap());
+      
+      // Sync to Algolia after successful Firestore operation
+      final customerWithId = customer.copyWith(id: docRef.id);
+      await AlgoliaCustomerSyncService.syncCustomerToAlgolia(customerWithId);
+      
       return docRef.id;
     } catch (e) {
       throw Exception('Failed to add customer: $e');
@@ -221,6 +227,9 @@ class CustomerRepository {
           .getWorkspaceCustomersCollection(workspaceId)
           .doc(customer.id)
           .update(customer.toMap());
+      
+      // Sync to Algolia after successful Firestore operation
+      await AlgoliaCustomerSyncService.syncCustomerToAlgolia(customer);
     } catch (e) {
       throw Exception('Failed to update customer: $e');
     }
@@ -233,6 +242,9 @@ class CustomerRepository {
           .getWorkspaceCustomersCollection(workspaceId)
           .doc(customerId)
           .delete();
+      
+      // Remove from Algolia after successful Firestore operation
+      await AlgoliaCustomerSyncService.syncCustomerDeletionToAlgolia(customerId);
     } catch (e) {
       throw Exception('Failed to delete customer: $e');
     }

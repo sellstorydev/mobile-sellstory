@@ -22,6 +22,14 @@ class ProductsPage extends StatelessWidget {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
+          // Sync to Algolia button (temporary for testing)
+          IconButton(
+            onPressed: () {
+              controller.syncAllProductsToAlgolia();
+            },
+            icon: const Icon(Icons.cloud_sync, color: AppTheme.primaryOrange),
+            tooltip: 'Sync to Algolia',
+          ),
 
           // Add product button
           PermissionGuard(
@@ -63,16 +71,12 @@ class ProductsPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               color: AppTheme.backgroundWhite,
               child: TextField(
-                onChanged: controller.searchProducts,
+                controller: controller.searchController,
+                onChanged: controller.onSearchChanged,
                 decoration: InputDecoration(
                   hintText: 'search_products'.tr,
                   prefixIcon: const Icon(Icons.search, color: AppTheme.textGrey),
-                  suffixIcon: Obx(() => controller.searchQuery.value.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: AppTheme.textGrey),
-                          onPressed: controller.clearSearch,
-                        )
-                      : const SizedBox.shrink()),
+                  suffixIcon: _buildSearchAndClearSuffixIcons(controller),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppTheme.borderGrey),
@@ -338,7 +342,6 @@ class ProductsPage extends StatelessWidget {
                         itemCount: (controller.filteredProducts.length / crossAxisCount).ceil(),
                         itemBuilder: (context, rowIndex) {
                           final startIndex = rowIndex * crossAxisCount;
-                          final endIndex = (startIndex + crossAxisCount).clamp(0, controller.filteredProducts.length);
 
                           return Padding(
                             padding: EdgeInsets.only(bottom: spacing),
@@ -375,5 +378,50 @@ class ProductsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildSearchAndClearSuffixIcons(ProductsController controller) {
+    final hasSearchText = controller.searchQuery.value.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Search button
+          Obx(() => IconButton(
+            onPressed: () => _triggerSearch(controller),
+            icon: controller.isSearching.value
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  )
+                : Icon(
+                    Icons.search,
+                    color: hasSearchText 
+                        ? AppTheme.primaryOrange
+                        : AppTheme.textGrey,
+                  ),
+          )),
+          // Clear button
+          if (hasSearchText)
+            IconButton(
+              icon: const Icon(Icons.clear, color: AppTheme.textGrey),
+              onPressed: controller.clearSearch,
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _triggerSearch(ProductsController controller) {
+    final query = controller.searchController.text.trim();
+    if (query.isNotEmpty) {
+      controller.triggerAlgoliaSearch(query);
+    }
   }
 }

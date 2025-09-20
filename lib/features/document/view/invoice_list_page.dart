@@ -134,7 +134,7 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
                 Icons.search,
                 color: AppTheme.textSecondary,
               ),
-              suffixIcon: _buildFilterSuffixIcon(controller),
+              suffixIcon: _buildSearchAndFilterSuffixIcons(controller),
               filled: true,
               fillColor: AppTheme.backgroundGrey,
               border: OutlineInputBorder(
@@ -257,21 +257,54 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
     }
   }
 
-  Widget _buildFilterSuffixIcon(InvoiceListController controller) {
+  Widget _buildSearchAndFilterSuffixIcons(InvoiceListController controller) {
     final hasActiveFilters = _hasActiveFilters(controller);
+    final isSearching = controller.searchController.text.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.only(right: AppTheme.spacing8),
-      child: IconButton(
-        onPressed: () => _showFilterCenterDialog(controller),
-        icon: Icon(
-          Icons.tune,
-          color: hasActiveFilters
-              ? AppTheme.primaryOrange
-              : AppTheme.textSecondary,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Search button
+          Obx(() => IconButton(
+            onPressed: () => _triggerSearch(controller),
+            icon: controller.isSearching.value
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  )
+                : Icon(
+                    Icons.search,
+                    color: isSearching 
+                        ? AppTheme.primaryOrange
+                        : AppTheme.textSecondary,
+                  ),
+          )),
+          // Filter button
+          IconButton(
+            onPressed: () => _showFilterCenterDialog(controller),
+            icon: Icon(
+              Icons.tune,
+              color: hasActiveFilters
+                  ? AppTheme.primaryOrange
+                  : AppTheme.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  void _triggerSearch(InvoiceListController controller) {
+    final query = controller.searchController.text.trim();
+    if (query.isNotEmpty) {
+      controller.triggerAlgoliaSearch(query);
+    }
   }
 
   void _showFilterCenterDialog(InvoiceListController controller) {
@@ -351,7 +384,7 @@ class _InvoiceListPageState extends State<InvoiceListPage> with WidgetsBindingOb
     InvoiceListController controller,
   ) {
     final docNo = invoice['docNo'] ?? '';
-    final customerName = invoice['customer']?['name'] ?? '';
+    final customerName = invoice['customer']?['name'] ?? invoice['customerName'] ?? "";
     final grandTotal = invoice['grandTotal']?.toDouble() ?? 0.0;
     final status = invoice['status'] ?? 'DRAFT';
     final createdAt = invoice['createdAt'] ?? 0;

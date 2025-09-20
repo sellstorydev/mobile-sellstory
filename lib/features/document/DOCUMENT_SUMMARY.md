@@ -1,5 +1,52 @@
 # Document System Development Summary
 
+## Latest Updates (January 27, 2025)
+
+### Enhanced Algolia Search with Dedicated Search Button (January 27, 2025)
+- **NEW FEATURE**: Added dedicated Algolia search button alongside filter button in invoice list
+- **Search Button Implementation**:
+  - Visual search button with loading indicator during search operations
+  - Positioned next to filter button in search bar suffix area
+  - Color changes to orange when search is active or has results
+  - Shows spinning progress indicator during active search
+- **Enhanced Search Logic**:
+  - Added `triggerAlgoliaSearch()` method for manual search trigger
+  - Implemented `isSearching` observable for better search state management
+  - Added 500ms debounce timer for auto-search while typing to prevent excessive API calls
+  - Improved coordination between manual search (button) and auto-search (typing)
+  - Enhanced error handling with fallback to local search
+  - Both search methods now update `invoices` list for consistent UI display
+- **Search State Management**:
+  - `isSearching`: Tracks active search operations for UI feedback
+  - `useAlgoliaSearch`: Indicates when Algolia search is being used vs local filtering
+  - `_searchDebounceTimer`: Prevents excessive API calls during typing
+- **User Experience Improvements**:
+  - Immediate search when clicking search button
+  - Automatic search 500ms after stopping typing
+  - Clear visual feedback for search states (idle, searching, results)
+  - Proper cleanup of search timers on controller disposal
+- **Technical Enhancements**:
+  - Added `dart:async` import for Timer functionality
+  - Enhanced `clearFilters()` to reset all search states
+  - Improved filter coordination to prevent conflicts with search operations
+  - Better error recovery and state management
+
+### Algolia Search Integration (January 27, 2025)
+- **FEATURE**: Enhanced document search with Algolia Search for superior search performance
+- **Implementation**: Integrated Algolia search into all document list controllers (quotations, invoices, receipts)
+- **Search Capability**:
+  - Real-time search across document numbers, customer names, and seller names
+  - Advanced filtering with workspace-specific results
+  - Fallback to local search if Algolia fails
+  - Support for status and seller filtering in combination with search
+- **Architecture**:
+  - `AlgoliaConfig`: Configuration service with API keys and index mappings
+  - `AlgoliaSearchService`: Unified search service for all entity types
+  - Enhanced list controllers with `_searchWithAlgolia()` and `_applyLocalSearch()` methods
+- **Search Indices**: Uses dedicated indices for quotations, invoices, and receipts
+- **Performance**: Fast, scalable search with up to 50 results per query
+- **Error Handling**: Graceful fallback to local filtering when Algolia is unavailable
+
 ## Recent Developments (January 27, 2025)
 
 ### Document Deletion Functionality (September 19, 2025)
@@ -272,13 +319,12 @@
 ## Files Modified
 - `lib/features/document/controller/add_edit_document_controller.dart`
 - `lib/features/document/view/add_edit_document_page.dart`
+- `lib/features/document/controller/invoice_list_controller.dart` *(Enhanced with Algolia search button)*
+- `lib/features/document/view/invoice_list_page.dart` *(Added search button UI)*
 - `lib/core/i18n/app_translations.dart`
 - `lib/features/document/controller/invoice_creation_controller.dart`
-- `lib/features/document/controller/invoice_list_controller.dart`
 - `lib/features/document/controller/quotations_list_controller.dart`
 - `lib/data/repositories/firestore_repository.dart`
-- `lib/features/document/controller/quotations_list_controller.dart`
-- `lib/features/document/controller/invoice_list_controller.dart`
 - `lib/features/document/controller/receipt_list_controller.dart`
 
 ## Testing Status

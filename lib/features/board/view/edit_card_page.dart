@@ -16,6 +16,7 @@ import '../../../data/services/mobile_permissions_service.dart';
 import '../../document/view/create_document_from_card_page.dart';
 import '../../document/view/add_edit_document_page.dart';
 import '../../../core/services/notifications_service.dart';
+import '../../../core/services/algolia_document_sync_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
 import '../../customers/view/add_edit_customer_page.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
@@ -6943,6 +6944,17 @@ class _EditCardPageState extends State<EditCardPage> {
           documentId: documentId,
         );
         print('✅ Deleted from /documents collection');
+        
+        // Sync document deletion to Algolia
+        try {
+          // Extract document type from the document data
+          final documentType = documentData['type'] ?? '';
+          await AlgoliaDocumentSyncService.syncDocumentDeletionToAlgolia(documentId, documentType);
+          print('🔍 Successfully synced document deletion to Algolia');
+        } catch (algoliaError) {
+          print('⚠️ Failed to sync document deletion to Algolia: $algoliaError');
+          // Don't throw error - Algolia sync failure shouldn't break the main operation
+        }
       } else {
         print(
           'ℹ️ Skipping /documents deletion - document has NOT_FOUND status',
