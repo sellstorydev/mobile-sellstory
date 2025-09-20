@@ -728,7 +728,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final priority = event['priority'] ?? 'medium';
     final description = event['description'] ?? '';
     final date = event['date'] ?? 0;
-    final assignee = event['assignee'];
+    final assigneeDisplayName = event['assigneeDisplayName'];
     final parentCardTitle = event['parentCardTitle'];
 
     return Container(
@@ -950,7 +950,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     const Spacer(),
 
                     // Assignee
-                    if (assignee != null) ...[
+                    if (assigneeDisplayName != null && assigneeDisplayName.isNotEmpty) ...[
                       Icon(
                         Icons.person,
                         size: AppTheme.iconSize12,
@@ -958,9 +958,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       ),
                       const SizedBox(width: AppTheme.spacing4),
                       Text(
-                        assignee is String
-                            ? assignee
-                            : assignee['displayName'] ?? 'Unknown',
+                        assigneeDisplayName,
                         style: TextStyle(
                           color: AppTheme.textSecondary,
                           fontSize: AppTheme.fontSize12,
