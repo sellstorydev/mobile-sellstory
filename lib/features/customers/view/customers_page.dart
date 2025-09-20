@@ -11,7 +11,6 @@ import '../../board/controller/board_controller.dart';
 import '../../shell/shell_controller.dart';
 import '../../../core/services/quota_guard.dart';
 
-
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
 
@@ -19,11 +18,8 @@ class CustomersPage extends StatefulWidget {
   State<CustomersPage> createState() => _CustomersPageState();
 }
 
-
-
 class _CustomersPageState extends State<CustomersPage> {
   late CustomersController _controller;
-  final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
 
@@ -38,9 +34,11 @@ class _CustomersPageState extends State<CustomersPage> {
 
     _scrollController.addListener(() {
       if (!_controller.hasMore.value || _controller.isPageLoading.value) return;
-      if (_scrollController.position.maxScrollExtent == 0.0) return; // nothing to scroll
+      if (_scrollController.position.maxScrollExtent == 0.0)
+        return; // nothing to scroll
       final threshold = 200.0; // px before bottom to trigger
-      if (_scrollController.position.pixels + threshold >= _scrollController.position.maxScrollExtent) {
+      if (_scrollController.position.pixels + threshold >=
+          _scrollController.position.maxScrollExtent) {
         _controller.loadMoreCustomers();
       }
     });
@@ -48,12 +46,10 @@ class _CustomersPageState extends State<CustomersPage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     _searchFocus.dispose();
     _scrollController.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +78,10 @@ class _CustomersPageState extends State<CustomersPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Image.asset('assets/app_icon_original.png', fit: BoxFit.cover),
+                  child: Image.asset(
+                    'assets/app_icon_original.png',
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 PopupMenuButton<String>(
@@ -119,7 +118,11 @@ class _CustomersPageState extends State<CustomersPage> {
                         ),
                       ),
                       SizedBox(width: 4),
-                      Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.black54),
+                      Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 18,
+                        color: Colors.black54,
+                      ),
                     ],
                   ),
                 ),
@@ -163,43 +166,45 @@ class _CustomersPageState extends State<CustomersPage> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: TextField(
-                controller: _searchController,
+                controller: _controller.searchController,
                 focusNode: _searchFocus,
-                onChanged: _controller.setSearchQuery,
+                onChanged: _controller.onSearchChanged,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText:
-                  'search_placeholder_customers'.tr,
+                  hintText: 'search_placeholder_customers'.tr,
                   hintStyle: const TextStyle(color: AppTheme.textSecondary),
                   border: InputBorder.none,
-                  prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
-                  suffixIcon: Obx(() {
-                    final showClear = _controller.searchQuery.value.isNotEmpty;
-                    return showClear
-                        ? IconButton(
-                      tooltip: 'clear_search'.tr,
-                      icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
-                      onPressed: () {
-                        _searchController.clear();
-                        _controller.clearSearch();
-                        _searchFocus.requestFocus();
-                      },
-                    )
-                        : const SizedBox.shrink();
-                  }),
+                  prefixIcon: Obx(
+                    () => _controller.isSearching.value
+                        ? Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppTheme.primaryOrange,
+                              ),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.search,
+                            color: AppTheme.textSecondary,
+                          ),
+                  ),
+                  suffixIcon: _buildSearchAndClearSuffixIcons(),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          // ปุ่มแว่นขยายเล็ก ๆ ตามฟีลในภาพ (กดแล้วปิดคีย์บอร์ด)
+          // ปุ่มค้นหาที่จะเรียก Algolia search
           Material(
             color: AppTheme.primaryOrange,
             borderRadius: BorderRadius.circular(10),
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
-              onTap: () => _searchFocus.unfocus(),
-              child: const SizedBox(
+              onTap: () => _triggerSearch(),
+              child: Container(
                 height: 44,
                 width: 44,
                 child: Icon(Icons.search, color: Colors.white),
@@ -218,10 +223,12 @@ class _CustomersPageState extends State<CustomersPage> {
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       child: Row(
         children: [
-
           Obx(() {
-            final count = _controller.totalCustomersCount.value; // total across all, ignore pagination
-            final used = _controller.customersDisplayUsed; // prefer actual if higher
+            final count = _controller
+                .totalCustomersCount
+                .value; // total across all, ignore pagination
+            final used =
+                _controller.customersDisplayUsed; // prefer actual if higher
             final limit = _controller.customersQuotaLimit.value;
             final isUnlimited = limit == -1;
             final isOver = !isUnlimited && limit > 0 && used > limit;
@@ -250,7 +257,11 @@ class _CustomersPageState extends State<CustomersPage> {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Icon(Icons.storage_rounded, size: 14, color: AppTheme.textSecondary),
+                    Icon(
+                      Icons.storage_rounded,
+                      size: 14,
+                      color: AppTheme.textSecondary,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       isUnlimited
@@ -274,23 +285,47 @@ class _CustomersPageState extends State<CustomersPage> {
               final isFull = _controller.isCustomersQuotaFull;
               return OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isFull ? AppTheme.textSecondary : AppTheme.primaryOrange,
-                  side: BorderSide(color: isFull ? AppTheme.textSecondary : AppTheme.primaryOrange, width: 1),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  foregroundColor: isFull
+                      ? AppTheme.textSecondary
+                      : AppTheme.primaryOrange,
+                  side: BorderSide(
+                    color: isFull
+                        ? AppTheme.textSecondary
+                        : AppTheme.primaryOrange,
+                    width: 1,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 icon: const Icon(Icons.person_add_alt_1, size: 18),
-                label: Text(isFull ? 'quota_full'.trParams({'resource': 'customers'.tr}) : 'add_customer'.tr),
+                label: Text(
+                  isFull
+                      ? 'quota_full'.trParams({'resource': 'customers'.tr})
+                      : 'add_customer'.tr,
+                ),
                 onPressed: isFull
                     ? () async {
                         // If full, still show an explanatory dialog using guard
                         final wsId = _controller.currentWorkspaceId.value;
-                        await QuotaGuard.ensureCanCreate(context, wsId, 'customers');
+                        await QuotaGuard.ensureCanCreate(
+                          context,
+                          wsId,
+                          'customers',
+                        );
                       }
                     : () async {
                         // Guard quota at action time too (recheck latest server state)
                         final wsId = _controller.currentWorkspaceId.value;
-                        final ok = await QuotaGuard.ensureCanCreate(context, wsId, 'customers');
+                        final ok = await QuotaGuard.ensureCanCreate(
+                          context,
+                          wsId,
+                          'customers',
+                        );
                         if (!ok) return;
                         guardAction(context, 'customer:create', () {
                           Navigator.push(
@@ -356,11 +391,13 @@ class _CustomersPageState extends State<CustomersPage> {
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             itemCount: itemCount,
-            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFEAEAEA)),
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, color: Color(0xFFEAEAEA)),
             itemBuilder: (context, index) {
               if (index >= items.length) {
                 // Footer loader/sentinel
-                if (!_controller.isPageLoading.value && _controller.hasMore.value) {
+                if (!_controller.isPageLoading.value &&
+                    _controller.hasMore.value) {
                   // Trigger next load when footer becomes visible
                   _controller.loadMoreCustomers();
                 }
@@ -368,7 +405,11 @@ class _CustomersPageState extends State<CustomersPage> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Center(
                     child: _controller.isPageLoading.value
-                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const SizedBox.shrink(),
                   ),
                 );
@@ -397,6 +438,34 @@ class _CustomersPageState extends State<CustomersPage> {
         }),
       );
     });
+  }
+
+  Widget _buildSearchAndClearSuffixIcons() {
+    return Obx(() {
+      final hasSearchText = _controller.searchQuery.value.isNotEmpty;
+
+      if (!hasSearchText) {
+        return const SizedBox.shrink();
+      }
+
+      return IconButton(
+        tooltip: 'clear_search'.tr,
+        icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
+        onPressed: () {
+          _controller.searchController.clear();
+          _controller.clearSearch();
+          _searchFocus.requestFocus();
+        },
+      );
+    });
+  }
+
+  void _triggerSearch() {
+    final query = _controller.searchController.text.trim();
+    if (query.isNotEmpty) {
+      _controller.triggerAlgoliaSearch(query);
+    }
+    _searchFocus.unfocus();
   }
 }
 
@@ -443,8 +512,6 @@ class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-
-
   const _ErrorState({required this.message, required this.onRetry});
 
   @override
@@ -455,7 +522,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: AppTheme.textSecondary),
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppTheme.textSecondary,
+            ),
             const SizedBox(height: 12),
             Text(
               'error_occurred'.tr,
@@ -474,13 +545,13 @@ class _ErrorState extends StatelessWidget {
       ),
     );
   }
-  getLotStr(message){
 
+  getLotStr(message) {
     print(message);
-        return  Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-        );
+    return Text(
+      message,
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+    );
   }
 }
