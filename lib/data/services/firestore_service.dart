@@ -231,13 +231,12 @@ class FirestoreService extends GetxService {
 
 
   // เดิมชื่อ getConversationsForUser เปลี่ยนให้สื่อความเป็น workspace แทน
-  Future<List<Map<String, dynamic>>> getChatroomsForWorkspace(String workspaceId) async {
+  Future<List<Map<String, dynamic>>> getChatroomsForWorkspace(String workspaceId, String userId) async {
     try {
       final qs = await getChatroomsCollection(workspaceId)
-          .where('is_deleted', isEqualTo: 'N') // ตรงกับ field ในรูป
-          .orderBy('last_message_info.last_upd', descending: true) // แก้ไข: last_upd อยู่ใน last_message_info
+          .where('is_deleted', isEqualTo: 'N')
+          .orderBy('last_message_info.last_upd', descending: true)
           .get();
-
 
       final items = qs.docs.map((doc) {
         final data = doc.data();
@@ -330,7 +329,7 @@ class FirestoreService extends GetxService {
         throw Exception('No valid workspace ID found');
       }
 
-      return getChatroomsForWorkspace(currentWorkspaceId);
+      return getChatroomsForWorkspace(currentWorkspaceId, userId);
     } catch (e) {
       throw Exception('Failed to get conversations for user: $e');
     }
