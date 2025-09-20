@@ -1424,7 +1424,7 @@ class FirestoreRepository {
   }
 
   // Create a new company
-  Future<void> createCompany(String workspaceId, Company company) async {
+  Future<String> createCompany(String workspaceId, Company company) async {
     try {
       _logger.methodEntry('FirestoreRepository.createCompany', {
         'workspaceId': workspaceId,
@@ -1434,9 +1434,10 @@ class FirestoreRepository {
       final companiesCollection = _firestoreService
           .getWorkspaceCompaniesCollection(workspaceId);
       final data = company.copyWith(workspaceId: workspaceId).toMap();
-      await companiesCollection.add(data);
+      final docRef = await companiesCollection.add(data);
 
-      _logger.methodExit('FirestoreRepository.createCompany');
+      _logger.methodExit('FirestoreRepository.createCompany', {'companyId': docRef.id});
+      return docRef.id;
     } catch (e) {
       _logger.error('Failed to create company', e);
       rethrow;

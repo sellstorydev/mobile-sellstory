@@ -36,6 +36,22 @@ class AlgoliaSearchService {
     );
   }
   
+  /// Search companies
+  static Stream<SearchResponse> searchCompanies({
+    required String query,
+    required String workspaceId,
+    Map<String, dynamic>? filters,
+    int? hitsPerPage,
+  }) {
+    return _search(
+      entityType: 'companies',
+      query: query,
+      workspaceId: workspaceId,
+      filters: filters,
+      hitsPerPage: hitsPerPage,
+    );
+  }
+  
   /// Search products
   static Stream<SearchResponse> searchProducts({
     required String query,

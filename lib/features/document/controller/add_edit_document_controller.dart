@@ -28,6 +28,7 @@ class AddEditDocumentController extends GetxController {
   // User and workspace
   String? _currentUserId;
   String? _currentWorkspaceId;
+  String? get workspaceId => _currentWorkspaceId;
 
   // Customer section
   List<Customer> _customers = [];

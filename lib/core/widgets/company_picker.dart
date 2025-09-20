@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // added for Timestamp support
 import '../theme/app_theme.dart';
 import '../services/company_service.dart';
+import '../services/algolia_search_service.dart';
 import '../../features/companies/view/add_edit_company_page.dart';
 import '../../data/repositories/firestore_repository.dart';
 import 'dart:async';
@@ -195,6 +196,10 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
   bool _isLoading = true;
   bool _isSearching = false;
   
+  // Algolia search related
+  Timer? _searchDebounceTimer;
+  StreamSubscription? _algoliaSearchSubscription;
+  
   // User and workspace related
   String _currentUserId = '';
   String _currentWorkspaceId = '';
@@ -300,6 +305,8 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
       sub.cancel();
     }
     _companiesSub?.cancel();
+    _searchDebounceTimer?.cancel();
+    _algoliaSearchSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -330,7 +337,10 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
         if (!mounted) return;
         setState(() {
           _availableCompanies = companies;
-          _filteredCompanies = _applySearchFilter(_searchController.text);
+          // Only update filtered companies if there's no active search
+          if (_searchController.text.trim().isEmpty) {
+            _filteredCompanies = List<Company>.from(_availableCompanies);
+          }
           _isLoading = false;
           _companiesLoaded = true;
         });
@@ -347,10 +357,184 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
   }
 
   void _onSearchChanged(String value) {
+    // Cancel previous timer if exists
+    _searchDebounceTimer?.cancel();
+    _algoliaSearchSubscription?.cancel();
+    
     setState(() {
       _isSearching = value.trim().isNotEmpty;
-      _filteredCompanies = _applySearchFilter(value);
     });
+    
+    // Force modal to update search state
+    _currentModalStateSetter?.call(() {});
+    
+    // If query is empty, reset to show all companies (local list)
+    if (value.trim().isEmpty) {
+      setState(() {
+        _filteredCompanies = List<Company>.from(_availableCompanies);
+      });
+      // Update modal with all companies
+      _currentModalStateSetter?.call(() {});
+      return;
+    }
+    
+    // For non-empty queries, trigger Algolia search with debouncing
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        triggerAlgoliaSearch(value.trim());
+      }
+    });
+  }
+
+  /// Trigger Algolia search manually (called by search button)
+  void triggerAlgoliaSearch(String query) {
+    if (query.trim().isEmpty) {
+      // If query is empty, reset to show all companies
+      setState(() {
+        _isSearching = false;
+        _filteredCompanies = List<Company>.from(_availableCompanies);
+      });
+      return;
+    }
+    
+    setState(() {
+      _isSearching = true;
+    });
+    
+    // Force modal to show loading state
+    _currentModalStateSetter?.call(() {});
+    
+    _searchWithAlgolia(query.trim());
+  }
+  
+  /// Search companies using Algolia exclusively
+  void _searchWithAlgolia(String query) async {
+    if (_currentWorkspaceId.isEmpty) {
+      // If no workspace, show empty results for search
+      setState(() {
+        _isSearching = false;
+        _filteredCompanies = [];
+      });
+      
+      // Force modal to update with empty state
+      _currentModalStateSetter?.call(() {});
+      return;
+    }
+    
+    try {
+      // Search with Algolia
+      final searchStream = AlgoliaSearchService.searchCompanies(
+        query: query,
+        workspaceId: _currentWorkspaceId,
+        hitsPerPage: 50,
+      );
+      
+      _algoliaSearchSubscription = searchStream.listen(
+        (response) {
+          if (!mounted) return;
+          
+          try {
+            final hits = response.hits;
+            final algoliaResults = <Company>[];
+            
+            // Convert Algolia results to Company objects
+            for (final hit in hits) {
+              try {
+                // Find the company in our local list by ID
+                final companyId = hit['objectID'] as String?;
+                if (companyId != null) {
+                  final company = _availableCompanies.firstWhere(
+                    (c) => c.id == companyId,
+                    orElse: () {
+                      // If not found in local list, create from Algolia data
+                      final data = Map<String, dynamic>.from(hit);
+                      data['id'] = companyId;
+                      // Handle missing fields with defaults
+                      data['companyNames'] = data['companyNames'] ?? [
+                        {
+                          'id': companyId,
+                          'label': 'Main',
+                          'value': data['name'] ?? 'Unknown Company',
+                        }
+                      ];
+                      data['emails'] = data['emails'] ?? [];
+                      data['phones'] = data['phones'] ?? [];
+                      data['hashtags'] = data['hashtags'] ?? [];
+                      data['associatedCustomerIds'] = data['customers'] ?? [];
+                      data['createdAt'] = data['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
+                      data['updatedAt'] = data['updatedAt'] ?? DateTime.now().millisecondsSinceEpoch;
+                      data['createdBy'] = data['createdBy'] ?? '';
+                      data['updatedBy'] = data['updatedBy'] ?? '';
+                      return Company.fromMap(data);
+                    },
+                  );
+                  algoliaResults.add(company);
+                }
+              } catch (e) {
+                print('⚠️ Failed to convert Algolia hit to Company: $e');
+              }
+            }
+            
+            setState(() {
+              _filteredCompanies = algoliaResults;
+              _isSearching = false;
+            });
+            
+            // Force modal to rebuild with new search results
+            _currentModalStateSetter?.call(() {});
+            
+            print('🔍 Algolia company search results: ${algoliaResults.length} companies found');
+            
+          } catch (e) {
+            print('⚠️ Error processing Algolia response: $e');
+            // For Algolia-only search, show empty results on error
+            setState(() {
+              _filteredCompanies = [];
+              _isSearching = false;
+            });
+            
+            // Force modal to rebuild with empty state
+            _currentModalStateSetter?.call(() {});
+          }
+        },
+        onError: (error) {
+          print('❌ Algolia company search error: $error');
+          // For Algolia-only search, show empty results on error
+          setState(() {
+            _filteredCompanies = [];
+            _isSearching = false;
+          });
+          
+          // Force modal to rebuild with error state
+          _currentModalStateSetter?.call(() {});
+        },
+      );
+      
+    } catch (e) {
+      print('❌ Failed to search companies with Algolia: $e');
+      // For Algolia-only search, show empty results on error
+      setState(() {
+        _filteredCompanies = [];
+        _isSearching = false;
+      });
+      
+      // Force modal to rebuild with error state
+      _currentModalStateSetter?.call(() {});
+    }
+  }
+  
+  /// Clear search and reset to show all companies
+  void clearSearch() {
+    _searchController.clear();
+    _algoliaSearchSubscription?.cancel();
+    _searchDebounceTimer?.cancel();
+    setState(() {
+      _isSearching = false;
+      _filteredCompanies = List<Company>.from(_availableCompanies);
+    });
+    
+    // Force modal to update with all companies
+    _currentModalStateSetter?.call(() {});
   }
 
   void _toggleCompany(Company company) {
@@ -489,16 +673,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
                      decoration: InputDecoration(
                        hintText: 'ค้นหาบริษัท...',
                        prefixIcon: const Icon(Icons.search),
-                                        suffixIcon: _searchController.text.isNotEmpty
-                     ? IconButton(
-                         icon: const Icon(Icons.clear),
-                         onPressed: () {
-                           _searchController.clear();
-                           _onSearchChanged('');
-                           setModalState?.call(() {});
-                         },
-                       )
-                     : null,
+                       suffixIcon: _buildSearchAndClearSuffixIcons(setModalState),
                        border: OutlineInputBorder(
                          borderRadius: BorderRadius.circular(12),
                        ),
@@ -564,19 +739,6 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Debug info (remove in production)
-                          if (_isSearching)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              child: Text(
-                                'Found ${_filteredCompanies.length} companies',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ),
                           Expanded(
                             child: ListView.builder(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -675,6 +837,10 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
   }
 
   Widget _buildEmptyState() {
+    // Determine the current search state
+    final hasSearchQuery = _searchController.text.trim().isNotEmpty;
+    final hasLocalCompanies = _availableCompanies.isNotEmpty;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -686,9 +852,12 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
           ),
           const SizedBox(height: 16),
           Text(
-            _availableCompanies.isEmpty 
-                ? 'ไม่มีบริษัทในระบบ'
-                : 'ไม่พบบริษัทที่ตรงกับคำค้นหา',
+            // Priority: Search query exists -> show search-specific message
+            hasSearchQuery
+                ? 'ไม่พบบริษัทที่ตรงกับคำค้นหา'
+                : !hasLocalCompanies
+                  ? 'ไม่มีบริษัทในระบบ'
+                  : 'ไม่มีบริษัทในระบบ',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -698,15 +867,65 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
           ),
           const SizedBox(height: 8),
           Text(
-            _availableCompanies.isEmpty 
-                ? 'กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มบริษัท'
-                : 'ลองค้นหาด้วยคำอื่น',
+            // Priority: Search query exists -> show search-specific advice
+            hasSearchQuery
+                ? 'ลองใช้คำค้นหาอื่น หรือตรวจสอบการสะกดคำ'
+                : !hasLocalCompanies
+                  ? 'กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มบริษัท'
+                  : 'พิมพ์เพื่อค้นหาบริษัทด้วย Algolia',
             style: const TextStyle(
               fontSize: 14,
               color: AppTheme.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndClearSuffixIcons([StateSetter? setModalState]) {
+    final hasSearchText = _searchController.text.isNotEmpty;
+    
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Search button
+          IconButton(
+            onPressed: () {
+              final query = _searchController.text.trim();
+              if (query.isNotEmpty) {
+                triggerAlgoliaSearch(query);
+                setModalState?.call(() {});
+              }
+            },
+            icon: _isSearching
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  )
+                : Icon(
+                    Icons.search,
+                    color: hasSearchText 
+                        ? AppTheme.primaryOrange
+                        : Colors.grey,
+                  ),
+          ),
+          // Clear button
+          if (hasSearchText)
+            IconButton(
+              icon: const Icon(Icons.clear, color: Colors.grey),
+              onPressed: () {
+                clearSearch();
+                setModalState?.call(() {});
+              },
+            ),
         ],
       ),
     );
