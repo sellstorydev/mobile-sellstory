@@ -20,7 +20,6 @@ class CompanyCenterPage extends StatefulWidget {
 
 class _CompanyCenterPageState extends State<CompanyCenterPage> {
   late CompaniesController _controller;
-  final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
 
 
@@ -49,7 +48,6 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     _searchFocus.dispose();
     super.dispose();
   }
@@ -161,29 +159,33 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: TextField(
-                controller: _searchController,
+                controller: _controller.searchController,
                 focusNode: _searchFocus,
-                onChanged: _controller.setSearchQuery,
+                onChanged: _controller.onSearchChanged,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
                   hintText: 'ชื่อบริษัท, เลขประจำตัวผู้เสียภาษี, สาขา, เบอร์โทร, อีเมล',
                   hintStyle: const TextStyle(color: AppTheme.textSecondary),
                   border: InputBorder.none,
-                  prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
-                  suffixIcon: Obx(() {
-                    final showClear = _controller.searchQuery.value.isNotEmpty;
-                    return showClear
-                        ? IconButton(
-                            tooltip: 'ล้างคำค้น',
-                            icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
-                            onPressed: () {
-                              _searchController.clear();
-                              _controller.clearSearch();
-                              _searchFocus.requestFocus();
-                            },
+                  prefixIcon: Obx(
+                    () => _controller.isSearching.value
+                        ? Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppTheme.primaryOrange,
+                              ),
+                            ),
                           )
-                        : const SizedBox.shrink();
-                  }),
+                        : const Icon(
+                            Icons.search,
+                            color: AppTheme.textSecondary,
+                          ),
+                  ),
+                  suffixIcon: _buildSearchAndClearSuffixIcons(),
                 ),
               ),
             ),
@@ -194,7 +196,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
             borderRadius: BorderRadius.circular(10),
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
-              onTap: () => _searchFocus.unfocus(),
+              onTap: () => _triggerSearch(),
               child: const SizedBox(
                 height: 44,
                 width: 44,
@@ -368,6 +370,33 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
         ),
       );
     });
+  }
+
+  Widget _buildSearchAndClearSuffixIcons() {
+    return Obx(() {
+      final hasSearchText = _controller.searchQuery.value.isNotEmpty;
+
+      if (!hasSearchText) {
+        return const SizedBox.shrink();
+      }
+
+      return IconButton(
+        tooltip: 'ล้างคำค้น',
+        icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
+        onPressed: () {
+          _controller.clearSearch();
+          _searchFocus.requestFocus();
+        },
+      );
+    });
+  }
+
+  void _triggerSearch() {
+    final query = _controller.searchController.text.trim();
+    if (query.isNotEmpty) {
+      _controller.triggerAlgoliaSearch(query);
+    }
+    _searchFocus.unfocus();
   }
 }
 

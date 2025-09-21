@@ -11,6 +11,7 @@ import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/services/quota_usage_service.dart';
 import '../../../core/services/algolia_search_service.dart';
 import '../../board/controller/board_controller.dart';
+import '../../../core/services/algolia_customer_sync_service.dart';
 
 class CustomersController extends GetxController {
   final CustomerRepository _customerRepository;
@@ -413,8 +414,15 @@ class CustomersController extends GetxController {
       return;
     }
     
+    print('🔍 Triggering Algolia search for customers with query: "$query"');
     isSearching.value = true;
     searchWithAlgolia(query.trim());
+  }
+  
+  /// Test method to search for customers by company name
+  void testCompanyNameSearch(String companyName) {
+    print('🧪 Testing company name search: "$companyName"');
+    triggerAlgoliaSearch(companyName);
   }
 
   // Clear search
@@ -550,6 +558,15 @@ class CustomersController extends GetxController {
       final newCustomer = customer.copyWith(id: newId);
       customers.add(newCustomer);
       _filterCustomers();
+      // Sync to Algolia for search functionality
+      try {
+        final customerWithId = customer.copyWith(id: newId);
+        await AlgoliaCustomerSyncService.syncCustomerToAlgolia(customerWithId);
+        print('✅ Customer synced to Algolia for search: ${customer.name}');
+      } catch (e) {
+        print('⚠️ Failed to sync customer to Algolia: $e');
+        // Continue - don't let Algolia sync failure break customer creation
+      }
 
       // Optimistically update total count
       totalCustomersCount.value = (totalCustomersCount.value + 1).clamp(0, 1 << 31);
@@ -610,6 +627,15 @@ class CustomersController extends GetxController {
           );
         }
       }
+
+      // Sync to Algolia for search functionality
+      try {
+        await AlgoliaCustomerSyncService.syncCustomerToAlgolia(customer);
+        print('✅ Customer updated in Algolia for search: ${customer.name}');
+      } catch (e) {
+        print('⚠️ Failed to sync customer update to Algolia: $e');
+        // Continue - don't let Algolia sync failure break customer update
+      }
     } catch (e) {
       errorMessage.value = 'Failed to update customer: $e';
     } finally {
@@ -632,6 +658,14 @@ class CustomersController extends GetxController {
       // Remove the customer from the in-memory list
       customers.removeWhere((c) => c.id == customerId);
       _filterCustomers();
+      // Remove from Algolia search index
+      try {
+        await AlgoliaCustomerSyncService.syncCustomerDeletionToAlgolia(customerId);
+        print('✅ Customer removed from Algolia search index: $customerId');
+      } catch (e) {
+        print('⚠️ Failed to remove customer from Algolia: $e');
+        // Continue - don't let Algolia sync failure break customer deletion
+      }
 
       // Optionally: clean up company links (arrayRemove)
       try {
@@ -845,7 +879,15 @@ class CustomersController extends GetxController {
           _applyPermissionFiltering(results);
           isSearching.value = false;
           
-          print('🔍 Algolia search results: ${results.length} customers found');
+          print('🔍 Algolia search results: ${results.length} customers found for query: "$query"');
+          
+          // Debug: Show matching customers with their company names
+          if (results.isNotEmpty) {
+            for (final customer in results.take(3)) { // Show first 3 results
+              final companyNames = customer.companyNames.map((c) => c['value']?.toString() ?? '').where((name) => name.isNotEmpty).join(', ');
+              print('  📋 ${customer.name} (${customer.customId}) - Companies: $companyNames');
+            }
+          }
         },
         onError: (error) {
           print('❌ Algolia search error: $error');

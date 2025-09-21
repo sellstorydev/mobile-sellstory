@@ -21,6 +21,12 @@ class AlgoliaCustomerSyncService {
       // Build the record for Algolia
       final record = buildCustomerRecord(customer);
       
+      // Log company names for debugging
+      final companyNames = record['companyNames'] as List<String>?;
+      if (companyNames != null && companyNames.isNotEmpty) {
+        _logger.info('📝 Customer ${customer.name} has company names: ${companyNames.join(", ")}');
+      }
+      
       // Send to Algolia using REST API
       final response = await _dio.put(
         'https://${AlgoliaConfig.appId.toLowerCase()}-dsn.algolia.net/1/indexes/$_indexName/${customer.id}',
@@ -162,7 +168,15 @@ class AlgoliaCustomerSyncService {
   
   /// Extract company names for search
   static List<String> extractCompanyNames(List<Map<String, dynamic>> companies) {
-    return companies.map((company) => company['value']?.toString() ?? '').where((value) => value.isNotEmpty).toList();
+    final names = <String>[];
+    for (final company in companies) {
+      final value = company['value']?.toString() ?? '';
+      final label = company['label']?.toString() ?? '';
+      
+      if (value.isNotEmpty) names.add(value);
+      if (label.isNotEmpty && label != value) names.add(label);
+    }
+    return names.where((name) => name.isNotEmpty).toList();
   }
   
   /// Extract hashtag texts for search
@@ -190,8 +204,14 @@ class AlgoliaCustomerSyncService {
       keywords.add(customer.prefix);
     }
     
-    // Add company names
-    keywords.addAll(extractCompanyNames(customer.companyNames));
+    // Add company names and labels
+    final companyNames = extractCompanyNames(customer.companyNames);
+    keywords.addAll(companyNames);
+    
+    // Add individual words from company names for better partial matching
+    for (final companyName in companyNames) {
+      keywords.addAll(companyName.split(' '));
+    }
     
     // Add hashtags
     keywords.addAll(extractHashtagTexts(customer.hashtags));
