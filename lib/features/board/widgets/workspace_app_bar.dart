@@ -587,21 +587,17 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                         child: ElevatedButton.icon(
                           onPressed: () async {
                             Navigator.of(context).pop();
-                            print('🔄 Manual refresh triggered from workspace app bar');
 
                             // Force reload field configuration from CardViewSettingsService
                             try {
                               final settingsService = Get.find<CardViewSettingsService>();
                               await settingsService.refreshSettings();
-                              print('🔄 CardViewSettingsService refreshed');
                             } catch (e) {
-                              print('🔄 Error refreshing CardViewSettingsService: $e');
+                              print('❌ Error refreshing CardViewSettingsService: $e');
                             }
 
                             // Then refresh the board
                             ctrl.refresh();
-
-                            print('🔄 Manual refresh completed');
                           },
                           icon: const Icon(Icons.refresh, size: 20),
                           label: Text('refresh'.tr),
