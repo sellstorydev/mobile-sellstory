@@ -470,8 +470,41 @@ class ConversationTile extends StatelessWidget {
                     String customerName = (conversation['customerName'] ?? conversation['customer']?['name'] ?? '').toString();
                     if ((customerName).trim().isEmpty) customerName = '';
 
-                    final jobCardId = (conversation['jobCardId'] ?? '').toString();
-                    final jobCardTitle = (conversation['jobCardTitle'] ?? '').toString();
+                    // Job Card display logic
+                    final jobCardIds = (conversation['jobCardIds'] as List?)?.map((e) => e.toString()).toList() ?? [];
+                    final jobCardTitles = (conversation['jobCardTitles'] as List?)?.map((e) => e.toString()).toList() ?? [];
+                    final singleJobCardId = (conversation['jobCardId'] ?? '').toString();
+                    final singleJobCardTitle = (conversation['jobCardTitle'] ?? '').toString();
+
+
+                    Widget jobCardWidget = const SizedBox();
+                    if (jobCardIds.isNotEmpty) {
+                      jobCardWidget = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: List.generate(jobCardIds.length, (i) => Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 2),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.card_travel_outlined, size: 16, color: Colors.orange),
+                              const SizedBox(width: 4),
+                              Flexible(child: Text(jobCardTitles.length > i ? jobCardTitles[i] : jobCardIds[i], style: const TextStyle(fontSize: 13, color: Colors.orange, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                            ],
+                          ),
+                        )),
+                      );
+                    } else if (singleJobCardId.isNotEmpty || singleJobCardTitle.isNotEmpty) {
+                      final text = singleJobCardTitle.isNotEmpty ? singleJobCardTitle : 'Job Card: $singleJobCardId';
+                      jobCardWidget = Padding(
+                        padding: const EdgeInsets.only(top: 2, bottom: 2),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.card_travel_outlined, size: 16, color: Colors.orange),
+                            const SizedBox(width: 4),
+                            Flexible(child: Text(text, style: const TextStyle(fontSize: 13, color: Colors.orange, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                          ],
+                        ),
+                      );
+                    }
 
                     final chips = <Widget>[];
 
@@ -501,30 +534,8 @@ class ConversationTile extends StatelessWidget {
                       );
                     }
 
-                    if (jobCardId.isNotEmpty || jobCardTitle.isNotEmpty) {
-                      final text = jobCardTitle.isNotEmpty ? jobCardTitle : 'Job Card: $jobCardId';
-                      chips.add(
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: const Color(0xFFDBEAFE)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.assignment_outlined, size: 14, color: Color(0xFF1D4ED8)),
-                              const SizedBox(width: 6),
-                              Text(
-                                text,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1D4ED8)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                    if (jobCardIds.isNotEmpty) {
+                      chips.add(jobCardWidget);
                     }
 
                     if (chips.isEmpty) return const SizedBox.shrink();

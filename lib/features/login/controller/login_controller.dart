@@ -99,42 +99,52 @@ class LoginController extends GetxController {
     }
   }
 
-  // Call server to provision current social user if needed; returns workspaceId or null
-  Future<String?> _provisionSocialUserViaApi() async {
+  // Bootstrap current social user (first login) via API per docs/social-login-signup.md
+  // Returns active workspaceId if available
+  Future<String?> _bootstrapSocialUser() async {
     try {
       final api = Get.find<ApiClient>();
       final idToken = await MobileApiAuth.getIdTokenOrThrow(_authService);
       final resp = await api.post<Map<String, dynamic>>(
-        '${MobileApiConfig.baseUrl}/api/mobile/me/provision-social',
+        '${MobileApiConfig.baseUrl}/api/auth/bootstrap',
         options: MobileApiAuth.authHeaderOptions(idToken),
       );
       final status = resp.statusCode ?? 0;
       final data = resp.data ?? const <String, dynamic>{};
       if (status >= 200 && status < 300) {
-        return (data['workspaceId'] as String?) ?? data['workspace_id'] as String?;
-      }
-      if (status == 409 || status == 304) {
-        return (data['workspaceId'] as String?) ?? data['workspace_id'] as String?;
+        // Prefer activeWorkspace.id; fallback to user.lastActiveWorkspaceId or first workspace.id
+        final aw = (data['activeWorkspace'] is Map) ? (data['activeWorkspace'] as Map) : null;
+        final awId = (aw?['id']?.toString() ?? '').trim();
+        if (awId.isNotEmpty) return awId;
+        final user = (data['user'] is Map) ? (data['user'] as Map) : null;
+        final lastId = (user?['lastActiveWorkspaceId']?.toString() ?? '').trim();
+        if (lastId.isNotEmpty) return lastId;
+        final ws = (user?['workspaces'] is List) ? (user!['workspaces'] as List) : const [];
+        if (ws.isNotEmpty) {
+          final first = (ws.first is Map) ? (ws.first as Map) : null;
+          final fid = (first?['id']?.toString() ?? '').trim();
+          if (fid.isNotEmpty) return fid;
+        }
+        return null;
       }
     } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (status == 409 || status == 304) {
-        final data = (e.response?.data is Map<String, dynamic>)
-            ? (e.response!.data as Map<String, dynamic>)
-            : const <String, dynamic>{};
-        return (data['workspaceId'] as String?) ?? data['workspace_id'] as String?;
-      }
-      debugPrint('provision-social failed: ${e.message}');
+      // Non-2xx: try to parse workspaceId-like hints but otherwise ignore
+      final data = (e.response?.data is Map<String, dynamic>)
+          ? (e.response!.data as Map<String, dynamic>)
+          : const <String, dynamic>{};
+      final wsId = (data['workspaceId']?.toString() ?? data['workspace_id']?.toString() ?? '').trim();
+      if (wsId.isNotEmpty) return wsId;
+      debugPrint('bootstrap-social failed: ${e.message} (${e.response?.statusCode})');
     } catch (e) {
-      debugPrint('provision-social unexpected: $e');
+      debugPrint('bootstrap-social unexpected: $e');
     }
     return null;
   }
 
-  // Ensure first-time social login users are provisioned with profile + workspace
-  Future<void> _ensureSocialProvisioning() async {
+  // Ensure first-time social login users are provisioned with profile + workspace via bootstrap API
+  Future<String?> _ensureSocialProvisioning() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) return null;
 
     final chatService = Get.find<ChatService>();
     try {
@@ -147,14 +157,16 @@ class LoginController extends GetxController {
       }
 
       if (needsProvision) {
-        final wsId = await _provisionSocialUserViaApi();
+        final wsId = await _bootstrapSocialUser();
         if (wsId != null && wsId.isNotEmpty) {
           await chatService.updateUserLastActiveWorkspaceId(uid, wsId);
+          return wsId;
         }
       }
     } catch (e) {
       debugPrint('Provisioning check failed/skipped: $e');
     }
+    return null;
   }
 
 
@@ -166,8 +178,8 @@ class LoginController extends GetxController {
       
       // Ensure dependencies are properly setup after login
       Locator.setup();
-      // First-time social provisioning: ensure user profile + initial workspace
-      await _ensureSocialProvisioning();
+      // First-time social provisioning (bootstrap): ensure user profile + initial workspace
+      final bootWorkspaceId = await _ensureSocialProvisioning();
 
       // Register FCM token + device immediately after login
       if (Get.isRegistered<FcmService>()) {
@@ -181,12 +193,13 @@ class LoginController extends GetxController {
         await AnalyticsService.to.logLogin(method: 'google');
       }
 
-      // Prefetch permissions for user's active workspace
+      // Prefetch permissions for user's active workspace (prefer bootstrap result to avoid race)
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           final chatService = Get.find<ChatService>();
-          String? workspaceId = await chatService.getUserCurrentWorkspaceId(user.uid);
+          String? workspaceId = bootWorkspaceId;
+          workspaceId ??= await chatService.getUserCurrentWorkspaceId(user.uid);
           workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
           if (workspaceId != null && workspaceId.isNotEmpty) {
             await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
@@ -225,6 +238,7 @@ class LoginController extends GetxController {
       );
       return;
     }
+
     try {
       isLoading.value = true;
       // await _authService.signInWithAppleFirebase();
@@ -232,8 +246,8 @@ class LoginController extends GetxController {
       // Ensure dependencies are properly setup after login
       Locator.setup();
 
-      // First-time social provisioning: ensure user profile + initial workspace
-      await _ensureSocialProvisioning();
+      // First-time social provisioning (bootstrap)
+      final bootWorkspaceId = await _ensureSocialProvisioning();
 
       // Register FCM token + device immediately after login
       if (Get.isRegistered<FcmService>()) {
@@ -252,7 +266,8 @@ class LoginController extends GetxController {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           final chatService = Get.find<ChatService>();
-          String? workspaceId = await chatService.getUserCurrentWorkspaceId(user.uid);
+          String? workspaceId = bootWorkspaceId;
+          workspaceId ??= await chatService.getUserCurrentWorkspaceId(user.uid);
           workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
           if (workspaceId != null && workspaceId.isNotEmpty) {
             await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
