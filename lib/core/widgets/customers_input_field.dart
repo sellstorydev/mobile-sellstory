@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_theme.dart';
 import '../services/algolia_search_service.dart';
+import '../../features/customers/view/add_edit_customer_page.dart';
 import 'dart:async';
 
 /// Customer data model matching Firestore structure
@@ -141,6 +142,7 @@ class CustomersInputField extends StatefulWidget {
   final bool showBorder;
   final String? workspaceId;
   final bool enableAlgoliaSearch;
+  final VoidCallback? onCustomerAdded;
 
   const CustomersInputField({
     super.key,
@@ -154,6 +156,7 @@ class CustomersInputField extends StatefulWidget {
     this.showBorder = true,
     this.workspaceId,
     this.enableAlgoliaSearch = true,
+    this.onCustomerAdded,
   });
 
   @override
@@ -186,6 +189,17 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
     // The search functionality is handled in the full page
   }
 
+  Future<void> _openAddCustomerPage() async {
+    final result = await Get.to(
+      () => const AddEditCustomerPage(customerSources: []),
+    );
+    
+    if (result == true && widget.onCustomerAdded != null) {
+      // Notify parent to refresh customer list
+      widget.onCustomerAdded!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -201,13 +215,27 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.showBorder)
-            Text(
-              widget.label.tr,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.textSecondary,
-              ),
+            Row(
+              children: [
+                Text(
+                  widget.label.tr,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: _openAddCustomerPage,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('New'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primaryOrange,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
+              ],
             ),
 
           const SizedBox(height: 8),
@@ -370,6 +398,7 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
           allowMultipleSelection: widget.allowMultipleSelection,
           workspaceId: widget.workspaceId,
           enableAlgoliaSearch: widget.enableAlgoliaSearch,
+          onCustomerAdded: widget.onCustomerAdded,
         ),
       ),
     );
@@ -384,6 +413,7 @@ class CustomersSelectionPage extends StatefulWidget {
   final bool allowMultipleSelection;
   final String? workspaceId;
   final bool enableAlgoliaSearch;
+  final VoidCallback? onCustomerAdded;
 
   const CustomersSelectionPage({
     super.key,
@@ -394,6 +424,7 @@ class CustomersSelectionPage extends StatefulWidget {
     required this.allowMultipleSelection,
     this.workspaceId,
     this.enableAlgoliaSearch = true,
+    this.onCustomerAdded,
   });
 
   @override
@@ -591,6 +622,18 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
     });
   }
 
+  Future<void> _openAddCustomerPage() async {
+    final result = await Get.to(
+      () => const AddEditCustomerPage(customerSources: []),
+    );
+    
+    if (result == true && widget.onCustomerAdded != null) {
+      // Close this page and let parent refresh
+      Navigator.of(context).pop();
+      widget.onCustomerAdded!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -613,6 +656,14 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                 color: AppTheme.primaryOrange,
                 fontWeight: FontWeight.w500,
               ),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _openAddCustomerPage,
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('New'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.primaryOrange,
             ),
           ),
         ],

@@ -2,6 +2,86 @@
 
 ## Recent Changes
 
+### CustomersInputField Widget "New Customer" Button Integration (September 21, 2025)
+
+**Topic:** Add button "New Customer" to customersInputField Widget
+
+**Requirements:**
+1. Add "Add Customer" button in customersInputField Widget
+2. Button should navigate to add_edit_customer_page.dart for customer creation
+3. After successful customer creation, return to customersInputField and refresh customer list
+4. Newly created customer should be available in selection
+
+**Solution Applied:**
+1. **Import Integration**: Added import for AddEditCustomerPage in customers_input_field.dart
+2. **Callback Parameter**: Added `onCustomerAdded` VoidCallback parameter to both CustomersInputField and CustomersSelectionPage
+3. **UI Enhancement**: Added "New" button next to label in main input field when showBorder is true
+4. **Full Page Button**: Added "New" button to AppBar actions in CustomersSelectionPage
+5. **Navigation Logic**: Implemented _openAddCustomerPage() method in both widgets
+6. **Data Refresh**: Parent component notified via onCustomerAdded callback to refresh customer list
+
+**Technical Changes:**
+```dart
+// New parameter added to CustomersInputField
+final VoidCallback? onCustomerAdded;
+
+// New button in label section
+Row(
+  children: [
+    Text(widget.label.tr, ...),
+    const Spacer(),
+    TextButton.icon(
+      onPressed: _openAddCustomerPage,
+      icon: const Icon(Icons.add, size: 16),
+      label: const Text('New'),
+      style: TextButton.styleFrom(
+        foregroundColor: AppTheme.primaryOrange,
+        ...
+      ),
+    ),
+  ],
+)
+
+// Navigation implementation
+Future<void> _openAddCustomerPage() async {
+  final result = await Get.to(
+    () => const AddEditCustomerPage(customerSources: []),
+  );
+  
+  if (result == true && widget.onCustomerAdded != null) {
+    widget.onCustomerAdded!();
+  }
+}
+```
+
+**Files Modified:**
+- `lib/core/widgets/customers_input_field.dart`
+  - Added AddEditCustomerPage import
+  - Added onCustomerAdded callback parameter to both CustomersInputField and CustomersSelectionPage
+  - Modified label section to include Row with "New" button when showBorder is true
+  - Added "New" button to CustomersSelectionPage AppBar actions
+  - Added _openAddCustomerPage() navigation method in both widget states
+  - Updated navigation to pass onCustomerAdded callback between widgets
+
+**UI/UX Benefits:**
+- **Streamlined Workflow**: Users can create customers directly from customer selection interface
+- **Consistent Design**: Orange "New" button matches app theme and existing UI patterns
+- **Immediate Availability**: Parent component refreshes customer list after new customer creation
+- **Dual Access Points**: "New" button available both in collapsed input field and full selection page
+- **Flexible Integration**: onCustomerAdded callback allows parent components to handle refresh logic
+
+**User Impact:**
+- Faster customer selection process when new customers are needed
+- Improved workflow efficiency for users managing customer data
+- Consistent experience across different customer selection contexts
+- Better integration between customer management and other features using CustomersInputField
+
+**Implementation Notes:**
+- Button only appears when showBorder is true in main input field
+- CustomersSelectionPage button added to AppBar actions for easy access
+- Navigation returns to parent page after successful customer creation for immediate refresh
+- onCustomerAdded callback provides flexible refresh mechanism for different usage contexts
+
 ### Board Page setState After Dispose Fix (September 21, 2025)
 
 **Topic:** Fix error in board after login - setState() called after dispose()
