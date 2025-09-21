@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart'; // added for i18n .tr
 
 class JobCardPickerResult {
   final String cardId;
@@ -144,12 +145,12 @@ class _JobCardPickerSheetState extends State<JobCardPickerSheet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ผู้ก Job Card'),
+        title: const Text('ผูก Job Card'),
         actions: widget.multiSelect
             ? [
                 TextButton(
                   onPressed: _selectedCardIds.isNotEmpty ? _confirm : null,
-                  child: Text('เลือก (${_selectedCardIds.length})', style: const TextStyle(color: Colors.white)),
+                  child: Text('${'save'.tr} (${_selectedCardIds.length})', style: const TextStyle(color: Colors.black)),
                 ),
               ]
             : null,

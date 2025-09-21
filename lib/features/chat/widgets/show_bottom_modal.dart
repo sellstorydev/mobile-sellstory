@@ -140,21 +140,26 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   // Linked Job Card state (support multiple)
   List<String> _jobCardIds = [];
   List<String> _jobCardTitles = [];
+  List<String> _jobCardDocNos = [];
   // Pending (unsaved) Job Card selection
 
 
   List<String> _pendingJobCardIds = [];
   List<String> _pendingJobCardTitles = [];
+  List<String> _pendingJobCardDocNos = [];
 
   bool get _isJobCardDirty {
     if (_pendingJobCardIds.length != _jobCardIds.length) return true;
     for (int i = 0; i < _pendingJobCardIds.length; i++) {
       if (_pendingJobCardIds[i] != _jobCardIds[i]) return true;
     }
-    // Also compare titles when both have equal length
     if (_pendingJobCardTitles.length != _jobCardTitles.length) return true;
     for (int i = 0; i < _pendingJobCardTitles.length; i++) {
       if ((_pendingJobCardTitles[i]) != (_jobCardTitles[i])) return true;
+    }
+    if (_pendingJobCardDocNos.length != _jobCardDocNos.length) return true;
+    for (int i = 0; i < _pendingJobCardDocNos.length; i++) {
+      if ((_pendingJobCardDocNos[i]) != (_jobCardDocNos[i])) return true;
     }
     return false;
   }
@@ -217,6 +222,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
 
   Future<void> _loadJobCardsByIds(List<String> cardIds) async {
     final titles = <String>[];
+    final nos = <String>[];
     for (final id in cardIds) {
       try {
         final snap = await FirebaseFirestore.instance
@@ -228,12 +234,15 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         final m = snap.data() ?? {};
         final title = (m['title'] ?? m['name'] ?? '').toString();
         titles.add(title.isNotEmpty ? title : id);
+        final docNo = (m['customId'] ?? '').toString();
+        nos.add(docNo);
       } catch (_) {
         titles.add(id);
+        nos.add('');
       }
     }
     if (!mounted) return;
-    setState(() => _jobCardTitles = titles);
+    setState(() { _jobCardTitles = titles; _jobCardDocNos = nos; });
   }
 
 
@@ -680,11 +689,22 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }
       final ids = List<String>.from(_pendingJobCardIds);
       final titles = List<String>.from(_pendingJobCardTitles);
+      final nos = List<String>.from(_pendingJobCardDocNos);
+      // Build linkedJobCards array per spec
+      final links = <Map<String, dynamic>>[];
+      for (int i = 0; i < ids.length; i++) {
+        final id = ids[i];
+        final docNo = (i < nos.length && nos[i].isNotEmpty) ? nos[i] : (i < titles.length ? titles[i] : id);
+        links.add({'id': id, 'docNo': docNo, 'type': 'JC'});
+      }
+
       await _chatroomDoc.set({
+        'linkedJobCards': links,
+        // Legacy fields for backward compatibility
         'jobCardIds': ids,
-        'jobCardTitles': titles,
+        'jobCardTitles': nos.isNotEmpty ? nos : titles,
         if (ids.isNotEmpty) 'jobCardId': ids.first else 'jobCardId': FieldValue.delete(),
-        if (titles.isNotEmpty) 'jobCardTitle': titles.first else 'jobCardTitle': FieldValue.delete(),
+        if ((nos.isNotEmpty ? nos : titles).isNotEmpty) 'jobCardTitle': (nos.isNotEmpty ? nos : titles).first else 'jobCardTitle': FieldValue.delete(),
       }, SetOptions(merge: true));
 
       // If chatroom has no customer linked, try to link from the first selected card
@@ -717,6 +737,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       setState(() {
         _jobCardIds = List<String>.from(ids);
         _jobCardTitles = List<String>.from(titles);
+        _jobCardDocNos = List<String>.from(nos);
       });
       _showTopSnack('jobcard_linked_latest'.tr);
     } catch (e) {
@@ -978,8 +999,10 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       _loadChatroomHashtags();
     }
 
+
     // Realtime sync with chatroom document
     _chatroomSub = _chatroomDoc.snapshots().listen((snap) {
+      final wasDirty = _isJobCardDirty; // capture before applying remote changes
       final data = snap.data() ?? {};
       final pinned = (data['chat_pin'] ?? 'N') == 'Y';
       final bot = (data['bot_status'] ?? 'N') == 'Y';
@@ -991,9 +1014,31 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       // Multi job card fields with legacy fallback
       List<String> jobCardIds = (data['jobCardIds'] as List?)?.map((e) => e.toString()).toList() ?? [];
       List<String> jobCardTitles = (data['jobCardTitles'] as List?)?.map((e) => e.toString()).toList() ?? [];
+      List<String> jobCardDocNos = <String>[];
+      // New spec: linkedJobCards: [{id, docNo, type:'JC'}]
+      if (data['linkedJobCards'] is List) {
+        final arr = (data['linkedJobCards'] as List);
+        final ids = <String>[];
+        final nos = <String>[];
+        for (final it in arr) {
+          if (it is Map) {
+            final id = (it['id'] ?? '').toString();
+            if (id.isNotEmpty) ids.add(id);
+            final docNo = (it['docNo'] ?? '').toString();
+            nos.add(docNo);
+          }
+        }
+        if (ids.isNotEmpty) {
+          jobCardIds = ids;
+          jobCardDocNos = nos;
+          // If no explicit titles, use docNo as display titles
+          if (jobCardTitles.isEmpty) {
+            jobCardTitles = List<String>.from(nos);
+          }
+        }
+      }
       // Try alternative shapes/fields
       if (jobCardIds.isEmpty) {
-        // common alternates: linkedCardIds, cardIds, cards
         jobCardIds = (data['linkedCardIds'] as List?)?.map((e) => e.toString()).toList() ??
             (data['cardIds'] as List?)?.map((e) => e.toString()).toList() ??
             (data['cards'] as List?)?.map((e) => e.toString()).toList() ?? [];
@@ -1056,15 +1101,32 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           } else {
             _jobCardTitles = [];
           }
-          // If no local pending edits, keep pending in sync with remote
-          if (!_isJobCardDirty) {
+          // Update docNos if present; otherwise load
+          if (jobCardDocNos.isNotEmpty) {
+            _jobCardDocNos = jobCardDocNos;
+          } else if (_jobCardIds.isNotEmpty) {
+            _loadJobCardsByIds(_jobCardIds);
+          } else {
+            _jobCardDocNos = [];
+          }
+          // Use pre-captured dirty state to decide syncing pending
+          if (!wasDirty) {
             _pendingJobCardIds = List<String>.from(_jobCardIds);
             _pendingJobCardTitles = List<String>.from(_jobCardTitles);
+            _pendingJobCardDocNos = List<String>.from(_jobCardDocNos);
           }
-        } else if (jobCardTitles.isNotEmpty && jobCardTitles.toString() != _jobCardTitles.toString()) {
-          _jobCardTitles = jobCardTitles;
-          if (!_isJobCardDirty) {
-            _pendingJobCardTitles = List<String>.from(_jobCardTitles);
+        } else {
+          if (jobCardTitles.isNotEmpty && jobCardTitles.toString() != _jobCardTitles.toString()) {
+            _jobCardTitles = jobCardTitles;
+            if (!wasDirty) {
+              _pendingJobCardTitles = List<String>.from(_jobCardTitles);
+            }
+          }
+          if (jobCardDocNos.isNotEmpty && jobCardDocNos.toString() != _jobCardDocNos.toString()) {
+            _jobCardDocNos = jobCardDocNos;
+            if (!wasDirty) {
+              _pendingJobCardDocNos = List<String>.from(_jobCardDocNos);
+            }
           }
         }
       });
@@ -1313,14 +1375,17 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           final d = qs.docs.first;
           final dm = d.data();
           final title = (dm['title'] ?? dm['name'] ?? 'Card').toString();
+          final docNo = (dm['customId'] ?? title).toString();
+          final link = {'id': d.id, 'docNo': docNo, 'type': 'JC'};
           await _chatroomDoc.set({
+            'linkedJobCards': [link],
             'jobCardIds': [d.id],
-            'jobCardTitles': [title],
+            'jobCardTitles': [docNo],
             'jobCardId': d.id,
-            'jobCardTitle': title,
+            'jobCardTitle': docNo,
           }, SetOptions(merge: true));
           if (mounted) {
-            setState(() { _jobCardIds = [d.id]; _jobCardTitles = [title]; });
+            setState(() { _jobCardIds = [d.id]; _jobCardTitles = [title]; _jobCardDocNos = [docNo]; });
             _showTopSnack('jobcard_linked_latest'.tr);
           }
         }
@@ -1361,10 +1426,12 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     // Stage selection to pending; do not persist yet
     final ids = results.map((r) => r.cardId).toList();
     final titles = results.map((r) => r.title).toList();
+    final docNos = results.map((r) => r.docNo).toList();
     if (!mounted) return;
     setState(() {
       _pendingJobCardIds = ids;
       _pendingJobCardTitles = titles;
+      _pendingJobCardDocNos = docNos;
     });
   }
 
@@ -1413,34 +1480,39 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   Widget _buildLinkedJobCards() {
     final ids = _isJobCardDirty ? _pendingJobCardIds : _jobCardIds;
     final titles = _isJobCardDirty ? _pendingJobCardTitles : _jobCardTitles;
+    final docNos = _isJobCardDirty ? _pendingJobCardDocNos : _jobCardDocNos;
     if (ids.isEmpty) return const SizedBox();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Text('Linked Job Cards', style: Theme.of(context).textTheme.titleMedium),
-        ),
+
         ...List.generate(ids.length, (i) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Card(
+            color: Colors.white,
             child: ListTile(
-              title: Text(titles.length > i ? titles[i] : ids[i]),
+
+
+              title: Text((docNos.length > i && docNos[i].isNotEmpty) ? docNos[i] : (titles.length > i && titles[i].isNotEmpty ? titles[i] : ids[i])),
               onTap: () => _openJobCardDetail(ids[i]),
               trailing: IconButton(
+
                 icon: const Icon(Icons.remove_circle_outline),
                 tooltip: 'delete'.tr,
                 onPressed: () async {
                   // Ensure we operate on pending snapshot
                   final curIds = List<String>.from(_isJobCardDirty ? _pendingJobCardIds : _jobCardIds);
                   final curTitles = List<String>.from(_isJobCardDirty ? _pendingJobCardTitles : _jobCardTitles);
-                  // Normalize titles length
+                  final curNos = List<String>.from(_isJobCardDirty ? _pendingJobCardDocNos : _jobCardDocNos);
                   while (curTitles.length < curIds.length) { curTitles.add(''); }
+                  while (curNos.length < curIds.length) { curNos.add(''); }
                   curIds.removeAt(i);
                   if (i < curTitles.length) curTitles.removeAt(i);
+                  if (i < curNos.length) curNos.removeAt(i);
                   setState(() {
                     _pendingJobCardIds = curIds;
                     _pendingJobCardTitles = curTitles;
+                    _pendingJobCardDocNos = curNos;
                   });
                 },
               ),
@@ -1457,6 +1529,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                     setState(() {
                       _pendingJobCardIds = List<String>.from(_jobCardIds);
                       _pendingJobCardTitles = List<String>.from(_jobCardTitles);
+                      _pendingJobCardDocNos = List<String>.from(_jobCardDocNos);
                     });
                   },
                   child: Text('cancel'.tr),
@@ -1465,7 +1538,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _confirmPersistJobCards,
-                    child: Text('confirm'.tr),
+                    child: Text('save'.tr),
                   ),
                 ),
               ],
@@ -1474,6 +1547,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       ],
     );
   }
+
 
   Widget _buildHashtagsSection() {
     return Padding(
@@ -1562,8 +1636,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                       anyOf: const ['customer:edit:all', 'customer:edit:assigned'],
                       child: OutlinedButton.icon(
                         onPressed: _creatingHashtag ? null : _createNewCustomerHashtag,
-                        icon: const Icon(Icons.add, size: 16),
-                        label: Text(_creatingHashtag ? 'loading'.tr : 'add_new_hashtag'.tr),
+                        icon: const Icon(Icons.add, size: 14),
+                        label: Padding(padding: EdgeInsets.only(left: 5,right: 10),child: Text(_creatingHashtag ? 'loading'.tr : 'add_new_hashtag'.tr,style: TextStyle(fontSize: 14)),),
                       ),
                       fallback: const SizedBox.shrink(),
                     ),

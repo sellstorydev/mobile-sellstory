@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_theme.dart';
 import '../services/algolia_search_service.dart';
 import 'dart:async';
+import '../../features/customers/view/add_edit_customer_page.dart'; // added import for AddEditCustomerPage
+
 
 /// Customer data model matching Firestore structure
 class Customer {
@@ -282,12 +284,13 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
                           ),
                           child: Row(
                             children: [
+
                               // Small customer icon
                               Container(
                                 width: 24,
                                 height: 24,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -311,13 +314,9 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
                                     : Wrap(
                                         spacing: 4,
                                         runSpacing: 4,
-                                  children:
-                                      widget.selectedCustomerIds.take(2).map((
-                                        customerId,
-                                      ) {
-                                        final customer = widget
-                                            .availableCustomers
-                                            .firstWhere(
+                                        children: [
+                                          ...widget.selectedCustomerIds.take(2).map((customerId) {
+                                            final customer = widget.availableCustomers.firstWhere(
                                               (c) => c.id == customerId,
                                               orElse: () => Customer(
                                                 id: customerId,
@@ -334,58 +333,46 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
                                                 updatedBy: '',
                                               ),
                                             );
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primaryOrange
-                                                .withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            customer.displayName,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppTheme.primaryOrange,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        );
-                                      }).toList()..addAll(
-                                        widget.selectedCustomerIds.length > 2
-                                            ? [
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 2,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.grey.shade200,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    '+${widget.selectedCustomerIds.length - 2}',
-                                                    style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: AppTheme
-                                                          .textSecondary,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                customer.displayName,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppTheme.primaryOrange,
+                                                  fontWeight: FontWeight.w500,
                                                 ),
-                                              ]
-                                            : [],
+                                              ),
+                                            );
+                                          }),
+                                          if (widget.selectedCustomerIds.length > 2)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade200,
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                '+${widget.selectedCustomerIds.length - 2}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppTheme.textSecondary,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       ),
-                                ),
                               ),
 
                               // Arrow icon
@@ -399,27 +386,6 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
                         ),
                       ),
                     ),
-
-                    // const SizedBox(width: 8),
-
-                    // // Add Customer Button
-                    // IconButton(
-                    //   onPressed: _openAddCustomerPage,
-                    //   icon: const Icon(
-                    //     Icons.person_add,
-                    //     color: AppTheme.primaryOrange,
-                    //     size: 24,
-                    //   ),
-                    //   tooltip: 'Add New Customer',
-                    //   style: IconButton.styleFrom(
-                    //     backgroundColor: Colors.white,
-                    //     side: BorderSide(color: Colors.grey.shade400),
-                    //     shape: RoundedRectangleBorder(
-                    //       borderRadius: BorderRadius.circular(8),
-                    //     ),
-                    //     padding: const EdgeInsets.all(12),
-                    //   ),
-                    // ),
                   ],
                 ),
               ],
@@ -447,6 +413,7 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
   }
 }
 
+
 class CustomersSelectionPage extends StatefulWidget {
   final List<String> selectedCustomerIds;
   final List<Customer> availableCustomers;
@@ -455,6 +422,7 @@ class CustomersSelectionPage extends StatefulWidget {
   final bool allowMultipleSelection;
   final String? workspaceId;
   final bool enableAlgoliaSearch;
+  final VoidCallback? onCustomerAdded; // added missing field
 
   const CustomersSelectionPage({
     super.key,
@@ -769,7 +737,7 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: AppTheme.primaryOrange.withOpacity(0.1),
+              color: AppTheme.primaryOrange.withValues(alpha: 0.1), // updated from withOpacity
               child: Text(
                 _tempSelectedCustomerIds.isEmpty
                     ? 'เลือกลูกค้า (สามารถเลือกหลายคนได้)'
@@ -841,6 +809,7 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                     itemCount: _filteredCustomers.length,
                     itemBuilder: (context, index) {
                       final customer = _filteredCustomers[index];
+                      final isSelected = _tempSelectedCustomerIds.contains(customer.id); // define selection state
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
@@ -954,3 +923,10 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
     );
   }
 }
+
+// Update older withOpacity usages in CustomersInputField UI portion as well
+// (small icon background and selected chips)
+// ...existing code above...
+// We'll patch specific color calls below:
+
+// Note: This is a patch hint; the actual replacements are inline edits above where applicable.

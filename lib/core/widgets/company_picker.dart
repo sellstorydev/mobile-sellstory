@@ -662,49 +662,50 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
             ),
           ),
           
-                     // Search bar and Add button
-           Padding(
-             padding: const EdgeInsets.symmetric(horizontal: 16),
-             child: Row(
-               children: [
-                 Expanded(
-                   child: TextField(
-                     controller: _searchController,
-                     decoration: InputDecoration(
-                       hintText: 'ค้นหาบริษัท...',
-                       prefixIcon: const Icon(Icons.search),
-                       suffixIcon: _buildSearchAndClearSuffixIcons(setModalState),
-                       border: OutlineInputBorder(
-                         borderRadius: BorderRadius.circular(12),
-                       ),
-                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                     ),
-                     onChanged: (value) {
-                       // Trigger search on each character change
-                       _onSearchChanged(value);
-                       // Force modal to rebuild with search results
-                       setModalState?.call(() {});
-                     },
-                   ),
-                 ),
-                 const SizedBox(width: 12),
-                 ElevatedButton.icon(
-                   onPressed: _showAddCompanyDialog,
-                   icon: const Icon(Icons.add, size: 16),
-                   label: const Text('เพิ่มบริษัท'),
-                   style: ElevatedButton.styleFrom(
-                     backgroundColor: AppTheme.primaryOrange,
-                     foregroundColor: Colors.white,
-                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                     shape: RoundedRectangleBorder(
-                       borderRadius: BorderRadius.circular(8),
-                     ),
-                   ),
-                 ),
-               ],
-             ),
-           ),
-          
+          // Search bar and Add button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'ค้นหาบริษัท...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _buildSearchAndClearSuffixIcons(setModalState),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    onChanged: (value) {
+                      // Trigger search on each character change
+                      _onSearchChanged(value);
+                      // Force modal to rebuild with search results
+                      setModalState?.call(() {});
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _showAddCompanyDialog,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('เพิ่มบริษัท'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+
           const SizedBox(height: 16),
           
           // Selected companies
@@ -744,69 +745,69 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: _filteredCompanies.length,
                               itemBuilder: (context, index) {
-                          final company = _filteredCompanies[index];
-                          final isSelected = _selectedCompanies.any((c) => c.id == company.id);
-                          
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: CircleAvatar(
-                              backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-                              child: Text(
-                                company.displayName.isNotEmpty ? company.displayName[0].toUpperCase() : 'C',
-                                style: const TextStyle(
-                                  color: AppTheme.primaryOrange,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              company.displayName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'รหัส: ${company.customId}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                                if (company.taxId.isNotEmpty)
-                                  Text(
-                                    'เลขประจำตัวผู้เสียภาษี: ${company.taxId}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.textSecondary,
+                                final company = _filteredCompanies[index];
+                                final isSelected = _selectedCompanies.any((c) => c.id == company.id);
+
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                                    child: Text(
+                                      company.displayName.isNotEmpty ? company.displayName[0].toUpperCase() : 'C',
+                                      style: const TextStyle(
+                                        color: AppTheme.primaryOrange,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                              ],
-                            ),
-                            trailing: Checkbox(
-                              value: isSelected,
+                                  title: Text(
+                                    company.displayName,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'รหัส: ${company.customId}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                      if (company.taxId.isNotEmpty)
+                                        Text(
+                                          'เลขประจำตัวผู้เสียภาษี: ${company.taxId}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  trailing: Checkbox(
+                                    value: isSelected,
 
-                              onChanged: (_) {
-                                _toggleCompany(company);
-                                setState(() {});
-                                setModalState?.call(() {});
+                                    onChanged: (_) {
+                                      _toggleCompany(company);
+                                      setState(() {});
+                                      setModalState?.call(() {});
+                                    },
+                                    activeColor: AppTheme.primaryOrange,
+                                  ),
+                                  onTap: () {
+                                    _toggleCompany(company);
+                                    setState(() {});
+                                    setModalState?.call(() {});
+                                  },
+                                );
                               },
-                              activeColor: AppTheme.primaryOrange,
                             ),
-                            onTap: () {
-                              _toggleCompany(company);
-                              setState(() {});
-                              setModalState?.call(() {});
-                            },
-                          );
-                        },
+                          ),
+                        ],
                       ),
-                            ),
-                          ],
-                        ),
           ),
         ],
       ),
@@ -835,6 +836,10 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
       ),
     );
   }
+
+  // Added getters to fix undefined names used by _buildEmptyState
+  bool get hasSearchQuery => _searchController.text.trim().isNotEmpty;
+  bool get hasLocalCompanies => _availableCompanies.isNotEmpty;
 
   Widget _buildEmptyState() {
     return Center(
@@ -931,7 +936,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primaryOrange : AppTheme.primaryOrange.withOpacity(0.1),
+        color: isSelected ? AppTheme.primaryOrange : AppTheme.primaryOrange.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppTheme.primaryOrange,
