@@ -2,6 +2,253 @@
 
 ## Recent Changes
 
+### Date Filter Logic Fix for Show Unselected Dates Checkbox Behavior (September 22, 2025)
+
+**Topic:** Fix filter cards unified_filter_page.dart - When checkbox "Show Unselected Dates" is checked, should show BOTH +1 day cards AND no-date cards together
+
+**Issue Analysis:**
+User reported that when "Show Unselected Dates" checkbox is checked with "+1 day" filter:
+- Current behavior: Shows ONLY no-date cards (cards without startDate AND endDate)
+- Expected behavior: Should show BOTH cards with dates in +1 day range AND cards without dates
+
+**Root Cause Analysis:**
+Previous fix made the checkbox behavior exclusive - it only showed no-date cards when checked. But user expects inclusive behavior where the checkbox ADDS no-date cards to the existing date filter results.
+
+**Solution Applied:**
+
+**Enhanced Date Filter Logic for Checkbox Behavior:**
+```dart
+// Before: Checkbox shows ONLY no-date cards
+if (showCardsWithoutDate.value) {
+  // Show cards that DON'T have start date AND end date
+  dateFilterMatches = card.startDate == null && card.endDate == null;
+}
+
+// After: Checkbox shows BOTH no-date cards AND cards in date range
+if (showCardsWithoutDate.value) {
+  // Show cards that DON'T have start date AND end date PLUS cards that have dates in range
+  dateFilterMatches = (card.startDate == null && card.endDate == null) || 
+                     ((selectedStartDate.value != null || selectedEndDate.value != null) && 
+                      (card.startDate != null || card.endDate != null) && _checkDateFilter(card));
+}
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/controller/board_controller.dart`
+  - Updated `_performFilter()` method to make "Show Unselected Dates" inclusive instead of exclusive
+  - Changed logic from OR condition to show BOTH no-date cards AND cards with dates in range when checkbox is checked
+  - Normal filtering (checkbox unchecked) remains exclusive - only shows cards with dates in range
+
+**Date Filter Behavior Fixed:**
+
+**Normal Date Range Filtering (Checkbox Unchecked):**
+- Shows only cards with startDate OR endDate within selected range
+- Excludes cards that have no startDate AND no endDate
+
+**Show Unselected Dates Enabled (Checkbox Checked):**
+- Shows cards with no startDate AND no endDate 
+- PLUS shows cards with startDate OR endDate within selected range
+- Combines both filtered results for comprehensive view
+
+**Benefits:**
+- **Intuitive Checkbox Behavior**: Checkbox now ADDS no-date cards to existing filter instead of replacing it
+- **More Useful Filtering**: Users can see both relevant dated cards and undated cards together
+- **Better User Experience**: Checkbox provides additive filtering behavior as expected
+- **Maintained Exclusive Option**: Normal filtering still excludes no-date cards for precise date-only filtering
+
+**User Impact:**
+- "+1 day" with "Show Unselected Dates" now shows both tomorrow's cards AND cards without dates
+- Checkbox provides intuitive additive behavior instead of replacement behavior
+- Users can see comprehensive results combining date-filtered and no-date cards
+- Better workflow for managing both scheduled and unscheduled cards together
+
+**Implementation Notes:**
+- Checkbox behavior is now inclusive - adds no-date cards to existing date filter results
+- Normal filtering remains exclusive for precise date-only searches
+- Logic uses OR condition to combine both no-date cards and date-range cards when checkbox is checked
+- Date range filtering logic (_checkDateFilter) remains unchanged for consistency
+
+### Date Filter Logic Fix for Combined Date and No-Date Cards (September 22, 2025)
+
+**Topic:** Fix filter cards to show both cards with dates in range AND cards without dates when using date range filtering
+
+**Issue Analysis:**
+User reported that the filter should show 2 cards for "+1 day" filtering:
+1. **Cards with dates in range**: Cards that have start OR end date within the selected date range
+2. **Cards without dates**: Cards that have NO start AND NO end date
+
+Based on the Firestore backup data analysis, there are cards with various date combinations:
+- Cards with both startDate and endDate 
+- Cards with startDate but null endDate
+- Cards with null startDate and null endDate
+- Cards with endDate but null startDate
+
+**Root Cause Analysis:**
+The previous fix was too restrictive - it only showed cards WITH dates in range, excluding cards without dates entirely from normal date filtering. The user expectation is that date filtering should show BOTH:
+- Cards that match the date range criteria
+- Cards that have no dates at all
+
+**Solution Applied:**
+
+**Enhanced Date Filter Logic:**
+```dart
+// Before: Only show cards with dates in range
+else if (selectedStartDate.value != null || selectedEndDate.value != null) {
+  dateFilterMatches = (card.startDate != null || card.endDate != null) && _checkDateFilter(card);
+}
+
+// After: Show cards with dates in range OR cards without any dates
+else if (selectedStartDate.value != null || selectedEndDate.value != null) {
+  // Show cards WITH start OR end date in range AND also include cards without both dates
+  dateFilterMatches = _checkDateFilter(card) || (card.startDate == null && card.endDate == null);
+}
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/controller/board_controller.dart`
+  - Updated `_performFilter()` method to include cards without dates in normal date filtering
+  - Changed logic from exclusive filtering to inclusive filtering for better user experience
+  - Maintained separate "Show Unselected Dates" logic for explicit no-date filtering
+
+**Date Filter Behavior Fixed:**
+
+**Normal Date Range Filtering:**
+- **Before**: Only showed cards with start OR end date within selected range
+- **After**: Shows cards with start OR end date within selected range PLUS cards with no start AND no end date
+
+**Show Unselected Dates Logic:**
+- **Unchanged**: Still shows only cards that have NO start AND NO end date when checkbox is checked
+
+**Benefits:**
+- **More Intuitive Filtering**: Date filtering now shows expected combination of dated and undated cards
+- **Better User Experience**: Users see both relevant dated cards and cards without dates in single filter
+- **Maintained Granular Control**: "Show Unselected Dates" checkbox still provides exclusive no-date filtering
+- **Data Inclusive**: No cards are hidden unexpectedly from date range filtering
+
+**User Impact:**
+- "+1 day" filtering now shows both cards with dates in tomorrow's range AND cards without any dates
+- Date filtering is more inclusive and matches user expectations
+- Cards without dates are not excluded from normal date range searches
+- "Show Unselected Dates" remains available for exclusive no-date filtering
+
+**Implementation Notes:**
+- Date filtering logic uses OR condition to include both date-matched and no-date cards
+- _checkDateFilter() handles cards with dates, separate OR condition handles cards without dates
+- "Show Unselected Dates" maintains exclusive behavior when explicitly checked
+- Logic change preserves all existing filtering functionality while being more inclusive
+
+### Date Filter Range Fix for Cards with Start or End Dates (September 22, 2025)
+
+**Topic:** Fix filter cards filtering system in unified_filter_page.dart - Cards should show if they have start date OR end date in selected range, AND show cards with no start AND end date when "Show Unselected Dates" is checked
+
+**Issue Analysis:**
+The user reported that the filter was only showing cards without start date OR end date instead of the expected behavior:
+1. **Normal Date Filtering**: Should display cards that have start date OR end date within the selected date range
+2. **Show Unselected Dates**: Should display cards that have NO start date AND NO end date
+
+**Root Cause Analysis:**
+- The date filter logic was checking all date types (createdAt, updatedAt, dueDate, etc.) instead of focusing on start/end dates
+- "Show Unselected Dates" was checking if ANY selected date type was missing instead of specifically checking start AND end dates
+- The normal date filtering wasn't properly showing cards with either start OR end date in range
+
+**Solution Applied:**
+
+**1. Fixed Show Unselected Dates Logic:**
+```dart
+// Before: Complex logic checking all date types
+dateFilterMatches = selectedDateFilterTypes.every((filterType) => {
+  // Check if cardDate is null for each selected type
+});
+
+// After: Simple logic for start AND end date
+if (showCardsWithoutDate.value) {
+  // Show cards that DON'T have start date AND end date
+  dateFilterMatches = card.startDate == null && card.endDate == null;
+}
+```
+
+**2. Enhanced Normal Date Range Filtering:**
+```dart
+// Before: Checking all date types and requiring all to be null
+else if (selectedStartDate.value != null || selectedEndDate.value != null) {
+  dateFilterMatches = _checkDateFilter(card);
+}
+
+// After: Show cards WITH start OR end date in range
+else if (selectedStartDate.value != null || selectedEndDate.value != null) {
+  dateFilterMatches = (card.startDate != null || card.endDate != null) && _checkDateFilter(card);
+} else {
+  // Only date types selected, show cards that have start OR end date
+  dateFilterMatches = card.startDate != null || card.endDate != null;
+}
+```
+
+**3. Simplified Date Range Check:**
+```dart
+// Before: Complex filterTypes.any() logic checking all date types
+return filterTypes.any((filterType) => {
+  // Switch statement for all date types
+});
+
+// After: Simple check for start OR end date in range
+bool startDateMatches = false;
+bool endDateMatches = false;
+
+// Check startDate against range
+if (card.startDate != null) {
+  // Check if startDate is within range
+}
+
+// Check endDate against range  
+if (card.endDate != null) {
+  // Check if endDate is within range
+}
+
+// Return true if either date matches the range
+return startDateMatches || endDateMatches;
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/controller/board_controller.dart`
+  - Fixed `_performFilter()` method with proper start/end date logic
+  - Updated "Show Unselected Dates" to check specifically for cards missing BOTH start AND end dates
+  - Enhanced normal date filtering to show cards with start OR end date in selected range
+  - Simplified `_checkDateFilter()` to focus on start and end dates only
+
+**Date Filter Functionality Fixed:**
+
+**Show Unselected Dates Logic:**
+- **Before**: Showed cards missing ANY selected date type
+- **After**: Shows cards missing BOTH start date AND end date specifically
+
+**Normal Date Range Filtering:**
+- **Before**: Complex logic checking all date types (createdAt, updatedAt, etc.)
+- **After**: Simple logic checking if start OR end date is within selected range
+
+**Benefits:**
+- **Correct Filtering Behavior**: Filter now works exactly as described by user requirements
+- **Focused Logic**: Date filtering focuses specifically on start/end dates as intended
+- **Clear Separation**: "Show Unselected Dates" and normal filtering are clearly separated
+- **Better Performance**: Simplified logic reduces complexity and improves filtering speed
+
+**User Impact:**
+- Date filtering now behaves exactly as expected from the UI description
+- "Show Unselected Dates" properly shows cards without start AND end dates
+- Normal date filtering shows cards with start OR end date in the selected range
+- Filter results match user expectations based on the filter interface
+
+**Implementation Notes:**
+- Date filtering now focuses specifically on startDate and endDate fields
+- "Show Unselected Dates" uses simple null checks for both start and end dates
+- Normal filtering ensures cards have at least one date (start OR end) before checking range
+- All other date type filtering (createdAt, updatedAt, dueDate) removed for clarity and simplicity
+
 ### Date Filter System Complete Fix (September 22, 2025)
 
 **Topic:** Fix filter cards date filtering system in unified_filter_page.dart - Date type selection, quick options, and custom date range not working properly

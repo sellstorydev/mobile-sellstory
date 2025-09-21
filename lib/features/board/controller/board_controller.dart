@@ -1379,44 +1379,16 @@ class BoardController extends GetxController implements BoardView {
         bool dateFilterMatches = true;
         if (selectedDateFilterTypes.isNotEmpty) {
           if (showCardsWithoutDate.value) {
-            // Show cards that DON'T have any of the selected date types
-            dateFilterMatches = selectedDateFilterTypes.every((filterType) {
-              DateTime? cardDate;
-              switch (filterType) {
-                case 'startDate':
-                  cardDate = card.startDate;
-                  break;
-                case 'endDate':
-                  cardDate = card.endDate;
-                  break;
-                case 'createdAt':
-                  cardDate = card.createdAt;
-                  break;
-                case 'dueDate':
-                case 'toDoDate':
-                  // Check if any todo has a dueDate
-                  bool hasTodoDueDate = false;
-                  if (card.todos.isNotEmpty) {
-                    for (final todo in card.todos) {
-                      if (todo['dueDate'] != null) {
-                        hasTodoDueDate = true;
-                        break;
-                      }
-                    }
-                  }
-                  cardDate = hasTodoDueDate ? DateTime.now() : null;
-                  break;
-                case 'updatedAt':
-                  cardDate = card.updatedAt;
-                  break;
-                default:
-                  cardDate = card.createdAt;
-              }
-              return cardDate == null; // Return true if date is null (missing date)
-            });
+            // Show cards that DON'T have start date AND end date PLUS cards that have dates in range
+            dateFilterMatches = (card.startDate == null && card.endDate == null) || 
+                               ((selectedStartDate.value != null || selectedEndDate.value != null) && 
+                                (card.startDate != null || card.endDate != null) && _checkDateFilter(card));
           } else if (selectedStartDate.value != null || selectedEndDate.value != null) {
-            // Normal date range filtering
-            dateFilterMatches = _checkDateFilter(card);
+            // Show only cards WITH start OR end date in range (exclude cards without dates)
+            dateFilterMatches = (card.startDate != null || card.endDate != null) && _checkDateFilter(card);
+          } else {
+            // Only date types selected, show all cards (with or without dates)
+            dateFilterMatches = true;
           }
         }
 
@@ -1449,65 +1421,37 @@ class BoardController extends GetxController implements BoardView {
   bool _checkDateFilter(JobCard card) {
     final startDate = selectedStartDate.value;
     final endDate = selectedEndDate.value;
-    final filterTypes = selectedDateFilterTypes;
 
-    // Return true if any of the selected date types match the date range
-    return filterTypes.any((filterType) {
-      DateTime? cardDate;
+    // Return true if either start or end date is within the selected range
+    bool startDateMatches = false;
+    bool endDateMatches = false;
 
-      // Get the appropriate date from card based on filter type
-      switch (filterType) {
-        case 'startDate':
-          // Use actual startDate field from card
-          cardDate = card.startDate;
-          break;
-        case 'endDate':
-          // Use actual endDate field from card
-          cardDate = card.endDate;
-          break;
-        case 'createdAt':
-          cardDate = card.createdAt;
-          break;
-        case 'dueDate':
-        case 'toDoDate':
-          // Check todos for dueDate
-          if (card.todos.isNotEmpty) {
-            for (final todo in card.todos) {
-              if (todo['dueDate'] != null) {
-                cardDate = DateTime.fromMillisecondsSinceEpoch(todo['dueDate'] as int);
-                break;
-              }
-            }
-          }
-          if (cardDate == null) {
-            cardDate = card.dueDate;
-          }
-          break;
-        case 'updatedAt':
-          cardDate = card.updatedAt;
-          break;
-        default:
-          cardDate = card.createdAt;
-      }
-
-      if (cardDate == null) return false;
-
-      // Check if card date is within the selected range
+    // Check startDate
+    if (card.startDate != null) {
       bool matches = true;
-
       if (startDate != null) {
-        matches =
-            matches &&
-            cardDate.isAfter(startDate.subtract(const Duration(days: 1)));
+        matches = matches && card.startDate!.isAfter(startDate.subtract(const Duration(days: 1)));
       }
-
       if (endDate != null) {
-        matches =
-            matches && cardDate.isBefore(endDate.add(const Duration(days: 1)));
+        matches = matches && card.startDate!.isBefore(endDate.add(const Duration(days: 1)));
       }
+      startDateMatches = matches;
+    }
 
-      return matches;
-    });
+    // Check endDate
+    if (card.endDate != null) {
+      bool matches = true;
+      if (startDate != null) {
+        matches = matches && card.endDate!.isAfter(startDate.subtract(const Duration(days: 1)));
+      }
+      if (endDate != null) {
+        matches = matches && card.endDate!.isBefore(endDate.add(const Duration(days: 1)));
+      }
+      endDateMatches = matches;
+    }
+
+    // Return true if either date matches the range
+    return startDateMatches || endDateMatches;
   }
 
   List<Lane> _getSearchResults(String query) {
