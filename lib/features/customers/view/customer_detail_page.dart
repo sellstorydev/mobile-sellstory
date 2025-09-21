@@ -1041,8 +1041,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                       indicatorColor: AppTheme.primaryOrange,
                       labelColor: AppTheme.primaryOrange,
                       unselectedLabelColor: AppTheme.textSecondary,
-                      labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                      labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'Prompt'),
+                      unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, fontFamily: 'Prompt'),
                       isScrollable: true,
                       indicatorWeight: 3,
                       tabs: [
@@ -1433,10 +1433,10 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       // Simple HTML tag removal - you might want to use a proper HTML parser
       plainTitle = todoTitle.replaceAll(RegExp(r'<[^>]*>'), '').trim();
       if (plainTitle.isEmpty) {
-        plainTitle = 'Untitled To-Do';
+        plainTitle = '-';
       }
     } catch (e) {
-      plainTitle = 'Untitled To-Do';
+      plainTitle = '-';
     }
     
     DateTime? todoDate;
