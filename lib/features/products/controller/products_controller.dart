@@ -11,6 +11,8 @@ import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/services/algolia_search_service.dart';
 import '../../../core/services/algolia_product_sync_service.dart';
 
+
+
 class ProductsController extends GetxController {
   final ProductRepository _repository = Get.find<ProductRepository>();
   final FirestoreRepository _firestoreRepository = Get.find<FirestoreRepository>();
@@ -138,6 +140,7 @@ class ProductsController extends GetxController {
         } catch (e) {
           _logger.warning('Failed to get last active workspace: $e');
         }
+
         
         // Fallback to first workspace if no last active workspace
         if (selectedWorkspaceId == null) {
