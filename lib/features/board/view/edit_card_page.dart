@@ -409,8 +409,9 @@ class _EditCardPageState extends State<EditCardPage> {
 
     _selectedLane = widget.card.laneId;
     _selectedAssignee = widget.card.assignedTo;
-    _selectedCustomerIds =
-        widget.card.customerId != null ? [widget.card.customerId!] : []; // ใช้ customerId แทน customer
+    _selectedCustomerIds = widget.card.customerId != null
+        ? [widget.card.customerId!]
+        : []; // ใช้ customerId แทน customer
     _selectedCompany =
         widget.card.company?['id'] ?? 'none'; // Initialize company from JobCard
     _selectedCustomerInterest =
@@ -507,7 +508,8 @@ class _EditCardPageState extends State<EditCardPage> {
     await _loadQuotationTemplates();
 
     // โหลด companies ของ customer ที่เลือกไว้
-    if (_selectedCustomerIds.isNotEmpty && _selectedCustomerIds.first != 'none') {
+    if (_selectedCustomerIds.isNotEmpty &&
+        _selectedCustomerIds.first != 'none') {
       await _loadCompaniesForCustomer(_selectedCustomerIds.first);
     }
   }
@@ -672,20 +674,24 @@ class _EditCardPageState extends State<EditCardPage> {
         }
       }
       // Convert domain Customer to cif.Customer objects
-      _availableCustomers = customers.map((customer) => cif.Customer(
-        id: customer.id,
-        name: customer.name,
-        customId: customer.customId,
-        emails: customer.emails,
-        phones: customer.phones,
-        companyNames: customer.companyNames,
-        customFields: [], // Convert if needed
-        workspaceId: customer.workspaceId,
-        createdAt: customer.createdAt,
-        updatedAt: customer.updatedAt,
-        createdBy: customer.createdBy,
-        updatedBy: customer.updatedBy,
-      )).toList();
+      _availableCustomers = customers
+          .map(
+            (customer) => cif.Customer(
+              id: customer.id,
+              name: customer.name,
+              customId: customer.customId,
+              emails: customer.emails,
+              phones: customer.phones,
+              companyNames: customer.companyNames,
+              customFields: [], // Convert if needed
+              workspaceId: customer.workspaceId,
+              createdAt: customer.createdAt,
+              updatedAt: customer.updatedAt,
+              createdBy: customer.createdBy,
+              updatedBy: customer.updatedBy,
+            ),
+          )
+          .toList();
 
       print('✅ Customers loaded: ${_availableCustomers.length} customers');
 
@@ -3281,153 +3287,158 @@ class _EditCardPageState extends State<EditCardPage> {
                     controller: _commentsScrollController,
                     itemCount: _notes.length,
                     itemBuilder: (context, index) {
-                    final note = _notes[index];
-                    final isReply = note['parentId'] != null;
+                      final note = _notes[index];
+                      final isReply = note['parentId'] != null;
 
-                    return Container(
-                      margin: EdgeInsets.only(
-                        bottom: 16,
-                        left: isReply ? 40 : 0,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Avatar
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: Colors.blue,
-                            child: Text(
-                              (note['userDisplayName'] ?? 'U')[0].toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                      return Container(
+                        margin: EdgeInsets.only(
+                          bottom: 16,
+                          left: isReply ? 40 : 0,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Avatar
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.blue,
+                              child: Text(
+                                (note['userDisplayName'] ?? 'U')[0]
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Content
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      note['userDisplayName'] ?? 'Unknown',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    // Edit and Delete icons
-                                    if (note['userId'] ==
-                                        _currentUserInfo?['uid']) ...[
-                                      GestureDetector(
-                                        onTap: () => _editComment(index, note),
-                                        child: Icon(
-                                          Icons.edit,
-                                          size: 16,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      GestureDetector(
-                                        onTap: () =>
-                                            _deleteComment(index, note),
-                                        child: Icon(
-                                          Icons.delete,
-                                          size: 16,
-                                          color: Colors.red[400],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    Text(
-                                      _formatTimestamp(note['timestamp']),
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                // Edit mode or display mode
-                                _editingCommentIndex == index
-                                    ? Column(
-                                        children: [
-                                          TextField(
-                                            controller: _editCommentController,
-                                            decoration: InputDecoration(
-                                              hintText: 'Edit comment...',
-                                              border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              contentPadding:
-                                                  const EdgeInsets.all(12),
-                                            ),
-                                            maxLines: 3,
-                                            minLines: 1,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.end,
-                                            children: [
-                                              TextButton(
-                                                onPressed: _cancelEditComment,
-                                                child: const Text('Cancel'),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              ElevatedButton(
-                                                onPressed: () =>
-                                                    _saveEditComment(
-                                                      index,
-                                                      note,
-                                                    ),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor:
-                                                      Colors.orange,
-                                                  foregroundColor: Colors.white,
-                                                ),
-                                                child: const Text('Save'),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      )
-                                    : Text(
-                                        _stripHtmlTags(note['text'] ?? ''),
+                            const SizedBox(width: 12),
+                            // Content
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        note['userDisplayName'] ?? 'Unknown',
                                         style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
                                           fontSize: 14,
                                           color: Colors.black87,
                                         ),
                                       ),
-                                if (!isReply) ...[
-                                  const SizedBox(height: 8),
-                                  GestureDetector(
-                                    onTap: () => _showReplyDialog(note['id']),
-                                    child: const Text(
-                                      'Reply',
-                                      style: TextStyle(
-                                        color: Colors.blue,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
+                                      const Spacer(),
+                                      // Edit and Delete icons
+                                      if (note['userId'] ==
+                                          _currentUserInfo?['uid']) ...[
+                                        GestureDetector(
+                                          onTap: () =>
+                                              _editComment(index, note),
+                                          child: Icon(
+                                            Icons.edit,
+                                            size: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        GestureDetector(
+                                          onTap: () =>
+                                              _deleteComment(index, note),
+                                          child: Icon(
+                                            Icons.delete,
+                                            size: 16,
+                                            color: Colors.red[400],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Text(
+                                        _formatTimestamp(note['timestamp']),
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Edit mode or display mode
+                                  _editingCommentIndex == index
+                                      ? Column(
+                                          children: [
+                                            TextField(
+                                              controller:
+                                                  _editCommentController,
+                                              decoration: InputDecoration(
+                                                hintText: 'Edit comment...',
+                                                border: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                contentPadding:
+                                                    const EdgeInsets.all(12),
+                                              ),
+                                              maxLines: 3,
+                                              minLines: 1,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.end,
+                                              children: [
+                                                TextButton(
+                                                  onPressed: _cancelEditComment,
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                ElevatedButton(
+                                                  onPressed: () =>
+                                                      _saveEditComment(
+                                                        index,
+                                                        note,
+                                                      ),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            Colors.orange,
+                                                        foregroundColor:
+                                                            Colors.white,
+                                                      ),
+                                                  child: const Text('Save'),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        )
+                                      : Text(
+                                          _stripHtmlTags(note['text'] ?? ''),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                  if (!isReply) ...[
+                                    const SizedBox(height: 8),
+                                    GestureDetector(
+                                      onTap: () => _showReplyDialog(note['id']),
+                                      child: const Text(
+                                        'Reply',
+                                        style: TextStyle(
+                                          color: Colors.blue,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
         ),
@@ -4097,7 +4108,9 @@ class _EditCardPageState extends State<EditCardPage> {
         status: _selectedStatus,
         assignedTo: _selectedAssignee,
         customer: customerName, // Store customer name, not ID
-        customerId: _selectedCustomerIds.isNotEmpty ? _selectedCustomerIds.first : null,
+        customerId: _selectedCustomerIds.isNotEmpty
+            ? _selectedCustomerIds.first
+            : null,
         customerInterest: _selectedCustomerInterest,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,
@@ -4593,28 +4606,28 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Text(
-              'Customer',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
-            ),
-            const Spacer(),
-            TextButton.icon(
-              onPressed: _openAddCustomerPage,
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('+ New'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.primaryOrange,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              ),
-            ),
-          ],
+        const Text(
+          'Customer',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
         ),
+        // Row(
+        //   children: [
+        //     const Spacer(),
+        //     TextButton.icon(
+        //       onPressed: _openAddCustomerPage,
+        //       icon: const Icon(Icons.add, size: 16),
+        //       label: const Text('+ New'),
+        //       style: TextButton.styleFrom(
+        //         foregroundColor: AppTheme.primaryOrange,
+        //         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        //       ),
+        //     ),
+        //   ],
+        // ),
         const SizedBox(height: 8),
         cif.CustomersInputField(
           selectedCustomerIds: _selectedCustomerIds,
@@ -6535,17 +6548,17 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  Future<void> _openAddCustomerPage() async {
-    final result = await Get.to(
-      () => const AddEditCustomerPage(customerSources: []),
-    );
+  // Future<void> _openAddCustomerPage() async {
+  //   final result = await Get.to(
+  //     () => const AddEditCustomerPage(customerSources: []),
+  //   );
 
-    if (result == true) {
-      // Refresh customer list after adding new customer
-      await _loadAvailableOptions();
-      setState(() {});
-    }
-  }
+  //   if (result == true) {
+  //     // Refresh customer list after adding new customer
+  //     await _loadAvailableOptions();
+  //     setState(() {});
+  //   }
+  // }
 
   // Product management methods
   void _addProduct() {
@@ -6938,15 +6951,20 @@ class _EditCardPageState extends State<EditCardPage> {
           documentId: documentId,
         );
         print('✅ Deleted from /documents collection');
-        
+
         // Sync document deletion to Algolia
         try {
           // Extract document type from the document data
           final documentType = documentData['type'] ?? '';
-          await AlgoliaDocumentSyncService.syncDocumentDeletionToAlgolia(documentId, documentType);
+          await AlgoliaDocumentSyncService.syncDocumentDeletionToAlgolia(
+            documentId,
+            documentType,
+          );
           print('🔍 Successfully synced document deletion to Algolia');
         } catch (algoliaError) {
-          print('⚠️ Failed to sync document deletion to Algolia: $algoliaError');
+          print(
+            '⚠️ Failed to sync document deletion to Algolia: $algoliaError',
+          );
           // Don't throw error - Algolia sync failure shouldn't break the main operation
         }
       } else {
