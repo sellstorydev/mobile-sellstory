@@ -132,13 +132,6 @@ class JobCardTile extends StatelessWidget {
         cardData['additionalDiscount'] as Map<String, dynamic>?;
     final withholdingTaxPercentage =
         (cardData['withholdingTaxPercentage'] ?? 0) as num;
-
-    print('💰 Financial calculation inputs:');
-    print('  - isVatEnabled: $isVatEnabled');
-    print('  - additionalDiscount: $additionalDiscount');
-    print('  - withholdingTaxPercentage: $withholdingTaxPercentage');
-    print('  - expenses count: ${card.expenses.length}');
-
     final totals = _computeTotals(
       expenses: card.expenses,
       isVatEnabled: isVatEnabled,

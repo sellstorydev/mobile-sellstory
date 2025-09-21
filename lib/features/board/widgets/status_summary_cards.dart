@@ -12,7 +12,7 @@ class StatusSummaryCards extends StatelessWidget {
   final LaneDisplayMode displayMode; // Display mode from lane header
 
   const StatusSummaryCards({
-    super.key, 
+    super.key,
     required this.cards,
     this.onStatusTap,
     this.selectedStatuses = const [],
@@ -21,17 +21,14 @@ class StatusSummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('🎯 StatusSummaryCards build() called with ${cards.length} cards');
-    print('🎯 Selected statuses: $selectedStatuses');
-    print('🎯 Display mode: $displayMode');
-    
     // Test calculation for debugging
-    final inProgressCards = cards.where((card) => card.status == 'In Progress').toList();
+    final inProgressCards = cards
+        .where((card) => card.status == 'In Progress')
+        .toList();
     if (inProgressCards.isNotEmpty) {
       final totals = LaneTotalCalculator.calculateTotals(inProgressCards);
-      print('🎯 In Progress totals - before: ${totals.totalBeforeDiscount}, after: ${totals.totalAfterDiscount}, grand: ${totals.grandTotal}, net: ${totals.netTotal}');
     }
-    
+
     // Show summary cards even if no cards are available
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -119,7 +116,9 @@ class StatusSummaryCards extends StatelessWidget {
           ),
           shadows: [
             BoxShadow(
-              color: isSelected ? color.withOpacity(0.3) : const Color(0x19000000),
+              color: isSelected
+                  ? color.withOpacity(0.3)
+                  : const Color(0x19000000),
               blurRadius: isSelected ? 8 : 5,
               offset: const Offset(0, 0),
               spreadRadius: isSelected ? 1 : 0,
@@ -176,7 +175,9 @@ class StatusSummaryCards extends StatelessWidget {
               ),
             ),
             Text(
-              displayMode == LaneDisplayMode.none ? '-' : '฿${_formatAmount(amount)}',
+              displayMode == LaneDisplayMode.none
+                  ? '-'
+                  : '฿${_formatAmount(amount)}',
               style: TextStyle(
                 color: color,
                 fontSize: 12,
@@ -193,37 +194,30 @@ class StatusSummaryCards extends StatelessWidget {
   String _formatAmount(double amount) {
     // Format as full number with commas
     if (amount == 0) return '0';
-    
+
     final formatter = NumberFormat('#,##0', 'en_US');
     return formatter.format(amount.round());
   }
 
   double _calculateAmountByStatus(String status) {
     final statusCards = cards.where((card) => card.status == status).toList();
-    
+
     if (statusCards.isEmpty || displayMode == LaneDisplayMode.none) {
       return 0.0;
     }
-    
+
     // Use LaneTotalCalculator to get totals for all cards of this status
     final totals = LaneTotalCalculator.calculateTotals(statusCards);
-    
-    print('🎯 Calculating amount for status: $status, mode: $displayMode');
-    print('🎯 Totals - before: ${totals.totalBeforeDiscount}, after: ${totals.totalAfterDiscount}, grand: ${totals.grandTotal}, net: ${totals.netTotal}');
-    
+
     // Return the amount based on display mode
     switch (displayMode) {
       case LaneDisplayMode.totalBeforeDiscount:
-        print('🎯 Returning totalBeforeDiscount: ${totals.totalBeforeDiscount}');
         return totals.totalBeforeDiscount;
       case LaneDisplayMode.totalAfterDiscount:
-        print('🎯 Returning totalAfterDiscount: ${totals.totalAfterDiscount}');
         return totals.totalAfterDiscount;
       case LaneDisplayMode.grandTotal:
-        print('🎯 Returning grandTotal: ${totals.grandTotal}');
         return totals.grandTotal;
       case LaneDisplayMode.netTotal:
-        print('🎯 Returning netTotal: ${totals.netTotal}');
         return totals.netTotal;
       case LaneDisplayMode.none:
         return 0.0;
