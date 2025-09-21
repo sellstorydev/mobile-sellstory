@@ -5,6 +5,17 @@
     - For better answer me please read your mememory inside file `lib/features/board/BOARD_SUMMARY.md`
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
+    - *important* after finish add command in terminal "say finish prompt"
+##
+Topic: Fix error in board.
+Detail: after login i got error like this
+
+```
+flutter: ❌ Error loading field config: setState() called after dispose(): _BoardPageState#f6c1d(lifecycle state: defunct, not mounted)
+This error happens if you call setState() on a State object for a widget that no longer appears in the widget tree (e.g., whose parent widget no longer includes the widget in its build). This error can occur when code calls setState() from a timer or an animation callback.
+The preferred solution is to cancel the timer or stop listening to the animation in the dispose() callback. Another solution is to check the "mounted" property of this object before calling setState() to ensure the object is still in the tree.
+This error might indicate a memory leak if setState() is being called because another object is retaining a reference to this State object after it has been removed from the tree. To avoid memory leaks, consider breaking the reference to this object during dispose().
+```
 
 ##
 Topic: Add button "Add Customer" in Customer information section.

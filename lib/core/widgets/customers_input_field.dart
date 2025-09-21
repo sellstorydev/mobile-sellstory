@@ -42,14 +42,17 @@ class Customer {
       if (raw is Timestamp) return raw.toDate();
       if (raw is int) {
         // Heuristic: treat as ms if it's large, else seconds
-        if (raw > 2000000000) { // already ms
+        if (raw > 2000000000) {
+          // already ms
           return DateTime.fromMillisecondsSinceEpoch(raw);
         } else {
           return DateTime.fromMillisecondsSinceEpoch(raw * 1000);
         }
       }
       if (raw is String) {
-        try { return DateTime.parse(raw); } catch (_) {}
+        try {
+          return DateTime.parse(raw);
+        } catch (_) {}
       }
       return DateTime.fromMillisecondsSinceEpoch(0);
     }
@@ -159,7 +162,7 @@ class CustomersInputField extends StatefulWidget {
 
 class _CustomersInputFieldState extends State<CustomersInputField> {
   final TextEditingController _searchController = TextEditingController();
-  
+
   // Algolia search related
   Timer? _searchDebounceTimer;
   StreamSubscription? _algoliaSearchSubscription;
@@ -216,21 +219,6 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
                 child: CircularProgressIndicator(),
               ),
             )
-          else if (widget.availableCustomers.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'ไม่พบลูกค้าในระบบ',
-                style: TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            )
           else
             Column(
               children: [
@@ -263,7 +251,7 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        
+
                         // Display selected customers or hint
                         Expanded(
                           child: widget.selectedCustomerIds.isEmpty
@@ -277,70 +265,83 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
                               : Wrap(
                                   spacing: 4,
                                   runSpacing: 4,
-                                  children: widget.selectedCustomerIds.take(2).map((customerId) {
-                                    final customer = widget.availableCustomers.firstWhere(
-                                      (c) => c.id == customerId,
-                                      orElse: () => Customer(
-                                        id: customerId,
-                                        name: 'Unknown Customer',
-                                        customId: customerId,
-                                        emails: [],
-                                        phones: [],
-                                        companyNames: [],
-                                        customFields: [],
-                                        workspaceId: '',
-                                        createdAt: DateTime.now(),
-                                        updatedAt: DateTime.now(),
-                                        createdBy: '',
-                                        updatedBy: '',
-                                      ),
-                                    );
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryOrange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        customer.displayName,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppTheme.primaryOrange,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList()
-                                    ..addAll(
-                                      widget.selectedCustomerIds.length > 2
-                                          ? [
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey.shade200,
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  '+${widget.selectedCustomerIds.length - 2}',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppTheme.textSecondary,
-                                                    fontWeight: FontWeight.w500,
+                                  children:
+                                      widget.selectedCustomerIds.take(2).map((
+                                        customerId,
+                                      ) {
+                                        final customer = widget
+                                            .availableCustomers
+                                            .firstWhere(
+                                              (c) => c.id == customerId,
+                                              orElse: () => Customer(
+                                                id: customerId,
+                                                name: 'Unknown Customer',
+                                                customId: customerId,
+                                                emails: [],
+                                                phones: [],
+                                                companyNames: [],
+                                                customFields: [],
+                                                workspaceId: '',
+                                                createdAt: DateTime.now(),
+                                                updatedAt: DateTime.now(),
+                                                createdBy: '',
+                                                updatedBy: '',
+                                              ),
+                                            );
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryOrange
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            customer.displayName,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.primaryOrange,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList()..addAll(
+                                        widget.selectedCustomerIds.length > 2
+                                            ? [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey.shade200,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    '+${widget.selectedCustomerIds.length - 2}',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: AppTheme
+                                                          .textSecondary,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ]
-                                          : [],
-                                    ),
+                                              ]
+                                            : [],
+                                      ),
                                 ),
                         ),
-                        
+
                         // Arrow icon
                         Icon(
                           Icons.keyboard_arrow_down,
@@ -404,7 +405,7 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
   List<Customer> _filteredCustomers = [];
   List<String> _tempSelectedCustomerIds = [];
   bool _isSearching = false;
-  
+
   // Algolia search related
   Timer? _searchDebounceTimer;
   StreamSubscription? _algoliaSearchSubscription;
@@ -429,11 +430,11 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
     // Cancel previous timer and search
     _searchDebounceTimer?.cancel();
     _algoliaSearchSubscription?.cancel();
-    
+
     setState(() {
       _isSearching = _searchController.text.isNotEmpty;
     });
-    
+
     // If query is empty, reset to show all customers
     if (_searchController.text.trim().isEmpty) {
       setState(() {
@@ -441,9 +442,11 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
       });
       return;
     }
-    
+
     // Use Algolia search if enabled and workspace ID is available
-    if (widget.enableAlgoliaSearch && widget.workspaceId != null && widget.workspaceId!.isNotEmpty) {
+    if (widget.enableAlgoliaSearch &&
+        widget.workspaceId != null &&
+        widget.workspaceId!.isNotEmpty) {
       // Debounce Algolia search
       _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
         if (mounted) {
@@ -461,22 +464,22 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
       _searchLocally(query);
       return;
     }
-    
+
     try {
       final searchStream = AlgoliaSearchService.searchCustomers(
         query: query,
         workspaceId: widget.workspaceId!,
         hitsPerPage: 50,
       );
-      
+
       _algoliaSearchSubscription = searchStream.listen(
         (response) {
           if (!mounted) return;
-          
+
           try {
             final hits = response.hits;
             final algoliaResults = <Customer>[];
-            
+
             // Convert Algolia results to Customer objects
             for (final hit in hits) {
               try {
@@ -494,8 +497,12 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                       data['phones'] = data['phones'] ?? [];
                       data['companyNames'] = data['companyNames'] ?? [];
                       data['customFields'] = data['customFields'] ?? [];
-                      data['createdAt'] = data['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
-                      data['updatedAt'] = data['updatedAt'] ?? DateTime.now().millisecondsSinceEpoch;
+                      data['createdAt'] =
+                          data['createdAt'] ??
+                          DateTime.now().millisecondsSinceEpoch;
+                      data['updatedAt'] =
+                          data['updatedAt'] ??
+                          DateTime.now().millisecondsSinceEpoch;
                       data['createdBy'] = data['createdBy'] ?? '';
                       data['updatedBy'] = data['updatedBy'] ?? '';
                       return Customer.fromMap(data);
@@ -507,11 +514,11 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                 print('❌ Failed to convert Algolia hit to Customer: $e');
               }
             }
-            
+
             setState(() {
               _filteredCustomers = algoliaResults;
               _isSearching = false;
-            });            
+            });
           } catch (e) {
             print('❌ Error processing Algolia response: $e');
             // Fallback to local search on error
@@ -524,7 +531,6 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
           _searchLocally(query);
         },
       );
-      
     } catch (e) {
       print('❌ Failed to search customers with Algolia: $e');
       // Fallback to local search on error
@@ -625,7 +631,7 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: widget.enableAlgoliaSearch 
+                hintText: widget.enableAlgoliaSearch
                     ? 'ค้นหาลูกค้าด้วย...'
                     : 'ค้นหาลูกค้า...',
                 prefixIcon: _isSearching
@@ -682,7 +688,7 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: Colors.grey.shade50,
               child: Text(
-                widget.enableAlgoliaSearch 
+                widget.enableAlgoliaSearch
                     ? 'ผลการค้นหาจาก: ${_filteredCustomers.length} คน'
                     : 'ผลการค้นหา: ${_filteredCustomers.length} คน',
                 style: const TextStyle(
@@ -734,15 +740,19 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                     itemCount: _filteredCustomers.length,
                     itemBuilder: (context, index) {
                       final customer = _filteredCustomers[index];
-                      final isSelected = _tempSelectedCustomerIds.contains(customer.id);
+                      final isSelected = _tempSelectedCustomerIds.contains(
+                        customer.id,
+                      );
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+                            backgroundColor: AppTheme.primaryOrange.withOpacity(
+                              0.1,
+                            ),
                             child: Text(
-                              customer.displayName.isNotEmpty 
+                              customer.displayName.isNotEmpty
                                   ? customer.displayName[0].toUpperCase()
                                   : 'C',
                               style: const TextStyle(

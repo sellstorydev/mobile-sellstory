@@ -60,15 +60,19 @@ class _BoardPageState extends State<BoardPage> {
         };
       }
       
-      setState(() {
-        _fieldConfigCache = config;
-      });
+      if (mounted) {
+        setState(() {
+          _fieldConfigCache = config;
+        });
+      }
     
     } catch (e) {
       print('❌ Error loading field config: $e');
-      setState(() {
-        _fieldConfigCache = _defaultFieldConfig();
-      });
+      if (mounted) {
+        setState(() {
+          _fieldConfigCache = _defaultFieldConfig();
+        });
+      }
     }
   }
 
@@ -89,9 +93,11 @@ class _BoardPageState extends State<BoardPage> {
   Future<void> _buildUserNameCache() async {
     try {
       final workspaceUsers = await _controller.getWorkspaceUsers(_controller.currentWorkspaceId.value);
-      setState(() {
-        _userNameCache = { for (final u in workspaceUsers) if (u['id']!=null) u['id']: (u['name']??'') };
-      });
+      if (mounted) {
+        setState(() {
+          _userNameCache = { for (final u in workspaceUsers) if (u['id']!=null) u['id']: (u['name']??'') };
+        });
+      }
     } catch (e) { 
       debugPrint('❌ User name cache build error: $e'); 
     }
@@ -148,8 +154,12 @@ class _BoardPageState extends State<BoardPage> {
   void _loadBackgroundData() {
     // Load these in background without blocking UI
     Future.microtask(() async {
-      _loadPerBoardFieldConfig();
-      _buildUserNameCache();
+      if (mounted) {
+        await _loadPerBoardFieldConfig();
+      }
+      if (mounted) {
+        await _buildUserNameCache();
+      }
     });
   }
 
@@ -220,7 +230,9 @@ class _BoardPageState extends State<BoardPage> {
         final result = await Get.toNamed('/card-view-settings', arguments: {'boardId': _controller.currentBoardId.value});
         if (result == true) {          
           await _loadPerBoardFieldConfig();
-          setState(() {}); // Force rebuild
+          if (mounted) {
+            setState(() {}); // Force rebuild
+          }
         } else {
           print('❌ Returned from card view settings without saving');
         }

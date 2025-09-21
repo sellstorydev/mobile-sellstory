@@ -2,6 +2,76 @@
 
 ## Recent Changes
 
+### Board Page setState After Dispose Fix (September 21, 2025)
+
+**Topic:** Fix error in board after login - setState() called after dispose()
+
+**Issue:** 
+```
+flutter: ❌ Error loading field config: setState() called after dispose(): _BoardPageState#f6c1d(lifecycle state: defunct, not mounted)
+```
+
+**Root Cause Analysis:**
+- The `_loadPerBoardFieldConfig()` method was calling `setState()` without checking if the widget was still mounted
+- Multiple async operations (`_buildUserNameCache()`, field config loading) were calling `setState()` after widget disposal
+- Background data loading methods were not protected against widget disposal
+- Card view settings updates were triggering `setState()` without mount checks
+
+**Solution Applied:**
+1. **Added Mounted Checks**: Protected all `setState()` calls with `if (mounted)` checks
+2. **Enhanced Async Safety**: Added mount checks in background data loading methods
+3. **Safe Field Config Loading**: Protected field configuration updates
+4. **User Cache Safety**: Added mount check in user name cache building
+
+**Technical Changes:**
+
+**lib/features/board/view/board_page.dart:**
+
+```dart
+// Before: Unsafe setState calls
+setState(() {
+  _fieldConfigCache = config;
+});
+
+// After: Protected setState calls
+if (mounted) {
+  setState(() {
+    _fieldConfigCache = config;
+  });
+}
+```
+
+**Files Modified:**
+- `lib/features/board/view/board_page.dart`
+  - Enhanced `_loadPerBoardFieldConfig()` with mounted checks
+  - Added safety checks in `_buildUserNameCache()`
+  - Protected `_loadBackgroundData()` async operations
+  - Added mount check in card view settings result handling
+
+**Error Prevention Strategy:**
+- **Widget Lifecycle Safety**: All setState calls now check mounted state
+- **Async Operation Protection**: Background tasks verify widget is still active
+- **Memory Leak Prevention**: Prevents setState after widget disposal
+- **Graceful Degradation**: Operations continue safely even if widget is disposed
+
+**Benefits:**
+- **Prevents App Crashes**: No more setState after dispose errors
+- **Memory Safety**: Eliminates potential memory leaks from lingering references
+- **Robust Navigation**: Users can safely navigate away during async operations
+- **Better Error Handling**: Clear error prevention instead of runtime crashes
+
+**User Impact:**
+- Smooth navigation in and out of board page during login
+- No more error dialogs when switching between screens quickly
+- Better app stability during workspace/board initialization
+- Improved user experience during background data loading
+
+**Implementation Notes:**
+- All setState calls now use `if (mounted)` guard clause
+- Background async operations check mount state before UI updates
+- Card field configuration loading is now disposal-safe
+- User cache building protected against premature widget disposal
+
 ### Add Customer Button Integration (September 21, 2025)
 
 **Topic:** Add button "Add Customer" in Customer information section in edit_card_page.dart and create_card_page.dart
