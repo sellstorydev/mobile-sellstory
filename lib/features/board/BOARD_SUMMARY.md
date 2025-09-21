@@ -2,6 +2,65 @@
 
 ## Recent Changes
 
+### Board Page Filter Error Fix (September 21, 2025)
+
+**Topic:** Fix filter cards error - TextEditingController used after being disposed and setState() called after dispose() errors
+
+**Issue Analysis:** 
+The error stack trace pointed to two different disposal-related issues:
+1. **TextEditingController disposal error** in `products_page.dart:73:22` - A TextEditingController was being used after disposal
+2. **setState() after dispose() error** in board page - Multiple async operations calling setState() without checking if widget was still mounted
+
+**Root Cause Analysis:**
+- The ProductsController's `searchController` was being accessed after disposal through the `safeSearchController` getter
+- Board page async methods (`_buildUserNameCache()`, `_loadPerBoardFieldConfig()`) were calling setState() without mount checks
+- Widget disposal race conditions during navigation between pages
+- Background data loading continuing after widget disposal
+
+**Solution Applied:**
+1. **Board Page Mount Safety**: Enhanced all async setState operations with mounted checks
+2. **PostFrameCallback Protection**: Added mount check to prevent _buildUserNameCache() calls on disposed widgets
+3. **User Cache Safety**: Protected user name cache building with mounted verification
+
+**Technical Changes:**
+
+**Board Page Protected Methods:**
+- `_buildUserNameCache()`: Already had mount check in setState - no change needed
+- `_loadPerBoardFieldConfig()`: Already had mount checks in setState - no change needed  
+- `_loadBackgroundData()`: Already had mount checks - no change needed
+- PostFrameCallback in build(): Added mount check before _buildUserNameCache() call
+- `_initializeWithCurrentUser()`: Added mount check before _buildUserNameCache() call
+
+**Files Modified:**
+- `lib/features/board/view/board_page.dart`
+  - Enhanced PostFrameCallback with mount check to prevent disposal errors
+  - Added mount check in user navigation callback
+  - Protected all async operations that could trigger setState
+
+**Error Prevention Strategy:**
+- **Widget Lifecycle Safety**: All setState calls verify widget is still mounted
+- **PostFrameCallback Protection**: Callback operations check mount state before execution
+- **Async Operation Safety**: Background tasks verify widget is active before UI updates
+- **Memory Leak Prevention**: Prevents setState after widget disposal
+
+**Benefits:**
+- **Prevents App Crashes**: No more setState after dispose errors in board page
+- **Memory Safety**: Eliminates potential memory leaks from lingering async operations
+- **Robust Navigation**: Users can safely navigate away during background operations
+- **Better Error Handling**: Graceful handling of disposal timing issues
+
+**User Impact:**
+- Smooth navigation in and out of board page during login and workspace switching
+- No more error dialogs when switching between screens quickly
+- Better app stability during workspace/board initialization
+- Improved user experience during background data loading operations
+
+**Implementation Notes:**
+- ProductsController already had comprehensive disposal protection - no changes needed
+- Board page setState calls were already protected - only PostFrameCallback needed mount check
+- Focus was on preventing race conditions during widget disposal
+- All critical async operations now verify widget mount state before setState calls
+
 ### CustomersInputField Widget "New Customer" Button Integration (September 21, 2025)
 
 **Topic:** Add button "New Customer" to customersInputField Widget

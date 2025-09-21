@@ -1,11 +1,165 @@
 # PRE PROMPT
-
     - *important* You don't need to explain what you did. I don't want to know, it's a waste of time. Focus on editing the file to meet the task I gave you.
     - First read `lib/features/board/BOARD_SUMMARY.md` file for review your memory and brainstrom your self.
     - For better answer me please read your mememory inside file `lib/features/board/BOARD_SUMMARY.md`
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
+
+
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: Job card date filter select date type,quick option set custom date range: not working.
+
+Select date type section:
+consists of
+- Start date 
+
+
+##
+Topic: Filter cards
+Detail: Fix error 
+```
+
+════════ Exception caught by widgets library ═══════════════════════════════════
+The following assertion was thrown building RawGestureDetector(state: RawGestureDetectorState#f5b27(gestures: [tap, long press, tap and horizontal drag, force press], excludeFromSemantics: true, behavior: translucent)):
+A TextEditingController was used after being disposed.
+Once you have called dispose() on a TextEditingController, it can no longer be used.
+
+The relevant error-causing widget was:
+    TextField TextField:file:///Users/kiki/Works/02-SELLSTORY/mobile-sellstory/lib/features/products/view/products_page.dart:73:22
+
+When the exception was thrown, this was the stack:
+#0      ChangeNotifier.debugAssertNotDisposed.<anonymous closure> (package:flutter/src/foundation/change_notifier.dart:182:9)
+change_notifier.dart:182
+#1      ChangeNotifier.debugAssertNotDisposed (package:flutter/src/foundation/change_notifier.dart:189:6)
+change_notifier.dart:189
+#2      ChangeNotifier.addListener (package:flutter/src/foundation/change_notifier.dart:271:27)
+change_notifier.dart:271
+#3      _MergingListenable.addListener (package:flutter/src/foundation/change_notifier.dart:503:14)
+change_notifier.dart:503
+#4      _AnimatedState.didUpdateWidget (package:flutter/src/widgets/transitions.dart:119:25)
+transitions.dart:119
+#5      StatefulElement.update (package:flutter/src/widgets/framework.dart:5893:55)
+framework.dart:5893
+#6      Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#7      SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7025:14)
+framework.dart:7025
+#8      Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#9      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5747:16)
+framework.dart:5747
+#10     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5884:11)
+framework.dart:5884
+#11     Element.rebuild (package:flutter/src/widgets/framework.dart:5435:7)
+framework.dart:5435
+#12     StatefulElement.update (package:flutter/src/widgets/framework.dart:5909:5)
+framework.dart:5909
+#13     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#14     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5747:16)
+framework.dart:5747
+#15     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5884:11)
+framework.dart:5884
+#16     Element.rebuild (package:flutter/src/widgets/framework.dart:5435:7)
+framework.dart:5435
+#17     StatefulElement.update (package:flutter/src/widgets/framework.dart:5909:5)
+framework.dart:5909
+#18     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#19     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7025:14)
+framework.dart:7025
+#20     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#21     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5747:16)
+framework.dart:5747
+#22     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5884:11)
+framework.dart:5884
+#23     Element.rebuild (package:flutter/src/widgets/framework.dart:5435:7)
+framework.dart:5435
+#24     StatefulElement.update (package:flutter/src/widgets/framework.dart:5909:5)
+framework.dart:5909
+#25     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#26     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7025:14)
+framework.dart:7025
+#27     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#28     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7025:14)
+framework.dart:7025
+#29     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#30     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7025:14)
+framework.dart:7025
+#31     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+framework.dart:3982
+#32     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5747:16)
+framework.dart:5747
+#33     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5884:11)
+framework.dart:5884
+#34     Element.rebuild (package:flutter/src/widgets/framework.dart:5435:7)
+framework.dart:5435
+#35     BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2695:15)
+framework.dart:2695
+#36     BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2752:11)
+framework.dart:2752
+#37     BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3056:18)
+framework.dart:3056
+#38     WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1259:21)
+binding.dart:1259
+#39     RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+binding.dart:495
+#40     SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1434:15)
+binding.dart:1434
+#41     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1347:9)
+binding.dart:1347
+#42     SchedulerBinding._handleDrawFrame (package:flutter/src/scheduler/binding.dart:1200:5)
+binding.dart:1200
+#43     _invoke (dart:ui/hooks.dart:330:13)
+hooks.dart:330
+#44     PlatformDispatcher._drawFrame (dart:ui/platform_dispatcher.dart:444:5)
+platform_dispatcher.dart:444
+#45     _drawFrame (dart:ui/hooks.dart:302:31)
+hooks.dart:302
+
+════════════════════════════════════════════════════════════════════════════════
+<inspected variable>
+flutter: ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+flutter: │ #0   LoggerService.methodExit (package:sellstory/core/services/logger_service.dart:206:13)
+logger_service.dart:206
+flutter: │ #1   FirestoreRepository.getUserById (package:sellstory/data/repositories/firestore_repository.dart:2357:15)
+firestore_repository.dart:2357
+flutter: │ #2   <asynchronous suspension>
+flutter: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+flutter: │ 21:36:17.041 (+2:27:47.029853)
+flutter: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+flutter: │ 🐛 ⬅️ Exiting: FirestoreRepository.getUserById
+flutter: └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+flutter: ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+flutter: │ #0   LoggerService.methodExit (package:sellstory/core/services/logger_service.dart:206:13)
+logger_service.dart:206
+flutter: │ #1   FirestoreRepository.getUserById (package:sellstory/data/repositories/firestore_repository.dart:2357:15)
+firestore_repository.dart:2357
+flutter: │ #2   <asynchronous suspension>
+flutter: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+flutter: │ 21:36:17.060 (+2:27:47.048319)
+flutter: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+flutter: │ 🐛 ⬅️ Exiting: FirestoreRepository.getUserById
+flutter: └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+<inspected variable>
+<inspected variable>
+
+════════ Exception caught by widgets library ═══════════════════════════════════
+'package:flutter/src/widgets/framework.dart': Failed assertion: line 6171 pos 14: '_dependents.isEmpty': is not true.
+The relevant error-causing widget was:
+    GetMaterialApp GetMaterialApp:file:///Users/kiki/Works/02-SELLSTORY/mobile-sellstory/lib/app/app.dart:27:14
+════════════════════════════════════════════════════════════════════════════════
+
+════════ Exception caught by scheduler library ═════════════════════════════════
+Tried to build dirty widget in the wrong build scope.
+════════════════════════════════════════════════════════════════════════════════
+```
+
 ##
 Topic: Fix error in board.
 Detail: after login i got error like this

@@ -218,7 +218,9 @@ class _BoardPageState extends State<BoardPage> {
         break;
       case 'refresh':
         _initializeWithCurrentUser();
-        _buildUserNameCache();
+        if (mounted) {
+          _buildUserNameCache();
+        }
         break;
       case 'calendar':
         Get.toNamed('/calendar');
@@ -281,7 +283,9 @@ class _BoardPageState extends State<BoardPage> {
     // Force build user cache if empty
     if (_userNameCache.isEmpty && _controller.currentWorkspaceId.value.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _buildUserNameCache();
+        if (mounted) {
+          _buildUserNameCache();
+        }
       });
     }
     
