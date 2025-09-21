@@ -207,8 +207,6 @@ class JobCardTile extends StatelessWidget {
       }
     });
     entries.sort((a, b) => a.order.compareTo(b.order));
-    print('🔧 Final field order: ${entries.map((e) => e.key).toList()}');
-
     // Build widgets for each supported key
     final children = <Widget>[];
     for (final e in entries) {

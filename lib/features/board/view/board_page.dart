@@ -1047,11 +1047,7 @@ class _BoardPageState extends State<BoardPage> {
         MobilePermissionsService.to.can('jobcard:create');
     
     // Debug: Print permission status
-    print('🔍 Add Card Button Debug for lane: ${lane.title}');
-    print('  - isOwner: ${MobilePermissionsService.to.isOwner}');
-    print('  - can(jobcard:create): ${MobilePermissionsService.to.can('jobcard:create')}');
-    print('  - canCreate: $canCreate');
-    print('  - Current permissions: ${MobilePermissionsService.to.current.value?.permissions}');
+
     
     // Always show the button, but disable if no permission
     return Container(
