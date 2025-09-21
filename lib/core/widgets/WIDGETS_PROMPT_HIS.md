@@ -7,6 +7,20 @@
     - *important* after finish add command in terminal "say finish prompt"
 
 
+
+
+Topic: Add button "New Customer" to customersInputField Widget
+Detail: wtf i tell u add btn to end of search not in serach and not end of customer select
+
+
+##
+Topic: Add button "New Customer" to customersInputField Widget
+Detail: Change UI add customer button to end of search field in customersInputField Widget. but should not in search field.
+
+## 
+Topic: Add button "New Customer" to customersInputField Widget
+Detail: Change UI add customer button to end of serach field in customersInputField Widget. By pressed button go to Add customer "add_edit_customer_page.dart".After add customer success go back to customersInputField and fetch new customer in select.
+
 ## 
 Topic: Add button "New Customer" to customersInputField Widget
 Detail: 

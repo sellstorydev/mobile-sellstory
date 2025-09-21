@@ -250,49 +250,53 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
           else
             Column(
               children: [
-                // Button to open full page selection
-                InkWell(
-                  onTap: _showCustomersFullPage,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade400),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        // Small customer icon
-                        Container(
-                          width: 24,
-                          height: 24,
+                // Search field with add customer button
+                Row(
+                  children: [
+                    // Button to open full page selection
+                    Expanded(
+                      child: InkWell(
+                        onTap: _showCustomersFullPage,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryOrange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade400),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(
-                            Icons.person,
-                            size: 16,
-                            color: AppTheme.primaryOrange,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
+                          child: Row(
+                            children: [
+                              // Small customer icon
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 16,
+                                  color: AppTheme.primaryOrange,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
 
-                        // Display selected customers or hint
-                        Expanded(
-                          child: widget.selectedCustomerIds.isEmpty
-                              ? Text(
-                                  widget.hintText.tr,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 14,
-                                  ),
-                                )
-                              : Wrap(
-                                  spacing: 4,
-                                  runSpacing: 4,
+                              // Display selected customers or hint
+                              Expanded(
+                                child: widget.selectedCustomerIds.isEmpty
+                                    ? Text(
+                                        widget.hintText.tr,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 14,
+                                        ),
+                                      )
+                                    : Wrap(
+                                        spacing: 4,
+                                        runSpacing: 4,
                                   children:
                                       widget.selectedCustomerIds.take(2).map((
                                         customerId,
@@ -368,17 +372,41 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
                                             : [],
                                       ),
                                 ),
-                        ),
+                              ),
 
-                        // Arrow icon
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Colors.grey.shade600,
-                          size: 20,
+                              // Arrow icon
+                              Icon(
+                                Icons.keyboard_arrow_down,
+                                color: Colors.grey.shade600,
+                                size: 20,
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+
+                    // const SizedBox(width: 8),
+
+                    // // Add Customer Button
+                    // IconButton(
+                    //   onPressed: _openAddCustomerPage,
+                    //   icon: const Icon(
+                    //     Icons.person_add,
+                    //     color: AppTheme.primaryOrange,
+                    //     size: 24,
+                    //   ),
+                    //   tooltip: 'Add New Customer',
+                    //   style: IconButton.styleFrom(
+                    //     backgroundColor: Colors.white,
+                    //     side: BorderSide(color: Colors.grey.shade400),
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(8),
+                    //     ),
+                    //     padding: const EdgeInsets.all(12),
+                    //   ),
+                    // ),
+                  ],
                 ),
               ],
             ),
@@ -622,18 +650,6 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
     });
   }
 
-  Future<void> _openAddCustomerPage() async {
-    final result = await Get.to(
-      () => const AddEditCustomerPage(customerSources: []),
-    );
-    
-    if (result == true && widget.onCustomerAdded != null) {
-      // Close this page and let parent refresh
-      Navigator.of(context).pop();
-      widget.onCustomerAdded!();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -658,14 +674,6 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
               ),
             ),
           ),
-          TextButton.icon(
-            onPressed: _openAddCustomerPage,
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('New'),
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.primaryOrange,
-            ),
-          ),
         ],
       ),
       body: Column(
@@ -679,38 +687,71 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                 bottom: BorderSide(color: Colors.grey.shade200, width: 1),
               ),
             ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: widget.enableAlgoliaSearch
-                    ? 'ค้นหาลูกค้าด้วย...'
-                    : 'ค้นหาลูกค้า...',
-                prefixIcon: _isSearching
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppTheme.primaryOrange,
-                          ),
-                        ),
-                      )
-                    : const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: widget.enableAlgoliaSearch
+                          ? 'ค้นหาลูกค้าด้วย...'
+                          : 'ค้นหาลูกค้า...',
+                      prefixIcon: _isSearching
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppTheme.primaryOrange,
+                                ),
+                              ),
+                            )
+                          : const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () async {
+                    final result = await Get.to(
+                      () => const AddEditCustomerPage(customerSources: []),
+                    );
+                    
+                    if (result == true && widget.onCustomerAdded != null) {
+                      Navigator.of(context).pop();
+                      widget.onCustomerAdded!();
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.person_add,
+                    color: AppTheme.primaryOrange,
+                    size: 24,
+                  ),
+                  tooltip: 'Add New Customer',
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: BorderSide(color: Colors.grey.shade400),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                  ),
+                ),
+              ],
             ),
           ),
 
