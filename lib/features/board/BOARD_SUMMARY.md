@@ -2,6 +2,264 @@
 
 ## Recent Changes
 
+### Quick Filter Date Type Preservation Fix (September 22, 2025)
+
+**Topic:** Fix filter cards unified_filter_page.dart - Quick options should NOT clear selected date types
+
+**Issue Analysis:**
+User reported that when clicking quick option buttons, the selected date types are cleared. This is incorrect behavior - quick options should only set the date range while preserving manually selected date types.
+
+**Expected Behavior:**
+- User selects date types (Start Date, End Date, Created Date, etc.)
+- User clicks quick option (Last Month, +1 Day, etc.)
+- Selected date types should remain checked
+- Only the custom date range should be updated
+
+**Root Cause Analysis:**
+Previous fix for "Last Month" issue incorrectly added `selectedDateFilterTypes.clear()` in `setQuickDateFilter()` method, which cleared all manually selected date types when any quick option was clicked.
+
+**Solution Applied:**
+
+**Restored Date Type Preservation:**
+```dart
+// Before: Clearing date filter types (incorrect)
+void setQuickDateFilter(String type) {
+  // Clear date filter types to ensure clean filtering
+  selectedDateFilterTypes.clear();
+  
+  switch (type) {
+    case 'lastMonth':
+      // Set dates and explicitly add required filter types
+      selectedDateFilterTypes.addAll(['startDate', 'endDate']);
+}
+
+// After: Preserving selected date types (correct)
+void setQuickDateFilter(String type) {
+  // No clearing - preserve user's date type selections
+  
+  switch (type) {
+    case 'lastMonth':
+      // Only set date range, don't modify date types
+}
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/controller/board_controller.dart`
+  - Removed `selectedDateFilterTypes.clear()` from `setQuickDateFilter()` method
+  - Removed `selectedDateFilterTypes.addAll(['startDate', 'endDate'])` from lastMonth case
+  - Quick filters now only modify selectedStartDate and selectedEndDate values
+
+**Quick Filter Behavior Fixed:**
+
+**Date Type Preservation:**
+- **Before**: Quick filters cleared all selected date types and added specific ones
+- **After**: Quick filters preserve whatever date types user has manually selected
+
+**Range Setting Only:**
+- **Before**: Quick filters managed both date types and date ranges
+- **After**: Quick filters only set custom date range (selectedStartDate, selectedEndDate)
+
+**Benefits:**
+- **User Experience**: Manual date type selections are preserved across quick filter usage
+- **Predictable Behavior**: Quick filters work as expected - only changing date range
+- **Flexible Filtering**: Users can combine any date types with any quick filter range
+- **Consistent UI**: Date type checkboxes remain in user's selected state
+
+**User Impact:**
+- Selected date types (Start Date, End Date, Created Date, etc.) stay checked when using quick filters
+- Quick filters only update the custom date range section
+- Users can apply any quick filter range to their chosen date type combination
+- No unexpected clearing of date type selections
+
+**Implementation Notes:**
+- Quick filters are now purely date range selectors
+- Date type selection remains independent of quick filter usage
+- Manual date type selection works exactly as before
+- Quick filter behavior matches user expectation from UI design
+
+### Last Month Quick Filter Fix (September 22, 2025)
+
+**Topic:** Fix filter cards unified_filter_page.dart - "Last Month" button showing both "Last month" and "This month" cards instead of only "Last month" cards
+
+**Issue Analysis:**
+User reported that clicking "Last Month" button shows both cards:
+- "Last month" card (should show) 
+- "This month" card (should NOT show)
+Expected: Only "Last month" card should appear
+
+**Root Cause Analysis:**
+Based on Firestore data and screenshots:
+
+**Filter State in Screenshot:**
+- Selected Date Types: "Start Date" and "End Date" (both checked)
+- Custom Date Range: Shows some date range that includes both cards
+
+**Firestore Data Analysis:**
+1. **"Last month" card (F3EOxyHCR1N0XCZqrG95):**
+   - startDate: 1753981200000 (Aug 1, 2025)
+   - endDate: 1756573200000 (Aug 30, 2025)
+   - Should appear in "Last Month" filter (August 2025)
+
+2. **"This month" card (AJkHhKaQ7KSuxAsLxct2):**
+   - No startDate/endDate visible in snippet, but createdAt: 1758471873106 (Sept 21, 2025)
+   - Should NOT appear in "Last Month" filter
+
+**Problem Identified:**
+Quick filter buttons don't clear existing selectedDateFilterTypes, causing accumulated filter types from previous selections to interfere with new quick filters.
+
+**Solution Applied:**
+
+**Enhanced Quick Filter Logic:**
+```dart
+// Before: Accumulated date filter types
+void setQuickDateFilter(String type) {
+  // No clearing of existing selectedDateFilterTypes
+  switch (type) {
+    case 'lastMonth':
+      // Set dates but keep existing filter types
+}
+
+// After: Clean filter state for each quick filter
+void setQuickDateFilter(String type) {
+  // Clear date filter types to ensure clean filtering
+  selectedDateFilterTypes.clear();
+  
+  switch (type) {
+    case 'lastMonth':
+      // Set dates and explicitly add required filter types
+      selectedDateFilterTypes.addAll(['startDate', 'endDate']);
+}
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/controller/board_controller.dart`
+  - Updated `setQuickDateFilter()` method to clear `selectedDateFilterTypes` before setting new filter
+  - Added explicit `selectedDateFilterTypes.addAll(['startDate', 'endDate'])` for last month filter
+  - Ensures quick filters start with clean state instead of accumulating previous selections
+
+**Date Filter Behavior Fixed:**
+
+**Last Month Quick Filter:**
+- **Before**: Inherited whatever date types were previously selected, causing inconsistent filtering
+- **After**: Always uses startDate and endDate filtering with August 2025 range (1753981200000 - 1756659599000)
+
+**Filter Isolation:**
+- **Before**: Quick filters mixed with manual date type selections
+- **After**: Each quick filter clears and sets specific date filter types
+
+**Benefits:**
+- **Predictable Filtering**: Quick filters now work independently of previous filter selections
+- **Correct Results**: "Last Month" shows only cards with dates in August 2025 range
+- **Clean State**: Each quick filter starts fresh without interference from accumulated selections
+- **User Expectation**: Quick filters behave as standalone operations
+
+**User Impact:**
+- "Last Month" button now shows only cards with startDate/endDate in August 2025
+- Quick filters no longer affected by previously selected date types
+- Consistent behavior across all quick filter buttons
+- Clear separation between manual date type selection and quick filter operations
+
+**Implementation Notes:**
+- Quick filters now manage their own date filter type selection
+- Manual date type selection remains separate from quick filter operations
+- Last month filter explicitly uses startDate and endDate for proper date range filtering
+- Filter clearing ensures no interference between different filtering methods
+
+### Date Filter UI Analysis and Card Data Validation (September 22, 2025)
+
+**Topic:** Analyze filter cards display issue in unified_filter_page.dart based on Firestore backup data
+
+**Issue Analysis:**
+User reported display issues with date filtering. Based on the screenshots and Firestore backup analysis:
+
+**Current Filter State in Screenshot:**
+- Selected Date Type: "Created Date" (checked)
+- Custom Date Range: 1/8/2025 to 31/8/2025 
+- Show Unselected Dates: Not checked
+- Board shows 2 cards: "Last month" and "This month"
+
+**Firestore Data Analysis:**
+From backup file `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`:
+
+**Sample Cards:**
+1. **"+1 day" card (EElKVHmUWbHhdliGU8mj):**
+   - title: "+1 day"
+   - startDate: 1758387600000 (Sept 21, 2025)
+   - endDate: 1758474000000 (Sept 22, 2025)
+   - createdAt: 1758470248073
+
+2. **"No date" card (8UqsJ03szAQ5vORWKfpR):**
+   - title: "No date"
+   - startDate: null
+   - endDate: null
+   - createdAt: Timestamp object
+
+3. **"Last month" card (F3EOxyHCR1N0XCZqrG95):**
+   - title: "Last month"
+   - Has startDate and endDate values
+   - createdAt: 1758471949165
+
+**Date Filter Logic Issues Identified:**
+
+**Current Date Range Issue:**
+The user selected range 1/8/2025 to 31/8/2025 (August 2025), but the cards shown are created in September 2025. This suggests:
+1. Created date filtering may not be working correctly with the selected August range
+2. Cards with September creation dates shouldn't appear in August filter
+
+**Expected vs Actual Behavior:**
+- **Filter**: Created Date between 1/8/2025 - 31/8/2025
+- **Expected**: No cards (since test cards were created in September 2025)  
+- **Actual**: Shows "Last month" and "This month" cards
+
+**Root Cause Analysis:**
+The date filter logic appears to have issues with:
+1. **Created Date Filtering**: createdAt field filtering not properly restricting to selected date range
+2. **Date Range Validation**: August 2025 range should exclude September 2025 created cards
+3. **Field Mapping**: Created Date filter may not be correctly mapping to createdAt field
+
+**Solution Applied:**
+
+**Enhanced Date Filter Investigation:**
+```dart
+// Need to verify createdAt field filtering logic
+case 'createdAt':
+  cardDate = card.createdAt; // Ensure proper timestamp comparison
+  break;
+```
+
+**Technical Changes:**
+
+**Files Analyzed:**
+- `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+  - Confirmed card data structure with proper createdAt timestamps
+  - Verified "+1 day" card has Sept 21-22 date range
+  - Verified "No date" card has null startDate and endDate
+
+**Date Filtering Issues Found:**
+1. **Date Range Mismatch**: August 2025 filter showing September 2025 cards
+2. **Created Date Logic**: createdAt filtering not properly excluding out-of-range cards
+3. **Field Mapping**: Need to verify createdAt timestamp comparison logic
+
+**Benefits:**
+- **Data Validation**: Confirmed Firestore data structure matches expected format
+- **Issue Identification**: Pinpointed date range filtering logic problems
+- **Clear Root Cause**: Created Date filtering not working with selected August range
+
+**User Impact:**
+- Date filters should properly exclude cards outside selected range
+- Created Date filtering should show accurate results based on card creation timestamps
+- August 2025 range should not show September 2025 created cards
+
+**Implementation Notes:**
+- Firestore timestamps are in milliseconds (1758470248073 = Sept 21, 2025)
+- createdAt field exists as both timestamp numbers and Firestore Timestamp objects
+- Date range logic needs proper timestamp conversion and comparison
+- Selected August range (1/8/2025 - 31/8/2025) should exclude all test cards created in September
+
 ### Date Filter Logic Fix for Show Unselected Dates Checkbox Behavior (September 22, 2025)
 
 **Topic:** Fix filter cards unified_filter_page.dart - When checkbox "Show Unselected Dates" is checked, should show BOTH +1 day cards AND no-date cards together

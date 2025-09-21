@@ -1382,10 +1382,10 @@ class BoardController extends GetxController implements BoardView {
             // Show cards that DON'T have start date AND end date PLUS cards that have dates in range
             dateFilterMatches = (card.startDate == null && card.endDate == null) || 
                                ((selectedStartDate.value != null || selectedEndDate.value != null) && 
-                                (card.startDate != null || card.endDate != null) && _checkDateFilter(card));
+                                _checkDateFilter(card));
           } else if (selectedStartDate.value != null || selectedEndDate.value != null) {
-            // Show only cards WITH start OR end date in range (exclude cards without dates)
-            dateFilterMatches = (card.startDate != null || card.endDate != null) && _checkDateFilter(card);
+            // Show only cards that have dates matching the filter
+            dateFilterMatches = _checkDateFilter(card);
           } else {
             // Only date types selected, show all cards (with or without dates)
             dateFilterMatches = true;
@@ -1422,36 +1422,60 @@ class BoardController extends GetxController implements BoardView {
     final startDate = selectedStartDate.value;
     final endDate = selectedEndDate.value;
 
-    // Return true if either start or end date is within the selected range
-    bool startDateMatches = false;
-    bool endDateMatches = false;
-
-    // Check startDate
-    if (card.startDate != null) {
-      bool matches = true;
-      if (startDate != null) {
-        matches = matches && card.startDate!.isAfter(startDate.subtract(const Duration(days: 1)));
-      }
-      if (endDate != null) {
-        matches = matches && card.startDate!.isBefore(endDate.add(const Duration(days: 1)));
-      }
-      startDateMatches = matches;
+    if (startDate == null || endDate == null) {
+      return true; // No date range selected
     }
 
-    // Check endDate
-    if (card.endDate != null) {
-      bool matches = true;
-      if (startDate != null) {
-        matches = matches && card.endDate!.isAfter(startDate.subtract(const Duration(days: 1)));
+    // Check if any selected date type falls within the range
+    for (final dateType in selectedDateFilterTypes) {
+      DateTime? cardDate;
+      
+      switch (dateType) {
+        case 'startDate':
+          cardDate = card.startDate;
+          break;
+        case 'endDate':
+          cardDate = card.endDate;
+          break;
+        case 'createdAt':
+          cardDate = card.createdAt;
+          break;
+        case 'updatedAt':
+          cardDate = card.updatedAt;
+          break;
+        case 'dueDate':
+        case 'toDoDate':
+          // Check if any todo has a dueDate within range
+          if (card.todos.isNotEmpty) {
+            for (final todo in card.todos) {
+              if (todo['dueDate'] != null) {
+                final dueDate = DateTime.fromMillisecondsSinceEpoch(todo['dueDate']);
+                if (_isDateInRange(dueDate, startDate, endDate)) {
+                  return true;
+                }
+              }
+            }
+          }
+          // Also check card's main dueDate if it exists
+          cardDate = card.dueDate;
+          break;
       }
-      if (endDate != null) {
-        matches = matches && card.endDate!.isBefore(endDate.add(const Duration(days: 1)));
+
+      if (cardDate != null && _isDateInRange(cardDate, startDate, endDate)) {
+        return true; // Found at least one matching date
       }
-      endDateMatches = matches;
     }
 
-    // Return true if either date matches the range
-    return startDateMatches || endDateMatches;
+    return false; // No dates match the range
+  }
+
+  bool _isDateInRange(DateTime date, DateTime startDate, DateTime endDate) {
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    final startOnly = DateTime(startDate.year, startDate.month, startDate.day);
+    final endOnly = DateTime(endDate.year, endDate.month, endDate.day);
+    
+    return (dateOnly.isAfter(startOnly) || dateOnly.isAtSameMomentAs(startOnly)) &&
+           (dateOnly.isBefore(endOnly) || dateOnly.isAtSameMomentAs(endOnly));
   }
 
   List<Lane> _getSearchResults(String query) {
