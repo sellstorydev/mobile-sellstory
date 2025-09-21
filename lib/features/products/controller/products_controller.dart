@@ -333,32 +333,6 @@ class ProductsController extends GetxController {
     _filterProducts();
   }
 
-  /// Sync all existing products to Algolia (for initial population)
-  Future<void> syncAllProductsToAlgolia() async {
-    try {
-      _logger.info('Starting sync of all products to Algolia...');
-      isLoading.value = true;
-      
-      // Get all products from the current data
-      final allProducts = products.toList();
-      
-      if (allProducts.isEmpty) {
-        _logger.warning('No products to sync to Algolia');
-        return;
-      }
-      
-      // Sync to Algolia
-      await AlgoliaProductSyncService.syncMultipleProducts(allProducts);
-      
-      _logger.info('✅ Successfully synced ${allProducts.length} products to Algolia');
-      
-    } catch (e) {
-      _logger.error('❌ Failed to sync products to Algolia: $e');
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
   Future<void> refreshProducts() async {
     await loadProducts();
   }
