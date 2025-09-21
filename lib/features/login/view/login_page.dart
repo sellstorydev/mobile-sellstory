@@ -7,6 +7,7 @@ import '../widgets/branded_logo.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/top_snack.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 
@@ -280,8 +281,23 @@ class LoginPage extends StatelessWidget {
                                     decoration: TextDecoration.underline,
                                   ),
                                   recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      TopSnack.info('Opening LINE link...', title: 'Info');
+                                    ..onTap = () async {
+                                      final Uri url = Uri.parse('https://lin.ee/uaT3pzf');
+                                      try {
+                                        if (await canLaunchUrl(url)) {
+                                          await launchUrl(
+                                            url,
+                                            mode: LaunchMode.inAppBrowserView,
+                                            browserConfiguration: const BrowserConfiguration(
+                                              showTitle: true,
+                                            ),
+                                          );
+                                        } else {
+                                          TopSnack.error('Cannot open link', title: 'Error');
+                                        }
+                                      } catch (e) {
+                                        TopSnack.error('Failed to open link', title: 'Error');
+                                      }
                                     },
                                 ),
                               ],
