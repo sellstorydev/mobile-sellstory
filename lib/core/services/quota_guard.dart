@@ -71,10 +71,6 @@ class QuotaGuard {
       if (!wsDoc.exists) return true;
       final data = wsDoc.data() ?? {};
       final quota = (data['quota'] ?? {}) as Map<String, dynamic>;
-
-      print("------------");
-      print(quota);
-      print("------------");
       final usage = _extractUsage(quota, quotaKey);
       final used = usage['used'] ?? 0;
       final limit = usage['limit'] ?? -1;

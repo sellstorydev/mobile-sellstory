@@ -135,8 +135,10 @@ class _BoardPageState extends State<BoardPage> {
       }
     });
     
-    // Fast initialization - only essential data
-    _fastInitialize();
+    // Defer initialization to after first frame to prevent setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fastInitialize();
+    });
   }
 
   Future<void> _fastInitialize() async {
@@ -216,10 +218,15 @@ class _BoardPageState extends State<BoardPage> {
   void _refreshDataIfNeeded() {
     // Check if we need to refresh data (e.g., after creating new workspace)
     if (_controller.currentWorkspaceId.value.isEmpty && !_controller.isLoading.value) {
-      _initializeWithCurrentUser();
+      // Defer initialization to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeWithCurrentUser();
+      });
     } else if (_controller.currentWorkspaceId.value.isNotEmpty && _controller.currentBoardId.value.isNotEmpty) {
-      // Refresh board data when returning to this page
-      _controller.refresh();
+      // Defer refresh to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _controller.refresh();
+      });
     }
   }
 
@@ -335,9 +342,11 @@ class _BoardPageState extends State<BoardPage> {
                           border: Border.all(color: Colors.grey[300]!),
                         ),
                         child: TextField(
-                          controller: _controller.searchTextController,
+                          controller: _controller.safeSearchTextController,
                           onChanged: (value) {
-                            _controller.updateSearchQuery(value);
+                            if (Get.isRegistered<BoardController>()) {
+                              _controller.updateSearchQuery(value);
+                            }
                           },
                           textAlign: TextAlign.left,
                           textDirection: TextDirection.ltr,
@@ -483,8 +492,10 @@ class _BoardPageState extends State<BoardPage> {
                       selectedStatuses: _controller.selectedStatuses,
                       displayMode: displayMode,
                       onStatusTap: (String status) {
-                        // Toggle status filter
-                        _controller.toggleStatusFilter(status);
+                        // Defer status filter toggle to after build phase
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _controller.toggleStatusFilter(status);
+                        });
                       },
                     );
                   }),

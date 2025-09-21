@@ -7,6 +7,7 @@ import 'add_edit_product_page.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../../core/services/quota_guard.dart';
 
+
 class ProductsPage extends StatelessWidget {
   const ProductsPage({super.key});
 
@@ -62,8 +63,12 @@ class ProductsPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               color: AppTheme.backgroundWhite,
               child: TextField(
-                controller: controller.searchController,
-                onChanged: controller.onSearchChanged,
+                controller: controller.safeSearchController,
+                onChanged: (value) {
+                  if (Get.isRegistered<ProductsController>()) {
+                    controller.onSearchChanged(value);
+                  }
+                },
                 decoration: InputDecoration(
                   hintText: 'search_products'.tr,
                   prefixIcon: const Icon(Icons.search, color: AppTheme.textGrey),
@@ -138,49 +143,7 @@ class ProductsPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Obx(() {
-                    final limit = controller.productsQuotaLimit.value; // -1 unlimited, -2 unknown
-                    final used = controller.productsDisplayUsed;
-                    final isUnknown = limit == -2;
-                    if (isUnknown) return const SizedBox.shrink();
-                    final isUnlimited = limit == -1;
-                    final isFull = !isUnlimited && limit > 0 && used >= limit;
-                    final progress = (!isUnlimited && limit > 0) ? (used / limit).clamp(0, 1).toDouble() : 1.0;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                isUnlimited ? 'สินค้า $used / ∞' : 'สินค้า $used/$limit',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isFull ? Colors.red : AppTheme.textSecondary,
-                                ),
-                              ),
-                            ),
-                            if (isFull) const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 16),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: SizedBox(
-                            height: 8,
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: const Color(0xFFE0E0E0),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isFull ? Colors.red : AppTheme.primaryOrange,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
+
                 ],
               ),
             ),
@@ -410,7 +373,8 @@ class ProductsPage extends StatelessWidget {
   }
 
   void _triggerSearch(ProductsController controller) {
-    final query = controller.searchController.text.trim();
+    final searchController = controller.safeSearchController;
+    final query = searchController.text.trim();
     if (query.isNotEmpty) {
       controller.triggerAlgoliaSearch(query);
     }

@@ -11,6 +11,8 @@ import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/services/algolia_search_service.dart';
 import '../../../core/services/algolia_product_sync_service.dart';
 
+
+
 class ProductsController extends GetxController {
   final ProductRepository _repository = Get.find<ProductRepository>();
   final FirestoreRepository _firestoreRepository = Get.find<FirestoreRepository>();
@@ -37,7 +39,30 @@ class ProductsController extends GetxController {
   
   // Search controller and debounce timer
   final searchController = TextEditingController();
+  bool _isSearchControllerInitialized = false;
   Timer? _searchDebounceTimer;
+  
+  // Fallback controller for when main controller is disposed
+  TextEditingController? _fallbackController;
+  
+  // Helper to safely access the search controller
+  TextEditingController get safeSearchController {
+    if (!_isSearchControllerInitialized) {
+      print('⚠️ SearchController not yet initialized, using fallback');
+      _fallbackController ??= TextEditingController();
+      return _fallbackController!;
+    }
+    
+    try {
+      // Check if controller is disposed by trying to access a property
+      searchController.text;
+      return searchController;
+    } catch (e) {
+      print('⚠️ SearchController is disposed, using fallback');
+      _fallbackController ??= TextEditingController();
+      return _fallbackController!;
+    }
+  }
 
   bool _can(String permission) =>
       MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can(permission);
@@ -45,13 +70,30 @@ class ProductsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _isSearchControllerInitialized = true;
     _initializeUserAndWorkspace();
   }
 
   @override
   void onClose() {
-    searchController.dispose();
+    _isSearchControllerInitialized = false;
     _searchDebounceTimer?.cancel();
+    
+    // Safe disposal of search controller
+    try {
+      searchController.dispose();
+    } catch (e) {
+      print('⚠️ SearchController already disposed: $e');
+    }
+    
+    // Dispose fallback controller if it was created
+    try {
+      _fallbackController?.dispose();
+      _fallbackController = null;
+    } catch (e) {
+      print('⚠️ Fallback controller disposal error: $e');
+    }
+    
     super.onClose();
   }
 
@@ -98,6 +140,7 @@ class ProductsController extends GetxController {
         } catch (e) {
           _logger.warning('Failed to get last active workspace: $e');
         }
+
         
         // Fallback to first workspace if no last active workspace
         if (selectedWorkspaceId == null) {
@@ -277,7 +320,14 @@ class ProductsController extends GetxController {
 
   void clearSearch() {
     searchQuery.value = '';
-    searchController.clear();
+    
+    // Clear search controller safely
+    try {
+      safeSearchController.clear();
+    } catch (e) {
+      print('⚠️ SearchController disposed during clearSearch: $e');
+    }
+    
     useAlgoliaSearch.value = false;
     isSearching.value = false;
     _filterProducts();

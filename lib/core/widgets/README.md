@@ -81,7 +81,7 @@ class _MyPageState extends State<MyPage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading hashtags: $e');
+      print('❌ Error loading hashtags: $e');
       setState(() {
         _isLoading = false;
       });

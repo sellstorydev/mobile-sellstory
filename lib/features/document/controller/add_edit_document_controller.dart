@@ -3785,7 +3785,6 @@ class AddEditDocumentController extends GetxController {
       // Handle navigation based on create vs update
       if (isUpdate) {
         Get.back();
-        print("back");
         _refreshListController(highlightDocumentId: documentId);
       } else {
         // For new documents, navigate to edit page of the newly created document

@@ -49,12 +49,8 @@ class CustomerRepository {
           customers.add(customer);
         } catch (e) {
           // Log detailed information about the parsing error
-          print('=== Customer Parsing Error ===');
-          print('Customer ID: ${doc.id}');
-          print('Error Type: ${e.runtimeType}');
-          print('Error Message: $e');
-          print('Raw Data: ${doc.data()}');
-          print('Data Keys: ${doc.data().keys.toList()}');
+          print('❌ Failed to create customer from raw data: $e');
+
 
           // Try to extract basic information even if parsing fails
           try {
@@ -82,12 +78,10 @@ class CustomerRepository {
               updatedBy: data['updatedBy']?.toString() ?? '',
             );
             customers.add(basicCustomer);
-            print('✅ Created basic customer from raw data');
           } catch (fallbackError) {
             print('❌ Failed to create basic customer: $fallbackError');
             // Skip this customer entirely
           }
-          print('=== End Customer Parsing Error ===');
         }
       }
       
@@ -129,13 +123,8 @@ class CustomerRepository {
             final customer = Customer.fromMap(doc.data(), doc.id);
             customers.add(customer);
           } catch (e) {
+            print('❌ Failed to create customer from raw data: $e');
             // Log detailed information about the parsing error
-            print('=== Customer Parsing Error (Stream) ===');
-            print('Customer ID: ${doc.id}');
-            print('Error Type: ${e.runtimeType}');
-            print('Error Message: $e');
-            print('Raw Data: ${doc.data()}');
-            print('Data Keys: ${doc.data().keys.toList()}');
             
             // Try to extract basic information even if parsing fails
             try {
@@ -163,12 +152,10 @@ class CustomerRepository {
                 updatedBy: data['updatedBy']?.toString() ?? '',
               );
               customers.add(basicCustomer);
-              print('✅ Created basic customer from raw data (Stream)');
             } catch (fallbackError) {
               print('❌ Failed to create basic customer (Stream): $fallbackError');
               // Skip this customer entirely
             }
-            print('=== End Customer Parsing Error (Stream) ===');
           }
         }
         
@@ -281,12 +268,7 @@ class CustomerRepository {
           customers.add(customer);
         } catch (e) {
           // Log detailed information about the parsing error
-          print('=== Customer Search Parsing Error ===');
-          print('Customer ID: ${doc.id}');
-          print('Error Type: ${e.runtimeType}');
-          print('Error Message: $e');
-          print('Raw Data: ${doc.data()}');
-          print('Data Keys: ${doc.data().keys.toList()}');
+          print('❌ Failed to create customer from search raw data: $e');
 
 
           // Try to extract basic information even if parsing fails
@@ -315,7 +297,6 @@ class CustomerRepository {
               updatedBy: data['updatedBy']?.toString() ?? '',
             );
             customers.add(basicCustomer);
-            print('✅ Created basic customer from search raw data');
           } catch (fallbackError) {
             print('❌ Failed to create basic customer from search: $fallbackError');
             // Skip this customer entirely

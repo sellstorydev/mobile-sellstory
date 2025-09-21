@@ -101,7 +101,6 @@ class ConversationTile extends StatelessWidget {
   }
 
   (_PlatformIconColor, IconData) _platformStyle(String platform) {
-    // print("platform :  "+platform);
     switch (platform) {
       case 'facebook':
         return ((_PlatformIconColor(const Color(0xFF1877F2))), FontAwesomeIcons.facebook);
