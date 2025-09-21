@@ -408,27 +408,7 @@ class MorePage extends StatelessWidget {
                     //     }
                     //   },
                     // ),
-                    _buildDivider(),
-                    _buildMenuItem(
-                      icon: Icons.inventory_2_outlined,
-                      title: 'catalog_settings'.tr,
-                      onTap: () {
-                        final workspaceId =
-                            boardController.currentWorkspaceId.value;
-                        if (workspaceId.isNotEmpty) {
-                          controller.openCatalogSettings(workspaceId);
-                        } else {
-                          Get.snackbar(
-                            'Error',
-                            '',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Get.theme.colorScheme.error
-                                .withValues(alpha: 0.1),
-                            colorText: Get.theme.colorScheme.error,
-                          );
-                        }
-                      },
-                    ),
+    
                     // _buildDivider(),
                     // PermissionGuard(
                     //   anyOf: const ['settings:company:manage'],

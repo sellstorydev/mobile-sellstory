@@ -26,13 +26,10 @@ class ArchiveController extends GetxController {
       final workspaceId = _boardController.currentWorkspaceId.value;
       
       if (workspaceId.isEmpty) {
-        print('⚠️ No workspace selected for archive');
+        print('❌ No workspace selected for archive');
         archiveItems.clear();
         return;
-      }
-      
-      print('🔄 Loading archived cards for workspace: $workspaceId');
-      
+      }      
       // Get all cards stream and filter for archived ones
       _repository.getAllCardsStream(workspaceId).listen((allCards) {
         final archivedCards = allCards.where((card) => card.status == 'Archived').toList();
@@ -41,7 +38,6 @@ class ArchiveController extends GetxController {
         archivedCards.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
         
         archiveItems.value = archivedCards;
-        print('✅ Loaded ${archivedCards.length} archived cards');
       }, onError: (error) {
         print('❌ Failed to load archived cards: $error');
         Get.snackbar(

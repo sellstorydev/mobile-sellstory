@@ -42,14 +42,17 @@ class Customer {
       if (raw is Timestamp) return raw.toDate();
       if (raw is int) {
         // Heuristic: treat as ms if it's large, else seconds
-        if (raw > 2000000000) { // already ms
+        if (raw > 2000000000) {
+          // already ms
           return DateTime.fromMillisecondsSinceEpoch(raw);
         } else {
           return DateTime.fromMillisecondsSinceEpoch(raw * 1000);
         }
       }
       if (raw is String) {
-        try { return DateTime.parse(raw); } catch (_) {}
+        try {
+          return DateTime.parse(raw);
+        } catch (_) {}
       }
       return DateTime.fromMillisecondsSinceEpoch(0);
     }
@@ -138,6 +141,7 @@ class CustomersInputField extends StatefulWidget {
   final bool showBorder;
   final String? workspaceId;
   final bool enableAlgoliaSearch;
+  final VoidCallback? onCustomerAdded;
 
   const CustomersInputField({
     super.key,
@@ -151,6 +155,7 @@ class CustomersInputField extends StatefulWidget {
     this.showBorder = true,
     this.workspaceId,
     this.enableAlgoliaSearch = true,
+    this.onCustomerAdded,
   });
 
   @override
@@ -159,7 +164,7 @@ class CustomersInputField extends StatefulWidget {
 
 class _CustomersInputFieldState extends State<CustomersInputField> {
   final TextEditingController _searchController = TextEditingController();
-  
+
   // Algolia search related
   Timer? _searchDebounceTimer;
   StreamSubscription? _algoliaSearchSubscription;
@@ -183,6 +188,17 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
     // The search functionality is handled in the full page
   }
 
+  Future<void> _openAddCustomerPage() async {
+    final result = await Get.to(
+      () => const AddEditCustomerPage(customerSources: []),
+    );
+
+    if (result == true && widget.onCustomerAdded != null) {
+      // Notify parent to refresh customer list
+      widget.onCustomerAdded!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -198,13 +214,27 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.showBorder)
-            Text(
-              widget.label.tr,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.textSecondary,
-              ),
+            Row(
+              children: [
+                Text(
+                  widget.label.tr,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: _openAddCustomerPage,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('New'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primaryOrange,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
+              ],
             ),
 
           const SizedBox(height: 8),
@@ -234,122 +264,163 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
           else
             Column(
               children: [
-                // Button to open full page selection
-                InkWell(
-                  onTap: _showCustomersFullPage,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade400),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        // Small customer icon
-                        Container(
-                          width: 24,
-                          height: 24,
+                // Search field with add customer button
+                Row(
+                  children: [
+                    // Button to open full page selection
+                    Expanded(
+                      child: InkWell(
+                        onTap: _showCustomersFullPage,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryOrange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade400),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(
-                            Icons.person,
-                            size: 16,
-                            color: AppTheme.primaryOrange,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        
-                        // Display selected customers or hint
-                        Expanded(
-                          child: widget.selectedCustomerIds.isEmpty
-                              ? Text(
-                                  widget.hintText.tr,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 14,
-                                  ),
-                                )
-                              : Wrap(
-                                  spacing: 4,
-                                  runSpacing: 4,
-                                  children: widget.selectedCustomerIds.take(2).map((customerId) {
-                                    final customer = widget.availableCustomers.firstWhere(
-                                      (c) => c.id == customerId,
-                                      orElse: () => Customer(
-                                        id: customerId,
-                                        name: 'Unknown Customer',
-                                        customId: customerId,
-                                        emails: [],
-                                        phones: [],
-                                        companyNames: [],
-                                        customFields: [],
-                                        workspaceId: '',
-                                        createdAt: DateTime.now(),
-                                        updatedAt: DateTime.now(),
-                                        createdBy: '',
-                                        updatedBy: '',
-                                      ),
-                                    );
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryOrange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        customer.displayName,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppTheme.primaryOrange,
-                                          fontWeight: FontWeight.w500,
+                          child: Row(
+                            children: [
+                              // Small customer icon
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 16,
+                                  color: AppTheme.primaryOrange,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // Display selected customers or hint
+                              Expanded(
+                                child: widget.selectedCustomerIds.isEmpty
+                                    ? Text(
+                                        widget.hintText.tr,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 14,
                                         ),
-                                      ),
-                                    );
-                                  }).toList()
-                                    ..addAll(
-                                      widget.selectedCustomerIds.length > 2
-                                          ? [
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey.shade200,
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  '+${widget.selectedCustomerIds.length - 2}',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppTheme.textSecondary,
-                                                    fontWeight: FontWeight.w500,
+                                      )
+                                    : Wrap(
+                                        spacing: 4,
+                                        runSpacing: 4,
+                                  children:
+                                      widget.selectedCustomerIds.take(2).map((
+                                        customerId,
+                                      ) {
+                                        final customer = widget
+                                            .availableCustomers
+                                            .firstWhere(
+                                              (c) => c.id == customerId,
+                                              orElse: () => Customer(
+                                                id: customerId,
+                                                name: 'Unknown Customer',
+                                                customId: customerId,
+                                                emails: [],
+                                                phones: [],
+                                                companyNames: [],
+                                                customFields: [],
+                                                workspaceId: '',
+                                                createdAt: DateTime.now(),
+                                                updatedAt: DateTime.now(),
+                                                createdBy: '',
+                                                updatedBy: '',
+                                              ),
+                                            );
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryOrange
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            customer.displayName,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.primaryOrange,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList()..addAll(
+                                        widget.selectedCustomerIds.length > 2
+                                            ? [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey.shade200,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    '+${widget.selectedCustomerIds.length - 2}',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: AppTheme
+                                                          .textSecondary,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ]
-                                          : [],
-                                    ),
+                                              ]
+                                            : [],
+                                      ),
                                 ),
+                              ),
+
+                              // Arrow icon
+                              Icon(
+                                Icons.keyboard_arrow_down,
+                                color: Colors.grey.shade600,
+                                size: 20,
+                              ),
+                            ],
+                          ),
                         ),
-                        
-                        // Arrow icon
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Colors.grey.shade600,
-                          size: 20,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+
+                    // const SizedBox(width: 8),
+
+                    // // Add Customer Button
+                    // IconButton(
+                    //   onPressed: _openAddCustomerPage,
+                    //   icon: const Icon(
+                    //     Icons.person_add,
+                    //     color: AppTheme.primaryOrange,
+                    //     size: 24,
+                    //   ),
+                    //   tooltip: 'Add New Customer',
+                    //   style: IconButton.styleFrom(
+                    //     backgroundColor: Colors.white,
+                    //     side: BorderSide(color: Colors.grey.shade400),
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(8),
+                    //     ),
+                    //     padding: const EdgeInsets.all(12),
+                    //   ),
+                    // ),
+                  ],
                 ),
               ],
             ),
@@ -369,6 +440,7 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
           allowMultipleSelection: widget.allowMultipleSelection,
           workspaceId: widget.workspaceId,
           enableAlgoliaSearch: widget.enableAlgoliaSearch,
+          onCustomerAdded: widget.onCustomerAdded,
         ),
       ),
     );
@@ -393,6 +465,7 @@ class CustomersSelectionPage extends StatefulWidget {
     required this.allowMultipleSelection,
     this.workspaceId,
     this.enableAlgoliaSearch = true,
+    this.onCustomerAdded,
   });
 
   @override
@@ -404,7 +477,7 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
   List<Customer> _filteredCustomers = [];
   List<String> _tempSelectedCustomerIds = [];
   bool _isSearching = false;
-  
+
   // Algolia search related
   Timer? _searchDebounceTimer;
   StreamSubscription? _algoliaSearchSubscription;
@@ -429,11 +502,11 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
     // Cancel previous timer and search
     _searchDebounceTimer?.cancel();
     _algoliaSearchSubscription?.cancel();
-    
+
     setState(() {
       _isSearching = _searchController.text.isNotEmpty;
     });
-    
+
     // If query is empty, reset to show all customers
     if (_searchController.text.trim().isEmpty) {
       setState(() {
@@ -441,7 +514,7 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
       });
       return;
     }
-    
+
     // Use Algolia search if enabled and workspace ID is available
     if (widget.enableAlgoliaSearch && widget.workspaceId != null && widget.workspaceId!.isNotEmpty) {
       // Debounce Algolia search
@@ -461,22 +534,22 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
       _searchLocally(query);
       return;
     }
-    
+
     try {
       final searchStream = AlgoliaSearchService.searchCustomers(
         query: query,
         workspaceId: widget.workspaceId!,
         hitsPerPage: 50,
       );
-      
+
       _algoliaSearchSubscription = searchStream.listen(
         (response) {
           if (!mounted) return;
-          
+
           try {
             final hits = response.hits;
             final algoliaResults = <Customer>[];
-            
+
             // Convert Algolia results to Customer objects
             for (final hit in hits) {
               try {
@@ -494,8 +567,12 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                       data['phones'] = data['phones'] ?? [];
                       data['companyNames'] = data['companyNames'] ?? [];
                       data['customFields'] = data['customFields'] ?? [];
-                      data['createdAt'] = data['createdAt'] ?? DateTime.now().millisecondsSinceEpoch;
-                      data['updatedAt'] = data['updatedAt'] ?? DateTime.now().millisecondsSinceEpoch;
+                      data['createdAt'] =
+                          data['createdAt'] ??
+                          DateTime.now().millisecondsSinceEpoch;
+                      data['updatedAt'] =
+                          data['updatedAt'] ??
+                          DateTime.now().millisecondsSinceEpoch;
                       data['createdBy'] = data['createdBy'] ?? '';
                       data['updatedBy'] = data['updatedBy'] ?? '';
                       return Customer.fromMap(data);
@@ -504,19 +581,14 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                   algoliaResults.add(customer);
                 }
               } catch (e) {
-                print('⚠️ Failed to convert Algolia hit to Customer: $e');
               }
             }
-            
+
             setState(() {
               _filteredCustomers = algoliaResults;
               _isSearching = false;
             });
-            
-            print('🔍 Algolia customer search results: ${algoliaResults.length} customers found');
-            
           } catch (e) {
-            print('⚠️ Error processing Algolia response: $e');
             // Fallback to local search on error
             _searchLocally(query);
           }
@@ -527,7 +599,6 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
           _searchLocally(query);
         },
       );
-      
     } catch (e) {
       print('❌ Failed to search customers with Algolia: $e');
       // Fallback to local search on error
@@ -625,38 +696,71 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                 bottom: BorderSide(color: Colors.grey.shade200, width: 1),
               ),
             ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: widget.enableAlgoliaSearch 
-                    ? 'ค้นหาลูกค้าด้วย...'
-                    : 'ค้นหาลูกค้า...',
-                prefixIcon: _isSearching
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppTheme.primaryOrange,
-                          ),
-                        ),
-                      )
-                    : const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: widget.enableAlgoliaSearch
+                          ? 'ค้นหาลูกค้าด้วย...'
+                          : 'ค้นหาลูกค้า...',
+                      prefixIcon: _isSearching
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppTheme.primaryOrange,
+                                ),
+                              ),
+                            )
+                          : const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () async {
+                    final result = await Get.to(
+                      () => const AddEditCustomerPage(customerSources: []),
+                    );
+
+                    if (result == true && widget.onCustomerAdded != null) {
+                      Navigator.of(context).pop();
+                      widget.onCustomerAdded!();
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.person_add,
+                    color: AppTheme.primaryOrange,
+                    size: 24,
+                  ),
+                  tooltip: 'Add New Customer',
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: BorderSide(color: Colors.grey.shade400),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -685,7 +789,7 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: Colors.grey.shade50,
               child: Text(
-                widget.enableAlgoliaSearch 
+                widget.enableAlgoliaSearch
                     ? 'ผลการค้นหาจาก: ${_filteredCustomers.length} คน'
                     : 'ผลการค้นหา: ${_filteredCustomers.length} คน',
                 style: const TextStyle(
@@ -737,15 +841,13 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                     itemCount: _filteredCustomers.length,
                     itemBuilder: (context, index) {
                       final customer = _filteredCustomers[index];
-                      final isSelected = _tempSelectedCustomerIds.contains(customer.id);
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
                             child: Text(
-                              customer.displayName.isNotEmpty 
+                              customer.displayName.isNotEmpty
                                   ? customer.displayName[0].toUpperCase()
                                   : 'C',
                               style: const TextStyle(

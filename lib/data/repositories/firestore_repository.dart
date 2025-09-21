@@ -519,7 +519,6 @@ class FirestoreRepository {
   // Get lanes for a specific workspace with real-time updates
   Stream<List<Lane>> getLanesStream(String workspaceId, {String? boardId}) {
     try {
-      print('🔄 Getting lanes stream for workspace: $workspaceId');
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
         workspaceId,
       );
@@ -1436,7 +1435,9 @@ class FirestoreRepository {
       final data = company.copyWith(workspaceId: workspaceId).toMap();
       final docRef = await companiesCollection.add(data);
 
-      _logger.methodExit('FirestoreRepository.createCompany', {'companyId': docRef.id});
+      _logger.methodExit('FirestoreRepository.createCompany', {
+        'companyId': docRef.id,
+      });
       return docRef.id;
     } catch (e) {
       _logger.error('Failed to create company', e);
@@ -1983,7 +1984,7 @@ class FirestoreRepository {
               userRole = workspaceData['role'] as String? ?? 'member';
             }
           } catch (e) {
-            print('⚠️ Error getting user role for ${userData['uid']}: $e');
+            print('❌ Error getting user role for ${userData['uid']}: $e');
           }
 
           // Extract display name - prefer displayName, fallback to email

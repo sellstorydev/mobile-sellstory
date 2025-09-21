@@ -34,33 +34,23 @@ class WebviewApiService {
     required String workspaceId,
   }) async {
     try {
-      print(
-        '🔄 Requesting company settings URL for userId: $userId, workspaceId: $workspaceId',
-      );
 
       final response = await _apiClient.get(
         '/api/mobile/settings/company',
         queryParameters: {'userId': userId, 'workspaceId': workspaceId},
       );
 
-      print('✅ Company settings response: ${response.data}');
-
       if (response.data['success'] == true) {
         return response.data['webviewUrl'] as String?;
       }
 
-      print('⚠️ Company settings response indicates failure: ${response.data}');
       return null;
     } on DioException catch (e) {
       print('❌ DioException getting company settings URL:');
-      print('   Type: ${e.type}');
-      print('   Message: ${e.message}');
-      print('   Response: ${e.response?.data}');
-      print('   Status Code: ${e.response?.statusCode}');
 
       // Return a fallback URL for development/testing
       if (e.response?.statusCode == 500) {
-        print('🔄 Using fallback URL for company settings');
+        print('❌ Using fallback URL for company settings');
         return 'https://workspace.sellstory.me/settings/company?token=fallback&workspaceId=$workspaceId';
       }
 
@@ -283,21 +273,15 @@ class WebviewApiService {
       final response = await _apiClient.get(
         '/api/mobile/document/share?documentId=$documentId&documentType=$documentType',
       );
-
-      print('📄 Response data type: ${response.data.runtimeType}');
-
       // Check if response is JSON with expected structure
       if (response.data is Map<String, dynamic>) {
         final data = response.data as Map<String, dynamic>;
-        print('✅ Received JSON response: $data');
-
         if (data['success'] == true && data['webviewUrl'] != null) {
           final url = data['webviewUrl'] as String;
-          print('🔗 Using webview URL: $url');
           return {'type': 'url', 'content': url};
         }
 
-        print('⚠️ JSON response missing success=true or webviewUrl field');
+        print('❌ JSON response missing success=true or webviewUrl field');
         return null;
       }
 
@@ -314,7 +298,7 @@ class WebviewApiService {
         }
       }
 
-      print('⚠️ Unexpected response data type: ${response.data.runtimeType}');
+      print('❌ Unexpected response data type: ${response.data.runtimeType}');
       return null;
     } catch (e) {
       print('❌ Error getting document share URL: $e');

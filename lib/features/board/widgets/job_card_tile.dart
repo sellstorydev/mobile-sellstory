@@ -16,15 +16,16 @@ String _fmtDate(int? ms) {
   final d = DateTime.fromMillisecondsSinceEpoch(ms);
   return DateFormat('dd/MM/yyyy').format(d);
 }
+
 String _fmtDateRange(int? startMs, int? endMs) {
   if (startMs == null || endMs == null) return '-';
   final start = DateTime.fromMillisecondsSinceEpoch(startMs);
   final end = DateTime.fromMillisecondsSinceEpoch(endMs);
-  
+
   // Format: "Sep 4 - Sep 6"
   final startStr = DateFormat('MMM d').format(start);
   final endStr = DateFormat('MMM d').format(end);
-  
+
   return '$startStr - $endStr';
 }
 
@@ -51,7 +52,8 @@ _MoneyTotals _computeTotals({
   required bool isVatEnabled,
   required Map<String, dynamic>? additionalDiscount,
   required num withholdingTaxPercentage,
-  bool usePerItemDiscountsInTotals = false, // keep false matching provided image
+  bool usePerItemDiscountsInTotals =
+      false, // keep false matching provided image
 }) {
   double totalBeforeDiscount = 0;
   double afterItemDiscount = 0;
@@ -73,7 +75,9 @@ _MoneyTotals _computeTotals({
     }
     afterItemDiscount += line.clamp(0, double.infinity);
   }
-  double baseForAdditional = usePerItemDiscountsInTotals ? afterItemDiscount : totalBeforeDiscount;
+  double baseForAdditional = usePerItemDiscountsInTotals
+      ? afterItemDiscount
+      : totalBeforeDiscount;
   double totalAfterDiscount = baseForAdditional;
   if (additionalDiscount != null && (additionalDiscount['value'] ?? 0) != 0) {
     final v = (additionalDiscount['value'] ?? 0).toDouble();
@@ -120,19 +124,14 @@ class JobCardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     // Compute totals once - use proper data structure based on the example provided
     final cardData = rawCardData ?? card.toMap();
-    
+
     // Based on the example data structure:
     // isVatEnabled: true, additionalDiscount: {value: 97, type: "percentage"}, withholdingTaxPercentage: 3
     final isVatEnabled = cardData['isVatEnabled'] == true;
-    final additionalDiscount = cardData['additionalDiscount'] as Map<String, dynamic>?;
-    final withholdingTaxPercentage = (cardData['withholdingTaxPercentage'] ?? 0) as num;
-    
-    print('💰 Financial calculation inputs:');
-    print('  - isVatEnabled: $isVatEnabled');
-    print('  - additionalDiscount: $additionalDiscount');
-    print('  - withholdingTaxPercentage: $withholdingTaxPercentage');
-    print('  - expenses count: ${card.expenses.length}');
-    
+    final additionalDiscount =
+        cardData['additionalDiscount'] as Map<String, dynamic>?;
+    final withholdingTaxPercentage =
+        (cardData['withholdingTaxPercentage'] ?? 0) as num;
     final totals = _computeTotals(
       expenses: card.expenses,
       isVatEnabled: isVatEnabled,
@@ -141,10 +140,12 @@ class JobCardTile extends StatelessWidget {
     );
 
     return GestureDetector(
-      onTap: onTap ?? () {
-        // Navigate to edit card page directly
-        Get.toNamed(AppRoutes.editCard, arguments: card);
-      },
+      onTap:
+          onTap ??
+          () {
+            // Navigate to edit card page directly
+            Get.toNamed(AppRoutes.editCard, arguments: card);
+          },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -176,9 +177,9 @@ class JobCardTile extends StatelessWidget {
                   color: AppTheme.textPrimary,
                 ),
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               _buildDynamicFields(totals),
             ],
           ),
@@ -187,41 +188,53 @@ class JobCardTile extends StatelessWidget {
     );
   }
 
-
   Widget _buildDynamicFields(_MoneyTotals totals) {
     // Build list of keys from config
     final entries = <_FieldEntry>[];
-    print('🔧 Field config: $fieldConfig');
     fieldConfig.forEach((key, cfg) {
       if (cfg is Map<String, dynamic>) {
         final isVisible = cfg['isVisible'] ?? true;
-        print('  - Field $key: visible=$isVisible, order=${cfg['order']}');
         if (isVisible == true) {
           entries.add(_FieldEntry(key, cfg['order'] ?? 999));
         }
       }
     });
     entries.sort((a, b) => a.order.compareTo(b.order));
-    print('🔧 Final field order: ${entries.map((e) => e.key).toList()}');
-
     // Build widgets for each supported key
     final children = <Widget>[];
     for (final e in entries) {
       switch (e.key) {
         case 'customId':
-          children.add(_kv('Job ID', card.customId.isNotEmpty ? card.customId : card.id));
+          children.add(
+            _kv('Job ID', card.customId.isNotEmpty ? card.customId : card.id),
+          );
           break;
         case 'status':
           children.add(_kv('Status', card.status));
           break;
         case 'dateRange':
-          children.add(_kv('Date Range', _fmtDateRange(card.startDate?.millisecondsSinceEpoch, card.endDate?.millisecondsSinceEpoch)));
+          children.add(
+            _kv(
+              'Date Range',
+              _fmtDateRange(
+                card.startDate?.millisecondsSinceEpoch,
+                card.endDate?.millisecondsSinceEpoch,
+              ),
+            ),
+          );
           break;
         case 'createdAt':
-          children.add(_kv('Created Date', _fmtDate(card.createdAt.millisecondsSinceEpoch)));
+          children.add(
+            _kv(
+              'Created Date',
+              _fmtDate(card.createdAt.millisecondsSinceEpoch),
+            ),
+          );
           break;
         case 'assignee':
-          children.add(_kv('Assignee', userNameCache[card.assignedTo] ?? card.assignedTo));
+          children.add(
+            _kv('Assignee', userNameCache[card.assignedTo] ?? card.assignedTo),
+          );
           break;
         case 'customerInterest':
           if (card.customerInterest?.isNotEmpty == true) {
@@ -230,7 +243,9 @@ class JobCardTile extends StatelessWidget {
           break;
         case 'collaborators':
           if (card.collaborators.isNotEmpty) {
-            final names = card.collaborators.map((id) => userNameCache[id] ?? id).join(', ');
+            final names = card.collaborators
+                .map((id) => userNameCache[id] ?? id)
+                .join(', ');
             children.add(_kv('Collaborators', names));
           }
           break;
@@ -248,36 +263,61 @@ class JobCardTile extends StatelessWidget {
           }
           break;
         case 'hashtags':
-          print('🏷️ Hashtags check: ${card.hashtags.length} hashtags found: ${card.hashtags}');
+          print(
+            '🏷️ Hashtags check: ${card.hashtags.length} hashtags found: ${card.hashtags}',
+          );
           if (card.hashtags.isNotEmpty) {
             children.add(_buildHashtags(card.hashtags));
           }
           break;
         case 'grandTotal':
-          children.add(_kv('Grand Total', _currencyFmt.format(totals.grandTotal)));
+          children.add(
+            _kv('Grand Total', _currencyFmt.format(totals.grandTotal)),
+          );
           break;
         case 'netTotal':
           children.add(_kv('Net Total', _currencyFmt.format(totals.netTotal)));
           break;
         case 'totalAmountBeforeDiscount':
-          children.add(_kv('Total (before discount)', _currencyFmt.format(totals.totalBeforeDiscount)));
+          children.add(
+            _kv(
+              'Total (before discount)',
+              _currencyFmt.format(totals.totalBeforeDiscount),
+            ),
+          );
           break;
         case 'totalAmountAfterDiscount':
-          children.add(_kv('Total (after discount)', _currencyFmt.format(totals.totalAfterDiscount)));
+          children.add(
+            _kv(
+              'Total (after discount)',
+              _currencyFmt.format(totals.totalAfterDiscount),
+            ),
+          );
           break;
         case 'totalAmountBeforeVat':
-          children.add(_kv('Total (before VAT)', _currencyFmt.format(totals.totalBeforeVat)));
+          children.add(
+            _kv(
+              'Total (before VAT)',
+              _currencyFmt.format(totals.totalBeforeVat),
+            ),
+          );
           break;
         case 'description':
           if (card.description.isNotEmpty) {
             // Simple strip tags fallback (avoid new deps)
-            final plain = card.description.replaceAll(RegExp(r'<[^>]+>'), '').trim();
-            children.add(_kv('Description', plain.isEmpty ? '(HTML content)' : plain));
+            final plain = card.description
+                .replaceAll(RegExp(r'<[^>]+>'), '')
+                .trim();
+            children.add(
+              _kv('Description', plain.isEmpty ? '(HTML content)' : plain),
+            );
           }
           break;
         case 'todos':
           final total = card.todos.length;
-          final completed = card.todos.where((t) => (t['completed'] ?? false) == true).length;
+          final completed = card.todos
+              .where((t) => (t['completed'] ?? false) == true)
+              .length;
           children.add(_kv('To-Do', '$completed/$total'));
           break;
         default:
@@ -290,7 +330,6 @@ class JobCardTile extends StatelessWidget {
       children: children,
     );
   }
-
 
   Widget _buildHashtags(List<dynamic> tags) {
     return Wrap(
@@ -328,11 +367,21 @@ class JobCardTile extends StatelessWidget {
         children: [
           SizedBox(
             width: 140,
-            child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+              ),
+            ),
           ),
           const SizedBox(width: 4),
           Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
+            ),
           ),
         ],
       ),

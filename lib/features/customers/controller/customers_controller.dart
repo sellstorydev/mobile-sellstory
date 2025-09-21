@@ -25,7 +25,7 @@ class CustomersController extends GetxController {
   final RxBool hasMore = true.obs; // whether more pages are available
   final RxString searchQuery = ''.obs;
   final RxString errorMessage = ''.obs;
-  
+
   // Search state management
   final RxBool isSearching = false.obs;
   final TextEditingController searchController = TextEditingController();
@@ -387,9 +387,9 @@ class CustomersController extends GetxController {
   void onSearchChanged(String query) {
     // Cancel previous timer if exists
     _searchDebounceTimer?.cancel();
-    
+
     searchQuery.value = query;
-    
+
     // If query is empty, reset search immediately
     if (query.trim().isEmpty) {
       useAlgoliaSearch.value = false;
@@ -397,7 +397,7 @@ class CustomersController extends GetxController {
       _filterCustomers();
       return;
     }
-    
+
     // Debounce search for 500ms to avoid too many API calls while typing
     _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
       triggerAlgoliaSearch(query.trim());
@@ -413,12 +413,12 @@ class CustomersController extends GetxController {
       _filterCustomers();
       return;
     }
-    
+
     print('🔍 Triggering Algolia search for customers with query: "$query"');
     isSearching.value = true;
     searchWithAlgolia(query.trim());
   }
-  
+
   /// Test method to search for customers by company name
   void testCompanyNameSearch(String companyName) {
     print('🧪 Testing company name search: "$companyName"');
@@ -597,6 +597,13 @@ class CustomersController extends GetxController {
 
       // Update customer document
       await _customerRepository.updateCustomer(workspaceId, customer);
+
+      // Update the customer in the in-memory list
+      final index = customers.indexWhere((c) => c.id == customer.id);
+      if (index != -1) {
+        customers[index] = customer;
+        _filterCustomers();
+      }
 
       // Sync company links if we have previous data
       if (prev != null) {
@@ -864,9 +871,9 @@ class CustomersController extends GetxController {
           // Apply permission filtering to results
           _applyPermissionFiltering(results);
           isSearching.value = false;
-          
+
           print('🔍 Algolia search results: ${results.length} customers found for query: "$query"');
-          
+
           // Debug: Show matching customers with their company names
           if (results.isNotEmpty) {
             for (final customer in results.take(3)) { // Show first 3 results
@@ -879,7 +886,6 @@ class CustomersController extends GetxController {
           print('❌ Algolia search error: $error');
           // Fallback to local search
           useAlgoliaSearch.value = false;
-          isSearching.value = false;
           _filterCustomers();
         },
       );
@@ -887,7 +893,6 @@ class CustomersController extends GetxController {
     } catch (e) {
       print('❌ Failed to search with Algolia: $e');
       useAlgoliaSearch.value = false;
-      isSearching.value = false;
       _filterCustomers();
     }
   }

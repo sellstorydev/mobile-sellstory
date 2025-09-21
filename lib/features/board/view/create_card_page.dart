@@ -32,7 +32,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
   final BoardController _controller = Get.find<BoardController>();
   // Permission helpers
   bool get _isOwner => MobilePermissionsService.to.isOwner;
-  bool get _canCreateCard => _isOwner || MobilePermissionsService.to.can('jobcard:create');
+  bool get _canCreateCard =>
+      _isOwner || MobilePermissionsService.to.can('jobcard:create');
 
   // Form controllers
   final TextEditingController _jobIdController = TextEditingController();
@@ -43,19 +44,19 @@ class _CreateCardPageState extends State<CreateCardPage> {
   // HTML Editor controller
   final HtmlEditorController _htmlEditorController = HtmlEditorController();
   bool _isHtmlEditorReady = false;
-  
-  // Fallback controller for description if HTML editor fails
-  final TextEditingController _descriptionFallbackController = TextEditingController();
 
-  
+  // Fallback controller for description if HTML editor fails
+  final TextEditingController _descriptionFallbackController =
+      TextEditingController();
+
   // Hashtag state
   List<String> _selectedHashtagIds = [];
   List<HashtagOption> _availableHashtags = [];
   final HashtagService _hashtagService = HashtagService();
-  
+
   // Todo state
   List<Map<String, dynamic>> _todoItems = [];
-  
+
   // Form state
 
   String _selectedLane = '';
@@ -66,18 +67,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
-  
+
   // Multi-select for collaborators and watchers
   List<String> _selectedCollaborators = [];
   List<String> _selectedWatchers = [];
-  
+
   // Available options
 
   List<Map<String, dynamic>> _availableLanes = [];
   List<cif.Customer> _availableCustomers = [];
   List<Map<String, dynamic>> _availableCompanies = [];
   List<Map<String, dynamic>> _availableUsers = [];
-  
+
   // Status options
   final List<Map<String, dynamic>> _statusOptions = [
     {'value': 'Pending', 'label': 'Pending', 'icon': Icons.schedule},
@@ -93,8 +94,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
     'กลาง (Medium)',
     'มาก (High)',
   ];
-
-
 
   @override
   void initState() {
@@ -114,9 +113,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
       final hashtag = _availableHashtags.firstWhere(
         (h) => h.id == id,
         orElse: () => HashtagOption(
-          id: id, 
-          name: id, 
-          color: '#6B7280', 
+          id: id,
+          name: id,
+          color: '#6B7280',
           scopes: {},
           totalUsage: 0,
           enabled: true,
@@ -131,19 +130,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
       final hashtag = _availableHashtags.firstWhere(
         (h) => h.id == id,
         orElse: () => HashtagOption(
-          id: id, 
-          name: id, 
-          color: '#6B7280', 
+          id: id,
+          name: id,
+          color: '#6B7280',
           scopes: {},
           totalUsage: 0,
           enabled: true,
         ),
       );
-      return {
-        'id': hashtag.id,
-        'text': hashtag.name,
-        'color': hashtag.color,
-      };
+      return {'id': hashtag.id, 'text': hashtag.name, 'color': hashtag.color};
     }).toList();
   }
 
@@ -154,7 +149,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
         print('⚠️ Skip loading hashtags: workspaceId is null/empty');
         return;
       }
-      final hashtags = await _hashtagService.getHashtagsByScope(wsId, 'jobBoard');
+      final hashtags = await _hashtagService.getHashtagsByScope(
+        wsId,
+        'jobBoard',
+      );
       _availableHashtags = hashtags;
       if (mounted) setState(() {});
       print('✅ Hashtags loaded: ${_availableHashtags.length} hashtags');
@@ -168,13 +166,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
     // Set default values
     _titleController.text = 'New Card';
     _assigneeController.text = '';
-    
+
     // Generate default job ID
     _generateJobId();
-    
+
     // Load available options
     await _loadAvailableOptions();
-    
+
     // Set default lane if provided
     if (widget.laneId != null) {
       _selectedLane = widget.laneId!;
@@ -190,54 +188,57 @@ class _CreateCardPageState extends State<CreateCardPage> {
     if (currentBoardId.isNotEmpty) {
       await _loadLanesForBoard(currentBoardId);
     }
-    
-
-
 
     // Load users from current workspace
     await _loadWorkspaceUsers();
-    
-          // Load customers from Firestore
-      try {
-        print('🔄 Loading customers from Firestore...');
-        final customers = await _controller.getCustomers();
-        
-        // Convert domain Customer to cif.Customer objects
-        _availableCustomers = customers.map((customer) => cif.Customer(
-          id: customer.id,
-          name: customer.name,
-          customId: customer.customId,
-          emails: customer.emails,
-          phones: customer.phones,
-          companyNames: customer.companyNames,
-          customFields: [], // Convert if needed
-          workspaceId: customer.workspaceId,
-          createdAt: customer.createdAt,
-          updatedAt: customer.updatedAt,
-          createdBy: customer.createdBy,
-          updatedBy: customer.updatedBy,
-        )).toList();
-        
-        // Clear invalid customer if current customer is not in available customers
-        if (_selectedCustomerIds.isNotEmpty) {
-          final validIds = _selectedCustomerIds.where(
-            (id) => _availableCustomers.any((customer) => customer.id == id)
-          ).toList();
-          if (validIds.length != _selectedCustomerIds.length) {
-            _selectedCustomerIds = validIds;
-            _selectedCompany = 'none';
-          }
+
+    // Load customers from Firestore
+    try {
+      print('🔄 Loading customers from Firestore...');
+      final customers = await _controller.getCustomers();
+
+      // Convert domain Customer to cif.Customer objects
+      _availableCustomers = customers
+          .map(
+            (customer) => cif.Customer(
+              id: customer.id,
+              name: customer.name,
+              customId: customer.customId,
+              emails: customer.emails,
+              phones: customer.phones,
+              companyNames: customer.companyNames,
+              customFields: [], // Convert if needed
+              workspaceId: customer.workspaceId,
+              createdAt: customer.createdAt,
+              updatedAt: customer.updatedAt,
+              createdBy: customer.createdBy,
+              updatedBy: customer.updatedBy,
+            ),
+          )
+          .toList();
+
+      // Clear invalid customer if current customer is not in available customers
+      if (_selectedCustomerIds.isNotEmpty) {
+        final validIds = _selectedCustomerIds
+            .where(
+              (id) => _availableCustomers.any((customer) => customer.id == id),
+            )
+            .toList();
+        if (validIds.length != _selectedCustomerIds.length) {
+          _selectedCustomerIds = validIds;
+          _selectedCompany = 'none';
         }
-        
-        print('✅ Customers loaded: ${_availableCustomers.length} customers');
-      } catch (e) {
-        print('❌ Failed to load customers: $e');
-        _availableCustomers = [];
-        // Clear customer and company on error
-        _selectedCustomerIds.clear();
-        _selectedCompany = 'none';
       }
-    
+
+      print('✅ Customers loaded: ${_availableCustomers.length} customers');
+    } catch (e) {
+      print('❌ Failed to load customers: $e');
+      _availableCustomers = [];
+      // Clear customer and company on error
+      _selectedCustomerIds.clear();
+      _selectedCompany = 'none';
+    }
+
     // Companies will be loaded when customer is selected
     _availableCompanies = [
       {'id': 'none', 'name': 'None'},
@@ -251,26 +252,27 @@ class _CreateCardPageState extends State<CreateCardPage> {
       _availableLanes = [];
       return;
     }
-    
+
     try {
       print('🔄 Loading lanes for board: $boardId');
       final lanes = await _controller.getLanesByBoardId(boardId);
-      
-      _availableLanes = lanes.map((lane) => {
-        'id': lane.id,
-        'name': lane.title,
-      }).toList();
-      
-      
+
+      _availableLanes = lanes
+          .map((lane) => {'id': lane.id, 'name': lane.title})
+          .toList();
+
       // Update selected lane based on available lanes
-      if (widget.laneId != null && _availableLanes.any((lane) => lane['id'] == widget.laneId)) {
+      if (widget.laneId != null &&
+          _availableLanes.any((lane) => lane['id'] == widget.laneId)) {
         _selectedLane = widget.laneId!;
         print('✅ Kept pre-selected lane: $_selectedLane');
       } else if (_selectedLane.isEmpty && _availableLanes.isNotEmpty) {
         _selectedLane = _availableLanes.first['id'];
         print('✅ Set first lane as default: $_selectedLane');
       } else if (!_availableLanes.any((lane) => lane['id'] == _selectedLane)) {
-        _selectedLane = _availableLanes.isNotEmpty ? _availableLanes.first['id'] : '';
+        _selectedLane = _availableLanes.isNotEmpty
+            ? _availableLanes.first['id']
+            : '';
         print('✅ Reset to first available lane: $_selectedLane');
       }
     } catch (e) {
@@ -289,31 +291,37 @@ class _CreateCardPageState extends State<CreateCardPage> {
       }
 
       print('🔄 Loading users for workspace: $workspaceId');
-      
+
       // Get users from the workspace - data is already properly formatted from repository
       final users = await _controller.getWorkspaceUsers(workspaceId);
-      
+
       // Deduplicate users by ID to prevent dropdown issues and ensure data consistency
       final userMap = <String, Map<String, dynamic>>{};
       for (final user in users) {
         final userId = user['id']?.toString();
-        if (userId != null && userId.isNotEmpty && !userMap.containsKey(userId)) {
+        if (userId != null &&
+            userId.isNotEmpty &&
+            !userMap.containsKey(userId)) {
           // Ensure user has required fields
           userMap[userId] = {
             'id': userId,
             'name': user['name'] ?? user['displayName'] ?? 'Unknown User',
-            'displayName': user['displayName'] ?? user['name'] ?? 'Unknown User',
+            'displayName':
+                user['displayName'] ?? user['name'] ?? 'Unknown User',
             'email': user['email'] ?? '',
           };
         }
       }
       _availableUsers = userMap.values.toList();
-      
+
       // Clear invalid assignee if current assignee is not in available users
-      if (_assigneeController.text.isNotEmpty && !_availableUsers.any((user) => user['id'] == _assigneeController.text)) {
+      if (_assigneeController.text.isNotEmpty &&
+          !_availableUsers.any(
+            (user) => user['id'] == _assigneeController.text,
+          )) {
         _assigneeController.text = '';
       }
-      
+
       print('✅ Loaded ${_availableUsers.length} users for workspace');
     } catch (e) {
       print('❌ Failed to load workspace users: $e');
@@ -326,15 +334,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
   Future<void> _loadCompaniesForCustomer(String customerId) async {
     try {
       print('🔄 Loading companies for customer: $customerId');
-      
+
       // Get customer details to access companyNames
       final customers = await _controller.getCustomers();
       final customer = customers.firstWhereOrNull((c) => c.id == customerId);
-      
+
       if (customer != null && customer.companyNames != null) {
         final companyMap = <String, Map<String, dynamic>>{};
         companyMap['none'] = {'id': 'none', 'name': 'None'};
-        
+
         for (final company in customer.companyNames!) {
           companyMap[company['id']] = {
             'id': company['id'],
@@ -342,15 +350,17 @@ class _CreateCardPageState extends State<CreateCardPage> {
             'value': company['value'],
           };
         }
-        
+
         if (mounted) {
           setState(() {
             _availableCompanies = companyMap.values.toList();
             _selectedCompany = 'none';
           });
         }
-        
-        print('✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies');
+
+        print(
+          '✅ Companies loaded for customer: ${_availableCompanies.length - 1} companies',
+        );
       } else {
         if (mounted) {
           setState(() {
@@ -377,44 +387,49 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   String? _getValidAssigneeValue() {
     if (_assigneeController.text.isEmpty) return null;
-    
+
     // Check if the current assignee value exists in available users
-    final isValidAssignee = _availableUsers.any((user) => user['id'] == _assigneeController.text);
+    final isValidAssignee = _availableUsers.any(
+      (user) => user['id'] == _assigneeController.text,
+    );
     if (!isValidAssignee) {
       // Clear invalid assignee
       _assigneeController.text = '';
       return null;
     }
-    
+
     return _assigneeController.text;
   }
 
   String? _getValidCustomerValue() {
     if (_selectedCustomerIds.isEmpty) return null;
-    
+
     // Check if the first selected customer exists in available customers
     final firstCustomerId = _selectedCustomerIds.first;
-    final isValidCustomer = _availableCustomers.any((customer) => customer.id == firstCustomerId);
+    final isValidCustomer = _availableCustomers.any(
+      (customer) => customer.id == firstCustomerId,
+    );
     if (!isValidCustomer) {
       // Clear invalid customer
       _selectedCustomerIds.clear();
       return null;
     }
-    
     return firstCustomerId;
   }
 
   String? _getValidCompanyValue() {
     if (_selectedCompany.isEmpty) return null;
-    
+
     // Check if the current company value exists in available companies
-    final isValidCompany = _availableCompanies.any((company) => company['id'] == _selectedCompany);
+    final isValidCompany = _availableCompanies.any(
+      (company) => company['id'] == _selectedCompany,
+    );
     if (!isValidCompany) {
       // Clear invalid company
       _selectedCompany = 'none';
       return null;
     }
-    
+
     return _selectedCompany;
   }
 
@@ -429,11 +444,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
       // Get todo templates from Firestore directly
       final firestoreService = Get.find<FirestoreService>();
-      final boardsCollection = firestoreService.getWorkspaceBoardsCollection(currentWorkspaceId);
+      final boardsCollection = firestoreService.getWorkspaceBoardsCollection(
+        currentWorkspaceId,
+      );
       final boardDocRef = boardsCollection.doc(currentBoardId);
       final boardData = await firestoreService.getDocument(boardDocRef);
-      
-      if (boardData == null || boardData['todoTemplates'] == null || (boardData['todoTemplates'] as List).isEmpty) {
+
+      if (boardData == null ||
+          boardData['todoTemplates'] == null ||
+          (boardData['todoTemplates'] as List).isEmpty) {
         _showError('No todo templates available for this board');
         return;
       }
@@ -478,11 +497,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
             if (todo['dueInDays'] != null && todo['dueInDays'] is int) {
               final now = DateTime.now();
               // Set time to 00:00:00 and add the specified days
-              calculatedDueDate = DateTime(now.year, now.month, now.day).add(
-                Duration(days: todo['dueInDays'] as int),
-              );
+              calculatedDueDate = DateTime(
+                now.year,
+                now.month,
+                now.day,
+              ).add(Duration(days: todo['dueInDays'] as int));
             }
-            
+
             _todoItems.add({
               'id': DateTime.now().millisecondsSinceEpoch.toString(),
               'text': todo['title'] ?? '',
@@ -494,7 +515,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
             });
           }
         });
-        
+
         Get.snackbar(
           'Success',
           'Todo template applied successfully',
@@ -512,22 +533,23 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   void _generateJobId() {
     // Job ID will be auto-generated by the server with proper counter
-
   }
 
   @override
   void dispose() {
     print('🔄 CreateCardPage.dispose - Page being disposed');
-    
+
     // Dispose todo controllers
     for (var todo in _todoItems) {
       todo['controller']?.dispose();
     }
-    
+
     // Skip HTML editor disposal to prevent JavaScript evaluation errors
     // The HTML editor will be automatically disposed when the widget tree is destroyed
-    print('⚠️ Skipping HTML editor disposal to prevent JavaScript evaluation errors');
-    
+    print(
+      '⚠️ Skipping HTML editor disposal to prevent JavaScript evaluation errors',
+    );
+
     _jobIdController.dispose();
     _titleController.dispose();
     _assigneeController.dispose();
@@ -543,7 +565,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    
+
     if (picked != null) {
       setState(() {
         _startDate = picked;
@@ -562,7 +584,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       firstDate: _startDate ?? DateTime(2020),
       lastDate: DateTime(2030),
     );
-    
+
     if (picked != null) {
       setState(() {
         _endDate = picked;
@@ -572,8 +594,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   Future<void> _saveCard() async {
     if (!(MobilePermissionsService.to.isOwner ||
-        MobilePermissionsService.to.can('jobcard:create')))
-    {
+        MobilePermissionsService.to.can('jobcard:create'))) {
       _showError('You do not have permission to create cards');
       return;
     }
@@ -599,35 +620,41 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
     try {
       // Create the card with full data structure mapped to DTB.md
-      final currentUserId = _controller.currentUserId.value.isNotEmpty ? _controller.currentUserId.value : 'mobile-user';
-      final currentWorkspaceId = widget.workspaceId ?? _controller.currentWorkspaceId.value;
+      final currentUserId = _controller.currentUserId.value.isNotEmpty
+          ? _controller.currentUserId.value
+          : 'mobile-user';
+      final currentWorkspaceId =
+          widget.workspaceId ?? _controller.currentWorkspaceId.value;
       final currentBoardId = _controller.currentBoardId.value;
-      
+
       // Get selected assignee details
       String assigneeId = '';
       String assigneeDisplayName = '';
       if (_assigneeController.text.trim().isNotEmpty) {
         final selectedUser = _availableUsers.firstWhereOrNull(
-          (user) => user['id'] == _assigneeController.text.trim()
+          (user) => user['id'] == _assigneeController.text.trim(),
         );
         assigneeId = selectedUser?['id'] ?? _assigneeController.text.trim();
-        assigneeDisplayName = selectedUser?['displayName'] ?? selectedUser?['name'] ?? _assigneeController.text.trim();
+        assigneeDisplayName =
+            selectedUser?['displayName'] ??
+            selectedUser?['name'] ??
+            _assigneeController.text.trim();
       }
-      
+
       // Get customer name if selected
       String customerName = '';
       if (_selectedCustomerIds.isNotEmpty) {
         final selectedCustomer = _availableCustomers.firstWhereOrNull(
-          (c) => c.id == _selectedCustomerIds.first
+          (c) => c.id == _selectedCustomerIds.first,
         );
         customerName = selectedCustomer?.displayName ?? '';
       }
-      
+
       // Get company name if selected
       String? companyName;
       if (_selectedCompany != 'none' && _selectedCompany.isNotEmpty) {
         final selectedCompany = _availableCompanies.firstWhereOrNull(
-          (c) => c['id'] == _selectedCompany
+          (c) => c['id'] == _selectedCompany,
         );
         companyName = selectedCompany?['name'];
       }
@@ -636,7 +663,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       Map<String, dynamic>? companyData;
       if (_selectedCompany != 'none') {
         final selectedCompany = _availableCompanies.firstWhereOrNull(
-          (c) => c['id'] == _selectedCompany
+          (c) => c['id'] == _selectedCompany,
         );
         if (selectedCompany != null) {
           companyData = {
@@ -648,21 +675,29 @@ class _CreateCardPageState extends State<CreateCardPage> {
       }
 
       // Prepare todos data in correct format
-      final todosData = _todoItems.map((todo) => {
-        'id': 'todo-${todo['id']}', // Add 'todo-' prefix to match correct structure
-        'title': '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>${todo['text'] ?? ''}</em></strong></span></p>', // HTML format
-        'completed': todo['isCompleted'] ?? false,
-        'dueDate': todo['dueDate']?.millisecondsSinceEpoch,
-        'mentions': [],
-      }).toList();
+      final todosData = _todoItems
+          .map(
+            (todo) => {
+              'id':
+                  'todo-${todo['id']}', // Add 'todo-' prefix to match correct structure
+              'title':
+                  '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>${todo['text'] ?? ''}</em></strong></span></p>', // HTML format
+              'completed': todo['isCompleted'] ?? false,
+              'dueDate': todo['dueDate']?.millisecondsSinceEpoch,
+              'mentions': [],
+            },
+          )
+          .toList();
 
       // Format description as HTML from HTML editor with webview disposal protection
       String htmlDescription = '';
       try {
         print('🔍 HTML Editor Save Debug (Create):');
         print('  - _isHtmlEditorReady: $_isHtmlEditorReady');
-        print('  - Fallback controller text: "${_descriptionFallbackController.text}"');
-        
+        print(
+          '  - Fallback controller text: "${_descriptionFallbackController.text}"',
+        );
+
         // Check if we're in the middle of disposal
         if (!mounted) {
           print('⚠️ Widget not mounted, skipping HTML editor access');
@@ -679,11 +714,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 return _descriptionFallbackController.text;
               },
             );
-            
+
             print('  - HTML editor getText() result: "$editorContent"');
             if (editorContent.isNotEmpty) {
               htmlDescription = editorContent;
-              print('✅ Successfully retrieved HTML editor content: ${htmlDescription.length} chars');
+              print(
+                '✅ Successfully retrieved HTML editor content: ${htmlDescription.length} chars',
+              );
             } else {
               print('⚠️ HTML editor returned empty content, using fallback');
               htmlDescription = _descriptionFallbackController.text;
@@ -696,19 +733,19 @@ class _CreateCardPageState extends State<CreateCardPage> {
           print('⚠️ HTML editor not ready, using fallback controller');
           htmlDescription = _descriptionFallbackController.text;
         }
-        
+
         print('  - Final htmlDescription: "$htmlDescription"');
       } catch (e) {
         print('⚠️ Error getting HTML editor content: $e');
-        
+
         // Always use fallback for any error
         htmlDescription = _descriptionFallbackController.text;
-        
+
         // For specific MissingPluginException, show more informative error
-        if (e.toString().contains('MissingPluginException') || 
+        if (e.toString().contains('MissingPluginException') ||
             e.toString().contains('evaluateJavascript')) {
           print('⚠️ WebView plugin error detected - using fallback content');
-          
+
           if (htmlDescription.isEmpty) {
             // Show warning that description wasn't saved
             if (!_isHtmlEditorReady) {
@@ -738,16 +775,22 @@ class _CreateCardPageState extends State<CreateCardPage> {
         updatedAt: DateTime.now(),
         customer: customerName,
         updatedByDisplayName: assigneeDisplayName, // Use assignee display name
-        customerId: _selectedCustomerIds.isNotEmpty ? _selectedCustomerIds.first : null,
+        customerId: _selectedCustomerIds.isNotEmpty
+            ? _selectedCustomerIds.first
+            : null,
         company: companyData, // Store company as object with id, label, value
         customerInterest: _selectedCustomerInterest,
-        hashtag: _selectedHashtagTexts.isNotEmpty ? _selectedHashtagTexts.map((text) => '#$text').join(' ') : null,
+        hashtag: _selectedHashtagTexts.isNotEmpty
+            ? _selectedHashtagTexts.map((text) => '#$text').join(' ')
+            : null,
         hashtags: _selectedHashtagsAsMap,
         expenses: [],
         todos: todosData,
         notes: [],
         collaborators: _selectedCollaborators,
-        watchers: _selectedWatchers.isNotEmpty ? _selectedWatchers : [currentUserId], // Add creator as watcher if none selected
+        watchers: _selectedWatchers.isNotEmpty
+            ? _selectedWatchers
+            : [currentUserId], // Add creator as watcher if none selected
         customFields: [],
         createdBy: currentUserId,
         updatedBy: currentUserId,
@@ -776,21 +819,23 @@ class _CreateCardPageState extends State<CreateCardPage> {
         setState(() {
           _isLoading = false;
         });
-        
+
         // Navigate back immediately after success
         Navigator.of(context).pop();
         print('✅ CreateCardPage._saveCard - Navigation completed');
-        
+
         // Show warning dialog if HTML editor was unavailable
         if (!_isHtmlEditorReady) {
           _showHtmlEditorWarningDialog();
         }
       } else {
-        print('⚠️ CreateCardPage._saveCard - Widget not mounted, cannot navigate');
+        print(
+          '⚠️ CreateCardPage._saveCard - Widget not mounted, cannot navigate',
+        );
       }
     } catch (e) {
       print('❌ CreateCardPage._saveCard - Error: $e');
-      
+
       // Only show error and keep page open if there's an error
       if (mounted) {
         _showError('Failed to create card: ${e.toString()}');
@@ -836,10 +881,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ),
           content: Text(
             'Description editor unavailable, card will be created without description. You can edit it later.',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 14),
           ),
           actions: [
             TextButton(
@@ -858,9 +900,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
-
-    
-
   @override
   Widget build(BuildContext context) {
     // Page-level permission gate
@@ -872,7 +911,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
           foregroundColor: Colors.black,
           elevation: 0,
           actions: [
-            IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+            IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.close),
+            ),
           ],
         ),
         body: Center(
@@ -881,16 +923,25 @@ class _CreateCardPageState extends State<CreateCardPage> {
             children: [
               Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 12),
-              const Text('ค��ณไม่มีสิทธิ์สร้าง Job Card', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              const Text(
+                'ค��ณไม่มีสิทธิ์สร้าง Job Card',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
-              const Text('ต้องการสิทธิ์ jobcard:create หรือเป็นเจ้าของ Workspace', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const Text(
+                'ต้องการสิทธิ์ jobcard:create หรือเป็นเจ้าของ Workspace',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Get.back(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryOrange,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text('ปิด'),
               ),
@@ -919,43 +970,45 @@ class _CreateCardPageState extends State<CreateCardPage> {
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 0,
-        actions: [
-          // Action menu
-          // PopupMenuButton<String>(
-          //   onSelected: (value) {
-          //     // Add watcher functionality will be implemented later
-          //   },
-          //   itemBuilder: (context) => [
-          //     PopupMenuItem<String>(
-          //       value: 'add_watcher',
-          //       child: Row(
-          //         children: [
-          //           const Icon(Icons.visibility_outlined, size: 20),
-          //           const SizedBox(width: 12),
-          //           const Text('Add a watcher'),
-          //         ],
-          //       ),
-          //     ),
-          //   ],
-          //   child: const Padding(
-          //     padding: EdgeInsets.all(8.0),
-          //     child: Icon(Icons.more_vert),
-          //   ),
-          // ),
-          // // Close button
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.close),
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
-              ),
-            )
-          : Column(
+          actions: [
+            // Action menu
+            // PopupMenuButton<String>(
+            //   onSelected: (value) {
+            //     // Add watcher functionality will be implemented later
+            //   },
+            //   itemBuilder: (context) => [
+            //     PopupMenuItem<String>(
+            //       value: 'add_watcher',
+            //       child: Row(
+            //         children: [
+            //           const Icon(Icons.visibility_outlined, size: 20),
+            //           const SizedBox(width: 12),
+            //           const Text('Add a watcher'),
+            //         ],
+            //       ),
+            //     ),
+            //   ],
+            //   child: const Padding(
+            //     padding: EdgeInsets.all(8.0),
+            //     child: Icon(Icons.more_vert),
+            //   ),
+            // ),
+            // // Close button
+            IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryOrange,
+                  ),
+                ),
+              )
+            : Column(
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
@@ -977,7 +1030,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                             ],
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // Assignment Section
                           _buildSectionCard(
                             title: 'Assignment & Tags',
@@ -1125,7 +1178,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
             hintText: 'auto-generated',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            fillColor: Color(0xFFF5F5F5), // Light gray background for disabled state
+            fillColor: Color(
+              0xFFF5F5F5,
+            ), // Light gray background for disabled state
             filled: true,
           ),
         ),
@@ -1171,9 +1226,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedLane.isNotEmpty && _availableLanes.any((lane) => lane['id'] == _selectedLane) 
-                 ? _selectedLane 
-                 : null,
+          value:
+              _selectedLane.isNotEmpty &&
+                  _availableLanes.any((lane) => lane['id'] == _selectedLane)
+              ? _selectedLane
+              : null,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1234,18 +1291,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
-  Future<void> _openAddCustomerPage() async {
-    final result = await Get.to(
-      () => const AddEditCustomerPage(customerSources: []),
-    );
-    
-    if (result == true) {
-      // Refresh customer list after adding new customer
-      await _loadAvailableOptions();
-      setState(() {});
-    }
-  }
-
   Widget _buildAssigneeSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1271,7 +1316,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
             return DropdownMenuItem<String>(
               value: user['id'],
               child: Text(
-                user['name'] ?? user['displayName'] ?? user['id'] ?? 'Unknown User',
+                user['name'] ??
+                    user['displayName'] ??
+                    user['id'] ??
+                    'Unknown User',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 14),
               ),
@@ -1340,29 +1388,32 @@ class _CreateCardPageState extends State<CreateCardPage> {
         Row(
           children: [
             Expanded(
-                                           child: DropdownButtonFormField<String>(
+              child: DropdownButtonFormField<String>(
                 value: _getValidCompanyValue(),
-                 decoration: const InputDecoration(
-                   border: OutlineInputBorder(),
-                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                 ),
-                 isExpanded: true,
-                 items: _availableCompanies.map((company) {
-                   return DropdownMenuItem<String>(
-                     value: company['id'],
-                     child: Text(
-                       company['name'],
-                       overflow: TextOverflow.ellipsis,
-                       style: const TextStyle(fontSize: 14),
-                     ),
-                   );
-                 }).toList(),
-                 onChanged: (value) {
-                   setState(() {
-                     _selectedCompany = value!;
-                   });
-                 },
-               ),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                isExpanded: true,
+                items: _availableCompanies.map((company) {
+                  return DropdownMenuItem<String>(
+                    value: company['id'],
+                    child: Text(
+                      company['name'],
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCompany = value!;
+                  });
+                },
+              ),
             ),
             // const SizedBox(width: 8),
             // ElevatedButton.icon(
@@ -1454,11 +1505,20 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 child: InkWell(
                   onTap: () => _selectStartDate(context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: _startDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                      border: Border.all(
+                        color: _startDate != null
+                            ? Colors.teal[300]!
+                            : Colors.grey[300]!,
+                      ),
                       borderRadius: BorderRadius.circular(6),
-                      color: _startDate != null ? Colors.teal[50] : Colors.white,
+                      color: _startDate != null
+                          ? Colors.teal[50]
+                          : Colors.white,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1468,14 +1528,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
                             Icon(
                               Icons.today,
                               size: 16,
-                              color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
+                              color: _startDate != null
+                                  ? Colors.teal[700]
+                                  : Colors.grey[600],
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Start Date',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: _startDate != null ? Colors.teal[700] : Colors.grey[600],
+                                color: _startDate != null
+                                    ? Colors.teal[700]
+                                    : Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1488,8 +1552,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
                               : 'Select start date',
                           style: TextStyle(
                             fontSize: 14,
-                            color: _startDate != null ? Colors.black87 : Colors.grey[500],
-                            fontWeight: _startDate != null ? FontWeight.w600 : FontWeight.normal,
+                            color: _startDate != null
+                                ? Colors.black87
+                                : Colors.grey[500],
+                            fontWeight: _startDate != null
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -1504,9 +1572,16 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 child: InkWell(
                   onTap: () => _selectEndDate(context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: _endDate != null ? Colors.teal[300]! : Colors.grey[300]!),
+                      border: Border.all(
+                        color: _endDate != null
+                            ? Colors.teal[300]!
+                            : Colors.grey[300]!,
+                      ),
                       borderRadius: BorderRadius.circular(6),
                       color: _endDate != null ? Colors.teal[50] : Colors.white,
                     ),
@@ -1518,14 +1593,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
                             Icon(
                               Icons.event,
                               size: 16,
-                              color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                              color: _endDate != null
+                                  ? Colors.teal[700]
+                                  : Colors.grey[600],
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'End Date',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: _endDate != null ? Colors.teal[700] : Colors.grey[600],
+                                color: _endDate != null
+                                    ? Colors.teal[700]
+                                    : Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1538,8 +1617,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
                               : 'Select end date',
                           style: TextStyle(
                             fontSize: 14,
-                            color: _endDate != null ? Colors.black87 : Colors.grey[500],
-                            fontWeight: _endDate != null ? FontWeight.w600 : FontWeight.normal,
+                            color: _endDate != null
+                                ? Colors.black87
+                                : Colors.grey[500],
+                            fontWeight: _endDate != null
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -1588,13 +1671,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
               return Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(6),
-                  boxShadow: isSelected ? [
-                    BoxShadow(
-                      color: AppTheme.primaryOrange.withOpacity(0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    )
-                  ] : null,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.primaryOrange.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: ElevatedButton.icon(
                   onPressed: () {
@@ -1606,17 +1691,26 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   label: Text(
                     status['label'],
                     style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isSelected ? AppTheme.primaryOrange : Colors.white,
+                    backgroundColor: isSelected
+                        ? AppTheme.primaryOrange
+                        : Colors.white,
                     foregroundColor: isSelected ? Colors.white : Colors.black87,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                       side: BorderSide(
-                        color: isSelected ? AppTheme.primaryOrange : Colors.grey[300]!,
+                        color: isSelected
+                            ? AppTheme.primaryOrange
+                            : Colors.grey[300]!,
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -1675,7 +1769,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.check_circle, size: 16, color: Colors.blue[700]),
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.blue[700],
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Selected (${_selectedCollaborators.length})',
@@ -1692,8 +1790,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
                         spacing: 8,
                         runSpacing: 6,
                         children: _selectedCollaborators.map((userId) {
-                          final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
-                          final displayName = user?['displayName'] ?? user?['name'] ?? userId;
+                          final user = _availableUsers.firstWhereOrNull(
+                            (u) => u['id'] == userId,
+                          );
+                          final displayName =
+                              user?['displayName'] ?? user?['name'] ?? userId;
                           return Chip(
                             label: Text(
                               displayName,
@@ -1709,7 +1810,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
                                 _selectedCollaborators.remove(userId);
                               });
                             },
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           );
                         }).toList(),
                       ),
@@ -1718,7 +1820,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 ),
                 Divider(height: 1, color: Colors.grey[300]),
               ],
-              
+
               // Available collaborators section
               Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -1727,7 +1829,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.person_add, size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.person_add,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Available to Add',
@@ -1740,59 +1846,82 @@ class _CreateCardPageState extends State<CreateCardPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _availableUsers.where((user) => !_selectedCollaborators.contains(user['id'])).isEmpty
-                      ? Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.info_outline, size: 16, color: Colors.grey),
-                              SizedBox(width: 8),
-                              Text(
-                                'All users have been selected',
-                                style: TextStyle(
-                                  fontSize: 12,
+                    _availableUsers
+                            .where(
+                              (user) =>
+                                  !_selectedCollaborators.contains(user['id']),
+                            )
+                            .isEmpty
+                        ? Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 16,
                                   color: Colors.grey,
-                                  fontStyle: FontStyle.italic,
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: 8),
+                                Text(
+                                  'All users have been selected',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: _availableUsers
+                                .where(
+                                  (user) => !_selectedCollaborators.contains(
+                                    user['id'],
+                                  ),
+                                )
+                                .map((user) {
+                                  final displayName =
+                                      user['displayName'] ??
+                                      user['name'] ??
+                                      user['id'];
+                                  return FilterChip(
+                                    label: Text(
+                                      displayName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    selected: false,
+                                    backgroundColor: Colors.white,
+                                    selectedColor: Colors.blue[100],
+                                    checkmarkColor: Colors.blue[700],
+                                    onSelected: (selected) {
+                                      if (selected &&
+                                          !_selectedCollaborators.contains(
+                                            user['id'],
+                                          )) {
+                                        setState(() {
+                                          _selectedCollaborators.add(
+                                            user['id'],
+                                          );
+                                        });
+                                      }
+                                    },
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  );
+                                })
+                                .toList(),
                           ),
-                        )
-                      : Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: _availableUsers
-                              .where((user) => !_selectedCollaborators.contains(user['id']))
-                              .map((user) {
-                            final displayName = user['displayName'] ?? user['name'] ?? user['id'];
-                            return FilterChip(
-                              label: Text(
-                                displayName,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              selected: false,
-                              backgroundColor: Colors.white,
-                              selectedColor: Colors.blue[100],
-                              checkmarkColor: Colors.blue[700],
-                              onSelected: (selected) {
-                                if (selected && !_selectedCollaborators.contains(user['id'])) {
-                                  setState(() {
-                                    _selectedCollaborators.add(user['id']);
-                                  });
-                                }
-                              },
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            );
-                          }).toList(),
-                        ),
                   ],
                 ),
               ),
@@ -1847,7 +1976,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.green[700],
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Selected (${_selectedWatchers.length})',
@@ -1864,8 +1997,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
                         spacing: 8,
                         runSpacing: 6,
                         children: _selectedWatchers.map((userId) {
-                          final user = _availableUsers.firstWhereOrNull((u) => u['id'] == userId);
-                          final displayName = user?['displayName'] ?? user?['name'] ?? userId;
+                          final user = _availableUsers.firstWhereOrNull(
+                            (u) => u['id'] == userId,
+                          );
+                          final displayName =
+                              user?['displayName'] ?? user?['name'] ?? userId;
                           return Chip(
                             label: Text(
                               displayName,
@@ -1881,7 +2017,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
                                 _selectedWatchers.remove(userId);
                               });
                             },
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           );
                         }).toList(),
                       ),
@@ -1890,7 +2027,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 ),
                 Divider(height: 1, color: Colors.grey[300]),
               ],
-              
+
               // Available watchers section
               Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -1899,7 +2036,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.person_add, size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.person_add,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Available to Add',
@@ -1912,59 +2053,78 @@ class _CreateCardPageState extends State<CreateCardPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _availableUsers.where((user) => !_selectedWatchers.contains(user['id'])).isEmpty
-                      ? Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.info_outline, size: 16, color: Colors.grey),
-                              SizedBox(width: 8),
-                              Text(
-                                'All users have been selected',
-                                style: TextStyle(
-                                  fontSize: 12,
+                    _availableUsers
+                            .where(
+                              (user) => !_selectedWatchers.contains(user['id']),
+                            )
+                            .isEmpty
+                        ? Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 16,
                                   color: Colors.grey,
-                                  fontStyle: FontStyle.italic,
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: 8),
+                                Text(
+                                  'All users have been selected',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: _availableUsers
+                                .where(
+                                  (user) =>
+                                      !_selectedWatchers.contains(user['id']),
+                                )
+                                .map((user) {
+                                  final displayName =
+                                      user['displayName'] ??
+                                      user['name'] ??
+                                      user['id'];
+                                  return FilterChip(
+                                    label: Text(
+                                      displayName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    selected: false,
+                                    backgroundColor: Colors.white,
+                                    selectedColor: Colors.green[100],
+                                    checkmarkColor: Colors.green[700],
+                                    onSelected: (selected) {
+                                      if (selected &&
+                                          !_selectedWatchers.contains(
+                                            user['id'],
+                                          )) {
+                                        setState(() {
+                                          _selectedWatchers.add(user['id']);
+                                        });
+                                      }
+                                    },
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  );
+                                })
+                                .toList(),
                           ),
-                        )
-                      : Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: _availableUsers
-                              .where((user) => !_selectedWatchers.contains(user['id']))
-                              .map((user) {
-                            final displayName = user['displayName'] ?? user['name'] ?? user['id'];
-                            return FilterChip(
-                              label: Text(
-                                displayName,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              selected: false,
-                              backgroundColor: Colors.white,
-                              selectedColor: Colors.green[100],
-                              checkmarkColor: Colors.green[700],
-                              onSelected: (selected) {
-                                if (selected && !_selectedWatchers.contains(user['id'])) {
-                                  setState(() {
-                                    _selectedWatchers.add(user['id']);
-                                  });
-                                }
-                              },
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            );
-                          }).toList(),
-                        ),
                   ],
                 ),
               ),
@@ -2007,18 +2167,45 @@ class _CreateCardPageState extends State<CreateCardPage> {
               toolbarType: ToolbarType.nativeScrollable,
               defaultToolbarButtons: [
                 StyleButtons(style: false),
-                FontSettingButtons(fontName: false, fontSize: false, fontSizeUnit: false),
-                FontButtons(bold: true, italic: true, underline: true, clearAll: false, strikethrough: false, superscript: false, subscript: false),
+                FontSettingButtons(
+                  fontName: false,
+                  fontSize: false,
+                  fontSizeUnit: false,
+                ),
+                FontButtons(
+                  bold: true,
+                  italic: true,
+                  underline: true,
+                  clearAll: false,
+                  strikethrough: false,
+                  superscript: false,
+                  subscript: false,
+                ),
                 ColorButtons(foregroundColor: false, highlightColor: false),
                 ListButtons(ul: true, ol: true, listStyles: false),
-                ParagraphButtons(textDirection: false, lineHeight: false, caseConverter: false),
-                InsertButtons(link: false, picture: false, audio: false, video: false, hr: false, table: false),
-                OtherButtons(fullscreen: false, codeview: false, undo: true, redo: true, help: false),
+                ParagraphButtons(
+                  textDirection: false,
+                  lineHeight: false,
+                  caseConverter: false,
+                ),
+                InsertButtons(
+                  link: false,
+                  picture: false,
+                  audio: false,
+                  video: false,
+                  hr: false,
+                  table: false,
+                ),
+                OtherButtons(
+                  fullscreen: false,
+                  codeview: false,
+                  undo: true,
+                  redo: true,
+                  help: false,
+                ),
               ],
             ),
-            otherOptions: const OtherOptions(
-              height: 150,
-            ),
+            otherOptions: const OtherOptions(height: 150),
             callbacks: Callbacks(
               onInit: () {
                 print('🔄 HTML editor initialized successfully');
@@ -2030,7 +2217,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 // Sync HTML editor content to fallback controller for error handling
                 if (changed != null && mounted) {
                   _descriptionFallbackController.text = changed;
-                  print('🔄 Synced HTML content to fallback: ${changed.length} chars');
+                  print(
+                    '🔄 Synced HTML content to fallback: ${changed.length} chars',
+                  );
                 }
               },
             ),
@@ -2039,8 +2228,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
       ],
     );
   }
-
-
 
   Widget _buildTodoListSection() {
     return Column(
@@ -2064,7 +2251,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -2078,7 +2268,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -2087,7 +2280,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ],
         ),
         const SizedBox(height: 8),
-        
+
         // Todo items list
         if (_todoItems.isEmpty)
           Container(
@@ -2116,14 +2309,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
     );
   }
 
-
-
-
-
   Widget _buildActionButtons() {
-    final bool canSave = !_isLoading &&
+    final bool canSave =
+        !_isLoading &&
         (MobilePermissionsService.to.isOwner ||
-         MobilePermissionsService.to.can('jobcard:create'));
+            MobilePermissionsService.to.can('jobcard:create'));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -2161,16 +2351,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
               flex: 3,
               child: ElevatedButton.icon(
                 onPressed: canSave ? _saveCard : null,
-                icon: _isLoading 
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Icon(Icons.save, size: 18),
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.save, size: 18),
                 label: Text(
                   _isLoading ? 'Saving...' : 'Save Card',
                   style: const TextStyle(
@@ -2179,7 +2371,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: canSave ? AppTheme.primaryOrange : Colors.grey[400],
+                  backgroundColor: canSave
+                      ? AppTheme.primaryOrange
+                      : Colors.grey[400],
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -2199,15 +2393,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
   // Todo methods
   void _addTodoItem() {
     setState(() {
-          _todoItems.add({
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'text': '',
-      'isCompleted': false,
-      'dueDate': null,
-      'duration': null,
-      'endTime': null,
-      'controller': TextEditingController(),
-    });
+      _todoItems.add({
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'text': '',
+        'isCompleted': false,
+        'dueDate': null,
+        'duration': null,
+        'endTime': null,
+        'controller': TextEditingController(),
+      });
     });
   }
 
@@ -2221,7 +2415,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   void _setTodoTime(int index) async {
     if (!mounted) return;
-    
+
     // Show options dialog first
     final String? timeOption = await showDialog<String>(
       context: context,
@@ -2255,46 +2449,57 @@ class _CreateCardPageState extends State<CreateCardPage> {
                     const SizedBox(height: 4),
                     Text(
                       _getCurrentTimeValue(index),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.blue[600]),
                     ),
                   ],
                 ),
               ),
-            
+
             // Time options
             ListTile(
               leading: Icon(
-                Icons.today, 
-                color: _todoItems[index]['dueDate'] != null ? Colors.green : Colors.blue
+                Icons.today,
+                color: _todoItems[index]['dueDate'] != null
+                    ? Colors.green
+                    : Colors.blue,
               ),
               title: Text(
                 'Set Due Date & Time',
                 style: TextStyle(
-                  fontWeight: _todoItems[index]['dueDate'] != null ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: _todoItems[index]['dueDate'] != null
+                      ? FontWeight.w600
+                      : FontWeight.normal,
                 ),
               ),
-              subtitle: _todoItems[index]['dueDate'] != null 
-                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
-                : null,
+              subtitle: _todoItems[index]['dueDate'] != null
+                  ? Text(
+                      'Currently set',
+                      style: TextStyle(color: Colors.green[700]),
+                    )
+                  : null,
               onTap: () => Navigator.of(context).pop('datetime'),
             ),
             ListTile(
               leading: Icon(
-                Icons.schedule, 
-                color: _todoItems[index]['endTime'] != null ? Colors.green : Colors.green
+                Icons.schedule,
+                color: _todoItems[index]['endTime'] != null
+                    ? Colors.green
+                    : Colors.green,
               ),
               title: Text(
                 'Set Duration',
                 style: TextStyle(
-                  fontWeight: _todoItems[index]['endTime'] != null ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: _todoItems[index]['endTime'] != null
+                      ? FontWeight.w600
+                      : FontWeight.normal,
                 ),
               ),
-              subtitle: _todoItems[index]['endTime'] != null 
-                ? Text('Currently set', style: TextStyle(color: Colors.green[700]))
-                : null,
+              subtitle: _todoItems[index]['endTime'] != null
+                  ? Text(
+                      'Currently set',
+                      style: TextStyle(color: Colors.green[700]),
+                    )
+                  : null,
               onTap: () => Navigator.of(context).pop('duration'),
             ),
             if (_todoItems[index]['dueDate'] != null ||
@@ -2331,7 +2536,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   Future<void> _setDueDateTime(int index) async {
     if (!mounted) return;
-    
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: _todoItems[index]['dueDate'] ?? DateTime.now(),
@@ -2342,9 +2547,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
     if (pickedDate != null && mounted) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
-        initialTime: _todoItems[index]['dueDate'] != null 
-          ? TimeOfDay.fromDateTime(_todoItems[index]['dueDate'])
-          : TimeOfDay.now(),
+        initialTime: _todoItems[index]['dueDate'] != null
+            ? TimeOfDay.fromDateTime(_todoItems[index]['dueDate'])
+            : TimeOfDay.now(),
       );
 
       if (pickedTime != null && mounted) {
@@ -2361,22 +2566,20 @@ class _CreateCardPageState extends State<CreateCardPage> {
     }
   }
 
-
-
   Future<void> _setDuration(int index) async {
     if (!mounted) return;
-    
+
     // Calculate end time based on current time + duration
     final DateTime now = DateTime.now();
     final int? currentDuration = _todoItems[index]['duration'];
-    final DateTime? endTime = currentDuration != null 
-      ? now.add(Duration(minutes: currentDuration))
-      : null;
-    
+    final DateTime? endTime = currentDuration != null
+        ? now.add(Duration(minutes: currentDuration))
+        : null;
+
     final TextEditingController durationController = TextEditingController(
       text: currentDuration?.toString() ?? '',
     );
-    
+
     final int? duration = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
@@ -2465,7 +2668,12 @@ class _CreateCardPageState extends State<CreateCardPage> {
     }
   }
 
-  Widget _buildDurationChip(String label, int minutes, TextEditingController controller, DateTime now) {
+  Widget _buildDurationChip(
+    String label,
+    int minutes,
+    TextEditingController controller,
+    DateTime now,
+  ) {
     final DateTime endTime = now.add(Duration(minutes: minutes));
     return ActionChip(
       label: Column(
@@ -2516,7 +2724,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     final TextEditingController controller = todo['controller'];
     final DateTime? dueDate = todo['dueDate'];
     final DateTime? endTime = todo['endTime'];
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -2540,7 +2748,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 activeColor: AppTheme.primaryOrange,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              
+
               // Input field
               Expanded(
                 child: TextField(
@@ -2548,46 +2756,52 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   decoration: const InputDecoration(
                     hintText: 'Enter todo item...',
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                   ),
                   onChanged: (value) {
                     todo['text'] = value;
                   },
                   style: TextStyle(
-                    decoration: (todo['isCompleted'] ?? false) 
-                      ? TextDecoration.lineThrough 
-                      : TextDecoration.none,
-                    color: (todo['isCompleted'] ?? false) 
-                      ? Colors.grey[600] 
-                      : Colors.black87,
+                    decoration: (todo['isCompleted'] ?? false)
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
+                    color: (todo['isCompleted'] ?? false)
+                        ? Colors.grey[600]
+                        : Colors.black87,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              
+
               // Set time button with indicator
               Container(
                 decoration: BoxDecoration(
-                  color: (dueDate != null || endTime != null) 
-                    ? Colors.green 
-                    : Colors.blue,
+                  color: (dueDate != null || endTime != null)
+                      ? Colors.green
+                      : Colors.blue,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: IconButton(
                   onPressed: () => _setTodoTime(index),
                   icon: Icon(
-                    (dueDate != null || endTime != null) 
-                      ? Icons.schedule_send 
-                      : Icons.access_time, 
-                    color: Colors.white, 
-                    size: 20
+                    (dueDate != null || endTime != null)
+                        ? Icons.schedule_send
+                        : Icons.access_time,
+                    color: Colors.white,
+                    size: 20,
                   ),
                   padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              
+
               // Delete button
               Container(
                 decoration: BoxDecoration(
@@ -2598,12 +2812,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   onPressed: () => _removeTodoItem(index),
                   icon: const Icon(Icons.delete, color: Colors.white, size: 20),
                   padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                 ),
               ),
             ],
           ),
-          
+
           // Show time information if any is set
           if (dueDate != null || endTime != null)
             Container(
@@ -2614,7 +2831,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   if (dueDate != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.blue[50],
                         borderRadius: BorderRadius.circular(4),
@@ -2636,14 +2856,15 @@ class _CreateCardPageState extends State<CreateCardPage> {
                         ],
                       ),
                     ),
-                  
 
-                  
                   // Duration/End Time
                   if (endTime != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green[50],
                         borderRadius: BorderRadius.circular(4),
@@ -2676,7 +2897,4 @@ class _CreateCardPageState extends State<CreateCardPage> {
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
-
-
-
 }

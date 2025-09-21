@@ -199,7 +199,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
   // Algolia search related
   Timer? _searchDebounceTimer;
   StreamSubscription? _algoliaSearchSubscription;
-  
+
   // User and workspace related
   String _currentUserId = '';
   String _currentWorkspaceId = '';
@@ -360,14 +360,14 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
     // Cancel previous timer if exists
     _searchDebounceTimer?.cancel();
     _algoliaSearchSubscription?.cancel();
-    
+
     setState(() {
       _isSearching = value.trim().isNotEmpty;
     });
-    
+
     // Force modal to update search state
     _currentModalStateSetter?.call(() {});
-    
+
     // If query is empty, reset to show all companies (local list)
     if (value.trim().isEmpty) {
       setState(() {
@@ -377,7 +377,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
       _currentModalStateSetter?.call(() {});
       return;
     }
-    
+
     // For non-empty queries, trigger Algolia search with debouncing
     _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
       if (mounted) {
@@ -396,17 +396,17 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
       });
       return;
     }
-    
+
     setState(() {
       _isSearching = true;
     });
-    
+
     // Force modal to show loading state
     _currentModalStateSetter?.call(() {});
-    
+
     _searchWithAlgolia(query.trim());
   }
-  
+
   /// Search companies using Algolia exclusively
   void _searchWithAlgolia(String query) async {
     if (_currentWorkspaceId.isEmpty) {
@@ -415,12 +415,12 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
         _isSearching = false;
         _filteredCompanies = [];
       });
-      
+
       // Force modal to update with empty state
       _currentModalStateSetter?.call(() {});
       return;
     }
-    
+
     try {
       // Search with Algolia
       final searchStream = AlgoliaSearchService.searchCompanies(
@@ -428,15 +428,15 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
         workspaceId: _currentWorkspaceId,
         hitsPerPage: 50,
       );
-      
+
       _algoliaSearchSubscription = searchStream.listen(
         (response) {
           if (!mounted) return;
-          
+
           try {
             final hits = response.hits;
             final algoliaResults = <Company>[];
-            
+
             // Convert Algolia results to Company objects
             for (final hit in hits) {
               try {
@@ -474,17 +474,17 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
                 print('⚠️ Failed to convert Algolia hit to Company: $e');
               }
             }
-            
+
             setState(() {
               _filteredCompanies = algoliaResults;
               _isSearching = false;
             });
-            
+
             // Force modal to rebuild with new search results
             _currentModalStateSetter?.call(() {});
-            
+
             print('🔍 Algolia company search results: ${algoliaResults.length} companies found');
-            
+
           } catch (e) {
             print('⚠️ Error processing Algolia response: $e');
             // For Algolia-only search, show empty results on error
@@ -492,7 +492,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
               _filteredCompanies = [];
               _isSearching = false;
             });
-            
+
             // Force modal to rebuild with empty state
             _currentModalStateSetter?.call(() {});
           }
@@ -504,12 +504,12 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
             _filteredCompanies = [];
             _isSearching = false;
           });
-          
+
           // Force modal to rebuild with error state
           _currentModalStateSetter?.call(() {});
         },
       );
-      
+
     } catch (e) {
       print('❌ Failed to search companies with Algolia: $e');
       // For Algolia-only search, show empty results on error
@@ -517,12 +517,12 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
         _filteredCompanies = [];
         _isSearching = false;
       });
-      
+
       // Force modal to rebuild with error state
       _currentModalStateSetter?.call(() {});
     }
   }
-  
+
   /// Clear search and reset to show all companies
   void clearSearch() {
     _searchController.clear();
@@ -532,7 +532,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
       _isSearching = false;
       _filteredCompanies = List<Company>.from(_availableCompanies);
     });
-    
+
     // Force modal to update with all companies
     _currentModalStateSetter?.call(() {});
   }
@@ -837,10 +837,6 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
   }
 
   Widget _buildEmptyState() {
-    // Determine the current search state
-    final hasSearchQuery = _searchController.text.trim().isNotEmpty;
-    final hasLocalCompanies = _availableCompanies.isNotEmpty;
-    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -886,7 +882,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
 
   Widget _buildSearchAndClearSuffixIcons([StateSetter? setModalState]) {
     final hasSearchText = _searchController.text.isNotEmpty;
-    
+
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: Row(
@@ -912,7 +908,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
                   )
                 : Icon(
                     Icons.search,
-                    color: hasSearchText 
+                    color: hasSearchText
                         ? AppTheme.primaryOrange
                         : Colors.grey,
                   ),

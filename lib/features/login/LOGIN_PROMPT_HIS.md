@@ -6,6 +6,8 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
 
 
+Topic: Open link in app 
+Detail: When pressed link where "สอบถามเพิ่มเติม Link" in login page, should open link in app not open external browser.
 
 ##
 Topic: When login not success change alert.

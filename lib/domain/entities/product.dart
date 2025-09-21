@@ -181,7 +181,7 @@ class Product {
         }).toList();
       }
     } catch (e) {
-      print('Error parsing hashtags: $e');
+      print('❌ Error parsing hashtags: $e');
     }
     
     return [];

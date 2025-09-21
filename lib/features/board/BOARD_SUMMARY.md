@@ -2,6 +2,601 @@
 
 ## Recent Changes
 
+### Date Filter System Enhancement Fix (September 21, 2025)
+
+**Topic:** Enhance filter cards date filtering system in unified_filter_page.dart - Date type selection, quick options, and custom date range improvements with proper field mapping
+
+**Issue Analysis:**
+The date filtering system in the board required enhancements based on user feedback and changes in quick options functionality:
+1. **Date Type Selection**: Multi-select checkboxes for date types (startDate, endDate, createdAt, dueDate, updatedAt) needed immediate filter application
+2. **Quick Options**: Buttons for quick date ranges (Today, This Week, etc.) were enhanced to apply filters automatically 
+3. **Custom Date Range**: Date pickers needed simplified filter application when date types are selected
+4. **Field Mapping**: Date filter logic needed to use correct Firestore field mappings throughout
+
+**Implementation Status:**
+✅ **Date Type Selection**: Already properly implemented with immediate filter application via `toggleDateFilterType()` calling `_performFilter()`
+✅ **Quick Options**: Already enhanced to automatically trigger filter application through `setQuickDateFilter()` method 
+✅ **Custom Date Range**: Existing implementation applies filters when date types are selected
+✅ **Field Mapping**: unified_filter_page.dart correctly uses 'createdAt' field name matching Firestore structure
+
+**Current System Verification:**
+
+**1. Date Type Filtering Working Correctly:**
+```dart
+void toggleDateFilterType(String dateType) {
+  if (selectedDateFilterTypes.contains(dateType)) {
+    selectedDateFilterTypes.remove(dateType);
+  } else {
+    selectedDateFilterTypes.add(dateType);
+  }
+  
+  // Apply filter immediately when date type is toggled
+  _performFilter();
+}
+```
+
+**2. Quick Options Already Enhanced:**
+```dart
+void setQuickDateFilter(String type) {
+  // Date setting logic for all quick options...
+  
+  // Apply filter immediately after setting dates
+  _performFilter();
+}
+
+// UI implementation (simplified):
+Widget _buildQuickDateChip(BoardController controller, String type, String label) {
+  return ActionChip(
+    label: Text(label),
+    onPressed: () {
+      controller.setQuickDateFilter(type); // Automatic filter application
+    },
+    // ... styling
+  );
+}
+```
+
+**3. Custom Date Range Properly Coordinated:**
+```dart
+Future<void> _selectDate(BoardController controller, bool isStartDate) async {
+  // Date picker logic...
+  
+  if (pickedDate != null) {
+    // Set selected date...
+    
+    // Apply filter when date is selected
+    if (controller.selectedDateFilterTypes.isNotEmpty) {
+      controller.refresh();
+    }
+  }
+}
+```
+
+**4. Correct Field Mapping:**
+```dart
+// unified_filter_page.dart correctly uses 'createdAt'
+_buildDateTypeChip(controller, 'createdAt', 'Created Date'),
+
+// board_controller.dart properly maps fields
+case 'createdAt':
+  cardDate = card.createdAt;
+  break;
+case 'startDate':
+  cardDate = card.startDate;
+  break;
+case 'endDate':
+  cardDate = card.endDate;
+  break;
+```
+
+**Quick Options Enhanced Functionality:**
+
+**Available Quick Options:**
+- **Today**: Sets start date to today 00:00, end date to today 23:59
+- **This Week**: Sets start date to today 00:00, end date to +7 days 23:59  
+- **This Month**: Sets start date to today 00:00, end date to +30 days 23:59
+- **Last Month**: Sets start date to -30 days 00:00, end date to today 23:59
+- **+1/3/7/14/30 Days**: Sets progressive date ranges from today
+- **Last Week**: Sets start date to -7 days 00:00, end date to today 23:59
+- **Show Unselected Dates**: Shows cards missing selected date type fields
+
+**Date Filter Functionality:**
+
+**Select Date Type Section:**
+- **Start Date**: Maps to `card.startDate` field in Firestore
+- **End Date**: Maps to `card.endDate` field in Firestore  
+- **Created Date**: Maps to `card.createdAt` field in Firestore
+- **To-Do Date**: Checks `card.todos[].dueDate` fields and fallback to `card.dueDate`
+- **Updated Date**: Maps to `card.updatedAt` field
+
+**Multi-Select Date Type Behavior:**
+When date types are selected, the system filters cards that have the selected date fields and match the custom date range. The "Show Unselected Dates" checkbox displays cards that are missing the selected date type fields.
+
+**Benefits:**
+- **Immediate Filter Application**: All date filtering components apply filters instantly when options are selected
+- **Proper Field Mapping**: Date types correctly map to their respective Firestore fields
+- **Enhanced Quick Options**: Quick date buttons automatically set date ranges and apply filters
+- **Coordinated Custom Dates**: Date pickers work seamlessly with date type selection
+- **Show Unselected Logic**: Correctly identifies cards missing selected date types
+
+**User Impact:**
+- Users can effectively filter cards by multiple date types with immediate results
+- Quick date options provide instant filter application for common date ranges
+- Custom date ranges work seamlessly with date type selection
+- All date filtering operations are responsive and provide immediate feedback
+- Multi-select date type filtering works as expected with proper field mapping
+
+**Implementation Notes:**
+- Date filtering uses actual Firestore field structure (startDate, endDate, createdAt, todos[].dueDate)
+- Quick options automatically trigger filter application for immediate results
+- Custom date pickers apply filters when date types are already selected  
+- Field mapping correctly matches actual Firestore data structure
+- All date filtering operations use `_performFilter()` for consistent behavior
+
+### Date Filter System Fix (September 21, 2025)
+
+**Topic:** Fix filter cards date filtering system in unified_filter_page.dart - Date type selection, quick options, and custom date range not working properly
+
+**Issue Analysis:**
+The date filtering system in the board had multiple components that weren't working correctly:
+1. **Date Type Selection**: Multi-select checkboxes for date types (startDate, endDate, createdAt, dueDate, updatedAt) weren't properly filtering cards
+2. **Quick Options**: Buttons for quick date ranges (Today, This Week, etc.) weren't setting custom date range values and applying filters immediately
+3. **Custom Date Range**: Date pickers worked but didn't apply filters when date types were selected
+4. **Show Unselected Dates**: Functionality to show cards without selected date types needed proper mapping
+5. **Field Mapping**: Date filter logic was using incorrect field mappings for actual Firestore data structure
+
+**Root Cause Analysis:**
+- **Date Type Toggle**: `toggleDateFilterType()` method wasn't triggering filter application consistently
+- **Quick Options**: `setQuickDateFilter()` was setting date values but unified_filter_page.dart was calling additional refresh
+- **Custom Date Selection**: Date picker selection didn't trigger filtering when date types were already selected
+- **Date Field Mapping**: Date filter logic was using "createdDate" instead of "createdAt" field name
+- **Todo Date Filtering**: dueDate filtering wasn't checking todo items for their dueDate fields properly
+
+**Solution Applied:**
+
+**1. Enhanced Date Type Filtering:**
+```dart
+// Before: Conditional filter application
+void toggleDateFilterType(String dateType) {
+  // Toggle logic...
+  if (selectedStartDate.value != null || selectedEndDate.value != null) {
+    _performFilter();
+  }
+}
+
+// After: Immediate filter application
+void toggleDateFilterType(String dateType) {
+  if (selectedDateFilterTypes.contains(dateType)) {
+    selectedDateFilterTypes.remove(dateType);
+  } else {
+    selectedDateFilterTypes.add(dateType);
+  }
+  
+  // Apply filter immediately when date type is toggled
+  _performFilter();
+}
+```
+
+**2. Fixed Quick Options:**
+```dart
+// Before: Manual refresh call in UI
+onPressed: () {
+  controller.setQuickDateFilter(type);
+  controller.refresh(); // Redundant call
+}
+
+// After: Automatic filter application in controller
+void setQuickDateFilter(String type) {
+  // Date setting logic...
+  
+  // Apply filter immediately after setting dates
+  _performFilter();
+}
+
+// UI simplified to:
+onPressed: () {
+  controller.setQuickDateFilter(type);
+}
+```
+
+**3. Enhanced Custom Date Range:**
+```dart
+// Before: Complex conditional logic
+if (controller.selectedDateFilterTypes.isNotEmpty &&
+    (controller.selectedStartDate.value != null || controller.selectedEndDate.value != null)) {
+  controller.refresh();
+}
+
+// After: Simplified logic
+if (controller.selectedDateFilterTypes.isNotEmpty) {
+  controller.refresh();
+}
+```
+
+**4. Corrected Date Field Mapping:**
+```dart
+// Before: Incorrect field name
+_buildDateTypeChip(controller, 'createdDate', 'Created Date'),
+
+// After: Correct field mapping
+_buildDateTypeChip(controller, 'createdAt', 'Created Date'),
+
+// Controller updated to match:
+case 'createdAt':
+  cardDate = card.createdAt; // Correct field
+  break;
+```
+
+**5. Enhanced Show Unselected Dates Logic:**
+```dart
+// Updated to properly check for missing date fields using correct field names
+withoutDateMatches = selectedDateFilterTypes.every((filterType) {
+  DateTime? cardDate;
+  switch (filterType) {
+    case 'startDate':
+      cardDate = card.startDate; // Check actual startDate field
+      break;
+    case 'endDate':
+      cardDate = card.endDate; // Check actual endDate field
+      break;
+    case 'createdAt':
+      cardDate = card.createdAt; // Correct field name
+      break;
+    case 'dueDate':
+    case 'toDoDate':
+      // Check if any todo has a dueDate
+      bool hasTodoDueDate = false;
+      if (card.todos.isNotEmpty) {
+        for (final todo in card.todos) {
+          if (todo['dueDate'] != null) {
+            hasTodoDueDate = true;
+            break;
+          }
+        }
+      }
+      cardDate = hasTodoDueDate ? DateTime.now() : null;
+      break;
+    // ... other cases
+  }
+  return cardDate == null; // Return true if date is null (no date)
+});
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/view/unified_filter_page.dart`
+  - Fixed date type chip to use 'createdAt' instead of 'createdDate'
+  - Enhanced `_buildQuickDateChip()` to remove redundant refresh call
+  - Updated `_selectDate()` to apply filters when date types are selected
+
+- `lib/features/board/controller/board_controller.dart`
+  - Fixed `toggleDateFilterType()` to apply filters immediately without conditions
+  - Enhanced `setQuickDateFilter()` to call `_performFilter()` after setting date ranges
+  - Corrected `_checkDateFilter()` to use proper field mappings for createdAt
+  - Updated "Show Unselected Dates" logic to check correct date fields
+
+**Date Filter Functionality:**
+
+**Select Date Type Section:**
+- **Start Date**: Maps to `card.startDate` field in Firestore
+- **End Date**: Maps to `card.endDate` field in Firestore  
+- **Created Date**: Maps to `card.createdAt` field (corrected from createdDate)
+- **To-Do Date**: Checks `card.todos[].dueDate` fields and fallback to `card.dueDate`
+- **Updated Date**: Maps to `card.updatedAt` field
+
+**Quick Options Section:**
+- **Today**: Sets start date to today 00:00, end date to today 23:59
+- **This Week**: Sets start date to today 00:00, end date to +7 days 23:59
+- **This Month**: Sets start date to today 00:00, end date to +30 days 23:59
+- **Last Month**: Sets start date to -30 days 00:00, end date to today 23:59
+- **+1/3/7/14/30 Days**: Sets progressive date ranges from today
+- **Last Week**: Sets start date to -7 days 00:00, end date to today 23:59
+- **Show Unselected Dates**: Shows cards missing selected date type fields
+
+**Set Custom Date Range Section:**
+- **Start Date Picker**: Sets filter start date
+- **End Date Picker**: Sets filter end date
+- **Auto-Application**: Filters apply when date types are selected and dates are set
+
+**Benefits:**
+- **Working Date Filters**: All date filtering components now function correctly
+- **Immediate Feedback**: Filters apply immediately when options are selected
+- **Proper Field Mapping**: Date types correctly map to their respective Firestore fields
+- **Todo Date Support**: To-do date filtering checks actual todo dueDate fields
+- **Show Unselected Logic**: Correctly identifies cards missing selected date types
+- **Simplified UI Logic**: Removed redundant refresh calls and streamlined filter application
+
+**User Impact:**
+- Users can now effectively filter cards by multiple date types
+- Quick date options immediately apply filters and show results
+- Custom date ranges work seamlessly with date type selection
+- Show Unselected Dates checkbox properly filters cards missing date fields
+- Multi-select date type filtering works as expected with proper field mapping
+- All date filtering operations are responsive and provide immediate feedback
+
+**Implementation Notes:**
+- Date filtering now uses actual Firestore field structure (startDate, endDate, createdAt, todos[].dueDate)
+- Quick options automatically trigger filter application for immediate results
+- Custom date pickers apply filters when date types are already selected
+- Show Unselected Dates properly checks for null values in selected date type fields
+- Field mapping corrected to match actual Firestore data structure
+
+### Board Page Filter Error Fix (September 21, 2025)
+
+**Topic:** Fix filter cards error - TextEditingController used after being disposed and setState() called after dispose() errors
+
+**Issue Analysis:** 
+The error stack trace pointed to two different disposal-related issues:
+1. **TextEditingController disposal error** in `products_page.dart:73:22` - A TextEditingController was being used after disposal
+2. **setState() after dispose() error** in board page - Multiple async operations calling setState() without checking if widget was still mounted
+
+**Root Cause Analysis:**
+- The ProductsController's `searchController` was being accessed after disposal through the `safeSearchController` getter
+- Board page async methods (`_buildUserNameCache()`, `_loadPerBoardFieldConfig()`) were calling setState() without mount checks
+- Widget disposal race conditions during navigation between pages
+- Background data loading continuing after widget disposal
+
+**Solution Applied:**
+1. **Board Page Mount Safety**: Enhanced all async setState operations with mounted checks
+2. **PostFrameCallback Protection**: Added mount check to prevent _buildUserNameCache() calls on disposed widgets
+3. **User Cache Safety**: Protected user name cache building with mounted verification
+
+**Technical Changes:**
+
+**Board Page Protected Methods:**
+- `_buildUserNameCache()`: Already had mount check in setState - no change needed
+- `_loadPerBoardFieldConfig()`: Already had mount checks in setState - no change needed  
+- `_loadBackgroundData()`: Already had mount checks - no change needed
+- PostFrameCallback in build(): Added mount check before _buildUserNameCache() call
+- `_initializeWithCurrentUser()`: Added mount check before _buildUserNameCache() call
+
+**Files Modified:**
+- `lib/features/board/view/board_page.dart`
+  - Enhanced PostFrameCallback with mount check to prevent disposal errors
+  - Added mount check in user navigation callback
+  - Protected all async operations that could trigger setState
+
+**Error Prevention Strategy:**
+- **Widget Lifecycle Safety**: All setState calls verify widget is still mounted
+- **PostFrameCallback Protection**: Callback operations check mount state before execution
+- **Async Operation Safety**: Background tasks verify widget is active before UI updates
+- **Memory Leak Prevention**: Prevents setState after widget disposal
+
+**Benefits:**
+- **Prevents App Crashes**: No more setState after dispose errors in board page
+- **Memory Safety**: Eliminates potential memory leaks from lingering async operations
+- **Robust Navigation**: Users can safely navigate away during background operations
+- **Better Error Handling**: Graceful handling of disposal timing issues
+
+**User Impact:**
+- Smooth navigation in and out of board page during login and workspace switching
+- No more error dialogs when switching between screens quickly
+- Better app stability during workspace/board initialization
+- Improved user experience during background data loading operations
+
+**Implementation Notes:**
+- ProductsController already had comprehensive disposal protection - no changes needed
+- Board page setState calls were already protected - only PostFrameCallback needed mount check
+- Focus was on preventing race conditions during widget disposal
+- All critical async operations now verify widget mount state before setState calls
+
+### CustomersInputField Widget "New Customer" Button Integration (September 21, 2025)
+
+**Topic:** Add button "New Customer" to customersInputField Widget
+
+**Requirements:**
+1. Add "Add Customer" button in customersInputField Widget
+2. Button should navigate to add_edit_customer_page.dart for customer creation
+3. After successful customer creation, return to customersInputField and refresh customer list
+4. Newly created customer should be available in selection
+
+**Solution Applied:**
+1. **Import Integration**: Added import for AddEditCustomerPage in customers_input_field.dart
+2. **Callback Parameter**: Added `onCustomerAdded` VoidCallback parameter to both CustomersInputField and CustomersSelectionPage
+3. **UI Enhancement**: Added "New" button next to label in main input field when showBorder is true
+4. **Full Page Button**: Added "New" button to AppBar actions in CustomersSelectionPage
+5. **Navigation Logic**: Implemented _openAddCustomerPage() method in both widgets
+6. **Data Refresh**: Parent component notified via onCustomerAdded callback to refresh customer list
+
+**Technical Changes:**
+```dart
+// New parameter added to CustomersInputField
+final VoidCallback? onCustomerAdded;
+
+// New button in label section
+Row(
+  children: [
+    Text(widget.label.tr, ...),
+    const Spacer(),
+    TextButton.icon(
+      onPressed: _openAddCustomerPage,
+      icon: const Icon(Icons.add, size: 16),
+      label: const Text('New'),
+      style: TextButton.styleFrom(
+        foregroundColor: AppTheme.primaryOrange,
+        ...
+      ),
+    ),
+  ],
+)
+
+// Navigation implementation
+Future<void> _openAddCustomerPage() async {
+  final result = await Get.to(
+    () => const AddEditCustomerPage(customerSources: []),
+  );
+  
+  if (result == true && widget.onCustomerAdded != null) {
+    widget.onCustomerAdded!();
+  }
+}
+```
+
+**Files Modified:**
+- `lib/core/widgets/customers_input_field.dart`
+  - Added AddEditCustomerPage import
+  - Added onCustomerAdded callback parameter to both CustomersInputField and CustomersSelectionPage
+  - Modified label section to include Row with "New" button when showBorder is true
+  - Added "New" button to CustomersSelectionPage AppBar actions
+  - Added _openAddCustomerPage() navigation method in both widget states
+  - Updated navigation to pass onCustomerAdded callback between widgets
+
+**UI/UX Benefits:**
+- **Streamlined Workflow**: Users can create customers directly from customer selection interface
+- **Consistent Design**: Orange "New" button matches app theme and existing UI patterns
+- **Immediate Availability**: Parent component refreshes customer list after new customer creation
+- **Dual Access Points**: "New" button available both in collapsed input field and full selection page
+- **Flexible Integration**: onCustomerAdded callback allows parent components to handle refresh logic
+
+**User Impact:**
+- Faster customer selection process when new customers are needed
+- Improved workflow efficiency for users managing customer data
+- Consistent experience across different customer selection contexts
+- Better integration between customer management and other features using CustomersInputField
+
+**Implementation Notes:**
+- Button only appears when showBorder is true in main input field
+- CustomersSelectionPage button added to AppBar actions for easy access
+- Navigation returns to parent page after successful customer creation for immediate refresh
+- onCustomerAdded callback provides flexible refresh mechanism for different usage contexts
+
+### Board Page setState After Dispose Fix (September 21, 2025)
+
+**Topic:** Fix error in board after login - setState() called after dispose()
+
+**Issue:** 
+```
+flutter: ❌ Error loading field config: setState() called after dispose(): _BoardPageState#f6c1d(lifecycle state: defunct, not mounted)
+```
+
+**Root Cause Analysis:**
+- The `_loadPerBoardFieldConfig()` method was calling `setState()` without checking if the widget was still mounted
+- Multiple async operations (`_buildUserNameCache()`, field config loading) were calling `setState()` after widget disposal
+- Background data loading methods were not protected against widget disposal
+- Card view settings updates were triggering `setState()` without mount checks
+
+**Solution Applied:**
+1. **Added Mounted Checks**: Protected all `setState()` calls with `if (mounted)` checks
+2. **Enhanced Async Safety**: Added mount checks in background data loading methods
+3. **Safe Field Config Loading**: Protected field configuration updates
+4. **User Cache Safety**: Added mount check in user name cache building
+
+**Technical Changes:**
+
+**lib/features/board/view/board_page.dart:**
+
+```dart
+// Before: Unsafe setState calls
+setState(() {
+  _fieldConfigCache = config;
+});
+
+// After: Protected setState calls
+if (mounted) {
+  setState(() {
+    _fieldConfigCache = config;
+  });
+}
+```
+
+**Files Modified:**
+- `lib/features/board/view/board_page.dart`
+  - Enhanced `_loadPerBoardFieldConfig()` with mounted checks
+  - Added safety checks in `_buildUserNameCache()`
+  - Protected `_loadBackgroundData()` async operations
+  - Added mount check in card view settings result handling
+
+**Error Prevention Strategy:**
+- **Widget Lifecycle Safety**: All setState calls now check mounted state
+- **Async Operation Protection**: Background tasks verify widget is still active
+- **Memory Leak Prevention**: Prevents setState after widget disposal
+- **Graceful Degradation**: Operations continue safely even if widget is disposed
+
+**Benefits:**
+- **Prevents App Crashes**: No more setState after dispose errors
+- **Memory Safety**: Eliminates potential memory leaks from lingering references
+- **Robust Navigation**: Users can safely navigate away during async operations
+- **Better Error Handling**: Clear error prevention instead of runtime crashes
+
+**User Impact:**
+- Smooth navigation in and out of board page during login
+- No more error dialogs when switching between screens quickly
+- Better app stability during workspace/board initialization
+- Improved user experience during background data loading
+
+**Implementation Notes:**
+- All setState calls now use `if (mounted)` guard clause
+- Background async operations check mount state before UI updates
+- Card field configuration loading is now disposal-safe
+- User cache building protected against premature widget disposal
+
+### Add Customer Button Integration (September 21, 2025)
+
+**Topic:** Add button "Add Customer" in Customer information section in edit_card_page.dart and create_card_page.dart
+
+**Requirements:**
+1. Add "New" button next to customer dropdown in both create and edit card pages
+2. Button should navigate to add_edit_customer_page.dart for customer creation
+3. After successful customer creation, return to original page and refresh customer list
+4. Newly created customer should be available in dropdown selection
+
+**Solution Applied:**
+1. **UI Enhancement**: Modified customer section to include Row layout with "New" button next to customer field label
+2. **Button Styling**: Added TextButton.icon with AppTheme.primaryOrange color, "+" icon, and "New" label
+3. **Navigation Logic**: Used existing _openAddCustomerPage() method that navigates to AddEditCustomerPage
+4. **Data Refresh**: After successful customer creation, calls _loadAvailableOptions() to refresh customer list
+
+**Technical Changes:**
+```dart
+// Before: Single customer field label
+const Text('Customer *', ...)
+
+// After: Row with label + button
+Row(
+  children: [
+    const Text('Customer *', ...),
+    const Spacer(),
+    TextButton.icon(
+      onPressed: _openAddCustomerPage,
+      icon: const Icon(Icons.add, size: 16),
+      label: const Text('+ New'),
+      style: TextButton.styleFrom(
+        foregroundColor: AppTheme.primaryOrange,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      ),
+    ),
+  ],
+),
+```
+
+**Files Modified:**
+- `lib/features/board/view/create_card_page.dart`
+  - Modified _buildCustomerSection() to include Row with "+ New" button
+  - Existing _openAddCustomerPage() method already handles navigation and refresh
+
+- `lib/features/board/view/edit_card_page.dart`  
+  - Modified _buildCustomerSection() to include Row with "+ New" button
+  - Existing _openAddCustomerPage() method already handles navigation and refresh
+
+**UI/UX Benefits:**
+- **Streamlined Workflow**: Users can create customers without leaving card creation/editing flow
+- **Consistent Design**: Orange "+ New" button matches app theme and existing UI patterns
+- **Immediate Availability**: Newly created customers appear in dropdown after _loadAvailableOptions() refresh
+- **Reduced Context Switching**: No need to navigate to separate customer management section
+
+**User Impact:**
+- Faster card creation process when new customers are needed
+- Improved workflow efficiency for users managing customer data
+- Consistent experience between create and edit card flows
+- Better integration between customer management and card management features
+
+**Implementation Notes:**
+- AddEditCustomerPage import already existed in both files
+- _openAddCustomerPage() method already existed and handles proper navigation flow
+- _loadAvailableOptions() refreshes customer data from Firestore after new customer creation
+- Button positioned using Spacer() to align right next to customer field label
+
 ### Customer Detail: Address Section (September 20, 2025)
 
 Topic: Added a dedicated Address section to the customer detail page to display full address information using granular fields from the Customer entity.

@@ -1,6 +1,68 @@
+````markdown
 # Login Summary
 
 ## Recent Changes
+
+### In-App Browser Link Opening Implementation (September 21, 2025)
+
+**Issue:** Link "สอบถามเพิ่มเติม" (https://lin.ee/uaT3pzf) in login page was opening external browser instead of in-app browser.
+
+**Solution Applied:**
+1. **Added url_launcher Import**: Added `package:url_launcher/url_launcher.dart` import for URL handling
+2. **In-App Browser Configuration**: Modified TapGestureRecognizer to use `launchUrl()` with `LaunchMode.inAppBrowserView`
+3. **Error Handling**: Added try-catch with proper error messages using TopSnack
+
+**Technical Changes:**
+
+**Before:**
+```dart
+recognizer: TapGestureRecognizer()
+  ..onTap = () {
+    TopSnack.info('Opening LINE link...', title: 'Info');
+  },
+```
+
+**After:**
+```dart
+recognizer: TapGestureRecognizer()
+  ..onTap = () async {
+    final Uri url = Uri.parse('https://lin.ee/uaT3pzf');
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(
+          url,
+          mode: LaunchMode.inAppBrowserView,
+          browserConfiguration: const BrowserConfiguration(
+            showTitle: true,
+          ),
+        );
+      } else {
+        TopSnack.error('Cannot open link', title: 'Error');
+      }
+    } catch (e) {
+      TopSnack.error('Failed to open link', title: 'Error');
+    }
+  },
+```
+
+**Features:**
+- **In-App Browser**: Opens link within the app using `LaunchMode.inAppBrowserView`
+- **Browser Configuration**: Shows title in the in-app browser for better UX
+- **Error Handling**: Proper error handling with user-friendly messages
+- **URL Validation**: Checks if URL can be launched before attempting to open
+
+**Files Modified:**
+- `lib/features/login/view/login_page.dart`
+  - Added url_launcher import
+  - Modified TapGestureRecognizer onTap callback
+  - Added async URL launching with in-app browser mode
+  - Added error handling with TopSnack messages
+
+**Benefits:**
+- **Better UX**: Users stay within the app when viewing the link
+- **Consistent Experience**: No context switching to external browser
+- **Error Feedback**: Clear error messages if link cannot be opened
+- **Professional Look**: In-app browser with title bar
 
 ### Generic Login Error Message Implementation (September 18, 2025)
 
@@ -67,4 +129,7 @@ void _handleAuthError(FirebaseAuthException e) {
 - All login failure scenarios now display the generic "Invalid email or password" message
 - Error logging still occurs in debug console for development purposes
 - User experience is consistent regardless of failure type
+
+
+````
 
