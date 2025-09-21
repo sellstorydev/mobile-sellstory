@@ -102,7 +102,7 @@ class UnifiedFilterPage extends StatelessWidget {
                 children: [
                   _buildDateTypeChip(controller, 'startDate', 'Start Date'),
                   _buildDateTypeChip(controller, 'endDate', 'End Date'),
-                  _buildDateTypeChip(controller, 'createdDate', 'Created Date'),
+                  _buildDateTypeChip(controller, 'createdAt', 'Created Date'),
                   _buildDateTypeChip(controller, 'dueDate', 'To-Do Date'),
                   _buildDateTypeChip(controller, 'updatedAt', 'Updated At'),
 
@@ -625,7 +625,9 @@ class UnifiedFilterPage extends StatelessWidget {
   Widget _buildQuickDateChip(BoardController controller, String type, String label) {
     return ActionChip(
       label: Text(label),
-      onPressed: () => controller.setQuickDateFilter(type),
+      onPressed: () {
+        controller.setQuickDateFilter(type);
+      },
       backgroundColor: Colors.grey[100],
       side: BorderSide(color: Colors.grey[300]!),
     );
@@ -651,8 +653,10 @@ class UnifiedFilterPage extends StatelessWidget {
         controller.selectedEndDate.value = pickedDate;
       }
       
-      // Don't auto-apply filter - let user choose date type manually
-      // Filter will be applied when user selects date type or clicks Apply button
+      // Apply filter when date is selected
+      if (controller.selectedDateFilterTypes.isNotEmpty) {
+        controller.refresh();
+      }
     }
   }
 

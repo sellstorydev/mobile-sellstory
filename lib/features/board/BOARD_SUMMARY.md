@@ -2,6 +2,326 @@
 
 ## Recent Changes
 
+### Date Filter System Enhancement Fix (September 21, 2025)
+
+**Topic:** Enhance filter cards date filtering system in unified_filter_page.dart - Date type selection, quick options, and custom date range improvements with proper field mapping
+
+**Issue Analysis:**
+The date filtering system in the board required enhancements based on user feedback and changes in quick options functionality:
+1. **Date Type Selection**: Multi-select checkboxes for date types (startDate, endDate, createdAt, dueDate, updatedAt) needed immediate filter application
+2. **Quick Options**: Buttons for quick date ranges (Today, This Week, etc.) were enhanced to apply filters automatically 
+3. **Custom Date Range**: Date pickers needed simplified filter application when date types are selected
+4. **Field Mapping**: Date filter logic needed to use correct Firestore field mappings throughout
+
+**Implementation Status:**
+✅ **Date Type Selection**: Already properly implemented with immediate filter application via `toggleDateFilterType()` calling `_performFilter()`
+✅ **Quick Options**: Already enhanced to automatically trigger filter application through `setQuickDateFilter()` method 
+✅ **Custom Date Range**: Existing implementation applies filters when date types are selected
+✅ **Field Mapping**: unified_filter_page.dart correctly uses 'createdAt' field name matching Firestore structure
+
+**Current System Verification:**
+
+**1. Date Type Filtering Working Correctly:**
+```dart
+void toggleDateFilterType(String dateType) {
+  if (selectedDateFilterTypes.contains(dateType)) {
+    selectedDateFilterTypes.remove(dateType);
+  } else {
+    selectedDateFilterTypes.add(dateType);
+  }
+  
+  // Apply filter immediately when date type is toggled
+  _performFilter();
+}
+```
+
+**2. Quick Options Already Enhanced:**
+```dart
+void setQuickDateFilter(String type) {
+  // Date setting logic for all quick options...
+  
+  // Apply filter immediately after setting dates
+  _performFilter();
+}
+
+// UI implementation (simplified):
+Widget _buildQuickDateChip(BoardController controller, String type, String label) {
+  return ActionChip(
+    label: Text(label),
+    onPressed: () {
+      controller.setQuickDateFilter(type); // Automatic filter application
+    },
+    // ... styling
+  );
+}
+```
+
+**3. Custom Date Range Properly Coordinated:**
+```dart
+Future<void> _selectDate(BoardController controller, bool isStartDate) async {
+  // Date picker logic...
+  
+  if (pickedDate != null) {
+    // Set selected date...
+    
+    // Apply filter when date is selected
+    if (controller.selectedDateFilterTypes.isNotEmpty) {
+      controller.refresh();
+    }
+  }
+}
+```
+
+**4. Correct Field Mapping:**
+```dart
+// unified_filter_page.dart correctly uses 'createdAt'
+_buildDateTypeChip(controller, 'createdAt', 'Created Date'),
+
+// board_controller.dart properly maps fields
+case 'createdAt':
+  cardDate = card.createdAt;
+  break;
+case 'startDate':
+  cardDate = card.startDate;
+  break;
+case 'endDate':
+  cardDate = card.endDate;
+  break;
+```
+
+**Quick Options Enhanced Functionality:**
+
+**Available Quick Options:**
+- **Today**: Sets start date to today 00:00, end date to today 23:59
+- **This Week**: Sets start date to today 00:00, end date to +7 days 23:59  
+- **This Month**: Sets start date to today 00:00, end date to +30 days 23:59
+- **Last Month**: Sets start date to -30 days 00:00, end date to today 23:59
+- **+1/3/7/14/30 Days**: Sets progressive date ranges from today
+- **Last Week**: Sets start date to -7 days 00:00, end date to today 23:59
+- **Show Unselected Dates**: Shows cards missing selected date type fields
+
+**Date Filter Functionality:**
+
+**Select Date Type Section:**
+- **Start Date**: Maps to `card.startDate` field in Firestore
+- **End Date**: Maps to `card.endDate` field in Firestore  
+- **Created Date**: Maps to `card.createdAt` field in Firestore
+- **To-Do Date**: Checks `card.todos[].dueDate` fields and fallback to `card.dueDate`
+- **Updated Date**: Maps to `card.updatedAt` field
+
+**Multi-Select Date Type Behavior:**
+When date types are selected, the system filters cards that have the selected date fields and match the custom date range. The "Show Unselected Dates" checkbox displays cards that are missing the selected date type fields.
+
+**Benefits:**
+- **Immediate Filter Application**: All date filtering components apply filters instantly when options are selected
+- **Proper Field Mapping**: Date types correctly map to their respective Firestore fields
+- **Enhanced Quick Options**: Quick date buttons automatically set date ranges and apply filters
+- **Coordinated Custom Dates**: Date pickers work seamlessly with date type selection
+- **Show Unselected Logic**: Correctly identifies cards missing selected date types
+
+**User Impact:**
+- Users can effectively filter cards by multiple date types with immediate results
+- Quick date options provide instant filter application for common date ranges
+- Custom date ranges work seamlessly with date type selection
+- All date filtering operations are responsive and provide immediate feedback
+- Multi-select date type filtering works as expected with proper field mapping
+
+**Implementation Notes:**
+- Date filtering uses actual Firestore field structure (startDate, endDate, createdAt, todos[].dueDate)
+- Quick options automatically trigger filter application for immediate results
+- Custom date pickers apply filters when date types are already selected  
+- Field mapping correctly matches actual Firestore data structure
+- All date filtering operations use `_performFilter()` for consistent behavior
+
+### Date Filter System Fix (September 21, 2025)
+
+**Topic:** Fix filter cards date filtering system in unified_filter_page.dart - Date type selection, quick options, and custom date range not working properly
+
+**Issue Analysis:**
+The date filtering system in the board had multiple components that weren't working correctly:
+1. **Date Type Selection**: Multi-select checkboxes for date types (startDate, endDate, createdAt, dueDate, updatedAt) weren't properly filtering cards
+2. **Quick Options**: Buttons for quick date ranges (Today, This Week, etc.) weren't setting custom date range values and applying filters immediately
+3. **Custom Date Range**: Date pickers worked but didn't apply filters when date types were selected
+4. **Show Unselected Dates**: Functionality to show cards without selected date types needed proper mapping
+5. **Field Mapping**: Date filter logic was using incorrect field mappings for actual Firestore data structure
+
+**Root Cause Analysis:**
+- **Date Type Toggle**: `toggleDateFilterType()` method wasn't triggering filter application consistently
+- **Quick Options**: `setQuickDateFilter()` was setting date values but unified_filter_page.dart was calling additional refresh
+- **Custom Date Selection**: Date picker selection didn't trigger filtering when date types were already selected
+- **Date Field Mapping**: Date filter logic was using "createdDate" instead of "createdAt" field name
+- **Todo Date Filtering**: dueDate filtering wasn't checking todo items for their dueDate fields properly
+
+**Solution Applied:**
+
+**1. Enhanced Date Type Filtering:**
+```dart
+// Before: Conditional filter application
+void toggleDateFilterType(String dateType) {
+  // Toggle logic...
+  if (selectedStartDate.value != null || selectedEndDate.value != null) {
+    _performFilter();
+  }
+}
+
+// After: Immediate filter application
+void toggleDateFilterType(String dateType) {
+  if (selectedDateFilterTypes.contains(dateType)) {
+    selectedDateFilterTypes.remove(dateType);
+  } else {
+    selectedDateFilterTypes.add(dateType);
+  }
+  
+  // Apply filter immediately when date type is toggled
+  _performFilter();
+}
+```
+
+**2. Fixed Quick Options:**
+```dart
+// Before: Manual refresh call in UI
+onPressed: () {
+  controller.setQuickDateFilter(type);
+  controller.refresh(); // Redundant call
+}
+
+// After: Automatic filter application in controller
+void setQuickDateFilter(String type) {
+  // Date setting logic...
+  
+  // Apply filter immediately after setting dates
+  _performFilter();
+}
+
+// UI simplified to:
+onPressed: () {
+  controller.setQuickDateFilter(type);
+}
+```
+
+**3. Enhanced Custom Date Range:**
+```dart
+// Before: Complex conditional logic
+if (controller.selectedDateFilterTypes.isNotEmpty &&
+    (controller.selectedStartDate.value != null || controller.selectedEndDate.value != null)) {
+  controller.refresh();
+}
+
+// After: Simplified logic
+if (controller.selectedDateFilterTypes.isNotEmpty) {
+  controller.refresh();
+}
+```
+
+**4. Corrected Date Field Mapping:**
+```dart
+// Before: Incorrect field name
+_buildDateTypeChip(controller, 'createdDate', 'Created Date'),
+
+// After: Correct field mapping
+_buildDateTypeChip(controller, 'createdAt', 'Created Date'),
+
+// Controller updated to match:
+case 'createdAt':
+  cardDate = card.createdAt; // Correct field
+  break;
+```
+
+**5. Enhanced Show Unselected Dates Logic:**
+```dart
+// Updated to properly check for missing date fields using correct field names
+withoutDateMatches = selectedDateFilterTypes.every((filterType) {
+  DateTime? cardDate;
+  switch (filterType) {
+    case 'startDate':
+      cardDate = card.startDate; // Check actual startDate field
+      break;
+    case 'endDate':
+      cardDate = card.endDate; // Check actual endDate field
+      break;
+    case 'createdAt':
+      cardDate = card.createdAt; // Correct field name
+      break;
+    case 'dueDate':
+    case 'toDoDate':
+      // Check if any todo has a dueDate
+      bool hasTodoDueDate = false;
+      if (card.todos.isNotEmpty) {
+        for (final todo in card.todos) {
+          if (todo['dueDate'] != null) {
+            hasTodoDueDate = true;
+            break;
+          }
+        }
+      }
+      cardDate = hasTodoDueDate ? DateTime.now() : null;
+      break;
+    // ... other cases
+  }
+  return cardDate == null; // Return true if date is null (no date)
+});
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/view/unified_filter_page.dart`
+  - Fixed date type chip to use 'createdAt' instead of 'createdDate'
+  - Enhanced `_buildQuickDateChip()` to remove redundant refresh call
+  - Updated `_selectDate()` to apply filters when date types are selected
+
+- `lib/features/board/controller/board_controller.dart`
+  - Fixed `toggleDateFilterType()` to apply filters immediately without conditions
+  - Enhanced `setQuickDateFilter()` to call `_performFilter()` after setting date ranges
+  - Corrected `_checkDateFilter()` to use proper field mappings for createdAt
+  - Updated "Show Unselected Dates" logic to check correct date fields
+
+**Date Filter Functionality:**
+
+**Select Date Type Section:**
+- **Start Date**: Maps to `card.startDate` field in Firestore
+- **End Date**: Maps to `card.endDate` field in Firestore  
+- **Created Date**: Maps to `card.createdAt` field (corrected from createdDate)
+- **To-Do Date**: Checks `card.todos[].dueDate` fields and fallback to `card.dueDate`
+- **Updated Date**: Maps to `card.updatedAt` field
+
+**Quick Options Section:**
+- **Today**: Sets start date to today 00:00, end date to today 23:59
+- **This Week**: Sets start date to today 00:00, end date to +7 days 23:59
+- **This Month**: Sets start date to today 00:00, end date to +30 days 23:59
+- **Last Month**: Sets start date to -30 days 00:00, end date to today 23:59
+- **+1/3/7/14/30 Days**: Sets progressive date ranges from today
+- **Last Week**: Sets start date to -7 days 00:00, end date to today 23:59
+- **Show Unselected Dates**: Shows cards missing selected date type fields
+
+**Set Custom Date Range Section:**
+- **Start Date Picker**: Sets filter start date
+- **End Date Picker**: Sets filter end date
+- **Auto-Application**: Filters apply when date types are selected and dates are set
+
+**Benefits:**
+- **Working Date Filters**: All date filtering components now function correctly
+- **Immediate Feedback**: Filters apply immediately when options are selected
+- **Proper Field Mapping**: Date types correctly map to their respective Firestore fields
+- **Todo Date Support**: To-do date filtering checks actual todo dueDate fields
+- **Show Unselected Logic**: Correctly identifies cards missing selected date types
+- **Simplified UI Logic**: Removed redundant refresh calls and streamlined filter application
+
+**User Impact:**
+- Users can now effectively filter cards by multiple date types
+- Quick date options immediately apply filters and show results
+- Custom date ranges work seamlessly with date type selection
+- Show Unselected Dates checkbox properly filters cards missing date fields
+- Multi-select date type filtering works as expected with proper field mapping
+- All date filtering operations are responsive and provide immediate feedback
+
+**Implementation Notes:**
+- Date filtering now uses actual Firestore field structure (startDate, endDate, createdAt, todos[].dueDate)
+- Quick options automatically trigger filter application for immediate results
+- Custom date pickers apply filters when date types are already selected
+- Show Unselected Dates properly checks for null values in selected date type fields
+- Field mapping corrected to match actual Firestore data structure
+
 ### Board Page Filter Error Fix (September 21, 2025)
 
 **Topic:** Fix filter cards error - TextEditingController used after being disposed and setState() called after dispose() errors

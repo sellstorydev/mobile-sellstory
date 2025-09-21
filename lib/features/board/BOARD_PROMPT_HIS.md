@@ -6,18 +6,464 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
 
-
 Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
 Detail: Job card date filter select date type,quick option set custom date range: not working.
 
 Select date type section:
 consists of
-- Start date 
+- Start date path: `workspaces/{Workspace id}/cards/{cardId}/startDate`
+- End date path: `workspaces/{Workspace id}/cards/{cardId}/endDate`
+- Created date path: `workspaces/{Workspace id}/cards/{cardId}/createdAt`
+- To-do date path: `workspaces/{Workspace id}/cards/{cardId}/todos[]/{todoId}/dueDate`
+- Updated date path: `workspaces/{Workspace id}/cards/{cardId}/updatedAt`
+การทำงานของ multi select date type คือเมื่อทำการเลือก date type แล้วตัว date type จะไปกรองเอาการ์ดที่มี key ตามที่เลือกและตรงกับ Custom date rage มาโชว์ แต่มีข้อยกเว้นคือถ้าเลือก Show Unselected Dates จะเป็นการนำกาดร์ที่ไม่มี key start date หรือ end date มาโชว์
 
+Quick option section:
+Today is 21/sep/2025, start week is sunday
+consists of and explaination case in ()
+- Today (Start date is 21/sep/2025 00:00 - End date is 21/sep/2025 23:59)
+- This week (Start date is 21/sep/2025 00:00 - End date is 27/sep/2025 23:59)
+- This month (Start date is 01/sep/2025 00:00 - End date is 30/sep/2025 23:59)
+- Next month (Start date is 01/oct/2025 00:00 - End date is 31/oct/2025 23:59)
+- Last Week (Start date is 14/sep/2025 00:00 - End date is 20/sep/2025 23:59)
+- Last month (Start date is 01/aug/2025 00:00 - End date is 31/aug/2025 23:59)
+- +1 Day (Start date is 21/sep/2025 00:00 - End date is 22/sep/2025 23:59)
+- +3 Days (Start date is 21/sep/2025 00:00 - End date is 24/sep/2025 23:59)
+- +7 Days (Start date is 21/sep/2025 00:00 - End date is 28/sep/2025 23:59)
+- +14 Days (Start date is 21/sep/2025 00:00 - End date is 05/oct/2025 23:59)
+- +30 Days (Start date is 21/sep/2025 00:00 - End date is 21/oct/2025 23:59)
+- Show Unselected Dates ('check box')
+การทำงานของ Quick option จะไม่ใช้การ select หรือ check box ใดๆทั้งสิ้น แต่จะเป็น button เมื่อทำการกดแล้วจะไป set ค่า start date และ end date ใน Set Custom date range section ให้อัตโนมัติ และ check box Show Unselected Dates จะเป็นการนำกาดร์ที่ไม่มี key start date หรือ end date มาโชว์
+
+Set Custom date range section:
+consists of
+- Start date picker
+- End date picker
+
+Example data from firestore `workspaces/{workspace id}/cards`
+
+```
+        "workspaces/xKnLu20t7n6A0IJxl4NN/cards": {
+          "AhzmaDyKm4wwcMntM3hO": {
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [],
+            "customer": "Bew",
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "company": {
+              "label": "Main",
+              "id": "aVGCGee5LmYsr9oXYfE8",
+              "value": "colaco company"
+            },
+            "watchers": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "collaborators": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "createdAt": 1756975589247,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "startDate": 1756918800000,
+            "descriptionMentions": [],
+            "id": "AhzmaDyKm4wwcMntM3hO",
+            "isVatEnabled": true,
+            "additionalDiscount": {
+              "value": 97,
+              "type": "percentage"
+            },
+            "badges": [],
+            "dueDate": null,
+            "priority": null,
+            "endDate": 1758906000000,
+            "title": "Job Card Title1234",
+            "customId": "JB-250904-00431234",
+            "hashtags": [
+              {
+                "color": "#eab308",
+                "id": "bew1234455",
+                "text": "Bew1234455"
+              }
+            ],
+            "hashtag": "#Bew1234455",
+            "status": "Pending",
+            "attachments": [
+              {
+                "filename": "jpeg2.jpeg",
+                "id": "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/1756977560926-jpeg2.jpeg",
+                "name": "jpeg2.jpeg",
+                "size": 5827,
+                "uploadedAt": 1756977561769,
+                "uploadedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "url": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FxKnLu20t7n6A0IJxl4NN%2Fcards%2FAhzmaDyKm4wwcMntM3hO%2F1756977560926-jpeg2.jpeg?alt=media&token=87e11ad0-6989-4ac3-913f-f43d3741a371"
+              },
+              {
+                "filename": "jpeg1.jpeg",
+                "id": "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/1756977563859-jpeg1.jpeg",
+                "name": "jpeg1.jpeg",
+                "size": 55627,
+                "uploadedAt": 1756977564258,
+                "uploadedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "url": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FxKnLu20t7n6A0IJxl4NN%2Fcards%2FAhzmaDyKm4wwcMntM3hO%2F1756977563859-jpeg1.jpeg?alt=media&token=db6f932e-238b-4c2a-911e-8e2c70b3a5c2"
+              }
+            ],
+            "customerInterest": "เริ่มต้น",
+            "laneId": "qesjwQS3saV9h3wzyYMz",
+            "updatedByDisplayName": "BewLnwZa",
+            "quotationTemplateId": "MwDjGmET9ECYTGveik98",
+            "expenses": [
+              {
+                "customInputs": {
+                  "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
+                  "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                  "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
+                  "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                },
+                "description": "",
+                "discount": 20,
+                "discountType": "percentage",
+                "id": "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN",
+                "name": "รายการ1",
+                "pricePerUnit": 1,
+                "productId": "34N6d2Az4sYF7ZHvyFHN",
+                "quantity": 1,
+                "unit": "จำนวน"
+              }
+            ],
+            "todos": [
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975522376",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em>fasdfasdf</em></strong></span></p>"
+              },
+              {
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975523853",
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em><p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em><p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p></em></strong></span></p></em></strong></span></p>"
+              }
+            ],
+            "relatedDocuments": [
+              {
+                "id": "fan8Q0INnmXPI26bVeOq",
+                "docNo": "EST-250916-0055",
+                "type": "QT"
+              },
+              {
+                "id": "EPVk6NpGXdv7Pbsco04g",
+                "docNo": "EST-250918-0056",
+                "type": "QT"
+              }
+            ],
+            "amount": 0,
+            "withholdingTaxPercentage": 3,
+            "description": "<p></p><p></p><p></p><p></p><p></p><p></p><p><img src=\"https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FxKnLu20t7n6A0IJxl4NN%2Fcards%2FAhzmaDyKm4wwcMntM3hO%2F1758275041497-Screenshot%202568-09-19%20at%2016.44.00.png?alt=media&amp;token=0d15ce03-413a-469d-a755-7bc0ec8cc8d0\"></p><p><span style=\"color: rgb(2, 8, 23); font-size: 14px;\"><strong><em><u>Detailstest1111111</u></em></strong></span></p><p></p><p></p><p></p><p></p><p></p><p></p><p></p>",
+            "formatDataExpense": {
+              "subTotal": 1,
+              "totalAfterDiscount": 0.03,
+              "grandTotal": 0.03,
+              "netTotal": 0.03
+            },
+            "notes": [
+              {
+                "mentions": [],
+                "type": "text",
+                "text": "<p>test</p>",
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "timestamp": 1756977906169,
+                "id": "note-1756977906169",
+                "userPhotoURL": null,
+                "userDisplayName": "bew kiw",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "cardTitle": "Job Card Title"
+              },
+              {
+                "userPhotoURL": null,
+                "text": "<p>replytest</p>",
+                "type": "text",
+                "mentions": [],
+                "parentId": "note-1756977906169",
+                "id": "note-1756977911696",
+                "cardTitle": "Job Card Title",
+                "timestamp": 1756977911696,
+                "userDisplayName": "bew kiw",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "cardId": "AhzmaDyKm4wwcMntM3hO"
+              },
+              {
+                "userDisplayName": "bew kiw",
+                "timestamp": 1757176041380,
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "mentions": [],
+                "type": "text",
+                "parentId": "note-1757176026052",
+                "cardTitle": "Job Card Title1234",
+                "id": "note-1757176041380",
+                "text": "<p>1123344</p>",
+                "userPhotoURL": null
+              },
+              {
+                "id": "note-1758303701505",
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "userDisplayName": "BewLnwZa",
+                "userPhotoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1758300587166-image_picker_5C38B012-1C85-4D52-9D61-B18F12BB5E3C-58445-0000021FFB61F7C2.jpg?alt=media&token=822a4fe9-cf76-4a0e-8b3c-954bad17baef",
+                "text": "<p>ffff</p>",
+                "timestamp": 1758303701505,
+                "mentions": [],
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "cardTitle": "Job Card Title1234",
+                "type": "text"
+              },
+              {
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "mentions": [],
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "id": "note-1758303727411",
+                "text": "<p>asdf</p>",
+                "cardTitle": "Job Card Title1234",
+                "type": "text",
+                "userPhotoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1758300587166-image_picker_5C38B012-1C85-4D52-9D61-B18F12BB5E3C-58445-0000021FFB61F7C2.jpg?alt=media&token=822a4fe9-cf76-4a0e-8b3c-954bad17baef",
+                "userDisplayName": "BewLnwZa",
+                "timestamp": 1758303727411
+              },
+              {
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "mentions": [],
+                "parentId": "note-1758303727411",
+                "id": "note-1758303745643",
+                "cardId": "AhzmaDyKm4wwcMntM3hO",
+                "text": "<p>fasdfasdf</p>",
+                "cardTitle": "Job Card Title1234",
+                "type": "text",
+                "userPhotoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1758300587166-image_picker_5C38B012-1C85-4D52-9D61-B18F12BB5E3C-58445-0000021FFB61F7C2.jpg?alt=media&token=822a4fe9-cf76-4a0e-8b3c-954bad17baef",
+                "userDisplayName": "BewLnwZa",
+                "timestamp": 1758303745643
+              }
+            ],
+            "order": 0,
+            "updatedAt": {
+              "_seconds": 1758447995,
+              "_nanoseconds": 545000000
+            },
+            "subCollection": {
+              "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/expenses": {
+                "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN": {
+                  "customInputs": {
+                    "BZp1ilY7pFssB5cVhH_RP": "BewLnwZa001",
+                    "Ww9jjpqJA3_-4QBgWvXXP": "sku1",
+                    "nWnGJtH7SjOyYsBeK5LhX": "Bew1150",
+                    "zJ1Gk75NoiV4WxZT1yEZN": "test01"
+                  },
+                  "description": "",
+                  "discount": 20,
+                  "discountType": "percentage",
+                  "name": "รายการ1",
+                  "order": 0,
+                  "pricePerUnit": 1,
+                  "productId": "34N6d2Az4sYF7ZHvyFHN",
+                  "quantity": 1,
+                  "unit": "จำนวน",
+                  "updatedAt": 1758192847010
+                }
+              }
+            }
+          },
+          "I2oE1BMjZmhTDkCC3vSV": {
+            "additionalDiscount": null,
+            "assignedTo": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "attachments": [],
+            "badges": [
+              "Bew213",
+              "Bew1234455"
+            ],
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "collaborators": [],
+            "company": null,
+            "createdAt": 1758265559974,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [],
+            "customId": "JB-190925-0073",
+            "customerId": "UUzr7AJCvjTrlQYrzZfq",
+            "customerInterest": "เริ่มต้น",
+            "description": "Zach",
+            "dueDate": null,
+            "endDate": null,
+            "expenses": [],
+            "id": "I2oE1BMjZmhTDkCC3vSV",
+            "isVatEnabled": false,
+            "priority": null,
+            "relatedDocuments": [],
+            "startDate": null,
+            "title": "New Cardasdfasdf",
+            "todos": [],
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "watchers": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "hashtags": [
+              {
+                "color": "#eab308",
+                "id": "bew1234455",
+                "text": "Bew1234455"
+              }
+            ],
+            "quotationTemplateId": "Fv9OBceNChku4n8jmx1P",
+            "hashtag": "#Bew1234455",
+            "updatedByDisplayName": "BewLnwZa",
+            "status": "Done",
+            "notes": [],
+            "amount": 0,
+            "withholdingTaxPercentage": 0,
+            "laneId": "TNDqN1seUtOTDXqOnHKk",
+            "updatedAt": {
+              "_seconds": 1758447998,
+              "_nanoseconds": 415000000
+            },
+            "order": 2,
+            "customer": "Bew1123 (deleted)"
+          },
+          "LyWAo2Tkm8UN2QcxbqxN": {
+            "additionalDiscount": null,
+            "amount": 0,
+            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "attachments": [],
+            "badges": [
+              "Bew213",
+              "Bew1234455"
+            ],
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "collaborators": [],
+            "company": null,
+            "createdAt": 1758265480423,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [],
+            "customId": "JB-190925-0072",
+            "customerId": "UUzr7AJCvjTrlQYrzZfq",
+            "customerInterest": "เริ่มต้น",
+            "description": "Asdmirs",
+            "dueDate": null,
+            "endDate": null,
+            "expenses": [],
+            "hashtag": "#Bew213 #Bew1234455",
+            "hashtags": [
+              {
+                "color": "#f97316",
+                "id": "bew213",
+                "text": "Bew213"
+              },
+              {
+                "color": "#eab308",
+                "id": "bew1234455",
+                "text": "Bew1234455"
+              }
+            ],
+            "id": "LyWAo2Tkm8UN2QcxbqxN",
+            "isVatEnabled": false,
+            "notes": [],
+            "priority": null,
+            "quotationTemplateId": null,
+            "relatedDocuments": [],
+            "startDate": null,
+            "status": "Pending",
+            "title": "1112354",
+            "todos": [],
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "BewLnwZa1",
+            "watchers": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "withholdingTaxPercentage": 0,
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "laneId": "TNDqN1seUtOTDXqOnHKk",
+            "updatedAt": {
+              "_seconds": 1758447998,
+              "_nanoseconds": 415000000
+            },
+            "order": 1,
+            "customer": "Bew1123 (deleted)"
+          },
+          "xLWhObXGC4mihoNlVLIr": {
+            "additionalDiscount": null,
+            "assignedTo": "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+            "attachments": [],
+            "badges": [],
+            "boardId": "Mop2RUYjlM9kRoXGa001",
+            "collaborators": [],
+            "company": null,
+            "createdAt": 1758456581924,
+            "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "customFields": [],
+            "customId": "JB-210925-0074",
+            "customer": "Bew",
+            "customerId": "WNF9tUB8pFM6QKQw9Fj3",
+            "customerInterest": "เริ่มต้น",
+            "description": "",
+            "dueDate": null,
+            "endDate": null,
+            "expenses": [],
+            "hashtag": null,
+            "hashtags": [],
+            "id": "xLWhObXGC4mihoNlVLIr",
+            "isVatEnabled": false,
+            "laneId": "TNDqN1seUtOTDXqOnHKk",
+            "notes": [],
+            "order": 0,
+            "priority": null,
+            "relatedDocuments": [],
+            "startDate": null,
+            "status": "Pending",
+            "title": "New Card",
+            "updatedBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+            "updatedByDisplayName": "BewLnwZa1",
+            "watchers": [
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "withholdingTaxPercentage": 0,
+            "workspaceId": "xKnLu20t7n6A0IJxl4NN",
+            "amount": 0,
+            "quotationTemplateId": "Fv9OBceNChku4n8jmx1P",
+            "participantIds": [
+              "d3z7heLqwYXXC3u3O9uR7iO9ium2",
+              "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
+            ],
+            "todos": [
+              {
+                "dueDate": 1758474000000,
+                "mentions": [],
+                "title": "bewtest 1111 (1)",
+                "completed": false,
+                "id": "todo-1758456772181-0.3019017711398655"
+              },
+              {
+                "title": "bewtest 1111 (2)",
+                "dueDate": 1758474000000,
+                "mentions": [],
+                "completed": false,
+                "id": "todo-1758456772181-0.01847240973709996"
+              }
+            ],
+            "formatDataExpense": {
+              "grandTotal": 0,
+              "netTotal": 0,
+              "subTotal": 0,
+              "totalAfterDiscount": 0
+            },
+            "updatedAt": 1758456773426
+          }
+        },
+```
 
 ##
+
 Topic: Filter cards
-Detail: Fix error 
+Detail: Fix error
+
 ```
 
 ════════ Exception caught by widgets library ═══════════════════════════════════
@@ -161,6 +607,7 @@ Tried to build dirty widget in the wrong build scope.
 ```
 
 ##
+
 Topic: Fix error in board.
 Detail: after login i got error like this
 
@@ -172,10 +619,12 @@ This error might indicate a memory leak if setState() is being called because an
 ```
 
 ##
+
 Topic: Add button "Add Customer" in Customer information section.
 Detail: Add button "Add Customer" in Customer informaion section in edit_card_page.dart and create_card_page.dart. By pressed button go to Add customer "add_edit_customer_page.dart".After add customer success go back to edit card page or create card page and fetch new customer in select.
 
 ##
+
 Topic: Fix comment.
 Detail: can add scrollbar on coment section. in edit_card_page.dart
 

@@ -1141,8 +1141,8 @@ class BoardController extends GetxController implements BoardView {
       selectedDateFilterTypes.add(dateType);
     }
 
-    // Don't auto-apply filter - let user control when to apply
-    // Filter will be applied when user clicks Apply button
+    // Apply filter immediately when date type is toggled
+    _performFilter();
   }
 
   void toggleShowCardsWithoutDate() {
@@ -1260,6 +1260,9 @@ class BoardController extends GetxController implements BoardView {
         );
         break;
     }
+    
+    // Apply filter immediately after setting dates
+    _performFilter();
   }
 
   void clearFilter() {
@@ -1389,14 +1392,27 @@ class BoardController extends GetxController implements BoardView {
             DateTime? cardDate;
             switch (filterType) {
               case 'startDate':
-              case 'createdDate':
-                cardDate = card.createdAt;
+                cardDate = card.startDate;
                 break;
               case 'endDate':
+                cardDate = card.endDate;
+                break;
+              case 'createdAt':
+                cardDate = card.createdAt;
+                break;
               case 'dueDate':
               case 'toDoDate':
-              case 'expectedClosingDate':
-                cardDate = card.dueDate;
+                // Check if any todo has a dueDate
+                bool hasTodoDueDate = false;
+                if (card.todos.isNotEmpty) {
+                  for (final todo in card.todos) {
+                    if (todo['dueDate'] != null) {
+                      hasTodoDueDate = true;
+                      break;
+                    }
+                  }
+                }
+                cardDate = hasTodoDueDate ? DateTime.now() : null; // If has todo dueDate, consider it has date
                 break;
               case 'updatedAt':
                 cardDate = card.updatedAt;
@@ -1448,26 +1464,33 @@ class BoardController extends GetxController implements BoardView {
       // Get the appropriate date from card based on filter type
       switch (filterType) {
         case 'startDate':
-          // For now, using createdAt as startDate - can be extended
-          cardDate = card.createdAt;
+          // Use actual startDate field from card
+          cardDate = card.startDate;
           break;
         case 'endDate':
-          // Using dueDate as endDate
-          cardDate = card.dueDate;
+          // Use actual endDate field from card
+          cardDate = card.endDate;
           break;
-        case 'createdDate':
+        case 'createdAt':
           cardDate = card.createdAt;
           break;
         case 'dueDate':
         case 'toDoDate':
-          cardDate = card.dueDate;
+          // Check todos for dueDate
+          if (card.todos.isNotEmpty) {
+            for (final todo in card.todos) {
+              if (todo['dueDate'] != null) {
+                cardDate = DateTime.fromMillisecondsSinceEpoch(todo['dueDate'] as int);
+                break;
+              }
+            }
+          }
+          if (cardDate == null) {
+            cardDate = card.dueDate;
+          }
           break;
         case 'updatedAt':
           cardDate = card.updatedAt;
-          break;
-        case 'expectedClosingDate':
-          // Using dueDate as expected closing date
-          cardDate = card.dueDate;
           break;
         default:
           cardDate = card.createdAt;
