@@ -46,11 +46,8 @@ class _BoardPageState extends State<BoardPage> {
 
   Future<void> _loadPerBoardFieldConfig() async {
     try {
-      print('🔧 Loading field config from CardViewSettingsService...');
       // Load from CardViewSettingsService instead of Firestore
-      final fields = _settingsService.cardFields;
-      print('🔧 Found ${fields.length} fields in service');
-      
+      final fields = _settingsService.cardFields;      
       // Convert CardFieldSetting list to the expected format
       final config = <String, dynamic>{};
       for (final field in fields) {
@@ -61,15 +58,12 @@ class _BoardPageState extends State<BoardPage> {
           'isVisible': field.isVisible,
           'style': {},
         };
-        print('🔧 Mapped field: ${field.id} -> $mappedKey (visible: ${field.isVisible}, order: ${field.order})');
       }
       
       setState(() {
         _fieldConfigCache = config;
       });
-      
-      print('🔧 Field config loaded from CardViewSettingsService: ${config.keys.length} fields');
-      print('🔧 Field config cache updated, will trigger UI rebuild');
+    
     } catch (e) {
       print('❌ Error loading field config: $e');
       setState(() {
@@ -99,15 +93,13 @@ class _BoardPageState extends State<BoardPage> {
         _userNameCache = { for (final u in workspaceUsers) if (u['id']!=null) u['id']: (u['name']??'') };
       });
     } catch (e) { 
-      debugPrint('User name cache build error: $e'); 
+      debugPrint('❌ User name cache build error: $e'); 
     }
   }
 
   @override
   void initState() {
-    super.initState();
-    print('🚀 BoardPage initialized');
-    
+    super.initState();    
     // Initialize LaneDisplayController
     try {
       _laneDisplayController = Get.find<LaneDisplayController>();
@@ -117,18 +109,10 @@ class _BoardPageState extends State<BoardPage> {
     
     // Listen to card field settings changes
     _settingsService.cardFieldsRx.listen((fields) {
-      print('🔔 Card fields changed in service, reloading field config');
-      print('🔔 Listener triggered with ${fields.length} fields');
-      print('🔔 New fields from service:');
-      for (var field in fields) {
-        print('   ${field.name}: visible=${field.isVisible}, order=${field.order}');
-      }
       if (mounted) {
         Future.microtask(() async {
-          print('🔔 Executing field config reload...');
           await _loadPerBoardFieldConfig();
           if (mounted) {
-            print('🔔 Triggering UI rebuild...');
             setState(() {});
           }
         });
@@ -150,9 +134,7 @@ class _BoardPageState extends State<BoardPage> {
         return;
       }
       
-      final String currentUserId = currentUser.uid;
-      print('👤 Fast initializing board with user: $currentUserId');
-      
+      final String currentUserId = currentUser.uid;      
       await _controller.initializeWithUser(currentUserId);
       
       // Load other data in background (non-blocking)
@@ -173,29 +155,18 @@ class _BoardPageState extends State<BoardPage> {
 
   Future<void> _ensurePermissions(String workspaceId) async {
     try {
-      print('🔍 Ensuring permissions for workspace: $workspaceId');
       final permsSvc = MobilePermissionsService.to;
-      
-      print('  - Current permissions: ${permsSvc.current.value?.permissions}');
-      print('  - Current workspace ID: ${permsSvc.currentWorkspaceId.value}');
-      print('  - isOwner: ${permsSvc.isOwner}');
-      print('  - can(jobcard:create): ${permsSvc.can('jobcard:create')}');
-      
+    
       if (permsSvc.current.value == null || permsSvc.currentWorkspaceId.value != workspaceId) {
-        print('  - Fetching new permissions...');
         try {
           await permsSvc.getMyPermissions(workspaceId: workspaceId);
-          print('  - New permissions loaded: ${permsSvc.current.value?.permissions}');
-          print('  - New isOwner: ${permsSvc.isOwner}');
-          print('  - New can(jobcard:create): ${permsSvc.can('jobcard:create')}');
         } catch (apiError) {
-          print('  - API permission fetch failed: $apiError');
-          print('  - Using fallback permissions for better UX');
+          print('❌  - API permission fetch failed: $apiError');
           // Set fallback permissions to allow basic functionality
           // This ensures the UI is not completely broken when permissions fail
         }
       } else {
-        print('  - Using cached permissions');
+        print('❌  - Using cached permissions');
       }
     } catch (e) {
       print('❌ Error ensuring permissions: $e');
@@ -247,23 +218,11 @@ class _BoardPageState extends State<BoardPage> {
         break;
       case 'card_view_settings':
         final result = await Get.toNamed('/card-view-settings', arguments: {'boardId': _controller.currentBoardId.value});
-        if (result == true) {
-          // Reload field config when returning from settings
-          print('🔄 Returned from card view settings with save result');
-          print('🔄 Current service fields count: ${_settingsService.cardFields.length}');
-          for (var field in _settingsService.cardFields) {
-            print('   Service field: ${field.name} (visible: ${field.isVisible}, order: ${field.order})');
-          }
-          
+        if (result == true) {          
           await _loadPerBoardFieldConfig();
           setState(() {}); // Force rebuild
-          
-          print('🔄 Field config cache after reload: ${_fieldConfigCache.keys.length} fields');
-          _fieldConfigCache.forEach((key, value) {
-            print('   Cache field: $key (visible: ${value['isVisible']}, order: ${value['order']})');
-          });
         } else {
-          print('🔄 Returned from card view settings without saving');
+          print('❌ Returned from card view settings without saving');
         }
         break;
       default:
@@ -287,9 +246,7 @@ class _BoardPageState extends State<BoardPage> {
         return;
       }
       
-      final String currentUserId = currentUser.uid;
-      print('👤 Initializing board with user: $currentUserId');
-      
+      final String currentUserId = currentUser.uid;      
       await _controller.initializeWithUser(currentUserId);
       
       // Load user's assigned cards
@@ -298,10 +255,9 @@ class _BoardPageState extends State<BoardPage> {
       // Prefetch permissions for current workspace if available
       final wsId = _controller.currentWorkspaceId.value;
       if (wsId.isNotEmpty) {
-        print('🔍 Initializing permissions for workspace: $wsId');
         await _ensurePermissions(wsId);
       } else {
-        print('⚠️ No workspace ID available for permissions');
+        print('❌ No workspace ID available for permissions');
       }
     } catch (e) {
       print('❌ Failed to initialize board page: $e');
@@ -448,9 +404,7 @@ class _BoardPageState extends State<BoardPage> {
           }),
           
           // Status Summary Cards
-          Obx(() {
-            print('🎯 Status Summary Cards Obx called - hasWorkspaces: ${_controller.hasWorkspaces}, lanes count: ${_controller.lanes.length}');
-            
+          Obx(() {            
             if (_controller.hasWorkspaces && _controller.lanes.isNotEmpty) {
               final hasAnyFilter = _controller.selectedAssignees.isNotEmpty ||
                                  _controller.selectedCustomers.isNotEmpty ||
@@ -458,17 +412,13 @@ class _BoardPageState extends State<BoardPage> {
                                  _controller.selectedInterests.isNotEmpty ||
                                  _controller.selectedStatuses.isNotEmpty ||
                                  _controller.selectedDateFilterTypes.isNotEmpty;
-              
-              print('🎯 hasAnyFilter: $hasAnyFilter, selectedStatuses: ${_controller.selectedStatuses}');
-              print('🎯 selectedInterests: ${_controller.selectedInterests}');
+        
               
               final displayLanes = _controller.displayLanes;
               final allCards = displayLanes
                   .expand((lane) => lane.cards)
                   .toList();
-                  
-              print('🎯 Display lanes count: ${displayLanes.length}, All cards count: ${allCards.length}');
-              
+                                
               return SizedBox(
                 height: 65,
                 child: SingleChildScrollView(
@@ -483,10 +433,6 @@ class _BoardPageState extends State<BoardPage> {
                     final displayMode = firstLaneId.isNotEmpty 
                         ? (laneDisplayModes[firstLaneId] ?? LaneDisplayMode.totalBeforeDiscount)
                         : LaneDisplayMode.totalBeforeDiscount;
-                    
-                    print('🎯 StatusSummaryCards displayMode: $displayMode for laneId: $firstLaneId');
-                    print('🎯 All laneDisplayModes: $laneDisplayModes');
-                    
                     return StatusSummaryCards(
                       cards: allCards,
                       selectedStatuses: _controller.selectedStatuses,
@@ -783,12 +729,6 @@ class _BoardPageState extends State<BoardPage> {
   final displayLanes = _controller.displayLanes;
   // Always show all lanes; cards may be empty depending on filters
   final visibleLanes = displayLanes;
-
-  print('🔍 Building board with ${visibleLanes.length} lanes');
-  for (final lane in visibleLanes) {
-      print('  - Lane: ${lane.title} (${lane.cards.length} cards)');
-    }
-
     return BoardAutoScrollWrapper(
       child: DragAndDropLists(
         onItemReorder: (int oldItemIndex, int oldListIndex, int newItemIndex, int newListIndex) {
@@ -827,7 +767,6 @@ class _BoardPageState extends State<BoardPage> {
                 DragAndDropItem(
                   child: Builder(
                     builder: (context) {
-                      print('🔍 Building add card button for lane: ${laneData.title}');
                       return _buildAddCardButton(laneData);
                     },
                   ),
@@ -934,11 +873,6 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   void _navigateToCreateCardWithLane(Lane lane) {
-    print('🔄 Navigating to create card with lane:');
-    print('  - Lane ID: ${lane.id}');
-    print('  - Lane Name: ${lane.title}');
-    print('  - Workspace ID: ${_controller.currentWorkspaceId.value}');
-    
     Get.toNamed(
       '/create-card',
       parameters: {
@@ -949,23 +883,8 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   void _cloneLane(Lane lane) async {
-    print('🎯 =================================================');
-    print('🎯 CLONE OPERATION STARTED');
-    print('🎯 Source Lane: ${lane.title}');
-    print('🎯 Source Lane ID: ${lane.id}');
-    print('🎯 Cards count in source lane: ${lane.cards.length}');
-    print('🎯 Current workspace ID: ${_controller.currentWorkspaceId.value}');
-    print('🎯 Current board ID: ${_controller.currentBoardId.value}');
-    print('🎯 =================================================');
-    
     try {
-      print('🔄 Cloning lane: ${lane.title}');
       await _controller.onCloneLane(lane);
-      
-      print('🎯 =================================================');
-      print('🎯 CLONE OPERATION COMPLETED SUCCESSFULLY');
-      print('🎯 =================================================');
-      
       Get.snackbar(
         'Success',
         'Lane "${lane.title}" cloned successfully',
@@ -974,12 +893,7 @@ class _BoardPageState extends State<BoardPage> {
         colorText: Colors.white,
       );
     } catch (e) {
-      print('🎯 =================================================');
-      print('🎯 CLONE OPERATION FAILED');
       print('❌ Error cloning lane: $e');
-      print('📍 Error type: ${e.runtimeType}');
-      print('📍 Stack trace: ${StackTrace.current}');
-      print('🎯 =================================================');
       
       Get.snackbar(
         'Error',
@@ -991,9 +905,7 @@ class _BoardPageState extends State<BoardPage> {
     }
   }
 
-  void _deleteLane(Lane lane) async {
-    print('🗑️ Delete lane request for: ${lane.title} (${lane.id})');
-    
+  void _deleteLane(Lane lane) async {    
     // Show confirmation dialog
     final bool? confirmed = await showDialog<bool>(
       context: context,
@@ -1035,7 +947,6 @@ class _BoardPageState extends State<BoardPage> {
 
     if (confirmed == true) {
       try {
-        print('🗑️ Deleting lane: ${lane.title} (${lane.id})');
         await _controller.deleteLane(laneId: lane.id);
         
         Get.snackbar(

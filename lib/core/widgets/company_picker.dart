@@ -471,7 +471,7 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
                   algoliaResults.add(company);
                 }
               } catch (e) {
-                print('⚠️ Failed to convert Algolia hit to Company: $e');
+                print('❌ Failed to convert Algolia hit to Company: $e');
               }
             }
             
@@ -482,11 +482,9 @@ class CompanyPickerState extends State<CompanyPicker> { // renamed from _Company
             
             // Force modal to rebuild with new search results
             _currentModalStateSetter?.call(() {});
-            
-            print('🔍 Algolia company search results: ${algoliaResults.length} companies found');
-            
+                        
           } catch (e) {
-            print('⚠️ Error processing Algolia response: $e');
+            print('❌ Error processing Algolia response: $e');
             // For Algolia-only search, show empty results on error
             setState(() {
               _filteredCompanies = [];

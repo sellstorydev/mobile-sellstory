@@ -55,10 +55,10 @@ class MobileProvisioningService extends GetxService {
       }
 
       // Surface the error for caller to decide UX; do not throw to avoid blocking login
-      print('provisionSocialUser error: ${message ?? e}');
+      print('❌ provisionSocialUser error: ${message ?? e}');
       return null;
     } catch (e) {
-      print('provisionSocialUser unexpected error: $e');
+      print('❌provisionSocialUser unexpected error: $e');
       return null;
     }
   }

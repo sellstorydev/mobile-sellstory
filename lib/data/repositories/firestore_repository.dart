@@ -519,7 +519,6 @@ class FirestoreRepository {
   // Get lanes for a specific workspace with real-time updates
   Stream<List<Lane>> getLanesStream(String workspaceId, {String? boardId}) {
     try {
-      print('🔄 Getting lanes stream for workspace: $workspaceId');
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
         workspaceId,
       );
@@ -539,7 +538,6 @@ class FirestoreRepository {
             },
           )
           .asyncMap((lanesSnapshot) async {
-            print('📋 Found ${lanesSnapshot.docs.length} lanes in workspace');
             final lanes = <Lane>[];
 
             for (final laneDoc in lanesSnapshot.docs) {
@@ -548,8 +546,6 @@ class FirestoreRepository {
               final laneTitle = laneData['name'] as String? ?? 'Untitled Lane';
               final laneOrder = laneData['order'] as int? ?? 0;
               final boardId = laneData['boardId'] as String? ?? '';
-
-              print('📋 Processing lane: $laneTitle ($laneId)');
 
               // Get cards for this lane using stream
               final cards = await _getCardsStreamForLane(
@@ -570,9 +566,6 @@ class FirestoreRepository {
 
             // Sort lanes by order
             lanes.sort((a, b) => a.order.compareTo(b.order));
-
-            print('✅ Lanes updated from Firestore: ${lanes.length} lanes');
-
             return lanes;
           });
     } catch (e) {
@@ -620,17 +613,8 @@ class FirestoreRepository {
             },
           )
           .map((cardsSnapshot) {
-            print(
-              '📋 Found ${cardsSnapshot.docs.length} cards for lane: $laneId',
-            );
-
             final cards = cardsSnapshot.docs.map((doc) {
               final cardData = doc.data();
-              print(
-                '📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}',
-              );
-              print('📋 Card hashtags data: ${cardData['hashtags']}');
-
               // Use fromMap to ensure all fields including hashtags are properly mapped
               return JobCard.fromMap(cardData, doc.id);
             }).toList();
@@ -658,16 +642,8 @@ class FirestoreRepository {
       final cardsSnapshot = await cardsCollection
           .where('laneId', isEqualTo: laneId)
           .get();
-
-      print('📋 Found ${cardsSnapshot.docs.length} cards for lane: $laneId');
-
       final cards = cardsSnapshot.docs.map((doc) {
         final cardData = doc.data();
-        print(
-          '📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}',
-        );
-        print('📋 Card hashtags data: ${cardData['hashtags']}');
-
         // Use fromMap to ensure all fields including hashtags are properly mapped
         return JobCard.fromMap(cardData, doc.id);
       }).toList();
@@ -688,7 +664,6 @@ class FirestoreRepository {
     String? boardId,
   }) {
     try {
-      print('🔄 Getting all cards stream for workspace: $workspaceId');
       final cardsCollection = _firestoreService.getWorkspaceCardsCollection(
         workspaceId,
       );
@@ -722,15 +697,8 @@ class FirestoreRepository {
             },
           )
           .map((cardsSnapshot) {
-            print('📋 Found ${cardsSnapshot.docs.length} cards in workspace');
-
             final cards = cardsSnapshot.docs.map((doc) {
               final cardData = doc.data();
-              print(
-                '📋 Processing card: ${cardData['title']} (${doc.id}) - Custom ID: ${cardData['customId']}',
-              );
-              print('📋 Card hashtags data: ${cardData['hashtags']}');
-
               // Use fromMap to ensure all fields including hashtags are properly mapped
               return JobCard.fromMap(cardData, doc.id);
             }).toList();
@@ -738,7 +706,6 @@ class FirestoreRepository {
             // Sort cards by order after fetching
             cards.sort((a, b) => a.order.compareTo(b.order));
 
-            print('✅ All cards updated from Firestore: ${cards.length} cards');
             return cards;
           });
     } catch (e) {
@@ -872,8 +839,6 @@ class FirestoreRepository {
           .map((snapshot) {
             final cards = snapshot.docs.map((doc) {
               final cardData = doc.data();
-              print('📋 Lane card hashtags data: ${cardData['hashtags']}');
-
               // Use fromMap to ensure all fields including hashtags are properly mapped
               return JobCard.fromMap(cardData, doc.id);
             }).toList();
@@ -917,10 +882,6 @@ class FirestoreRepository {
           .map((snapshot) {
             final cards = snapshot.docs.map((doc) {
               final cardData = Map<String, dynamic>.from(doc.data());
-              print(
-                '📋 User assigned card hashtags data: ${cardData['hashtags']}',
-              );
-
               // Use fromMap to ensure all fields including hashtags are properly mapped
               return JobCard.fromMap(cardData, doc.id);
             }).toList();
@@ -985,8 +946,6 @@ class FirestoreRepository {
           .map((snapshot) {
             final cards = snapshot.docs.map((doc) {
               final cardData = doc.data();
-              print('📋 Customer card hashtags data: ${cardData['hashtags']}');
-
               // Use fromMap to ensure all fields including hashtags are properly mapped
               return JobCard.fromMap(cardData, doc.id);
             }).toList();
@@ -1030,12 +989,6 @@ class FirestoreRepository {
       laneData['hasMoreCards'] = false;
       laneData['createdAt'] = Timestamp.fromDate(DateTime.now());
       laneData['updatedAt'] = Timestamp.fromDate(DateTime.now());
-
-      print('🔄 Creating lane with data:');
-      print('  - Name: ${lane.title}');
-      print('  - Order: ${lane.order}');
-      print('  - Board ID: ${lane.boardId}');
-
       final docRef = await lanesCollection.add(laneData);
 
       _logger.database('Lane created in repository');
@@ -1061,25 +1014,15 @@ class FirestoreRepository {
         'workspaceId': workspaceId,
         'laneId': laneId,
       });
-
-      print('🔄 FirestoreRepository.updateLane:');
-      print('  - Workspace ID: $workspaceId');
-      print('  - Lane ID: $laneId');
-      print('  - Data: $data');
-
       final lanesCollection = _firestoreService.getWorkspaceLanesCollection(
         workspaceId,
       );
       final docRef = lanesCollection.doc(laneId);
-
-      print('🔄 Updating document: ${docRef.path}');
       await _firestoreService.updateDocument(docRef, data);
 
-      print('✅ Lane updated successfully');
       _logger.methodExit('FirestoreRepository.updateLane');
     } catch (e) {
-      print('❌ Failed to update lane: $e');
-      _logger.error('Failed to update lane', e);
+      _logger.error('❌ Failed to update lane', e);
       rethrow;
     }
   }
@@ -1142,7 +1085,7 @@ class FirestoreRepository {
             currentCounter = (int.tryParse(jobCardCounter) ?? 0) + 1;
           }
         } catch (e) {
-          print('⚠️ Error reading counter, using default: $e');
+          print('❌ Error reading counter, using default: $e');
           currentCounter = 1;
         }
 
@@ -1170,23 +1113,6 @@ class FirestoreRepository {
             '_nanoseconds': ((updatedAtMs % 1000) * 1000000).toInt(),
           };
         }
-
-        // Debug logging for card data
-        print('📝 FirestoreRepository.createCard - Debug Card Data:');
-        print('  - Original card title: "${card.title}"');
-        print('  - Original card watchers: ${card.watchers}');
-        print('  - Original card collaborators: ${card.collaborators}');
-        print(
-          '  - Original card updatedByDisplayName: "${card.updatedByDisplayName}"',
-        );
-        print('  - Card data title: "${cardData['title']}"');
-        print('  - Card data watchers: ${cardData['watchers']}');
-        print('  - Card data collaborators: ${cardData['collaborators']}');
-        print(
-          '  - Card data updatedByDisplayName: "${cardData['updatedByDisplayName']}"',
-        );
-        print('  - Card data keys: ${cardData.keys.toList()}');
-
         // Set card document
         transaction.set(cardDocRef, cardData);
 
@@ -1194,8 +1120,6 @@ class FirestoreRepository {
         transaction.update(workspaceRef, {
           'companyProfile.lastUsedCounters.jobCard': currentCounter,
         });
-
-        print('✅ Created card with Job ID: $jobId (counter: $currentCounter)');
         return cardDocRef.id;
       });
 
@@ -1258,15 +1182,6 @@ class FirestoreRepository {
       final docRef = cardsCollection.doc(card.id);
 
       final cardData = card.toMap();
-
-      // Debug logging
-      print('🔄 Sending card data to Firebase:');
-      print('  - customId: ${cardData['customId']}');
-      print('  - assignedTo: ${cardData['assignedTo']}');
-      print('  - status: ${cardData['status']}');
-      print('  - customer: ${cardData['customer']}');
-      print('  - title: ${cardData['title']}');
-
       // Use merge option to prevent overwriting existing fields
       await docRef.set(cardData, SetOptions(merge: true));
 
@@ -1283,10 +1198,6 @@ class FirestoreRepository {
       _logger.methodEntry('FirestoreRepository.getCustomers', {
         'workspaceId': workspaceId,
       });
-
-      print('🔄 FirestoreRepository.getCustomers:');
-      print('  - Workspace ID: $workspaceId');
-
       final customersCollection = _firestoreService
           .getWorkspaceCustomersCollection(workspaceId);
       final querySnapshot = await _firestoreService.getDocuments(
@@ -1296,8 +1207,6 @@ class FirestoreRepository {
       final customers = querySnapshot.docs.map((doc) {
         return Customer.fromMap(doc.data(), doc.id);
       }).toList();
-
-      print('✅ Customers loaded successfully - ${customers.length} customers');
       _logger.methodExit('FirestoreRepository.getCustomers', {
         'count': customers.length,
       });
@@ -1330,10 +1239,6 @@ class FirestoreRepository {
       _logger.methodEntry('FirestoreRepository.getCustomersStream', {
         'workspaceId': workspaceId,
       });
-
-      print('🔄 FirestoreRepository.getCustomersStream:');
-      print('  - Workspace ID: $workspaceId');
-
       final customersCollection = _firestoreService
           .getWorkspaceCustomersCollection(workspaceId);
       return _firestoreService.getDocumentsStream(customersCollection).map((
@@ -1342,8 +1247,6 @@ class FirestoreRepository {
         final customers = querySnapshot.docs.map((doc) {
           return Customer.fromMap(doc.data(), doc.id);
         }).toList();
-        print('✅ Customers stream updated - ${customers.length} customers');
-
         // Permission-based filtering (stream)
         final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
         final perms = MobilePermissionsService.to;
@@ -1372,10 +1275,6 @@ class FirestoreRepository {
       _logger.methodEntry('FirestoreRepository.getCompanies', {
         'workspaceId': workspaceId,
       });
-
-      print('🔄 FirestoreRepository.getCompanies:');
-      print('  - Workspace ID: $workspaceId');
-
       final companiesCollection = _firestoreService
           .getWorkspaceCompaniesCollection(workspaceId);
       final querySnapshot = await _firestoreService.getDocuments(
@@ -1385,7 +1284,6 @@ class FirestoreRepository {
         return Company.fromMap(doc.data(), doc.id);
       }).toList();
 
-      print('✅ Companies loaded successfully - ${companies.length} companies');
       return companies;
     } catch (e) {
       print('❌ Failed to get companies: $e');
@@ -1400,10 +1298,6 @@ class FirestoreRepository {
       _logger.methodEntry('FirestoreRepository.getCompaniesStream', {
         'workspaceId': workspaceId,
       });
-
-      print('🔄 FirestoreRepository.getCompaniesStream:');
-      print('  - Workspace ID: $workspaceId');
-
       final companiesCollection = _firestoreService
           .getWorkspaceCompaniesCollection(workspaceId);
       return _firestoreService.getDocumentsStream(companiesCollection).map((
@@ -1413,7 +1307,6 @@ class FirestoreRepository {
           return Company.fromMap(doc.data(), doc.id);
         }).toList();
 
-        print('✅ Companies stream updated - ${companies.length} companies');
         return companies;
       });
     } catch (e) {
@@ -1436,7 +1329,9 @@ class FirestoreRepository {
       final data = company.copyWith(workspaceId: workspaceId).toMap();
       final docRef = await companiesCollection.add(data);
 
-      _logger.methodExit('FirestoreRepository.createCompany', {'companyId': docRef.id});
+      _logger.methodExit('FirestoreRepository.createCompany', {
+        'companyId': docRef.id,
+      });
       return docRef.id;
     } catch (e) {
       _logger.error('Failed to create company', e);
@@ -1655,10 +1550,6 @@ class FirestoreRepository {
       _logger.methodEntry('FirestoreRepository.getBoards', {
         'workspaceId': workspaceId,
       });
-
-      print('🔄 FirestoreRepository.getBoards:');
-      print('  - Workspace ID: $workspaceId');
-
       final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(
         workspaceId,
       );
@@ -1700,8 +1591,6 @@ class FirestoreRepository {
           boards = boards.where((b) => b.memberUids.contains(uid)).toList();
         }
       }
-
-      print('✅ Boards loaded successfully - ${boards.length} boards');
       return boards;
     } catch (e) {
       print('❌ Failed to get boards: $e');
@@ -1716,10 +1605,6 @@ class FirestoreRepository {
       _logger.methodEntry('FirestoreRepository.getBoardsStream', {
         'workspaceId': workspaceId,
       });
-
-      print('🔄 FirestoreRepository.getBoardsStream:');
-      print('  - Workspace ID: $workspaceId');
-
       final boardsCollection = _firestoreService.getWorkspaceBoardsCollection(
         workspaceId,
       );
@@ -1759,8 +1644,6 @@ class FirestoreRepository {
             boards = boards.where((b) => b.memberUids.contains(uid)).toList();
           }
         }
-
-        print('✅ Boards stream updated - ${boards.length} boards');
         return boards;
       });
     } catch (e) {
@@ -1780,11 +1663,6 @@ class FirestoreRepository {
         'workspaceId': workspaceId,
         'limit': limit,
       });
-
-      print('🔄 FirestoreRepository.getDocuments:');
-      print('  - Workspace ID: $workspaceId');
-      print('  - Limit: $limit');
-
       final documentsCollection = _firestoreService
           .getWorkspaceDocumentsCollection(workspaceId);
 
@@ -1803,7 +1681,6 @@ class FirestoreRepository {
         return data;
       }).toList();
 
-      print('✅ Documents loaded successfully - ${documents.length} documents');
       return documents;
     } catch (e) {
       print('❌ Failed to get documents: $e');
@@ -1826,13 +1703,6 @@ class FirestoreRepository {
         'limit': limit,
         'hasStartAfter': startAfter != null,
       });
-
-      print('🔄 FirestoreRepository.getDocumentsPaginated:');
-      print('  - Workspace ID: $workspaceId');
-      print('  - Document Type: $documentType');
-      print('  - Limit: $limit');
-      print('  - Start after: ${startAfter != null ? 'Yes' : 'No'}');
-
       final documentsCollection = _firestoreService
           .getWorkspaceDocumentsCollection(workspaceId);
 
@@ -1865,10 +1735,6 @@ class FirestoreRepository {
           ? querySnapshot.docs.last
           : null;
 
-      print(
-        '✅ Documents loaded successfully - ${documents.length} documents, hasMore: $hasMore',
-      );
-
       return {
         'documents': documents,
         'hasMore': hasMore,
@@ -1891,19 +1757,12 @@ class FirestoreRepository {
         'workspaceId': workspaceId,
         'type': documentData['type'],
       });
-
-      print('🔄 FirestoreRepository.createDocument:');
-      print('  - Workspace ID: $workspaceId');
-      print('  - Document type: ${documentData['type']}');
-
       final documentsCollection = _firestoreService
           .getWorkspaceDocumentsCollection(workspaceId);
       final documentRef = await _firestoreService.addDocument(
         documentsCollection,
         documentData,
       );
-
-      print('✅ Document created successfully with ID: ${documentRef.id}');
       return documentRef.id;
     } catch (e) {
       print('❌ Failed to create document: $e');
@@ -1924,19 +1783,11 @@ class FirestoreRepository {
         'documentId': documentId,
         'type': documentData['type'],
       });
-
-      print('🔄 FirestoreRepository.updateDocument:');
-      print('  - Workspace ID: $workspaceId');
-      print('  - Document ID: $documentId');
-      print('  - Document type: ${documentData['type']}');
-
       final documentRef = _firestoreService.getDocumentReference(
         workspaceId,
         documentId,
       );
       await _firestoreService.updateDocument(documentRef, documentData);
-
-      print('✅ Document updated successfully');
     } catch (e) {
       print('❌ Failed to update document: $e');
       _logger.error('Failed to update document', e);
@@ -1949,14 +1800,10 @@ class FirestoreRepository {
     String workspaceId,
   ) async {
     try {
-      print('🔄 Getting users for workspace: $workspaceId');
 
       // Get all users from the users collection
       final usersCollection = _firestoreService.usersCollection;
       final usersSnapshot = await usersCollection.get();
-
-      print('📋 Found ${usersSnapshot.docs.length} total users');
-
       final userList = <Map<String, dynamic>>[];
 
       for (final userDoc in usersSnapshot.docs) {
@@ -1983,7 +1830,7 @@ class FirestoreRepository {
               userRole = workspaceData['role'] as String? ?? 'member';
             }
           } catch (e) {
-            print('⚠️ Error getting user role for ${userData['uid']}: $e');
+            print('❌ Error getting user role for ${userData['uid']}: $e');
           }
 
           // Extract display name - prefer displayName, fallback to email
@@ -2006,14 +1853,8 @@ class FirestoreRepository {
             'name': displayName, // Add name field for UI compatibility
             'role': userRole,
           });
-
-          print(
-            '👤 User found: ${displayName} (${userData['uid']}) - Role: $userRole',
-          );
         }
       }
-
-      print('✅ Users loaded for workspace: ${userList.length} users');
       return userList;
     } catch (e) {
       print('❌ Failed to get workspace users: $e');
@@ -2096,8 +1937,6 @@ class FirestoreRepository {
             'updatedAt': Timestamp.fromDate(DateTime.now()),
           });
         }
-
-        print('✅ Created board with ID: ${boardDocRef.id}');
         return boardDocRef.id;
       });
 
@@ -2133,8 +1972,6 @@ class FirestoreRepository {
         'name': newName,
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
-
-      print('✅ Updated board: $boardId with new name: $newName');
       _logger.methodExit('FirestoreRepository.updateBoard');
     } catch (e) {
       _logger.error('Failed to update board', e);
@@ -2184,8 +2021,6 @@ class FirestoreRepository {
         for (final cardDoc in cardsQuery.docs) {
           transaction.delete(cardDoc.reference);
         }
-
-        print('✅ Deleted board: $boardId with all lanes and cards');
       });
 
       _logger.methodExit('FirestoreRepository.deleteBoard');
@@ -2216,8 +2051,6 @@ class FirestoreRepository {
 
       // Delete the card
       await cardDocRef.delete();
-
-      print('✅ Deleted card with ID: $cardId');
       _logger.methodExit('FirestoreRepository.deleteCard', {'cardId': cardId});
     } catch (e) {
       _logger.error('Failed to delete card', e);
@@ -2495,8 +2328,6 @@ class FirestoreRepository {
       await cardRef.update({
         'notes': FieldValue.arrayUnion([note]),
       });
-
-      print('✅ Note added to card successfully');
       _logger.methodExit('FirestoreRepository.addNoteToCard');
     } catch (e) {
       print('❌ Failed to add note to card: $e');
@@ -2518,12 +2349,11 @@ class FirestoreRepository {
           .get();
 
       if (!userDoc.exists) {
-        print('⚠️ User not found: $userId');
+        print('❌ User not found: $userId');
         return null;
       }
 
       final userData = userDoc.data()!;
-      print('✅ User data retrieved: ${userData['displayName']}');
       _logger.methodExit('FirestoreRepository.getUserById');
       return userData;
     } catch (e) {
@@ -2543,18 +2373,11 @@ class FirestoreRepository {
         'workspaceId': workspaceId,
         'documentId': documentId,
       });
-
-      print('🔄 FirestoreRepository.deleteDocument:');
-      print('  - Workspace ID: $workspaceId');
-      print('  - Document ID: $documentId');
-
       final documentRef = _firestoreService.getDocumentReference(
         workspaceId,
         documentId,
       );
       await _firestoreService.deleteDocument(documentRef);
-
-      print('✅ Document deleted successfully');
       _logger.methodExit('FirestoreRepository.deleteDocument');
     } catch (e) {
       print('❌ Failed to delete document: $e');

@@ -67,16 +67,10 @@ class FirestoreService extends GetxService {
   // Update user's last active workspace ID
   Future<void> updateUserLastActiveWorkspaceId(String userId, String workspaceId) async {
     try {
-      print('🔄 FirestoreService.updateUserLastActiveWorkspaceId:');
-      print('  - User ID: $userId');
-      print('  - Workspace ID: $workspaceId');
-      
       await usersCollection.doc(userId).update({
         'lastActiveWorkspaceId': workspaceId,
       });
-      
-      print('✅ User last active workspace updated successfully');
-    } catch (e) {
+          } catch (e) {
       print('❌ Failed to update user last active workspace: $e');
       throw Exception('Failed to update user last active workspace: $e');
     }
@@ -112,14 +106,8 @@ class FirestoreService extends GetxService {
     Map<String, dynamic> data,
   ) async {
     try {
-      print('🔄 FirestoreService.updateDocument:');
-      print('  - Document path: ${document.path}');
-      print('  - Data: $data');
-      
       await document.update(data);
-      
-      print('✅ Document updated successfully');
-    } catch (e) {
+          } catch (e) {
       print('❌ Failed to update document: $e');
       throw Exception('Failed to update document: $e');
     }

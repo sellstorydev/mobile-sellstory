@@ -115,12 +115,6 @@ class UploadService extends GetxService {
       final originalSize = bytes.length;
       final compressedSize = compressedBytes.length;
       final compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toStringAsFixed(1);
-
-      print('Image resize completed:');
-      print('Original: ${originalImage.width}x${originalImage.height} (${(originalSize / 1024).toStringAsFixed(1)} KB)');
-      print('Resized: ${newWidth}x${newHeight} (${(compressedSize / 1024).toStringAsFixed(1)} KB)');
-      print('Compression: $compressionRatio% smaller');
-
       return Uint8List.fromList(compressedBytes);
     } catch (e) {
       throw Exception('Image resize failed: $e');

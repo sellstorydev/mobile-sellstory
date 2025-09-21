@@ -504,19 +504,16 @@ class _CustomersSelectionPageState extends State<CustomersSelectionPage> {
                   algoliaResults.add(customer);
                 }
               } catch (e) {
-                print('⚠️ Failed to convert Algolia hit to Customer: $e');
+                print('❌ Failed to convert Algolia hit to Customer: $e');
               }
             }
             
             setState(() {
               _filteredCustomers = algoliaResults;
               _isSearching = false;
-            });
-            
-            print('🔍 Algolia customer search results: ${algoliaResults.length} customers found');
-            
+            });            
           } catch (e) {
-            print('⚠️ Error processing Algolia response: $e');
+            print('❌ Error processing Algolia response: $e');
             // Fallback to local search on error
             _searchLocally(query);
           }

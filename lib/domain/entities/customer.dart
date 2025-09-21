@@ -193,9 +193,7 @@ class Customer {
         country: (map['country'] ?? '').toString(),
       );
     } catch (e) {
-      print('Error creating Customer from map: $e');
-      print('Map data: $map');
-      print('Customer ID: $id');
+      print('❌ Error creating Customer from map: $e');
       rethrow;
     }
   }
@@ -231,9 +229,7 @@ class Customer {
       // Fallback to current time
       return DateTime.now();
     } catch (e) {
-      print('Error parsing DateTime: $e');
-      print('Date data: $dateData');
-      print('Date data type: ${dateData.runtimeType}');
+      print('❌ Error parsing DateTime: $e');
       return DateTime.now();
     }
   }
@@ -352,9 +348,7 @@ class Customer {
         'value': emailsData.toString(),
       }];
     } catch (e) {
-      print('Error parsing emails: $e');
-      print('Emails data: $emailsData');
-      print('Emails data type: ${emailsData.runtimeType}');
+      print('❌ Error parsing emails: $e');
       return [];
     }
   }
@@ -418,9 +412,7 @@ class Customer {
         'value': phonesData.toString(),
       }];
     } catch (e) {
-      print('Error parsing phones: $e');
-      print('Phones data: $phonesData');
-      print('Phones data type: ${phonesData.runtimeType}');
+      print('❌ Error parsing phones: $e');
       return [];
     }
   }
@@ -492,9 +484,7 @@ class Customer {
         'text': hashtagsData.toString(),
       }];
     } catch (e) {
-      print('Error parsing hashtags: $e');
-      print('Hashtags data: $hashtagsData');
-      print('Hashtags data type: ${hashtagsData.runtimeType}');
+      print('❌ Error parsing hashtags: $e');
       return [];
     }
   }
@@ -535,9 +525,7 @@ class Customer {
       
       return [];
     } catch (e) {
-      print('Error parsing assignees: $e');
-      print('Assignees data: $assigneesData');
-      print('Assignees data type: ${assigneesData.runtimeType}');
+      print('❌ Error parsing assignees: $e');
       return [];
     }
   }
@@ -610,9 +598,7 @@ class Customer {
         'value': companyNamesData.toString(),
       }];
     } catch (e) {
-      print('Error parsing company names: $e');
-      print('Company names data: $companyNamesData');
-      print('Company names data type: ${companyNamesData.runtimeType}');
+      print('❌ Error parsing company names: $e');
       return [];
     }
   }
