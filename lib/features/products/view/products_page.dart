@@ -22,15 +22,6 @@ class ProductsPage extends StatelessWidget {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
-          // Sync to Algolia button (temporary for testing)
-          IconButton(
-            onPressed: () {
-              controller.syncAllProductsToAlgolia();
-            },
-            icon: const Icon(Icons.cloud_sync, color: AppTheme.primaryOrange),
-            tooltip: 'Sync to Algolia',
-          ),
-
           // Add product button
           PermissionGuard(
             permission: 'product:create',

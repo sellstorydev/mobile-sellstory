@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,8 +22,13 @@ class CompaniesController extends GetxController {
   final RxList<Company> filteredCompanies = <Company>[].obs;
   final RxString searchQuery = ''.obs;
   final RxBool isLoading = false.obs;
+  final RxBool isSearching = false.obs;
   final RxString errorMessage = ''.obs;
   final RxString currentWorkspaceId = ''.obs;
+
+  // Search controller and timer for debouncing
+  final TextEditingController searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
 
   // Quota (use customers key to cover both individual and company records)
   final RxInt customersQuotaUsed = 0.obs;
@@ -148,8 +154,30 @@ class CompaniesController extends GetxController {
     searchQuery.value = query.trim().toLowerCase();
   }
 
+  void onSearchChanged(String query) {
+    // Cancel previous timer if exists
+    _searchDebounceTimer?.cancel();
+    
+    searchQuery.value = query;
+    
+    // If query is empty, reset search immediately
+    if (query.trim().isEmpty) {
+      isSearching.value = false;
+      _filterCompanies();
+      return;
+    }
+    
+    // Debounce search for 500ms to avoid too many API calls while typing
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      triggerAlgoliaSearch(query.trim());
+    });
+  }
+
   void clearSearch() {
     searchQuery.value = '';
+    searchController.clear();
+    isSearching.value = false;
+    _filterCompanies();
   }
 
   void _filterCompanies() {
@@ -420,24 +448,23 @@ class CompaniesController extends GetxController {
 
   /// Trigger Algolia search for companies
   Future<void> triggerAlgoliaSearch(String query) async {
-    if (query.isEmpty) {
-      // If query is empty, show all companies
+    if (query.trim().isEmpty) {
+      // If query is empty, reset to show all companies with current filters
+      isSearching.value = false;
       filteredCompanies.value = companies.toList();
       return;
     }
     
-    try {
-      await _searchWithAlgolia(query);
-    } catch (e) {
-      print('⚠️ Algolia search failed, falling back to local search: $e');
-      // Fallback to local search if Algolia fails
-      setSearchQuery(query);
-    }
+    isSearching.value = true;
+    _searchWithAlgolia(query.trim());
   }
 
   Future<void> _searchWithAlgolia(String query) async {
     try {
-      if (currentWorkspaceId.value.isEmpty) return;
+      if (currentWorkspaceId.value.isEmpty) {
+        isSearching.value = false;
+        return;
+      }
       
       final searchStream = AlgoliaSearchService.searchCompanies(
         query: query,
@@ -445,32 +472,45 @@ class CompaniesController extends GetxController {
         hitsPerPage: 50,
       );
       
-      // Listen to the first result
-      final searchResponse = await searchStream.first;
-      
-      // Convert Algolia results to Company objects
-      final algoliaResults = <Company>[];
-      for (final hit in searchResponse.hits) {
-        try {
-          // Find the company in our local list by ID
-          final companyId = hit['objectID'] as String?;
-          if (companyId != null) {
-            final company = companies.firstWhere(
-              (c) => c.id == companyId,
-              orElse: () => throw StateError('Company not found'),
-            );
-            algoliaResults.add(company);
+      // Listen to search results
+      searchStream.listen(
+        (response) {
+          final hits = response.hits;
+          final algoliaResults = <Company>[];
+          
+          // Convert Algolia results to Company objects
+          for (final hit in hits) {
+            try {
+              // Find the company in our local list by ID
+              final companyId = hit['objectID'] as String?;
+              if (companyId != null) {
+                final company = companies.firstWhere(
+                  (c) => c.id == companyId,
+                  orElse: () => throw StateError('Company not found'),
+                );
+                algoliaResults.add(company);
+              }
+            } catch (e) {
+              print('⚠️ Failed to convert Algolia hit to Company: $e');
+            }
           }
-        } catch (e) {
-          print('⚠️ Failed to convert Algolia hit to Company: $e');
-        }
-      }
-      
-      // Update the filtered companies with search results
-      filteredCompanies.value = algoliaResults;
+          
+          // Update the filtered companies with search results
+          filteredCompanies.value = algoliaResults;
+          isSearching.value = false;
+          print('🔍 Algolia search results: ${algoliaResults.length} companies found');
+        },
+        onError: (error) {
+          print('❌ Algolia search error: $error');
+          // Fallback to local search
+          isSearching.value = false;
+          setSearchQuery(query);
+        },
+      );
       
     } catch (e) {
-      print('⚠️ Algolia search error: $e');
+      print('❌ Failed to search with Algolia: $e');
+      isSearching.value = false;
       // Fallback to local search
       setSearchQuery(query);
     }
@@ -508,6 +548,8 @@ class CompaniesController extends GetxController {
   @override
   void onClose() {
     _workspaceQuotaSub?.cancel();
+    _searchDebounceTimer?.cancel();
+    searchController.dispose();
     super.onClose();
   }
 }
