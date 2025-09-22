@@ -50,7 +50,18 @@ class ForgotPasswordController extends GetxController {
 
       Get.toNamed('/forgot-password-otp');
     } catch (e) {
-      _toastError(e.toString());
+      String errorMessage = e.toString();
+      // Check for common error patterns and provide friendly messages
+      if (errorMessage.toLowerCase().contains('not found') || 
+          errorMessage.toLowerCase().contains('user not found')) {
+        errorMessage = 'email_not_found'.tr;
+      } else if (errorMessage.toLowerCase().contains('network') ||
+                 errorMessage.toLowerCase().contains('connection')) {
+        errorMessage = 'network_error'.tr;
+      } else {
+        errorMessage = 'request_failed'.tr;
+      }
+      _toastError(errorMessage);
     } finally {
       isLoading.value = false;
     }
@@ -63,9 +74,19 @@ class ForgotPasswordController extends GetxController {
       isLoading.value = true;
       await _otpService.requestPasswordResetOtp(email: email.value);
       _startCooldown(seconds: 30);
-      _toastInfo('ส่ง OTP อีกครั้งแล้ว');
+      _toastInfo('otp_sent_again'.tr);
     } catch (e) {
-      _toastError(e.toString());
+      String errorMessage = e.toString();
+      if (errorMessage.toLowerCase().contains('not found') || 
+          errorMessage.toLowerCase().contains('user not found')) {
+        errorMessage = 'email_not_found'.tr;
+      } else if (errorMessage.toLowerCase().contains('network') ||
+                 errorMessage.toLowerCase().contains('connection')) {
+        errorMessage = 'network_error'.tr;
+      } else {
+        errorMessage = 'request_failed'.tr;
+      }
+      _toastError(errorMessage);
     } finally {
       isLoading.value = false;
     }
@@ -79,7 +100,16 @@ class ForgotPasswordController extends GetxController {
       await _otpService.verifyOtp(phone: phone.value, otp: otp.value);
       Get.toNamed('/forgot-password-reset');
     } catch (e) {
-      _toastError(e.toString());
+      String errorMessage = e.toString();
+      if (errorMessage.toLowerCase().contains('invalid') || 
+          errorMessage.toLowerCase().contains('wrong')) {
+        errorMessage = 'invalid_otp'.tr;
+      } else if (errorMessage.toLowerCase().contains('expired')) {
+        errorMessage = 'otp_expired'.tr;
+      } else {
+        errorMessage = 'verification_failed'.tr;
+      }
+      _toastError(errorMessage);
     } finally {
       isLoading.value = false;
     }
@@ -95,12 +125,22 @@ class ForgotPasswordController extends GetxController {
         otp: otp.value,
         newPassword: newPassword.value,
       );
-      _toastSuccess('เปลี่ยนรหัสผ่านสำเร็จ');
+      _toastSuccess('password_changed_success'.tr);
       // Clear state and go back to login
       _timer?.cancel();
       Get.offAllNamed(AppRoutes.login);
     } catch (e) {
-      _toastError(e.toString());
+      String errorMessage = e.toString();
+      if (errorMessage.toLowerCase().contains('weak') || 
+          errorMessage.toLowerCase().contains('too short')) {
+        errorMessage = 'password_too_weak'.tr;
+      } else if (errorMessage.toLowerCase().contains('invalid') || 
+                 errorMessage.toLowerCase().contains('wrong')) {
+        errorMessage = 'invalid_otp'.tr;
+      } else {
+        errorMessage = 'password_reset_failed'.tr;
+      }
+      _toastError(errorMessage);
     } finally {
       isLoading.value = false;
     }
@@ -121,7 +161,7 @@ class ForgotPasswordController extends GetxController {
 
   void _toastError(String message) {
     Get.snackbar(
-      'Error',
+      'error'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
@@ -131,7 +171,7 @@ class ForgotPasswordController extends GetxController {
 
   void _toastInfo(String message) {
     Get.snackbar(
-      'Info',
+      'info'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: AppTheme.primaryOrange.withOpacity(0.08),
@@ -141,7 +181,7 @@ class ForgotPasswordController extends GetxController {
 
   void _toastSuccess(String message) {
     Get.snackbar(
-      'Success',
+      'success'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.green.withOpacity(0.08),

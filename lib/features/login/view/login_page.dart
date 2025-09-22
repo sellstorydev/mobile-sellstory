@@ -323,23 +323,23 @@ class LoginPage extends StatelessWidget {
               ),
               
               // Theme toggle button
-              Positioned(
-                top: 16,
-                right: 16,
-                child: IconButton(
-                  onPressed: () {
-                    Get.find<ThemeController>().toggle();
-                  },
-                  icon: Obx(() {
-                    final themeController = Get.find<ThemeController>();
-                    return Icon(
-                      themeController.mode.value == ThemeMode.dark 
-                          ? Icons.light_mode 
-                          : Icons.dark_mode,
-                    );
-                  }),
-                ),
-              ),
+              // Positioned(
+              //   top: 16,
+              //   right: 16,
+              //   child: IconButton(
+              //     onPressed: () {
+              //       Get.find<ThemeController>().toggle();
+              //     },
+              //     icon: Obx(() {
+              //       final themeController = Get.find<ThemeController>();
+              //       return Icon(
+              //         themeController.mode.value == ThemeMode.dark 
+              //             ? Icons.light_mode 
+              //             : Icons.dark_mode,
+              //       );
+              //     }),
+              //   ),
+              // ),
             ],
           ),
         ),
