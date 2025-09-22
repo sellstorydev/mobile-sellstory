@@ -157,157 +157,186 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
           onPageFinished: (String url) {
             // Inject mobile optimization JavaScript that works with existing responsive CSS
             _webViewController?.runJavaScript('''
-              // Get screen dimensions
-              var screenWidth = window.innerWidth || document.documentElement.clientWidth;
-              var screenHeight = window.innerHeight || document.documentElement.clientHeight;
-              
-              console.log('Screen dimensions: ' + screenWidth + 'x' + screenHeight);
-              
-              // Ensure viewport is set for mobile
-              var viewportMeta = document.querySelector('meta[name="viewport"]');
-              if (!viewportMeta) {
-                viewportMeta = document.createElement('meta');
-                viewportMeta.setAttribute('name', 'viewport');
-                document.head.appendChild(viewportMeta);
-              }
-              viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=yes');
-              
-              // Check if the page already has responsive CSS for mobile
-              var hasResponsiveCSS = false;
-              var stylesheets = document.querySelectorAll('style, link[rel="stylesheet"]');
-              stylesheets.forEach(function(sheet) {
-                if (sheet.textContent && sheet.textContent.includes('@media')) {
-                  hasResponsiveCSS = true;
+              // Function to apply mobile optimization based on current orientation
+              function applyMobileOptimization() {
+                // Get screen dimensions
+                var screenWidth = window.innerWidth || document.documentElement.clientWidth;
+                var screenHeight = window.innerHeight || document.documentElement.clientHeight;
+                
+                console.log('Screen dimensions: ' + screenWidth + 'x' + screenHeight);
+                
+                // Ensure viewport is set for mobile
+                var viewportMeta = document.querySelector('meta[name="viewport"]');
+                if (!viewportMeta) {
+                  viewportMeta = document.createElement('meta');
+                  viewportMeta.setAttribute('name', 'viewport');
+                  document.head.appendChild(viewportMeta);
                 }
+                viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=yes');
+                
+                // Check if the page already has responsive CSS for mobile
+                var hasResponsiveCSS = false;
+                var stylesheets = document.querySelectorAll('style, link[rel="stylesheet"]');
+                stylesheets.forEach(function(sheet) {
+                  if (sheet.textContent && sheet.textContent.includes('@media')) {
+                    hasResponsiveCSS = true;
+                  }
+                });
+                
+                if (hasResponsiveCSS) {
+                  console.log('Responsive CSS detected - using existing responsive design');
+                  
+                  // Check if device is in landscape mode
+                  var isLandscape = screenWidth > screenHeight;
+                  console.log('Device orientation: ' + (isLandscape ? 'Landscape' : 'Portrait'));
+                  
+                  // Remove previous orientation classes
+                  document.body.classList.remove('landscape-view', 'portrait-view');
+                  
+                  // Let the existing responsive CSS handle the layout
+                  // Just ensure body and html allow proper rendering
+                  document.documentElement.style.cssText = `
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                  `;
+                  
+                  document.body.style.cssText = `
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    min-height: 100vh !important;
+                    overflow-x: hidden !important;
+                  `;
+                  
+                  // Force mobile media queries to activate if screen is mobile size
+                  if (screenWidth <= 768) {
+                    // Add a class to body to ensure mobile styles are applied
+                    document.body.classList.add('mobile-view');
+                    if (isLandscape) {
+                      document.body.classList.add('landscape-view');
+                    } else {
+                      document.body.classList.add('portrait-view');
+                    }
+                    
+                    // Ensure containers respect mobile layout
+                    var containers = document.querySelectorAll('.container');
+                    containers.forEach(function(container) {
+                      container.style.cssText += `
+                        max-width: 100% !important;
+                        margin: 0 auto !important;
+                        border-radius: 0 !important;
+                        box-shadow: none !important;
+                        ` + (isLandscape ? 'min-height: auto !important;' : '') + `
+                      `;
+                    });
+                    
+                    // Ensure pdf content is mobile optimized
+                    var pdfContent = document.querySelector('#pdf-preview-content');
+                    if (pdfContent) {
+                      pdfContent.style.cssText += `
+                        width: 100vw !important;
+                        max-width: 100vw !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        display: flex !important;
+                        justify-content: center !important;
+                        ` + (isLandscape ? 'overflow-y: auto !important;' : '') + `
+                      `;
+                    }
+                    
+                    // Force page scaling for mobile
+                    var pages = document.querySelectorAll('.page');
+                    pages.forEach(function(page) {
+                      var scale = screenWidth / 794; // A4 width in pixels
+                      if (screenWidth <= 480) {
+                        scale = (screenWidth - 20) / 794;
+                      }
+                      if (screenWidth <= 320) {
+                        scale = (screenWidth - 10) / 794;
+                      }
+                      
+                      page.style.cssText += `
+                        transform: scale(` + scale + `) !important;
+                        transform-origin: top center !important;
+                        margin: 0 !important;
+                        position: relative !important;
+                      `;
+                    });
+                    
+                    // Adjust page container wrappers
+                    var pageWrappers = document.querySelectorAll('.page-container-wrapper');
+                    pageWrappers.forEach(function(wrapper) {
+                      var scale = screenWidth / 794;
+                      if (screenWidth <= 480) {
+                        scale = (screenWidth - 20) / 794;
+                      }
+                      if (screenWidth <= 320) {
+                        scale = (screenWidth - 10) / 794;
+                      }
+                      
+                      wrapper.style.cssText += `
+                        width: 100% !important;
+                        display: flex !important;
+                        justify-content: center !important;
+                      `;
+                    });
+                  }
+                  
+                } else {
+                  console.log('No responsive CSS detected - applying fallback mobile styles');
+                  
+                  // Check if device is in landscape mode
+                  var isLandscape = screenWidth > screenHeight;
+                  console.log('Device orientation: ' + (isLandscape ? 'Landscape' : 'Portrait'));
+                  
+                  // Fallback mobile optimization for non-responsive pages
+                  document.body.style.cssText += `
+                    margin: 0 !important;
+                    padding: 8px !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    overflow-x: hidden !important;
+                    overflow-y: ` + (isLandscape ? 'auto' : 'hidden') + ` !important;
+                    font-size: 14px !important;
+                    line-height: 1.4 !important;
+                  `;
+                  
+                  // Scale down content to fit mobile
+                  var allContent = document.querySelector('body > *');
+                  if (allContent && screenWidth < 768) {
+                    var scale = screenWidth / 800; // Assume desktop width of 800px
+                    allContent.style.cssText += `
+                      transform: scale(` + scale + `) !important;
+                      transform-origin: top left !important;
+                      width: ` + (100/scale) + `% !important;
+                    `;
+                  }
+                }
+              }
+              
+              // Apply mobile optimization initially
+              applyMobileOptimization();
+              
+              // Listen for orientation changes and viewport resize
+              window.addEventListener('orientationchange', function() {
+                // Add a small delay to ensure the orientation change is complete
+                setTimeout(function() {
+                  console.log('Orientation changed - reapplying mobile optimization');
+                  applyMobileOptimization();
+                }, 300);
               });
               
-              if (hasResponsiveCSS) {
-                console.log('Responsive CSS detected - using existing responsive design');
-                
-                // Check if device is in landscape mode
-                var isLandscape = screenWidth > screenHeight;
-                console.log('Device orientation: ' + (isLandscape ? 'Landscape' : 'Portrait'));
-                
-                // Let the existing responsive CSS handle the layout
-                // Just ensure body and html allow proper rendering
-                document.documentElement.style.cssText = `
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                `;
-                
-                document.body.style.cssText = `
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 100% !important;
-                  min-height: 100vh !important;
-                  overflow-x: hidden !important;
-                  overflow-y: ` + (isLandscape ? 'auto' : 'hidden') + ` !important;
-                `;
-                
-                // Force mobile media queries to activate if screen is mobile size
-                if (screenWidth <= 768) {
-                  // Add a class to body to ensure mobile styles are applied
-                  document.body.classList.add('mobile-view');
-                  if (isLandscape) {
-                    document.body.classList.add('landscape-view');
-                  }
-                  
-                  // Ensure containers respect mobile layout
-                  var containers = document.querySelectorAll('.container');
-                  containers.forEach(function(container) {
-                    container.style.cssText += `
-                      max-width: 100% !important;
-                      margin: 0 auto !important;
-                      border-radius: 0 !important;
-                      box-shadow: none !important;
-                      ` + (isLandscape ? 'min-height: auto !important;' : '') + `
-                    `;
-                  });
-                  
-                  // Ensure pdf content is mobile optimized
-                  var pdfContent = document.querySelector('#pdf-preview-content');
-                  if (pdfContent) {
-                    pdfContent.style.cssText += `
-                      width: 100vw !important;
-                      max-width: 100vw !important;
-                      margin: 0 !important;
-                      padding: 0 !important;
-                      display: flex !important;
-                      justify-content: center !important;
-                      ` + (isLandscape ? 'overflow-y: auto !important;' : '') + `
-                    `;
-                  }
-                  
-                  // Force page scaling for mobile
-                  var pages = document.querySelectorAll('.page');
-                  pages.forEach(function(page) {
-                    var scale = screenWidth / 794; // A4 width in pixels
-                    if (screenWidth <= 480) {
-                      scale = (screenWidth - 20) / 794;
-                    }
-                    if (screenWidth <= 320) {
-                      scale = (screenWidth - 10) / 794;
-                    }
-                    
-                    page.style.cssText += `
-                      transform: scale(` + scale + `) !important;
-                      transform-origin: top center !important;
-                      margin: 0 !important;
-                      position: relative !important;
-                    `;
-                  });
-                  
-                  // Adjust page container wrappers
-                  var pageWrappers = document.querySelectorAll('.page-container-wrapper');
-                  pageWrappers.forEach(function(wrapper) {
-                    var scale = screenWidth / 794;
-                    if (screenWidth <= 480) {
-                      scale = (screenWidth - 20) / 794;
-                    }
-                    if (screenWidth <= 320) {
-                      scale = (screenWidth - 10) / 794;
-                    }
-                    
-                    wrapper.style.cssText += `
-                      width: 100% !important;
-                      display: flex !important;
-                      justify-content: center !important;
-                    `;
-                  });
-                }
-                
-              } else {
-                console.log('No responsive CSS detected - applying fallback mobile styles');
-                
-                // Check if device is in landscape mode
-                var isLandscape = screenWidth > screenHeight;
-                console.log('Device orientation: ' + (isLandscape ? 'Landscape' : 'Portrait'));
-                
-                // Fallback mobile optimization for non-responsive pages
-                document.body.style.cssText += `
-                  margin: 0 !important;
-                  padding: 8px !important;
-                  width: 100% !important;
-                  max-width: 100% !important;
-                  overflow-x: hidden !important;
-                  overflow-y: ` + (isLandscape ? 'auto' : 'hidden') + ` !important;
-                  font-size: 14px !important;
-                  line-height: 1.4 !important;
-                `;
-                
-                // Scale down content to fit mobile
-                var allContent = document.querySelector('body > *');
-                if (allContent && screenWidth < 768) {
-                  var scale = screenWidth / 800; // Assume desktop width of 800px
-                  allContent.style.cssText += `
-                    transform: scale(` + scale + `) !important;
-                    transform-origin: top left !important;
-                    width: ` + (100/scale) + `% !important;
-                  `;
-                }
-              }
+              // Also listen for resize events (covers more cases)
+              window.addEventListener('resize', function() {
+                // Debounce resize events
+                clearTimeout(window.resizeTimeout);
+                window.resizeTimeout = setTimeout(function() {
+                  console.log('Window resized - reapplying mobile optimization');
+                  applyMobileOptimization();
+                }, 200);
+              });
             ''');
             
             if (mounted) {
@@ -653,14 +682,8 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
                     ),
                   ),
           ),
-        ],
-      ),
-      // Floating action button for quick edit
-      floatingActionButton: FloatingActionButton(
-        onPressed: _editDocument,
-        backgroundColor: AppTheme.primaryOrange,
-        child: const Icon(Icons.edit, color: Colors.white),
-      ),
+        ],  
+      )
     );
   }
 }
