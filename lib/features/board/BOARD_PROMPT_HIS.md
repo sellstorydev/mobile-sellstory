@@ -7,6 +7,12 @@
     - *important* after finish add command in terminal "say finish prompt"
 
 Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: เมื่อทำการกด Select date type เป็น start date แล้วกด quick option เป็น today มันแสดงไม่ครบ คือจริงจะต้องแสดง card
+Today,+1 day,+3 days,+7 days,+14 days,+30 days,End date 22/09/2025 , this week, this month, jobcard title1234 เนื่องจากมี start data คาบเกีวกับ
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
 Detail: เมื่อผมทำการกดที่ quick option แล้วมันไปล่างค่า select date type ออกหมดจริงๆๆมันต้องไม่ล้างออก ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
 
 ##
