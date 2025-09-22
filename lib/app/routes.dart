@@ -83,6 +83,7 @@ class AppRoutes {
         laneId: Get.parameters['laneId'],
         boardId: Get.parameters['boardId'],
         workspaceId: Get.parameters['workspaceId'],
+        initialCustomerId: Get.parameters['customerId'] ?? Get.parameters['cid'],
       ),
     ),
     GetPage(

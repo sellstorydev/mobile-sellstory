@@ -16,12 +16,15 @@ class CreateCardPage extends StatefulWidget {
   final String? laneId;
   final String? boardId;
   final String? workspaceId;
+  // New: preselect customer when opening from chat
+  final String? initialCustomerId;
 
   const CreateCardPage({
     super.key,
     this.laneId,
     this.boardId,
     this.workspaceId,
+    this.initialCustomerId,
   });
 
   @override
@@ -102,10 +105,55 @@ class _CreateCardPageState extends State<CreateCardPage> {
     print('  - Received laneId: ${widget.laneId}');
     print('  - Received boardId: ${widget.boardId}');
     print('  - Received workspaceId: ${widget.workspaceId}');
+    print('  - Received initialCustomerId: ${widget.initialCustomerId}');
     _initializeData().then((_) {
       setState(() {});
     });
     _loadHashtags();
+  }
+
+  Future<void> _initializeData() async {
+    // If a workspaceId is provided and different from current, switch first
+    final targetWsId = widget.workspaceId;
+    if (targetWsId != null && targetWsId.isNotEmpty &&
+        _controller.currentWorkspaceId.value != targetWsId) {
+      try {
+        print('🔁 Switching workspace to: $targetWsId before initialization');
+        await _controller.switchWorkspace(targetWsId);
+        print('✅ Workspace switched to: ${_controller.currentWorkspaceId.value}');
+      } catch (e) {
+        print('❌ Failed to switch workspace: $e');
+      }
+    }
+
+    // Set default values
+    _titleController.text = 'New Card';
+    _assigneeController.text = '';
+
+    // Generate default job ID
+    _generateJobId();
+
+    // Load available options
+    await _loadAvailableOptions();
+
+    // If initialCustomerId provided, preselect it (after customers are loaded)
+    final initCid = widget.initialCustomerId;
+    if (initCid != null && initCid.isNotEmpty) {
+      final exists = _availableCustomers.any((c) => c.id == initCid);
+      if (exists) {
+        _selectedCustomerIds = [initCid];
+        // Also load companies for this customer
+        await _loadCompaniesForCustomer(initCid);
+      }
+    }
+
+    // Set default lane if provided
+    if (widget.laneId != null) {
+      _selectedLane = widget.laneId!;
+      print('✅ Set default lane from parameter: $_selectedLane');
+    } else {
+      print('⚠️ No laneId parameter provided');
+    }
   }
 
   List<String> get _selectedHashtagTexts {
@@ -159,26 +207,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
     } catch (e) {
       if (mounted) setState(() {});
       print('❌ Failed to load hashtags: $e');
-    }
-  }
-
-  Future<void> _initializeData() async {
-    // Set default values
-    _titleController.text = 'New Card';
-    _assigneeController.text = '';
-
-    // Generate default job ID
-    _generateJobId();
-
-    // Load available options
-    await _loadAvailableOptions();
-
-    // Set default lane if provided
-    if (widget.laneId != null) {
-      _selectedLane = widget.laneId!;
-      print('✅ Set default lane from parameter: $_selectedLane');
-    } else {
-      print('⚠️ No laneId parameter provided');
     }
   }
 
@@ -339,11 +367,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
       final customers = await _controller.getCustomers();
       final customer = customers.firstWhereOrNull((c) => c.id == customerId);
 
-      if (customer != null && customer.companyNames != null) {
+      if (customer != null && customer.companyNames.isNotEmpty) {
         final companyMap = <String, Map<String, dynamic>>{};
         companyMap['none'] = {'id': 'none', 'name': 'None'};
 
-        for (final company in customer.companyNames!) {
+        for (final company in customer.companyNames) {
           companyMap[company['id']] = {
             'id': company['id'],
             'name': company['value'], // ใช้ value แทน label เพื่อแสดงชื่อสั้นๆ
@@ -650,14 +678,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
         customerName = selectedCustomer?.displayName ?? '';
       }
 
-      // Get company name if selected
-      String? companyName;
-      if (_selectedCompany != 'none' && _selectedCompany.isNotEmpty) {
-        final selectedCompany = _availableCompanies.firstWhereOrNull(
-          (c) => c['id'] == _selectedCompany,
-        );
-        companyName = selectedCompany?['name'];
-      }
 
       // Prepare company data in correct format
       Map<String, dynamic>? companyData;
@@ -697,6 +717,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         print(
           '  - Fallback controller text: "${_descriptionFallbackController.text}"',
         );
+
+
 
         // Check if we're in the middle of disposal
         if (!mounted) {
@@ -820,8 +842,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
           _isLoading = false;
         });
 
-        // Navigate back immediately after success
-        Navigator.of(context).pop();
+        // Navigate back immediately after success WITH RESULT
+        Navigator.of(context).pop(cardId);
         print('✅ CreateCardPage._saveCard - Navigation completed');
 
         // Show warning dialog if HTML editor was unavailable
@@ -924,7 +946,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
               Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 12),
               const Text(
-                'ค��ณไม่มีสิทธิ์สร้าง Job Card',
+                'คุณไม่มีสิทธิ์สร้าง Job Card',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 8),
@@ -2089,8 +2111,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                             runSpacing: 6,
                             children: _availableUsers
                                 .where(
-                                  (user) =>
-                                      !_selectedWatchers.contains(user['id']),
+                                  (user) => !_selectedWatchers.contains(user['id']),
                                 )
                                 .map((user) {
                                   final displayName =
@@ -2514,8 +2535,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
               ),
           ],
         ),
-      ),
-    );
+      ));
+
 
     if (timeOption != null && mounted) {
       switch (timeOption) {

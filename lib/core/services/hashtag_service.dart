@@ -4,7 +4,47 @@ import '../widgets/hashtag_input_field.dart';
 class HashtagService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Fetch hashtags from workspace settings
+  // Helper: extract hashtag settings map and update path from workspace doc data
+  // Returns a tuple-like map: {'settings': Map<String,dynamic>, 'path': String}
+  Map<String, dynamic> _extractSettings(Map<String, dynamic> data) {
+    Map<String, dynamic> settings = const {};
+    String path = '';
+    // Prefer root-level hashtagSettings if present
+    final root = data['hashtagSettings'];
+    if (root is Map) {
+      settings = Map<String, dynamic>.from(root);
+      path = 'hashtagSettings';
+      return {'settings': settings, 'path': path};
+    }
+    // Fallback to companyProfile.hashtagSettings
+    final cp = data['companyProfile'];
+    if (cp is Map) {
+      final cpMap = Map<String, dynamic>.from(cp);
+      final raw = cpMap['hashtagSettings'];
+      if (raw is Map) {
+        settings = Map<String, dynamic>.from(raw);
+        path = 'companyProfile.hashtagSettings';
+        return {'settings': settings, 'path': path};
+      }
+    }
+    // Nothing found
+    return {'settings': <String, dynamic>{}, 'path': ''};
+  }
+
+
+  // Helper: pick update path; if none exists, initialize under companyProfile.hashtagSettings
+  String _ensureSettingsPath(Map<String, dynamic> data) {
+    // If root exists, use it
+    if (data['hashtagSettings'] is Map) return 'hashtagSettings';
+    // If companyProfile.hashtagSettings exists, use it
+    if (data['companyProfile'] is Map && (data['companyProfile'] as Map)['hashtagSettings'] is Map) {
+      return 'companyProfile.hashtagSettings';
+    }
+    // Otherwise, we'll initialize under companyProfile.hashtagSettings
+    return 'companyProfile.hashtagSettings';
+  }
+
+  /// Fetch hashtags from workspace settings (supports root and companyProfile paths)
   Future<List<HashtagOption>> getWorkspaceHashtags(String workspaceId) async {
     try {
       final doc = await _firestore
@@ -21,8 +61,9 @@ class HashtagService {
         return [];
       }
 
-      final hashtagSettings = data['companyProfile']?['hashtagSettings'];
-      if (hashtagSettings == null) {
+      final extracted = _extractSettings(data);
+      final hashtagSettings = extracted['settings'] as Map<String, dynamic>;
+      if (hashtagSettings.isEmpty) {
         return [];
       }
 
@@ -32,8 +73,8 @@ class HashtagService {
       }
 
       return masterList
-          .where((item) => item['enabled'] == true)
-          .map((item) => HashtagOption.fromMap(Map<String, dynamic>.from(item)))
+          .where((item) => item is Map && (item['enabled'] != false))
+          .map((item) => HashtagOption.fromMap(Map<String, dynamic>.from(item as Map)))
           .toList();
     } catch (e) {
       print('❌ Error fetching workspace hashtags: $e');
@@ -72,34 +113,36 @@ class HashtagService {
         final doc = await transaction.get(docRef);
         if (!doc.exists) return;
 
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>?;
         if (data == null) return;
 
-        final hashtagSettings = data['companyProfile']?['hashtagSettings'];
-        if (hashtagSettings == null) return;
+        final extracted = _extractSettings(data);
+        Map<String, dynamic> hashtagSettings = extracted['settings'] as Map<String, dynamic>;
+        String path = extracted['path'] as String;
+        if (path.isEmpty) {
+          // Nothing to increment
+          return;
+        }
 
-        final masterList = hashtagSettings['masterList'] as List<dynamic>?;
-        if (masterList == null) return;
+        final masterList = (hashtagSettings['masterList'] as List?)?.toList() ?? [];
 
-        // Find and update the hashtag
         for (int i = 0; i < masterList.length; i++) {
-          final hashtag = masterList[i];
+          final raw = masterList[i];
+          if (raw is! Map) continue;
+          final hashtag = Map<String, dynamic>.from(raw);
           if (hashtag['id'] == hashtagId) {
-            // Update total usage
-            masterList[i]['totalUsage'] = (hashtag['totalUsage'] ?? 0) + 1;
-            
-            // Update scope-specific usage
-            final usage = hashtag['usage'] as Map<String, dynamic>? ?? {};
+            hashtag['totalUsage'] = (hashtag['totalUsage'] ?? 0) + 1;
+            final usage = (hashtag['usage'] as Map?)?.map((k, v) => MapEntry(k.toString(), (v as num?)?.toInt() ?? 0)) ?? <String, int>{};
             usage[scope] = (usage[scope] ?? 0) + 1;
-            masterList[i]['usage'] = usage;
-            
+            hashtag['usage'] = usage;
+            masterList[i] = hashtag;
             break;
           }
         }
 
-        // Update the document
+        hashtagSettings['masterList'] = masterList;
         transaction.update(docRef, {
-          'companyProfile.hashtagSettings.masterList': masterList,
+          '$path.masterList': masterList,
         });
       });
     } catch (e) {
@@ -107,7 +150,7 @@ class HashtagService {
     }
   }
 
-  /// Create a new hashtag
+  /// Create a new hashtag (supports root/companyProfile storage)
   Future<bool> createHashtag(
     String workspaceId,
     String name,
@@ -121,31 +164,42 @@ class HashtagService {
 
       await _firestore.runTransaction((transaction) async {
         final doc = await transaction.get(docRef);
-        if (!doc.exists) return;
+        if (!doc.exists) throw Exception('Workspace not found');
 
-        final data = doc.data();
-        if (data == null) return;
+        final data = doc.data() as Map<String, dynamic>? ?? <String, dynamic>{};
 
-        final hashtagSettings = data['companyProfile']?['hashtagSettings'];
-        if (hashtagSettings == null) return;
+        // Pick path; initialize if missing
+        final path = _ensureSettingsPath(data);
 
-        final masterList = hashtagSettings['masterList'] as List<dynamic>? ?? [];
+        // Clone current settings or init
+        Map<String, dynamic> settings;
+        if (path == 'hashtagSettings') {
+          settings = (data['hashtagSettings'] is Map)
+              ? Map<String, dynamic>.from(data['hashtagSettings'] as Map)
+              : <String, dynamic>{};
+        } else {
+          final cp = (data['companyProfile'] is Map)
+              ? Map<String, dynamic>.from(data['companyProfile'] as Map)
+              : <String, dynamic>{};
+          final raw = (cp['hashtagSettings'] is Map)
+              ? Map<String, dynamic>.from(cp['hashtagSettings'] as Map)
+              : <String, dynamic>{};
+          settings = raw;
+        }
+
+        final masterList = (settings['masterList'] as List?)?.map((e) => e is Map ? Map<String, dynamic>.from(e) : {'id': '$e'}).toList() ?? <Map<String, dynamic>>[];
 
         // Generate unique ID
         final id = _generateHashtagId(name);
-        
-        // Check if hashtag already exists
-        final exists = masterList.any((item) => item['id'] == id);
+
+        // Fail if hashtag already exists
+        final exists = masterList.any((item) => (item['id'] ?? '') == id);
         if (exists) {
           throw Exception('Hashtag already exists');
         }
 
         // Create new hashtag
-        final usage = <String, int>{};
-        for (final key in scopes.keys) {
-          usage[key] = 0;
-        }
-        
+        final usage = <String, int>{ for (final key in scopes.keys) key: 0 };
         final newHashtag = {
           'id': id,
           'name': name,
@@ -158,10 +212,18 @@ class HashtagService {
 
         masterList.add(newHashtag);
 
-        // Update the document
-        transaction.update(docRef, {
-          'companyProfile.hashtagSettings.masterList': masterList,
-        });
+        // Persist at path
+        settings['masterList'] = masterList;
+        if (path == 'hashtagSettings') {
+          transaction.update(docRef, {
+            'hashtagSettings.masterList': masterList,
+          });
+        } else {
+          // Ensure companyProfile exists
+          transaction.update(docRef, {
+            'companyProfile.hashtagSettings.masterList': masterList,
+          });
+        }
       });
 
       return true;
@@ -189,19 +251,18 @@ class HashtagService {
         final doc = await transaction.get(docRef);
         if (!doc.exists) return;
 
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>?;
         if (data == null) return;
 
-        final hashtagSettings = data['companyProfile']?['hashtagSettings'];
-        if (hashtagSettings == null) return;
+        final extracted = _extractSettings(data);
+        Map<String, dynamic> hashtagSettings = extracted['settings'] as Map<String, dynamic>;
+        String path = extracted['path'] as String;
+        if (path.isEmpty) return;
 
-        final masterList = hashtagSettings['masterList'] as List<dynamic>?;
-        if (masterList == null) return;
+        final masterList = (hashtagSettings['masterList'] as List?)?.map((e) => e is Map ? Map<String, dynamic>.from(e) : {'id': '$e'}).toList() ?? <Map<String, dynamic>>[];
 
-        // Find and update the hashtag
         for (int i = 0; i < masterList.length; i++) {
-          final hashtag = masterList[i];
-          if (hashtag['id'] == hashtagId) {
+          if ((masterList[i]['id'] ?? '') == hashtagId) {
             if (name != null) masterList[i]['name'] = name;
             if (color != null) masterList[i]['color'] = color;
             if (scopes != null) masterList[i]['scopes'] = scopes;
@@ -210,9 +271,8 @@ class HashtagService {
           }
         }
 
-        // Update the document
         transaction.update(docRef, {
-          'companyProfile.hashtagSettings.masterList': masterList,
+          '$path.masterList': masterList,
         });
       });
 
@@ -234,21 +294,19 @@ class HashtagService {
         final doc = await transaction.get(docRef);
         if (!doc.exists) return;
 
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>?;
         if (data == null) return;
 
-        final hashtagSettings = data['companyProfile']?['hashtagSettings'];
-        if (hashtagSettings == null) return;
+        final extracted = _extractSettings(data);
+        Map<String, dynamic> hashtagSettings = extracted['settings'] as Map<String, dynamic>;
+        String path = extracted['path'] as String;
+        if (path.isEmpty) return;
 
-        final masterList = hashtagSettings['masterList'] as List<dynamic>?;
-        if (masterList == null) return;
+        final masterList = (hashtagSettings['masterList'] as List?)?.map((e) => e is Map ? Map<String, dynamic>.from(e) : {'id': '$e'}).toList() ?? <Map<String, dynamic>>[];
+        masterList.removeWhere((item) => (item['id'] ?? '') == hashtagId);
 
-        // Remove the hashtag
-        masterList.removeWhere((item) => item['id'] == hashtagId);
-
-        // Update the document
         transaction.update(docRef, {
-          'companyProfile.hashtagSettings.masterList': masterList,
+          '$path.masterList': masterList,
         });
       });
 

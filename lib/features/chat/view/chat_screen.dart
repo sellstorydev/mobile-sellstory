@@ -16,6 +16,7 @@ import '../widgets/user_picker_sheet.dart';
 import '../../../core/widgets/top_snack.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../../core/services/logger_service.dart';
+import 'package:intl/intl.dart';
 class ChatScreen extends StatefulWidget {
   final String conversationId;
   final Map<String, dynamic> conversationData;
@@ -1206,7 +1207,82 @@ class _ChatScreenState extends State<ChatScreen> {
                             final replyFocused = _focusedReplyMessageId != null && messageId == _focusedReplyMessageId;
                             final highlight = isSearchHighlighted || replyFocused;
                             final focused = isSearchFocused || replyFocused;
-                            return RepaintBoundary(
+
+                            // Date separator logic
+                            DateTime? _toDate(dynamic ts) {
+                              try {
+                                if (ts == null) return null;
+                                if (ts is Timestamp) return ts.toDate();
+                                if (ts is int) {
+                                  // Heuristic: seconds vs millis
+                                  final int v = ts;
+                                  final bool isSeconds = v < 100000000000; // 1e11
+                                  return DateTime.fromMillisecondsSinceEpoch(isSeconds ? v * 1000 : v);
+                                }
+                                if (ts is String) {
+                                  final parsed = int.tryParse(ts);
+                                  if (parsed != null) {
+                                    final bool isSeconds = parsed < 100000000000;
+                                    return DateTime.fromMillisecondsSinceEpoch(isSeconds ? parsed * 1000 : parsed);
+                                  }
+                                }
+                              } catch (_) {}
+                              return null;
+                            }
+
+                            bool _isSameDay(DateTime a, DateTime b) {
+                              final aa = a.toLocal();
+                              final bb = b.toLocal();
+                              return aa.year == bb.year && aa.month == bb.month && aa.day == bb.day;
+                            }
+
+                            String _formatDay(DateTime d) {
+                              final local = d.toLocal();
+                              return DateFormat('d MMM yyyy').format(local);
+                            }
+
+                            Widget _buildDaySeparator(String text) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  children: [
+                                    const Expanded(child: Divider(thickness: 1)),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade800, fontWeight: FontWeight.w600)),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Expanded(child: Divider(thickness: 1)),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            final DateTime? curTs = _toDate(messageData['timestamp']);
+                            bool showDayHeader = false;
+                            String headerText = '';
+                            if (curTs != null) {
+                              final int prevIndex = _isReversed ? index + 1 : index - 1;
+                              if (prevIndex < 0 || prevIndex >= messages.length) {
+                                showDayHeader = true;
+                              } else {
+                                final prevData = messages[prevIndex].data() as Map<String, dynamic>;
+                                final DateTime? prevTs = _toDate(prevData['timestamp']);
+                                if (prevTs == null || !_isSameDay(curTs, prevTs)) {
+                                  showDayHeader = true;
+                                }
+                              }
+                              if (showDayHeader) {
+                                headerText = _formatDay(curTs);
+                              }
+                            }
+
+                            final bubble = RepaintBoundary(
                               child: MessageBubble(
                                 key: ValueKey(messageId),
                                 messageId: messageId,
@@ -1219,6 +1295,17 @@ class _ChatScreenState extends State<ChatScreen> {
                                 onTapReply: (origId) => _focusReplyOriginal(origId),
                               ),
                             );
+
+                            if (showDayHeader && headerText.isNotEmpty) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _buildDaySeparator(headerText),
+                                  bubble,
+                                ],
+                              );
+                            }
+                            return bubble;
                           },
                         ),
                         // Top loading indicator when fetching older messages

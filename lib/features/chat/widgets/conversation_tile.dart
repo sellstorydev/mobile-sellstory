@@ -195,8 +195,19 @@ class ConversationTile extends StatelessWidget {
     DateTime? _asUtc(dynamic v) {
       if (v == null) return null;
       if (v is DateTime) return v.isUtc ? v : v.toUtc();
-      if (v is int) return DateTime.fromMillisecondsSinceEpoch(v, isUtc: true);
+      if (v is Timestamp) return v.toDate().toUtc();
+      if (v is int) {
+        final isSeconds = v < 100000000000; // heuristic
+        return DateTime.fromMillisecondsSinceEpoch(isSeconds ? v * 1000 : v, isUtc: true);
+      }
+
       if (v is String && v.isNotEmpty) {
+        // Try parse numeric first
+        final n = int.tryParse(v);
+        if (n != null) {
+          final isSeconds = n < 100000000000;
+          return DateTime.fromMillisecondsSinceEpoch(isSeconds ? n * 1000 : n, isUtc: true);
+        }
         final parsed = DateTime.tryParse(v);
         if (parsed != null) return parsed.isUtc ? parsed : parsed.toUtc();
       }
@@ -205,7 +216,18 @@ class ConversationTile extends StatelessWidget {
     final utc = _asUtc(updatedAt);
     if (utc != null) {
       final thai = utc.add(const Duration(hours: 7)); // UTC+7
-      timeText = DateFormat('HH:mm').format(thai);
+      final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+      bool sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+      if (sameDay(thai, now)) {
+        timeText = DateFormat('HH:mm').format(thai);
+      } else {
+        // Show date for non-today
+        if (thai.year == now.year) {
+          timeText = DateFormat('d MMM').format(thai);
+        } else {
+          timeText = DateFormat('d MMM yyyy').format(thai);
+        }
+      }
     }
 
 
@@ -476,18 +498,38 @@ class ConversationTile extends StatelessWidget {
                     final singleJobCardId = (conversation['jobCardId'] ?? '').toString();
                     final singleJobCardTitle = (conversation['jobCardTitle'] ?? '').toString();
 
+                    // Fallback: parse linkedJobCards array if present (newer spec)
+                    List<String> ids = List<String>.from(jobCardIds);
+                    List<String> titles = List<String>.from(jobCardTitles);
+                    if (ids.isEmpty && conversation['linkedJobCards'] is List) {
+                      final arr = (conversation['linkedJobCards'] as List);
+                      final tmpIds = <String>[];
+                      final tmpTitles = <String>[];
+                      for (final it in arr) {
+                        if (it is Map) {
+                          final id = (it['id'] ?? '').toString();
+                          if (id.isNotEmpty) tmpIds.add(id);
+                          final docNo = (it['docNo'] ?? '').toString();
+                          tmpTitles.add(docNo);
+                        }
+                      }
+                      if (tmpIds.isNotEmpty) {
+                        ids = tmpIds;
+                        titles = tmpTitles;
+                      }
+                    }
 
                     Widget jobCardWidget = const SizedBox();
-                    if (jobCardIds.isNotEmpty) {
+                    if (ids.isNotEmpty) {
                       jobCardWidget = Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: List.generate(jobCardIds.length, (i) => Padding(
+                        children: List.generate(ids.length, (i) => Padding(
                           padding: const EdgeInsets.only(top: 2, bottom: 2),
                           child: Row(
                             children: [
                               const Icon(Icons.card_travel_outlined, size: 16, color: Colors.orange),
                               const SizedBox(width: 4),
-                              Flexible(child: Text(jobCardTitles.length > i ? jobCardTitles[i] : jobCardIds[i], style: const TextStyle(fontSize: 13, color: Colors.orange, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                              Flexible(child: Text(titles.length > i && titles[i].isNotEmpty ? titles[i] : ids[i], style: const TextStyle(fontSize: 13, color: Colors.orange, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
                             ],
                           ),
                         )),
@@ -534,7 +576,7 @@ class ConversationTile extends StatelessWidget {
                       );
                     }
 
-                    if (jobCardIds.isNotEmpty) {
+                    if (ids.isNotEmpty) {
                       chips.add(jobCardWidget);
                     }
 

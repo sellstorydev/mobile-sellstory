@@ -969,18 +969,20 @@ class FirestoreRepository {
           .getDocumentsStream(
             cardsCollection,
             queryBuilder: (query) {
+              // Include both modern field (customerId) and legacy nested field (customer.id)
               Query<Map<String, dynamic>> q = query.where(
-                'customerId',
-                isEqualTo: customerId,
+                Filter.or(
+                  Filter('customerId', isEqualTo: customerId),
+                  Filter('customer.id', isEqualTo: customerId),
+                ),
               );
-              if (!(isOwner || canViewAll) &&
-                  canViewAssigned &&
-                  uid.isNotEmpty) {
+              if (!(isOwner || canViewAll) && canViewAssigned && uid.isNotEmpty) {
                 q = q.where('assignedTo', isEqualTo: uid);
               }
               return q;
             },
           )
+
           .map((snapshot) {
             final cards = snapshot.docs.map((doc) {
               final cardData = doc.data();

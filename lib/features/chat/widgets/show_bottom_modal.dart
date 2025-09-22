@@ -10,8 +10,8 @@ import 'chat_menu_tile.dart';
 import 'notes_sheet.dart';
 import 'user_picker_sheet.dart';
 import 'customer_picker_sheet.dart';
-import 'jobcard_picker_sheet.dart';
 import '../../board/view/edit_card_page.dart';
+import '../../board/view/create_card_page.dart';
 import '../../../domain/entities/job_card.dart';
 import 'package:get/get.dart';
 import '../../../core/services/hashtag_service.dart';
@@ -19,6 +19,7 @@ import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+
 
 const _accent = Color(0xFFFF7A00); // Orange tone as shown in the image
 
@@ -43,6 +44,7 @@ class ShowBottomModal {
         required String chatroomId,
         String? customerId,
       }) {
+
 
     return showModalBottomSheet(
       context: context,
@@ -220,6 +222,46 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     }
   }
 
+
+
+  // Resolve an initial customer id to prefill on CreateCardPage when creating a Job Card from chat
+  // Priority: current linked customer -> chatroom document -> first linked job card's customer -> null
+  Future<String?> _resolveInitialCustomerId() async {
+    // 1) If we already have a linked customer in state, use it
+    final current = _currentCustomerId?.trim() ?? '';
+    if (current.isNotEmpty) return current;
+
+    try {
+      // 2) Check chatroom document (fresh read)
+      final snap = await _chatroomDoc.get();
+      final m = snap.data() ?? {};
+      final chatCid = (m['customerId'] ?? m['customer_id'] ?? m['customer']?['id'])?.toString();
+      if (chatCid != null && chatCid.isNotEmpty) return chatCid;
+
+      // 3) If any job card already linked, try to read its customer
+      final sourceIds = _isJobCardDirty ? _pendingJobCardIds : _jobCardIds;
+      if (sourceIds.isNotEmpty) {
+        final firstId = sourceIds.first;
+        try {
+          final cSnap = await FirebaseFirestore.instance
+              .collection('workspaces')
+              .doc(widget.workspaceId)
+              .collection('cards')
+              .doc(firstId)
+              .get();
+          final cm = cSnap.data() ?? {};
+          final cid = (cm['customerId'] ?? cm['customer']?['id'])?.toString();
+          if (cid != null && cid.isNotEmpty) return cid;
+        } catch (_) {/* ignore */}
+      }
+    } catch (_) {
+      // ignore and fall through
+    }
+
+    // 4) Nothing found
+    return null;
+  }
+
   Future<void> _loadJobCardsByIds(List<String> cardIds) async {
     final titles = <String>[];
     final nos = <String>[];
@@ -373,7 +415,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     setState(() { _loadingHashtags = true; });
     try {
       final all = await _hashtagService.getWorkspaceHashtags(widget.workspaceId);
-      final filtered = all.where((h) => (h.scopes['customer'] == true) && h.enabled).toList();
+      // Allow chat if scopes empty or chat==true
+      final filtered = all.where((h) {
+        final s = h.scopes;
+        return h.enabled && (s.isEmpty || (s['chat'] == true));
+      }).toList();
       filtered.sort((a, b) {
         final byUsage = (b.totalUsage).compareTo(a.totalUsage);
         if (byUsage != 0) return byUsage;
@@ -486,7 +532,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Future<void> _createNewCustomerHashtag() async {
-    if ((_currentCustomerId ?? '').isEmpty) return;
+    // Allow creation even when no customer is linked; we'll refresh appropriate list after creating
     final controller = TextEditingController();
     Color selectedColor = const Color(0xFFF97316); // Default orange color
     final name = await showDialog<String>(
@@ -653,11 +699,13 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     setState(() => _creatingHashtag = true);
     try {
       final color = _colorToHexRGB(selectedColor);
+      final hasCustomer = (_currentCustomerId ?? '').isNotEmpty;
+      final scopes = hasCustomer ? const {'customer': true} : const {'chat': true};
       final ok = await _hashtagService.createHashtag(
         widget.workspaceId,
         safeName,
         color,
-        const {'customer': true},
+        scopes,
       );
       if (!ok) {
         if (!mounted) return;
@@ -665,7 +713,11 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         return;
       }
       // Reload available hashtags and keep current selections; then add new tag to pending only
-      await _loadCustomerHashtags(_currentCustomerId!);
+      if (hasCustomer) {
+        await _loadCustomerHashtags(_currentCustomerId!);
+      } else {
+        await _loadChatroomHashtags();
+      }
       final newId = safeName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
       if (!_pendingHashtagIds.contains(newId)) {
         setState(() => _pendingHashtagIds = [..._pendingHashtagIds, newId]);
@@ -809,7 +861,6 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     }
   }
 
-  // Migrate chatroom-level hashtags to customer upon linking
   Future<void> _migrateHashtagsFromChatroomToCustomer(String customerId) async {
     try {
       final ws = FirebaseFirestore.instance.collection('workspaces').doc(widget.workspaceId);
@@ -1399,42 +1450,100 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Future<void> _openJobCardPicker() async {
-    final results = await showModalBottomSheet<List<JobCardPickerResult>>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        final h = MediaQuery.of(ctx).size.height;
-        return SizedBox(
-          height: h * 0.9,
-          child: JobCardPickerSheet(
+    // Require a customer to be selected before creating/linking a Job Card
+    Future<bool> _ensureCustomerSelectedForJobCard() async {
+      if ((_currentCustomerId ?? '').isNotEmpty) return true;
+      // Check permission to view customers before opening picker
+      final svc = MobilePermissionsService.to;
+      final canViewCustomers = svc.isOwner || svc.can('customer:view:all') || svc.can('customer:view:assigned');
+      if (!canViewCustomers) {
+        _showTopSnack('no_permission_view_customers'.tr, isError: true);
+        return false;
+      }
+      // Inform user and open customer picker
+      _showTopSnack('link_customer_first_for_jobcard'.tr);
+      await _openCustomerPicker();
+      return ((_currentCustomerId ?? '').isNotEmpty);
+    }
+
+
+
+
+    // Guard: ensure customer is selected
+    final okProceed = await _ensureCustomerSelectedForJobCard();
+    if (!okProceed) return;
+
+    // Open Create Job Card page instead of picker; upon success, link to chatroom and customer automatically
+    try {
+      // Ensure BoardController is on the right workspace context (same as _openJobCardDetail)
+      final boardController = Get.isRegistered<BoardController>() ? Get.find<BoardController>() : Get.put(BoardController());
+      if (boardController.currentWorkspaceId.value != widget.workspaceId) {
+        await boardController.switchWorkspace(widget.workspaceId);
+      }
+
+      // Resolve a non-null initial customer id when possible
+      final initCid = await _resolveInitialCustomerId();
+
+      final String? cardId = await Get.to<String>(() => CreateCardPage(
             workspaceId: widget.workspaceId,
-            customerId: _currentCustomerId, // filter when available
-            preselectedIds: _jobCardIds,
-            multiSelect: true,
-          ),
-        );
-      },
-    );
+            initialCustomerId: initCid,
+          ));
+      if (cardId == null || cardId.isEmpty) return;
 
-    if (results == null || results.isEmpty) return;
+      // Fetch the created card to collect docNo/title and customer info
+      final snap = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.workspaceId)
+          .collection('cards')
+          .doc(cardId)
+          .get();
+      if (!snap.exists) {
+        _showTopSnack('jobcard_not_found'.tr, isError: true);
+        return;
+      }
+      final m = snap.data() ?? {};
+      final title = (m['title'] ?? m['name'] ?? 'Card').toString();
+      final docNo = (m['customId'] ?? title).toString();
+      final cid = (m['customerId'] ?? m['customer']?['id'])?.toString();
+      final cname = (m['customer'] is Map) ? (m['customer']['name']?.toString() ?? '') : (m['customerName']?.toString() ?? '');
 
-    // Stage selection to pending; do not persist yet
-    final ids = results.map((r) => r.cardId).toList();
-    final titles = results.map((r) => r.title).toList();
-    final docNos = results.map((r) => r.docNo).toList();
-    if (!mounted) return;
-    setState(() {
-      _pendingJobCardIds = ids;
-      _pendingJobCardTitles = titles;
-      _pendingJobCardDocNos = docNos;
-    });
+      // Persist linkage to chatroom (append)
+      final newIds = [..._jobCardIds, cardId];
+      final newNos = [..._jobCardDocNos, docNo];
+      final links = [
+        for (int i = 0; i < _jobCardIds.length; i++)
+          {'id': _jobCardIds[i], 'docNo': (_jobCardDocNos.length > i ? _jobCardDocNos[i] : (_jobCardTitles.length > i ? _jobCardTitles[i] : _jobCardIds[i])), 'type': 'JC'},
+        {'id': cardId, 'docNo': docNo, 'type': 'JC'},
+      ];
+      await _chatroomDoc.set({
+        'linkedJobCards': links,
+        'jobCardIds': newIds,
+        'jobCardTitles': newNos,
+        'jobCardId': newIds.isNotEmpty ? newIds.first : FieldValue.delete(),
+        'jobCardTitle': newNos.isNotEmpty ? newNos.first : FieldValue.delete(),
+      }, SetOptions(merge: true));
+
+      // Auto-link customer from job card
+      if (cid != null && cid.isNotEmpty) {
+        await _chatroomDoc.set({
+          'customerId': cid,
+          'customer': cname.isNotEmpty ? {'id': cid, 'name': cname} : FieldValue.delete(),
+        }, SetOptions(merge: true));
+        if (mounted) setState(() => _currentCustomerId = cid);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _jobCardIds = newIds;
+        _jobCardDocNos = newNos;
+        _jobCardTitles = newNos; // titles used as docNos above
+      });
+      _showTopSnack('jobcard_linked_success'.tr);
+    } catch (e) {
+      if (!mounted) return;
+      _showTopSnack('jobcard_link_failed'.trParams({'error': '$e'}), isError: true);
+    }
   }
-
 
   Future<void> _openJobCardDetail([String? id]) async {
     final sourceIds = _isJobCardDirty ? _pendingJobCardIds : _jobCardIds;
@@ -1454,7 +1563,6 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       }
       final data = snap.data() ?? {};
       final job = JobCard.fromMap(data, snap.id);
-
 
       final boardController = Get.isRegistered<BoardController>()
           ? Get.find<BoardController>()
@@ -1478,72 +1586,139 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
   }
 
   Widget _buildLinkedJobCards() {
+    // If no customer is linked, do not show Job Cards section
+    if ((_currentCustomerId ?? '').isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+
     final ids = _isJobCardDirty ? _pendingJobCardIds : _jobCardIds;
     final titles = _isJobCardDirty ? _pendingJobCardTitles : _jobCardTitles;
     final docNos = _isJobCardDirty ? _pendingJobCardDocNos : _jobCardDocNos;
-    if (ids.isEmpty) return const SizedBox();
+    if (ids.isEmpty) return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Add button even when no cards yet
+        Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: PermissionGuard(
+              anyOf: const ['jobcard:create'],
+              child: OutlinedButton.icon(
+                onPressed: _openJobCardPicker,
+                icon: const Icon(Icons.add, size: 14),
+                label: Padding(padding: EdgeInsets.only(left: 5,right: 10),child: Text('add_jobcard'.tr,style: TextStyle(fontSize: 14)),),
+
+              ),
+              fallback: const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ],
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
+        // Header add button
         ...List.generate(ids.length, (i) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Card(
             color: Colors.white,
             child: ListTile(
-
-
               title: Text((docNos.length > i && docNos[i].isNotEmpty) ? docNos[i] : (titles.length > i && titles[i].isNotEmpty ? titles[i] : ids[i])),
               onTap: () => _openJobCardDetail(ids[i]),
               trailing: IconButton(
-
-                icon: const Icon(Icons.remove_circle_outline),
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                 tooltip: 'delete'.tr,
                 onPressed: () async {
-                  // Ensure we operate on pending snapshot
-                  final curIds = List<String>.from(_isJobCardDirty ? _pendingJobCardIds : _jobCardIds);
-                  final curTitles = List<String>.from(_isJobCardDirty ? _pendingJobCardTitles : _jobCardTitles);
-                  final curNos = List<String>.from(_isJobCardDirty ? _pendingJobCardDocNos : _jobCardDocNos);
-                  while (curTitles.length < curIds.length) { curTitles.add(''); }
-                  while (curNos.length < curIds.length) { curNos.add(''); }
-                  curIds.removeAt(i);
-                  if (i < curTitles.length) curTitles.removeAt(i);
-                  if (i < curNos.length) curNos.removeAt(i);
-                  setState(() {
-                    _pendingJobCardIds = curIds;
-                    _pendingJobCardTitles = curTitles;
-                    _pendingJobCardDocNos = curNos;
-                  });
+                  // Delete the job card document instead of just unlinking
+                  final svc = MobilePermissionsService.to;
+                  final canDelete = svc.isOwner || svc.can('jobcard:delete:all') || svc.can('jobcard:delete:assigned');
+                  if (!canDelete) {
+                    _showTopSnack('no_permission_delete_jobcard'.tr, isError: true);
+                    return;
+                  }
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text('confirm_delete'.tr),
+                      content: Text('confirm_delete_jobcard_message'.tr),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
+                        ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('delete'.tr)),
+                      ],
+                    ),
+                  );
+                  if (ok != true) return;
+                  final cardId = ids[i];
+                  try {
+                    // Delete card doc
+                    await FirebaseFirestore.instance
+                        .collection('workspaces')
+                        .doc(widget.workspaceId)
+                        .collection('cards')
+                        .doc(cardId)
+                        .delete();
+
+                    // Remove from chatroom linkage
+                    final newIds = List<String>.from(_jobCardIds)..remove(cardId);
+                    final newNos = <String>[];
+                    final newLinks = <Map<String, dynamic>>[];
+                    for (int k = 0; k < _jobCardIds.length; k++) {
+                      final idk = _jobCardIds[k];
+                      final nok = (_jobCardDocNos.length > k && _jobCardDocNos[k].isNotEmpty)
+                          ? _jobCardDocNos[k]
+                          : (_jobCardTitles.length > k ? _jobCardTitles[k] : idk);
+                      if (idk == cardId) continue;
+                      newNos.add(nok);
+                      newLinks.add({'id': idk, 'docNo': nok, 'type': 'JC'});
+                    }
+                    await _chatroomDoc.set({
+                      'linkedJobCards': newLinks,
+                      'jobCardIds': newIds,
+                      'jobCardTitles': newNos,
+                      if (newIds.isNotEmpty) 'jobCardId': newIds.first else 'jobCardId': FieldValue.delete(),
+                      if (newNos.isNotEmpty) 'jobCardTitle': newNos.first else 'jobCardTitle': FieldValue.delete(),
+                    }, SetOptions(merge: true));
+
+                    if (!mounted) return;
+                    setState(() {
+                      _jobCardIds = newIds;
+                      _jobCardDocNos = newNos;
+                      if (_jobCardTitles.length > newIds.length) {
+                        _jobCardTitles = _jobCardTitles.take(newIds.length).toList();
+                      }
+                      _pendingJobCardIds = List<String>.from(_jobCardIds);
+                      _pendingJobCardTitles = List<String>.from(_jobCardTitles);
+                      _pendingJobCardDocNos = List<String>.from(_jobCardDocNos);
+                    });
+                    _showTopSnack('jobcard_deleted'.tr);
+                  } catch (e) {
+                    if (mounted) _showTopSnack('jobcard_delete_failed'.trParams({'error': '$e'}), isError: true);
+                  }
                 },
               ),
             ),
           ),
         )),
-        if (_isJobCardDirty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              children: [
-                OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _pendingJobCardIds = List<String>.from(_jobCardIds);
-                      _pendingJobCardTitles = List<String>.from(_jobCardTitles);
-                      _pendingJobCardDocNos = List<String>.from(_jobCardDocNos);
-                    });
-                  },
-                  child: Text('cancel'.tr),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _confirmPersistJobCards,
-                    child: Text('save'.tr),
-                  ),
-                ),
-              ],
+
+        Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: PermissionGuard(
+              anyOf: const ['jobcard:create'],
+              child: OutlinedButton.icon(
+                onPressed: _openJobCardPicker,
+                icon: const Icon(Icons.add, size: 14),
+                label: Padding(padding: EdgeInsets.only(left: 5,right: 10),child: Text('add_jobcard'.tr,style: TextStyle(fontSize: 14)),),
+
+              ),
+              fallback: const SizedBox.shrink(),
             ),
           ),
+        ),
       ],
     );
   }
@@ -1629,19 +1804,22 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                           fallback: const SizedBox.shrink(),
                         ),
                 const SizedBox(height: 8),
-                if ((_currentCustomerId ?? '').isNotEmpty)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: PermissionGuard(
-                      anyOf: const ['customer:edit:all', 'customer:edit:assigned'],
-                      child: OutlinedButton.icon(
-                        onPressed: _creatingHashtag ? null : _createNewCustomerHashtag,
-                        icon: const Icon(Icons.add, size: 14),
-                        label: Padding(padding: EdgeInsets.only(left: 5,right: 10),child: Text(_creatingHashtag ? 'loading'.tr : 'add_new_hashtag'.tr,style: TextStyle(fontSize: 14)),),
-                      ),
-                      fallback: const SizedBox.shrink(),
+
+                // Always allow adding a new hashtag, even if no customer is selected
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PermissionGuard(
+                    anyOf: ((_currentCustomerId ?? '').isNotEmpty)
+                        ? const ['customer:edit:all', 'customer:edit:assigned']
+                        : const ['chat:manage', 'chat:assign', 'chat:send'],
+                    child: OutlinedButton.icon(
+                      onPressed: _creatingHashtag ? null : _createNewCustomerHashtag,
+                      icon: const Icon(Icons.add, size: 14),
+                      label: Padding(padding: EdgeInsets.only(left: 5,right: 10),child: Text(_creatingHashtag ? 'loading'.tr : 'add_new_hashtag'.tr,style: TextStyle(fontSize: 14)),),
                     ),
+                    fallback: const SizedBox.shrink(),
                   ),
+                ),
               ],
             ],
           ),
@@ -1886,7 +2064,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               text: 'link_job_card'.tr,
               onTap: () {
                 final svc = MobilePermissionsService.to;
-                if (svc.isOwner || svc.can('jobcard:view:all') || svc.can('jobcard:view:assigned')) {
+                if (svc.isOwner || svc.can('jobcard:create')) {
                   _openJobCardPicker();
                 } else {
                   _showTopSnack('no_permission_link_jobcard'.tr, isError: true);
