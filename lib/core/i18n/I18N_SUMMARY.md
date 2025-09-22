@@ -5,6 +5,21 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Chat Center Page Translation (2025-01-15)
+**File**: `lib/features/chat/view/chat_center_page.dart`
+
+#### Analysis:
+- The chat center page was already mostly translated with proper .tr keys
+- Found missing Thai translation for 'chat_center_no_permission' key
+
+#### Changes Made:
+1. **Missing Thai Translation**: Added Thai translation for 'chat_center_no_permission': 'คุณไม่มีสิทธิ์เข้าถึงศูนย์การสนทนา'
+
+#### Status:
+- ✅ All text in chat_center_page.dart is properly translated using .tr keys
+- ✅ All translation keys exist in both English and Thai
+- ✅ File uses consistent i18n pattern with GetX
+
 ### Login Page Translation (2024-12-19)
 **File**: `lib/features/login/view/login_page.dart`
 

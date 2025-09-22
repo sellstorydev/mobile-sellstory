@@ -566,6 +566,7 @@ class AppTranslations extends Translations {
           'tasks': 'tasks',
           
           // Chat Module
+          'chat_search_hint': 'Search chat...',
           'chat_confirm_assign_sale': 'Confirm Sales Assignment',
           'chat_assign_sale_success': 'Sales assigned successfully',
           'chat_assign_sale_failed': 'Failed to assign sales',
@@ -1305,6 +1306,7 @@ class AppTranslations extends Translations {
           'invoiced_already': 'ออกใบแจ้งหนี้แล้ว',
 
           // Chat Module (misc labels and notifications)
+          'chat_search_hint': 'ค้นหาแชท...',
           'notifications': 'การแจ้งเตือน',
           'chat_notification_toggle_success': 'ปิด/เปิดการแจ้งเตือนแล้ว',
           // Add filter chip labels (Thai)
@@ -1420,6 +1422,7 @@ class AppTranslations extends Translations {
           'verification_failed': 'การยืนยันไม่สำเร็จ',
           'password_too_weak': 'รหัสผ่านไม่ปลอดภัยเพียงพอ',
           'password_reset_failed': 'การรีเซ็ตรหัสผ่านไม่สำเร็จ',
+          'chat_center_no_permission': 'คุณไม่มีสิทธิ์เข้าถึงศูนย์การสนทนา',
         },
       };
 }
