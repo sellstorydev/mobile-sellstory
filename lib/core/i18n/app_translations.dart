@@ -742,6 +742,16 @@ class AppTranslations extends Translations {
           // Multi-image
           'uploading_images_start': 'Uploading {total} images…',
           'uploading_images_progress': 'Uploading images… {current}/{total} ({percent}%)',
+          
+          // Login Page additional keys
+          'email_field_label': 'Email',
+          'password_field_label': 'Password',
+          'enter_email_hint': 'Enter email',
+          'enter_password_hint': 'Enter password',
+          'sign_in_with_google': 'Sign in with Google',
+          'sign_in_with_apple': 'Sign in with Apple',
+          'or_divider': 'or',
+          'for_more_information': 'For more information',
         },
         'th': {
           'calendar': 'ปฏิทิน',
@@ -1300,7 +1310,6 @@ class AppTranslations extends Translations {
           'search_in_chat': 'ค้นหาในแชท',
           'no_results_found': 'ไม่พบผลลัพธ์',
           'previous': 'ก่อนหน้า',
-          'next': 'ถัดไป',
           'clear_value': 'ล้างค่า',
           'no_messages_yet': 'ยังไม่มีข้อความ',
           'original_message_not_found': 'ไม่พบข้อความต้นฉบับ',
@@ -1347,6 +1356,16 @@ class AppTranslations extends Translations {
           // Multi-image
           'uploading_images_start': 'กำลังอัปโหลดรูปภาพ {total} รูป…',
           'uploading_images_progress': 'กำลังอัปโหลดรูปภาพ… {current}/{total} ({percent}%)',
+          
+          // Login Page additional keys
+          'email_field_label': 'อีเมล',
+          'password_field_label': 'รหัสผ่าน',
+          'enter_email_hint': 'กรอกอีเมล',
+          'enter_password_hint': 'กรอกรหัสผ่าน',
+          'sign_in_with_google': 'เข้าสู่ระบบด้วย Google',
+          'sign_in_with_apple': 'เข้าสู่ระบบด้วย Apple',
+          'or_divider': 'หรือ',
+          'for_more_information': 'สอบถามข้อมูลเพิ่มเติม',
         },
       };
 }

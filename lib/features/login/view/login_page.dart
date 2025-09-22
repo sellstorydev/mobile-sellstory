@@ -47,7 +47,7 @@ class LoginPage extends StatelessWidget {
                           children: [
                             // Email field
                             Text(
-                              'อีเมล',
+                              'email_field_label'.tr,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
@@ -57,7 +57,7 @@ class LoginPage extends StatelessWidget {
                               style: const TextStyle(color: Colors.black),
 
                               decoration: InputDecoration(
-                                hintText: 'กรอกอีเมล',
+                                hintText: 'enter_email_hint'.tr,
                                 filled: true,
                                 fillColor: AppTheme.backgroundGrey,
                                 border: OutlineInputBorder(
@@ -80,7 +80,7 @@ class LoginPage extends StatelessWidget {
                             
                             // Password field
                             Text(
-                              'รหัสผ่าน',
+                              'password_field_label'.tr,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
@@ -89,7 +89,7 @@ class LoginPage extends StatelessWidget {
                               obscureText: controller.obscurePassword.value,
                               style: const TextStyle(color: Colors.black), // Added black text color
                               decoration: InputDecoration(
-                                hintText: 'กรอกรหัสผ่าน',
+                                hintText: 'enter_password_hint'.tr,
                                 filled: true,
                                 fillColor: AppTheme.backgroundGrey,
                                 border: OutlineInputBorder(
@@ -127,7 +127,7 @@ class LoginPage extends StatelessWidget {
                           child: TextButton(
                             onPressed: controller.forgotPassword,
                             child: Text(
-                              'ลืมรหัสผ่าน',
+                              'forgot_password'.tr,
                               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: AppTheme.primaryOrange,
                               ),
@@ -166,9 +166,9 @@ class LoginPage extends StatelessWidget {
                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                     ),
                                   )
-                                : const Text(
-                                    'เข้าสู่ระบบ',
-                                    style: TextStyle(
+                                : Text(
+                                    'login'.tr,
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                       height: 1.2,
@@ -186,7 +186,7 @@ class LoginPage extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
-                                'หรือ',
+                                'or_divider'.tr,
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: AppTheme.textSecondary,
                                 ),
@@ -209,9 +209,9 @@ class LoginPage extends StatelessWidget {
                               width: 24,
                               height: 24,
                             ),
-                            label: const Text(
-                              'เข้าสู่ระบบด้วย Google',
-                              style: TextStyle(
+                            label: Text(
+                              'sign_in_with_google'.tr,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
@@ -240,9 +240,9 @@ class LoginPage extends StatelessWidget {
                             child: OutlinedButton.icon(
                               onPressed: controller.isLoading.value ? null : controller.signInWithApple,
                               icon: const FaIcon(FontAwesomeIcons.apple, size: 24, color: Colors.black),
-                              label: const Text(
-                                'เข้าสู่ระบบด้วย Apple',
-                                style: TextStyle(
+                              label: Text(
+                                'sign_in_with_apple'.tr,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.black87,
@@ -273,7 +273,7 @@ class LoginPage extends StatelessWidget {
                                 color: AppTheme.textSecondary,
                               ),
                               children: [
-                                const TextSpan(text: 'สอบถามข้อมูลเพิ่มเติม '),
+                                TextSpan(text: '${'for_more_information'.tr} '),
                                 TextSpan(
                                   text: 'https://lin.ee/uaT3pzf',
                                   style: const TextStyle(
