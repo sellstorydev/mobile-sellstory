@@ -40,6 +40,7 @@ class ProductsController extends GetxController {
   // Search controller and debounce timer
   final searchController = TextEditingController();
   bool _isSearchControllerInitialized = false;
+  bool _isDisposed = false;
   Timer? _searchDebounceTimer;
   
   // Fallback controller for when main controller is disposed
@@ -47,18 +48,24 @@ class ProductsController extends GetxController {
   
   // Helper to safely access the search controller
   TextEditingController get safeSearchController {
-    if (!_isSearchControllerInitialized) {
-      print('⚠️ SearchController not yet initialized, using fallback');
-      _fallbackController ??= TextEditingController();
-      return _fallbackController!;
-    }
-    
     try {
+      if (_isDisposed) {
+        print('⚠️ Controller is disposed, using fallback');
+        _fallbackController ??= TextEditingController();
+        return _fallbackController!;
+      }
+      
+      if (!_isSearchControllerInitialized) {
+        print('⚠️ SearchController not yet initialized, using fallback');
+        _fallbackController ??= TextEditingController();
+        return _fallbackController!;
+      }
+      
       // Check if controller is disposed by trying to access a property
-      searchController.text;
+      final _ = searchController.text;
       return searchController;
     } catch (e) {
-      print('⚠️ SearchController is disposed, using fallback');
+      print('⚠️ SearchController is disposed or invalid: $e, using fallback');
       _fallbackController ??= TextEditingController();
       return _fallbackController!;
     }
@@ -76,6 +83,7 @@ class ProductsController extends GetxController {
 
   @override
   void onClose() {
+    _isDisposed = true;
     _isSearchControllerInitialized = false;
     _searchDebounceTimer?.cancel();
     
@@ -83,7 +91,7 @@ class ProductsController extends GetxController {
     try {
       searchController.dispose();
     } catch (e) {
-      print('⚠️ SearchController already disposed: $e');
+      print('⚠️ SearchController disposal error: $e');
     }
     
     // Dispose fallback controller if it was created
@@ -200,6 +208,11 @@ class ProductsController extends GetxController {
   }
 
   void onSearchChanged(String query) {
+    if (_isDisposed) {
+      print('⚠️ Controller disposed, ignoring search change');
+      return;
+    }
+    
     // Cancel previous timer if exists
     _searchDebounceTimer?.cancel();
     
@@ -215,7 +228,9 @@ class ProductsController extends GetxController {
     
     // Debounce search for 500ms to avoid too many API calls while typing
     _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-      triggerAlgoliaSearch(query.trim());
+      if (!_isDisposed) {
+        triggerAlgoliaSearch(query.trim());
+      }
     });
   }
 
@@ -319,6 +334,11 @@ class ProductsController extends GetxController {
   }
 
   void clearSearch() {
+    if (_isDisposed) {
+      print('⚠️ Controller disposed, ignoring clear search');
+      return;
+    }
+    
     searchQuery.value = '';
     
     // Clear search controller safely

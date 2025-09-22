@@ -65,8 +65,12 @@ class ProductsPage extends StatelessWidget {
               child: TextField(
                 controller: controller.safeSearchController,
                 onChanged: (value) {
-                  if (Get.isRegistered<ProductsController>()) {
-                    controller.onSearchChanged(value);
+                  try {
+                    if (Get.isRegistered<ProductsController>()) {
+                      controller.onSearchChanged(value);
+                    }
+                  } catch (e) {
+                    print('⚠️ Error in onChanged: $e');
                   }
                 },
                 decoration: InputDecoration(
@@ -335,48 +339,75 @@ class ProductsPage extends StatelessWidget {
   }
 
   Widget _buildSearchAndClearSuffixIcons(ProductsController controller) {
-    final hasSearchText = controller.searchQuery.value.isNotEmpty;
+    return Obx(() {
+      try {
+        if (!Get.isRegistered<ProductsController>()) {
+          return const SizedBox.shrink();
+        }
+        
+        final hasSearchText = controller.searchQuery.value.isNotEmpty;
 
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Search button
-          Obx(() => IconButton(
-            onPressed: () => _triggerSearch(controller),
-            icon: controller.isSearching.value
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppTheme.primaryOrange,
-                    ),
-                  )
-                : Icon(
-                    Icons.search,
-                    color: hasSearchText 
-                        ? AppTheme.primaryOrange
-                        : AppTheme.textGrey,
-                  ),
-          )),
-          // Clear button
-          if (hasSearchText)
-            IconButton(
-              icon: const Icon(Icons.clear, color: AppTheme.textGrey),
-              onPressed: controller.clearSearch,
-            ),
-        ],
-      ),
-    );
+        return Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Search button
+              IconButton(
+                onPressed: () => _triggerSearch(controller),
+                icon: controller.isSearching.value
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.primaryOrange,
+                        ),
+                      )
+                    : Icon(
+                        Icons.search,
+                        color: hasSearchText 
+                            ? AppTheme.primaryOrange
+                            : AppTheme.textGrey,
+                      ),
+              ),
+              // Clear button
+              if (hasSearchText)
+                IconButton(
+                  icon: const Icon(Icons.clear, color: AppTheme.textGrey),
+                  onPressed: () {
+                    try {
+                      if (Get.isRegistered<ProductsController>()) {
+                        controller.clearSearch();
+                      }
+                    } catch (e) {
+                      print('⚠️ Error in clearSearch: $e');
+                    }
+                  },
+                ),
+            ],
+          ),
+        );
+      } catch (e) {
+        print('⚠️ Error building search icons: $e');
+        return const SizedBox.shrink();
+      }
+    });
   }
 
   void _triggerSearch(ProductsController controller) {
-    final searchController = controller.safeSearchController;
-    final query = searchController.text.trim();
-    if (query.isNotEmpty) {
-      controller.triggerAlgoliaSearch(query);
+    try {
+      if (!Get.isRegistered<ProductsController>()) {
+        return;
+      }
+      
+      final searchController = controller.safeSearchController;
+      final query = searchController.text.trim();
+      if (query.isNotEmpty) {
+        controller.triggerAlgoliaSearch(query);
+      }
+    } catch (e) {
+      print('⚠️ Error triggering search: $e');
     }
   }
 }
