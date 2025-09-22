@@ -6,7 +6,8 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
 
-
+Topic: EditCard `lib/features/board/view/edit_card_page.dart`
+Detail: In Content and tasks section button apply template not working. go to copy flow from create card page `lib/features/board/view/create_card_page.dart`
 
 
 ##

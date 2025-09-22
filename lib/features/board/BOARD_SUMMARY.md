@@ -2,6 +2,85 @@
 
 ## Recent Changes
 
+### Apply Template Button Fix in EditCard (September 23, 2025)
+
+**Topic:** EditCard `lib/features/board/view/edit_card_page.dart` - Apply template button in Content and tasks section not working, copy flow from create card page
+
+**Issue Analysis:**
+User reported that the "Apply Template" button in the Content and tasks section of edit_card_page.dart is not working. The button exists in the UI but clicking it does nothing.
+
+**Root Cause Analysis:**
+- The `_showTodoTemplates` method in edit_card_page.dart is empty (only contains a comment)
+- The create_card_page.dart has a fully implemented `_showTodoTemplates` method that works correctly
+- Missing FirestoreService import needed for template loading
+- Edit card page lacks error handling methods used by template functionality
+
+**Solution Applied:**
+
+**1. Added Required Import:**
+```dart
+// Added missing import to edit_card_page.dart
+import '../../../data/services/firestore_service.dart';
+```
+
+**2. Implemented _showTodoTemplates Method:**
+Copied the complete implementation from create_card_page.dart with proper adaptations:
+- Loads todo templates from Firestore board configuration
+- Shows template selection dialog with available templates
+- Applies selected template by adding todos to existing _todoItems list
+- Calculates due dates from template dueInDays configuration
+- Shows success/error feedback to user
+
+**3. Added Error Handling Method:**
+```dart
+void _showError(String message) {
+  Get.snackbar(
+    'Error',
+    message,
+    snackPosition: SnackPosition.BOTTOM,
+    backgroundColor: Colors.red,
+    colorText: Colors.white,
+    duration: const Duration(seconds: 3),
+  );
+}
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/view/edit_card_page.dart`
+  - Added FirestoreService import
+  - Implemented complete _showTodoTemplates method with template loading and selection
+  - Added _showError helper method for user feedback
+  - Template functionality now matches create_card_page.dart behavior
+
+**Apply Template Flow:**
+1. **Template Loading**: Fetches todoTemplates from board configuration in Firestore
+2. **Template Selection**: Shows dialog with available template options
+3. **Template Application**: Adds template todos to current card's todo list
+4. **Due Date Calculation**: Converts template dueInDays to actual dates from current date
+5. **User Feedback**: Shows success message after template application
+
+**Benefits:**
+- **Working Template Button**: Apply Template button now functions correctly in edit card page
+- **Consistent Behavior**: Edit card template functionality matches create card page
+- **User Experience**: Templates can be applied to existing cards during editing
+- **Error Handling**: Proper error messages for template loading failures
+
+**User Impact:**
+- Users can now apply todo templates while editing existing cards
+- Template functionality works identically between create and edit flows
+- Better workflow efficiency when updating cards with standard todo sets
+- Clear feedback when templates are applied or when errors occur
+
+**Implementation Notes:**
+- Template data structure maintained: {name, todos: [{title, dueInDays}]}
+- Due dates calculated as: current date + dueInDays with 00:00:00 time
+- Templates loaded from: `/workspaces/{workspaceId}/boards/{boardId}/todoTemplates`
+- Error handling covers missing workspace, board, or template data scenarios
+
+## Recent Changes
+
 ### Quick Filter Date Type Preservation Fix (September 22, 2025)
 
 **Topic:** Fix filter cards unified_filter_page.dart - Quick options should NOT clear selected date types
