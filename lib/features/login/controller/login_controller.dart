@@ -90,8 +90,8 @@ class LoginController extends GetxController {
     } catch (e) {
       debugPrint('signInWithEmail error: $e');
       Get.snackbar(
-        'Error',
-        'Invalid email or password',
+        'error'.tr,
+        'invalid_email_or_password'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -228,8 +228,8 @@ class LoginController extends GetxController {
       _handleAuthError(e);
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Invalid email or password',
+        'error'.tr,
+        'invalid_email_or_password'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -359,10 +359,10 @@ class LoginController extends GetxController {
 
   // Handle Firebase Auth Errors
   void _handleAuthError(FirebaseAuthException e) {
-    String message = 'Invalid email or password';
+    String message = 'invalid_email_or_password'.tr;
 
     Get.snackbar(
-      'Error',
+      'error'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),

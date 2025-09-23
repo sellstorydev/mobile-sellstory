@@ -143,7 +143,9 @@ class CompaniesController extends GetxController {
       final result = await _repository.getCompanies(workspaceId);
       companies.value = result;
     } catch (e) {
-      errorMessage.value = 'ไม่สามารถโหลดข้อมูลบริษัทได้: ${e.toString()}';
+      errorMessage.value = 'load_companies_failed_details'.trParams({
+        'error': e.toString(),
+      });
     } finally {
       isLoading.value = false;
     }
@@ -224,7 +226,9 @@ class CompaniesController extends GetxController {
   /// Create a new company
   Future<bool> createCompany(Company company) async {
     if (!_can('company:create')) {
-      errorMessage.value = 'Permission denied: company:create';
+      errorMessage.value = 'permission_denied_action'.trParams({
+        'action': 'company:create',
+      });
       return false;
     }
     try {
@@ -239,11 +243,11 @@ class CompaniesController extends GetxController {
         } catch (_) {}
       }
       if (currentWorkspaceId.value.isEmpty) {
-        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+        throw Exception('workspace_not_found'.tr);
       }
 
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('ไม่พบข้อมูลผู้ใช้');
+      if (user == null) throw Exception('user_not_found'.tr);
 
       // Generate custom ID
       final customId = await _idService.generateCompanyId(currentWorkspaceId.value);
@@ -276,7 +280,9 @@ class CompaniesController extends GetxController {
 
       return true;
     } catch (e) {
-      errorMessage.value = 'ไม่สามารถสร้างบริษัทได้: ${e.toString()}';
+      errorMessage.value = 'create_company_failed_details'.trParams({
+        'error': e.toString(),
+      });
       return false;
     } finally {
       isLoading.value = false;
@@ -286,7 +292,9 @@ class CompaniesController extends GetxController {
   /// Update an existing company
   Future<bool> updateCompany(Company company) async {
     if (!_can('company:edit:all')) {
-      errorMessage.value = 'Permission denied: company:edit:all';
+      errorMessage.value = 'permission_denied_action'.trParams({
+        'action': 'company:edit:all',
+      });
       return false;
     }
     try {
@@ -300,11 +308,11 @@ class CompaniesController extends GetxController {
         } catch (_) {}
       }
       if (currentWorkspaceId.value.isEmpty) {
-        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+        throw Exception('workspace_not_found'.tr);
       }
 
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('ไม่พบข้อมูลผู้ใช้');
+      if (user == null) throw Exception('user_not_found'.tr);
 
       final updatedCompany = company.copyWith(
         updatedBy: user.uid,
@@ -329,7 +337,9 @@ class CompaniesController extends GetxController {
 
       return true;
     } catch (e) {
-      errorMessage.value = 'ไม่สามารถอัปเดตบริษัทได้: ${e.toString()}';
+      errorMessage.value = 'update_company_failed_details'.trParams({
+        'error': e.toString(),
+      });
       return false;
     } finally {
       isLoading.value = false;
@@ -339,7 +349,9 @@ class CompaniesController extends GetxController {
   /// Delete a company
   Future<bool> deleteCompany(String companyId) async {
     if (!_can('company:delete')) {
-      errorMessage.value = 'Permission denied: company:delete';
+      errorMessage.value = 'permission_denied_action'.trParams({
+        'action': 'company:delete',
+      });
       return false;
     }
     try {
@@ -353,7 +365,7 @@ class CompaniesController extends GetxController {
         } catch (_) {}
       }
       if (currentWorkspaceId.value.isEmpty) {
-        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+        throw Exception('workspace_not_found'.tr);
       }
 
       await _repository.deleteCompany(currentWorkspaceId.value, companyId);
@@ -374,7 +386,9 @@ class CompaniesController extends GetxController {
 
       return true;
     } catch (e) {
-      errorMessage.value = 'ไม่สามารถลบบริษัทได้: ${e.toString()}';
+      errorMessage.value = 'delete_company_failed_details'.trParams({
+        'error': e.toString(),
+      });
       return false;
     } finally {
       isLoading.value = false;
@@ -400,7 +414,7 @@ class CompaniesController extends GetxController {
         } catch (_) {}
       }
       if (currentWorkspaceId.value.isEmpty) {
-        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+        throw Exception('workspace_not_found'.tr);
       }
 
       await _repository.linkCustomerToCompany(
@@ -413,7 +427,9 @@ class CompaniesController extends GetxController {
       await loadCompanies(currentWorkspaceId.value);
       return true;
     } catch (e) {
-      errorMessage.value = 'ไม่สามารถเชื่อมโยงลูกค้ากับบริษัทได้: ${e.toString()}';
+      errorMessage.value = 'link_customer_company_failed_details'.trParams({
+        'error': e.toString(),
+      });
       return false;
     }
   }
@@ -428,7 +444,7 @@ class CompaniesController extends GetxController {
         } catch (_) {}
       }
       if (currentWorkspaceId.value.isEmpty) {
-        throw Exception('ไม่พบ Workspace ปัจจุบัน');
+        throw Exception('workspace_not_found'.tr);
       }
 
       await _repository.unlinkCustomerFromCompany(
@@ -441,7 +457,9 @@ class CompaniesController extends GetxController {
       await loadCompanies(currentWorkspaceId.value);
       return true;
     } catch (e) {
-      errorMessage.value = 'ไม่สามารถยกเลิกการเชื่อมโยงลูกค้ากับบริษัทได้: ${e.toString()}';
+      errorMessage.value = 'unlink_customer_company_failed_details'.trParams({
+        'error': e.toString(),
+      });
       return false;
     }
   }

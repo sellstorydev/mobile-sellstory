@@ -118,8 +118,8 @@ class ReceiptListController extends GetxController {
     } catch (e) {
       print('❌ Failed to initialize user and workspace: $e');
       Get.snackbar(
-        'Error',
-        'Failed to initialize: ${e.toString()}',
+        'error'.tr,
+        'failed_to_initialize_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,
@@ -163,8 +163,8 @@ class ReceiptListController extends GetxController {
     } catch (e) {
       print('❌ Error loading receipts: $e');
       Get.snackbar(
-        'Error',
-        'Failed to load receipts: ${e.toString()}',
+        'error'.tr,
+        'load_receipts_failed_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,
@@ -214,8 +214,8 @@ class ReceiptListController extends GetxController {
     } catch (e) {
       print('❌ Failed to load more receipts: $e');
       Get.snackbar(
-        'Error',
-        'Failed to load more receipts: ${e.toString()}',
+        'error'.tr,
+        'load_more_receipts_failed_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,

@@ -5,6 +5,56 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Document Controllers i18n (2025-09-23)
+Files:
+- `lib/features/document/controller/add_edit_document_controller.dart`
+- `lib/features/document/controller/invoice_creation_controller.dart`
+- `lib/features/document/controller/create_document_from_card_controller.dart`
+- `lib/features/document/controller/invoice_list_controller.dart`
+- `lib/features/document/controller/quotations_list_controller.dart`
+- `lib/features/document/controller/receipt_list_controller.dart`
+
+Changes:
+- Replaced hardcoded Thai/English strings in all listed controllers with `.tr/.trParams`.
+- Standardized snackbar titles to use `error`/`success`/`warning` keys.
+- Parameterized error messages to include error details via `{error}`.
+
+New translation keys added to `lib/core/i18n/app_translations.dart` (EN/TH):
+- Common/Init: `please_login_first`, `please_login_again`, `no_workspaces_for_user`, `initialize_failed_details`, `failed_to_initialize_details`
+- Loading/Init form: `load_customers_failed_details`, `init_form_failed_details`
+- Changes: `change_customer_failed_details`, `change_company_failed_details`, `change_seller_failed_details`, `change_document_date_failed_details`, `change_valid_until_failed_details`, `change_template_failed_details`, `change_document_status_failed_details`, `toggle_include_signature_failed_details`
+- Resources: `load_products_failed_details`, `load_templates_failed_details`, `load_signatures_failed_details`, `load_company_seals_failed_details`
+- Document: `document_not_found`, `load_document_failed_details`, `save_document_failed_details`, `select_complete_customer_required`
+- Products: `add_product_failed_details`, `products_added_count`, `add_products_from_database_failed_details`, `delete_product_failed_details`
+- Invoice creation: `create_invoice_full_success`, `create_invoice_installment_success`, `create_invoice_item_installment_success`, `create_invoice_failed_details`, `max_quantity_title`, `max_quantity_message`
+- Create-from-card: `workspace_not_found_check_access`, `quotation_created_success_with_no`, `error_occurred_details`
+- Lists loading: `load_invoices_failed_details`, `load_more_invoices_failed_details`, `load_quotations_failed_details`, `load_more_quotations_failed_details`, `load_receipts_failed_details`, `load_more_receipts_failed_details`
+
+Status:
+- ✅ Controllers updated to use i18n consistently
+- ✅ Keys present in both locales (EN/TH)
+- ✅ Meaningful, user-friendly phrasing with parameters where appropriate
+
+### Login & Forgot Password i18n touch-ups (2025-09-23)
+Files:
+- `lib/features/login/controller/login_controller.dart`
+- `lib/features/login/view/login_page.dart`
+- `lib/features/login/presenter/login_presenter.dart`
+- Verified existing keys used by Forgot Password flow controllers/pages
+
+Changes:
+- Localized hardcoded error strings and link-open messages.
+- Standardized snackbar titles to `error` and reused consistent login error keys.
+- Removed an unused import in `login_page.dart`.
+
+New translation keys added (EN/TH) in `app_translations.dart`:
+- `login_failed`, `invalid_email_or_password`, `an_error_occurred_please_try_again`, `cannot_open_link`, `failed_to_open_link`
+
+Status:
+- ✅ Login presenter/controller/page now use i18n keys
+- ✅ Keys exist in both locales
+- ✅ Lint clean-up applied
+
 ### Company Tile i18n (2025-09-23)
 File: `lib/features/companies/widgets/company_tile.dart`
 
@@ -20,6 +70,20 @@ File: `lib/features/companies/widgets/company_tile.dart`
 Status:
 - ✅ Widget now fully localized
 - ✅ Keys exist in both en_US and th
+
+### CompaniesController i18n (2025-09-23)
+File: `lib/features/companies/controller/companies_controller.dart`
+
+- Localized error and permission messages; replaced hardcoded Thai/English strings with `.tr/.trParams`.
+- Added EN/TH keys in `app_translations.dart`:
+   - `load_companies_failed_details`, `create_company_failed_details`, `update_company_failed_details`, `delete_company_failed_details`
+   - `link_customer_company_failed_details`, `unlink_customer_company_failed_details`
+   - `permission_denied_action`, `user_not_found`
+- Reused existing: `workspace_not_found`
+
+Status:
+- ✅ Controller messages localized and parameterized
+- ✅ Keys present in both locales
 
 ### Chat Screen Controller + Companies pages (2025-09-23)
 Files:

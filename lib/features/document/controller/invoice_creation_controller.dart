@@ -260,8 +260,11 @@ class InvoiceCreationController extends GetxController {
       
       // Show warning message
       Get.snackbar(
-        'จำนวนเกินกำหนด',
-        'จำนวนสูงสุดที่สามารถเลือกได้คือ ${maxQuantity.toStringAsFixed(0)} ${selectedItems[index]['unit'] ?? 'หน่วย'}',
+        'max_quantity_title'.tr,
+        'max_quantity_message'.trParams({
+          'max': maxQuantity.toStringAsFixed(0),
+          'unit': (selectedItems[index]['unit'] ?? 'unit').toString(),
+        }),
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange,
@@ -395,8 +398,8 @@ class InvoiceCreationController extends GetxController {
       
       // Show success message and navigate to invoice
       Get.snackbar(
-        'สำเร็จ', 
-        'สร้างใบแจ้งหนี้เต็มจำนวนเรียบร้อยแล้ว',
+        'success'.tr,
+        'create_invoice_full_success'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.withOpacity(0.1),
         colorText: Colors.green,
@@ -414,8 +417,8 @@ class InvoiceCreationController extends GetxController {
       Get.back(); // Close loading dialog
       print('❌ Failed to create full invoice: $e');
       Get.snackbar(
-        'เกิดข้อผิดพลาด',
-        'ไม่สามารถสร้างใบแจ้งหนี้ได้: ${e.toString()}',
+        'error'.tr,
+        'create_invoice_failed_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
@@ -533,8 +536,8 @@ class InvoiceCreationController extends GetxController {
       
       // Show success message and navigate to invoice
       Get.snackbar(
-        'สำเร็จ', 
-        'สร้างใบแจ้งหนี้แบ่งจ่ายเรียบร้อยแล้ว',
+        'success'.tr,
+        'create_invoice_installment_success'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.withOpacity(0.1),
         colorText: Colors.green,
@@ -552,8 +555,8 @@ class InvoiceCreationController extends GetxController {
       Get.back(); // Close loading dialog
       print('❌ Failed to create installment invoice: $e');
       Get.snackbar(
-        'เกิดข้อผิดพลาด',
-        'ไม่สามารถสร้างใบแจ้งหนี้ได้: ${e.toString()}',
+        'error'.tr,
+        'create_invoice_failed_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
@@ -692,8 +695,8 @@ class InvoiceCreationController extends GetxController {
       
       // Show success message and navigate to invoice
       Get.snackbar(
-        'สำเร็จ', 
-        'สร้างใบแจ้งหนี้แบ่งจ่ายแบบรายการเรียบร้อยแล้ว',
+        'success'.tr,
+        'create_invoice_item_installment_success'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.withOpacity(0.1),
         colorText: Colors.green,
@@ -711,8 +714,8 @@ class InvoiceCreationController extends GetxController {
       Get.back(); // Close loading dialog
       print('❌ Failed to create item-based invoice: $e');
       Get.snackbar(
-        'เกิดข้อผิดพลาด',
-        'ไม่สามารถสร้างใบแจ้งหนี้ได้: ${e.toString()}',
+        'error'.tr,
+        'create_invoice_failed_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,

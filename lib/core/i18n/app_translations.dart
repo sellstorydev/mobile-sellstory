@@ -450,6 +450,69 @@ class AppTranslations extends Translations {
           'select_template': 'Select Template',
           'note': 'Note',
           'footer_note': 'Footer Note',
+
+      // Document controllers - common messages
+      'please_login_first': 'Please login first',
+      'please_login_again': 'Please login again',
+      'no_workspaces_for_user': 'No workspaces found for this user',
+      'initialize_failed_details': 'Initialization failed: {error}',
+      'failed_to_initialize_details': 'Failed to initialize: {error}',
+      'load_customers_failed_details': 'Failed to load customers: {error}',
+      'init_form_failed_details': 'Failed to initialize form: {error}',
+      'change_customer_failed_details': 'Failed to change customer: {error}',
+      'change_company_failed_details': 'Failed to change company: {error}',
+      'change_seller_failed_details': 'Failed to change seller: {error}',
+      'load_products_failed_details': 'Failed to load products: {error}',
+      'load_templates_failed_details': 'Failed to load templates: {error}',
+      'load_signatures_failed_details': 'Failed to load signatures: {error}',
+      'load_company_seals_failed_details':
+          'Failed to load company seals: {error}',
+      'document_not_found': 'Document not found',
+      'load_document_failed_details': 'Failed to load document: {error}',
+      'change_document_date_failed_details':
+          'Failed to change document date: {error}',
+      'change_valid_until_failed_details':
+          'Failed to change validity date: {error}',
+      'add_product_failed_details': 'Failed to add product: {error}',
+      'products_added_count': 'Added {count} products',
+      'add_products_from_database_failed_details':
+          'Failed to add products from database: {error}',
+      'delete_product_failed_details': 'Failed to delete product: {error}',
+      'toggle_include_signature_failed_details':
+          'Failed to change signature inclusion: {error}',
+      'change_document_status_failed_details':
+          'Failed to change document status: {error}',
+      'change_template_failed_details': 'Failed to change template: {error}',
+      'select_complete_customer_required':
+          'Please select a customer with complete information',
+      'save_document_failed_details': 'Failed to save {docType}: {error}',
+
+      // Invoice creation controller
+      'create_invoice_full_success': 'Full invoice created successfully',
+      'create_invoice_installment_success':
+          'Installment invoice created successfully',
+      'create_invoice_item_installment_success':
+          'Item-based installment invoice created successfully',
+      'create_invoice_failed_details': 'Failed to create invoice: {error}',
+      'max_quantity_title': 'Quantity exceeds limit',
+      'max_quantity_message': 'The maximum quantity allowed is {max} {unit}',
+
+      // Create document from card controller
+      'workspace_not_found_check_access':
+          'Workspace not found. Please check your workspace access',
+      'quotation_created_success_with_no':
+          'Quotation {docNo} created successfully',
+
+      // Lists controllers (invoices/quotations/receipts)
+      'load_invoices_failed_details': 'Failed to load invoices: {error}',
+      'load_more_invoices_failed_details':
+          'Failed to load more invoices: {error}',
+      'load_quotations_failed_details': 'Failed to load quotations: {error}',
+      'load_more_quotations_failed_details':
+          'Failed to load more quotations: {error}',
+      'load_receipts_failed_details': 'Failed to load receipts: {error}',
+      'load_more_receipts_failed_details':
+          'Failed to load more receipts: {error}',
           
           // Orders Module
           'orders': 'Orders',
@@ -814,6 +877,13 @@ class AppTranslations extends Translations {
           'verification_failed': 'Verification failed',
           'password_too_weak': 'Password is too weak',
           'password_reset_failed': 'Password reset failed',
+      // Login generic errors/messages
+      'login_failed': 'Login failed',
+      'invalid_email_or_password': 'Invalid email or password',
+      'an_error_occurred_please_try_again':
+          'An error occurred. Please try again.',
+      'cannot_open_link': 'Cannot open link',
+      'failed_to_open_link': 'Failed to open link',
       // More Controller & Settings Webviews
       'hashtag_settings': 'Hashtag Settings',
       'failed_load_hashtag_settings': 'Failed to load hashtag settings',
@@ -889,6 +959,17 @@ class AppTranslations extends Translations {
       'associated_customers': 'Associated customers',
       'total_jobs': 'Total jobs',
       'total_sales': 'Total sales',
+      // Companies Controller errors/permissions
+      'load_companies_failed_details': 'Failed to load companies: {error}',
+      'create_company_failed_details': 'Failed to create company: {error}',
+      'update_company_failed_details': 'Failed to update company: {error}',
+      'delete_company_failed_details': 'Failed to delete company: {error}',
+      'link_customer_company_failed_details':
+          'Failed to link customer to company: {error}',
+      'unlink_customer_company_failed_details':
+          'Failed to unlink customer from company: {error}',
+      'permission_denied_action': 'Permission denied: {action}',
+      'user_not_found': 'User not found',
       // Company tile specific
       'code_with_value': 'Code: {code}',
       'tax_id_with_value': 'Tax ID: {taxId}',
@@ -1022,6 +1103,23 @@ class AppTranslations extends Translations {
           'file_with_name': 'ไฟล์: {name}',
           'sticker_message': '[สติ๊กเกอร์]',
           'empty_message': '[ข้อความเปล่า]',
+      // Companies Controller errors/permissions
+      'load_companies_failed_details':
+          '\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e42\u0e2b\u0e25\u0e14\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\u0e44\u0e14\u0e49: {error}',
+      'create_company_failed_details':
+          '\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\u0e44\u0e14\u0e49: {error}',
+      'update_company_failed_details':
+          '\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\u0e44\u0e14\u0e49: {error}',
+      'delete_company_failed_details':
+          '\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e25\u0e1a\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\u0e44\u0e14\u0e49: {error}',
+      'link_customer_company_failed_details':
+          '\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e42\u0e22\u0e07\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32\u0e01\u0e31\u0e1a\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\u0e44\u0e14\u0e49: {error}',
+      'unlink_customer_company_failed_details':
+          '\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01\u0e01\u0e32\u0e23\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e42\u0e22\u0e07\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32\u0e01\u0e31\u0e1a\u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\u0e44\u0e14\u0e49: {error}',
+      'permission_denied_action':
+          '\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c: {action}',
+      'user_not_found':
+          '\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49',
           'manual_chat': 'แชทแบบแมนนวล',
           'bot_in_progress': 'บอทกำลังดำเนินการ',
           'done': 'สำเร็จ',
@@ -1284,6 +1382,69 @@ class AppTranslations extends Translations {
           'select_template': 'เลือกเทมเพลต',
           'note': 'หมายเหตุ',
           'footer_note': 'หมายเหตุท้ายเอกสาร',
+
+      // Document controllers - common messages
+      'please_login_first': 'กรุณาเข้าสู่ระบบก่อน',
+      'please_login_again': 'กรุณาเข้าสู่ระบบอีกครั้ง',
+      'no_workspaces_for_user': 'ไม่พบเวิร์กสเปซสำหรับผู้ใช้นี้',
+      'initialize_failed_details': 'ไม่สามารถเริ่มต้นระบบได้: {error}',
+      'failed_to_initialize_details': 'ไม่สามารถเริ่มต้นระบบได้: {error}',
+      'load_customers_failed_details': 'ไม่สามารถโหลดข้อมูลลูกค้าได้: {error}',
+      'init_form_failed_details': 'ไม่สามารถเริ่มต้นฟอร์มได้: {error}',
+      'change_customer_failed_details': 'ไม่สามารถเปลี่ยนลูกค้าได้: {error}',
+      'change_company_failed_details': 'ไม่สามารถเปลี่ยนบริษัทได้: {error}',
+      'change_seller_failed_details': 'ไม่สามารถเปลี่ยนผู้ขายได้: {error}',
+      'load_products_failed_details': 'ไม่สามารถโหลดข้อมูลสินค้าได้: {error}',
+      'load_templates_failed_details': 'ไม่สามารถโหลดข้อมูลเทมเพลตได้: {error}',
+      'load_signatures_failed_details':
+          'ไม่สามารถโหลดข้อมูลลายเซ็นได้: {error}',
+      'load_company_seals_failed_details':
+          'ไม่สามารถโหลดข้อมูลตรายางบริษัทได้: {error}',
+      'document_not_found': 'ไม่พบเอกสารที่ต้องการแก้ไข',
+      'load_document_failed_details': 'ไม่สามารถโหลดข้อมูลเอกสารได้: {error}',
+      'change_document_date_failed_details':
+          'ไม่สามารถเปลี่ยนวันที่เอกสารได้: {error}',
+      'change_valid_until_failed_details':
+          'ไม่สามารถเปลี่ยนวันที่ยืนราคาได้: {error}',
+      'add_product_failed_details': 'ไม่สามารถเพิ่มสินค้าได้: {error}',
+      'products_added_count': 'เพิ่มสินค้า {count} รายการแล้ว',
+      'add_products_from_database_failed_details':
+          'ไม่สามารถเพิ่มสินค้าจากฐานข้อมูลได้: {error}',
+      'delete_product_failed_details': 'ไม่สามารถลบสินค้าได้: {error}',
+      'toggle_include_signature_failed_details':
+          'ไม่สามารถเปลี่ยนการรวมลายเซ็นได้: {error}',
+      'change_document_status_failed_details':
+          'ไม่สามารถเปลี่ยนสถานะเอกสารได้: {error}',
+      'change_template_failed_details': 'ไม่สามารถเปลี่ยนเทมเพลตได้: {error}',
+      'select_complete_customer_required': 'กรุณาเลือกลูกค้าที่มีข้อมูลครบถ้วน',
+      'save_document_failed_details': 'ไม่สามารถบันทึก{docType}ได้: {error}',
+
+      // Invoice creation controller
+      'create_invoice_full_success': 'สร้างใบแจ้งหนี้เต็มจำนวนเรียบร้อยแล้ว',
+      'create_invoice_installment_success':
+          'สร้างใบแจ้งหนี้แบ่งจ่ายเรียบร้อยแล้ว',
+      'create_invoice_item_installment_success':
+          'สร้างใบแจ้งหนี้แบ่งจ่ายแบบรายการเรียบร้อยแล้ว',
+      'create_invoice_failed_details': 'ไม่สามารถสร้างใบแจ้งหนี้ได้: {error}',
+      'max_quantity_title': 'จำนวนเกินกำหนด',
+      'max_quantity_message': 'จำนวนสูงสุดที่สามารถเลือกได้คือ {max} {unit}',
+
+      // Create document from card controller
+      'workspace_not_found_check_access':
+          'ไม่พบเวิร์กสเปซ กรุณาตรวจสอบสิทธิ์การเข้าถึง',
+      'quotation_created_success_with_no':
+          'สร้างใบเสนอราคา {docNo} เรียบร้อยแล้ว',
+
+      // Lists controllers (invoices/quotations/receipts)
+      'load_invoices_failed_details': 'ไม่สามารถโหลดใบแจ้งหนี้ได้: {error}',
+      'load_more_invoices_failed_details':
+          'ไม่สามารถโหลดใบแจ้งหนี้เพิ่มเติมได้: {error}',
+      'load_quotations_failed_details': 'ไม่สามารถโหลดใบเสนอราคาได้: {error}',
+      'load_more_quotations_failed_details':
+          'ไม่สามารถโหลดใบเสนอราคาเพิ่มเติมได้: {error}',
+      'load_receipts_failed_details': 'ไม่สามารถโหลดใบเสร็จได้: {error}',
+      'load_more_receipts_failed_details':
+          'ไม่สามารถโหลดใบเสร็จเพิ่มเติมได้: {error}',
           
           // Orders Module
           'orders': 'รายการคำสั่งซื้อ',
@@ -1628,6 +1789,13 @@ class AppTranslations extends Translations {
           'verification_failed': 'การยืนยันไม่สำเร็จ',
           'password_too_weak': 'รหัสผ่านไม่ปลอดภัยเพียงพอ',
           'password_reset_failed': 'การรีเซ็ตรหัสผ่านไม่สำเร็จ',
+      // Login generic errors/messages (Thai)
+      'login_failed': 'เข้าสู่ระบบไม่สำเร็จ',
+      'invalid_email_or_password': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+      'an_error_occurred_please_try_again':
+          'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+      'cannot_open_link': 'ไม่สามารถเปิดลิงก์ได้',
+      'failed_to_open_link': 'ไม่สามารถเปิดลิงก์ได้',
           'chat_center_no_permission': 'คุณไม่มีสิทธิ์เข้าถึงศูนย์การสนทนา',
           // Chat filter sheet (Thai)
           'channel': 'ช่องทาง',

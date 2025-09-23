@@ -319,8 +319,8 @@ class AddEditDocumentController extends GetxController {
       if (currentUser == null) {
         print('❌ No authenticated user found');
         Get.snackbar(
-          'ข้อผิดพลาด',
-          'กรุณาเข้าสู่ระบบก่อน',
+          'error'.tr,
+          'please_login_first'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -371,8 +371,8 @@ class AddEditDocumentController extends GetxController {
       } else {
         print('⚠️ No workspaces found for user: $_currentUserId');
         Get.snackbar(
-          'ข้อผิดพลาด',
-          'ไม่พบเวิร์กสเปซสำหรับผู้ใช้นี้',
+          'error'.tr,
+          'no_workspaces_for_user'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -381,8 +381,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to initialize user and workspace: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเริ่มต้นระบบได้: $e',
+        'error'.tr,
+        'initialize_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -405,8 +405,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to load customers: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถโหลดข้อมูลลูกค้าได้: $e',
+        'error'.tr,
+        'load_customers_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -468,8 +468,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to initialize form: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเริ่มต้นฟอร์มได้: $e',
+        'error'.tr,
+        'init_form_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -591,8 +591,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to change customer: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนลูกค้าได้: $e',
+        'error'.tr,
+        'change_customer_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -656,8 +656,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to change company: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนบริษัทได้: $e',
+        'error'.tr,
+        'change_company_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -844,8 +844,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to change seller assignees: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนผู้ขายได้: $e',
+        'error'.tr,
+        'change_seller_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -964,8 +964,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to load products: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถโหลดข้อมูลสินค้าได้: $e',
+        'error'.tr,
+        'load_products_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -1019,8 +1019,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to load templates: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถโหลดข้อมูลเทมเพลตได้: $e',
+        'error'.tr,
+        'load_templates_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -1084,8 +1084,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to load signatures: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถโหลดข้อมูลลายเซ็นได้: $e',
+        'error'.tr,
+        'load_signatures_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -1140,8 +1140,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to load company seals: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถโหลดข้อมูลตรายางบริษัทได้: $e',
+        'error'.tr,
+        'load_company_seals_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -1321,8 +1321,8 @@ class AddEditDocumentController extends GetxController {
       if (!documentDoc.exists) {
         print('❌ Document not found: $documentId');
         Get.snackbar(
-          'ข้อผิดพลาด',
-          'ไม่พบเอกสารที่ต้องการแก้ไข',
+          'error'.tr,
+          'document_not_found'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -1359,8 +1359,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to load existing document: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถโหลดข้อมูลเอกสารได้: $e',
+        'error'.tr,
+        'load_document_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -2223,8 +2223,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to change document date: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนวันที่เอกสารได้: $e',
+        'error'.tr,
+        'change_document_date_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -2238,8 +2238,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to change valid until date: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนวันที่ยืนราคาได้: $e',
+        'error'.tr,
+        'change_valid_until_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -2291,8 +2291,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to add product: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเพิ่มสินค้าได้: $e',
+        'error'.tr,
+        'add_product_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -2461,8 +2461,8 @@ class AddEditDocumentController extends GetxController {
       // Check if template is selected first
       if (_selectedTemplateId == null || _templateProductFields.isEmpty) {
         Get.snackbar(
-          'คำเตือน',
-          'กรุณาเลือกเทมเพลตก่อนเพิ่มสินค้า',
+          'warning'.tr,
+          'select_template_first'.tr,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
         );
@@ -2493,16 +2493,20 @@ class AddEditDocumentController extends GetxController {
       update();
       
       Get.snackbar(
-        'สำเร็จ',
-        'เพิ่มสินค้า ${selectedProducts.length} รายการแล้ว',
+        'success'.tr,
+        'products_added_count'.trParams({
+          'count': selectedProducts.length.toString(),
+        }),
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
     } catch (e) {
       print('❌ Failed to add products from database: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเพิ่มสินค้าจากฐานข้อมูลได้: $e',
+        'error'.tr,
+        'add_products_from_database_failed_details'.trParams({
+          'error': e.toString(),
+        }),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -2587,8 +2591,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to remove product: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถลบสินค้าได้: $e',
+        'error'.tr,
+        'delete_product_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -2701,8 +2705,10 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to change signature inclusion: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนการรวมลายเซ็นได้: $e',
+        'error'.tr,
+        'toggle_include_signature_failed_details'.trParams({
+          'error': e.toString(),
+        }),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -2774,8 +2780,10 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to change document status: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนสถานะเอกสารได้: $e',
+        'error'.tr,
+        'change_document_status_failed_details'.trParams({
+          'error': e.toString(),
+        }),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -2804,8 +2812,8 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to change template: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถเปลี่ยนเทมเพลตได้: $e',
+        'error'.tr,
+        'change_template_failed_details'.trParams({'error': e.toString()}),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -3396,8 +3404,8 @@ class AddEditDocumentController extends GetxController {
       // Validate required fields
       if (!isCustomerDataValid) {
         Get.snackbar(
-          'ข้อผิดพลาด',
-          'กรุณาเลือกลูกค้าที่มีข้อมูลครบถ้วน',
+          'error'.tr,
+          'select_complete_customer_required'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -3410,8 +3418,8 @@ class AddEditDocumentController extends GetxController {
         if (!validateEndOfBillDiscount(discountValue)) {
           final errorMessage = getEndOfBillDiscountErrorMessage(discountValue);
           Get.snackbar(
-            'ข้อผิดพลาด',
-            errorMessage ?? 'ส่วนลดท้ายบิลไม่ถูกต้อง',
+            'error'.tr,
+            errorMessage ?? 'error'.tr,
             backgroundColor: Colors.red,
             colorText: Colors.white,
           );
@@ -3804,8 +3812,11 @@ class AddEditDocumentController extends GetxController {
     } catch (e) {
       print('❌ Failed to save document: $e');
       Get.snackbar(
-        'ข้อผิดพลาด',
-        'ไม่สามารถบันทึก${_getDocumentTypeName()}ได้: $e',
+        'error'.tr,
+        'save_document_failed_details'.trParams({
+          'docType': _getDocumentTypeName(),
+          'error': e.toString(),
+        }),
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -3817,13 +3828,13 @@ class AddEditDocumentController extends GetxController {
   String _getDocumentTypeName() {
     switch (documentType) {
       case 'QT':
-        return 'ใบเสนอราคา';
+        return 'quotation'.tr;
       case 'INV':
-        return 'ใบแจ้งหนี้';
+        return 'invoice'.tr;
       case 'RT':
-        return 'ใบเสร็จรับเงิน';
+        return 'receipt'.tr;
       default:
-        return 'เอกสาร';
+        return 'document'.tr;
     }
   }
   

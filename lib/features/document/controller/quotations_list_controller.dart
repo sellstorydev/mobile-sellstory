@@ -121,8 +121,8 @@ class QuotationsListController extends GetxController {
     } catch (e) {
       print('❌ Failed to initialize user and workspace: $e');
       Get.snackbar(
-        'Error',
-        'Failed to initialize: ${e.toString()}',
+        'error'.tr,
+        'failed_to_initialize_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,
@@ -168,8 +168,8 @@ class QuotationsListController extends GetxController {
     } catch (e) {
       print('❌ Failed to load quotations: $e');
       Get.snackbar(
-        'Error',
-        'Failed to load quotations: ${e.toString()}',
+        'error'.tr,
+        'load_quotations_failed_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,
@@ -224,8 +224,8 @@ class QuotationsListController extends GetxController {
     } catch (e) {
       print('❌ Failed to load more quotations: $e');
       Get.snackbar(
-        'Error',
-        'Failed to load more quotations: ${e.toString()}',
+        'error'.tr,
+        'load_more_quotations_failed_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withValues(alpha: 0.1),
         colorText: Get.theme.colorScheme.error,

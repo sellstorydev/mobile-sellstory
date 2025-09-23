@@ -89,13 +89,13 @@ class CreateDocumentFromCardController extends GetxController {
     
     if (_currentUserId == null) {
       print('❌ Current user ID is null');
-      Get.snackbar('Error', 'User not found. Please login again.');
+      Get.snackbar('error'.tr, 'please_login_again'.tr);
       return null;
     }
     
     if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
       print('❌ Current workspace ID is null or empty. Job card workspace: ${jobCard.workspaceId}');
-      Get.snackbar('Error', 'Workspace not found. Please check your workspace access.');
+      Get.snackbar('error'.tr, 'workspace_not_found_check_access'.tr);
       return null;
     }
 
@@ -202,8 +202,8 @@ class CreateDocumentFromCardController extends GetxController {
 
       // Show success message
       Get.snackbar(
-        'Success',
-        'Quotation $docNo created successfully',
+        'success'.tr,
+        'quotation_created_success_with_no'.trParams({'docNo': docNo}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -222,8 +222,8 @@ class CreateDocumentFromCardController extends GetxController {
     } catch (e) {
       print('❌ Failed to create quotation from job card: $e');
       Get.snackbar(
-        'Error',
-        'Failed to create quotation: ${e.toString()}',
+        'error'.tr,
+        'error_occurred_details'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,

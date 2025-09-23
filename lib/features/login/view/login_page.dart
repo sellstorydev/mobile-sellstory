@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../controller/login_controller.dart';
 import '../widgets/branded_logo.dart';
-import '../../../core/theme/theme_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/top_snack.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -293,10 +292,16 @@ class LoginPage extends StatelessWidget {
                                             ),
                                           );
                                         } else {
-                                          TopSnack.error('Cannot open link', title: 'Error');
+                                          TopSnack.error(
+                                            'cannot_open_link'.tr,
+                                            title: 'error'.tr,
+                                          );
                                         }
                                       } catch (e) {
-                                        TopSnack.error('Failed to open link', title: 'Error');
+                                        TopSnack.error(
+                                          'failed_to_open_link'.tr,
+                                          title: 'error'.tr,
+                                        );
                                       }
                                     },
                                 ),

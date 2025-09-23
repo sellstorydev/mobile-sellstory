@@ -51,10 +51,10 @@ class LoginPresenter extends GetxController {
         // Navigate to dashboard on success
         Get.offAllNamed('/dashboard');
       } else {
-        view.showError(result.errorMessage ?? 'Login failed');
+        view.showError(result.errorMessage ?? 'login_failed'.tr);
       }
     } catch (e) {
-      view.showError('An error occurred. Please try again.');
+      view.showError('an_error_occurred_please_try_again'.tr);
     } finally {
       isLoading.value = false;
       view.showLoading(false);
