@@ -6,6 +6,11 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
 
+Topic: EditCard `lib/features/board/view/edit_card_page.dart`
+Detail: In Content and tasks section button apply template not working. go to copy flow from create card page `lib/features/board/view/create_card_page.dart`
+
+
+##
 Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
 Detail: เมื่อทำการกด Select date type เป็น start date แล้วกด quick option เป็น today มันแสดงไม่ครบ คือจริงจะต้องแสดง card
 Today,+1 day,+3 days,+7 days,+14 days,+30 days,End date 22/09/2025 , this week, this month, jobcard title1234 เนื่องจากมี start data คาบเกีวกับ

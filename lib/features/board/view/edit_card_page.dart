@@ -22,6 +22,7 @@ import '../../customers/view/add_edit_customer_page.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/widgets/customers_input_field.dart' as cif;
+import '../../../data/services/firestore_service.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -5379,8 +5380,113 @@ class _EditCardPageState extends State<EditCardPage> {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  void _showTodoTemplates() {
-    // Implementation for todo templates
+  void _showTodoTemplates() async {
+    try {
+      final currentBoardId = _controller.currentBoardId.value;
+      final currentWorkspaceId = _controller.currentWorkspaceId.value;
+      if (currentBoardId.isEmpty || currentWorkspaceId.isEmpty) {
+        _showError('No board or workspace selected');
+        return;
+      }
+
+      // Get todo templates from Firestore directly
+      final firestoreService = Get.find<FirestoreService>();
+      final boardsCollection = firestoreService.getWorkspaceBoardsCollection(
+        currentWorkspaceId,
+      );
+      final boardDocRef = boardsCollection.doc(currentBoardId);
+      final boardData = await firestoreService.getDocument(boardDocRef);
+
+      if (boardData == null ||
+          boardData['todoTemplates'] == null ||
+          (boardData['todoTemplates'] as List).isEmpty) {
+        _showError('No todo templates available for this board');
+        return;
+      }
+
+      final todoTemplates = boardData['todoTemplates'] as List;
+
+      // Show template selection dialog
+      final selectedTemplate = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select Todo Template'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: todoTemplates.length,
+              itemBuilder: (context, index) {
+                final template = todoTemplates[index];
+                return ListTile(
+                  title: Text(template['name'] ?? 'Unnamed Template'),
+                  onTap: () => Navigator.of(context).pop(template),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+
+      if (selectedTemplate != null && selectedTemplate['todos'] != null) {
+        // Apply the selected template
+        final todos = selectedTemplate['todos'] as List;
+        setState(() {
+          for (final todo in todos) {
+            // Calculate due date from dueInDays
+            DateTime? calculatedDueDate;
+            if (todo['dueInDays'] != null && todo['dueInDays'] is int) {
+              final now = DateTime.now();
+              // Set time to 00:00:00 and add the specified days
+              calculatedDueDate = DateTime(
+                now.year,
+                now.month,
+                now.day,
+              ).add(Duration(days: todo['dueInDays'] as int));
+            }
+
+            _todoItems.add({
+              'id': DateTime.now().millisecondsSinceEpoch.toString(),
+              'text': todo['title'] ?? '',
+              'isCompleted': false,
+              'dueDate': calculatedDueDate,
+              'duration': null,
+              'endTime': null,
+              'controller': TextEditingController(text: todo['title'] ?? ''),
+            });
+          }
+        });
+
+        Get.snackbar(
+          'Success',
+          'Todo template applied successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      print('❌ Error showing todo templates: $e');
+      _showError('Failed to load todo templates: ${e.toString()}');
+    }
+  }
+
+  void _showError(String message) {
+    Get.snackbar(
+      'Error',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
   }
 
   Widget _buildProductSection() {
