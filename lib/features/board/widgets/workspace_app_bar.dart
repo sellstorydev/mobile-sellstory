@@ -698,7 +698,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                             children: [
                               Text(
                                 ctrl.currentWorkspaceName.value.isNotEmpty
-                                    ? ctrl.currentWorkspaceName.value
+                                    ? '${ctrl.currentWorkspaceName.value}(${ctrl.totalCardCount})'
                                     : 'My Workspace1',
                                 style: const TextStyle(
                                   fontSize: 16,

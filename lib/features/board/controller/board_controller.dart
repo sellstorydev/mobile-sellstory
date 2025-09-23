@@ -123,6 +123,15 @@ class BoardController extends GetxController implements BoardView {
     return result;
   }
 
+  // Computed property to get total card count
+  int get totalCardCount {
+    int total = 0;
+    for (final lane in lanes) {
+      total += lane.cards.length;
+    }
+    return total;
+  }
+
   final RxList<String> availableInterests = <String>[].obs;
   // UI behavior: whether to hide lanes with zero cards when filters are active
   final RxBool hideEmptyLanesWhenFiltering = false.obs;
