@@ -67,8 +67,8 @@ class _EditCardPageState extends State<EditCardPage> {
 
   void _showNoPermission() {
     Get.snackbar(
-      'Permission denied',
-      "You don't have permission to perform this action",
+      'permission_denied'.tr,
+      'no_permission_action'.tr,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
       colorText: Colors.white,
@@ -79,8 +79,8 @@ class _EditCardPageState extends State<EditCardPage> {
   // Popup menu actions
   void _onCopy() {
     Get.snackbar(
-      'Copy',
-      'Copy functionality will be available soon',
+      'copy'.tr,
+      'copy_card_feature_coming_soon'.tr,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
@@ -104,19 +104,19 @@ class _EditCardPageState extends State<EditCardPage> {
     // Show confirmation dialog
     Get.dialog(
       AlertDialog(
-        title: const Text('Archive Card'),
+        title: Text('archive_card_title'.tr),
         content: Text(
-          'Are you sure you want to archive "${widget.card.title}"?\n\nArchived cards will be hidden from the board but can be restored later.',
+          'archive_confirm_message'.trParams({'title': widget.card.title}),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
           TextButton(
             onPressed: () async {
               Get.back(); // Close dialog first
               await _archiveCard();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.blue),
-            child: const Text('Archive'),
+            child: Text('archive'.tr),
           ),
         ],
       ),
@@ -131,15 +131,15 @@ class _EditCardPageState extends State<EditCardPage> {
 
       // Update card status to "Archived"
       final updatedCard = widget.card.copyWith(
-        status: 'Archived',
+        status: 'archived_status'.tr,
         updatedAt: DateTime.now(),
       );
 
       await _controller.updateCard(updatedCard);
 
       Get.snackbar(
-        'Success',
-        'Card archived successfully',
+        'success'.tr,
+        'card_archived_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -150,8 +150,8 @@ class _EditCardPageState extends State<EditCardPage> {
       Navigator.of(context).pop();
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to archive card: $e',
+        'error'.tr,
+        'failed_to_archive_card'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -172,19 +172,19 @@ class _EditCardPageState extends State<EditCardPage> {
     // Show confirmation dialog
     Get.dialog(
       AlertDialog(
-        title: const Text('Delete Card'),
+        title: Text('delete_card_title'.tr),
         content: Text(
-          'Are you sure you want to permanently delete "${widget.card.title}"?\n\nThis action cannot be undone.',
+          'delete_confirm_message'.trParams({'title': widget.card.title}),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
           TextButton(
             onPressed: () async {
               Get.back(); // Close dialog first
               await _deleteCard();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text('delete'.tr),
           ),
         ],
       ),
@@ -200,8 +200,8 @@ class _EditCardPageState extends State<EditCardPage> {
       await _controller.deleteCard(widget.card.id);
 
       Get.snackbar(
-        'Success',
-        'Card deleted successfully',
+        'success'.tr,
+        'card_deleted_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -212,8 +212,8 @@ class _EditCardPageState extends State<EditCardPage> {
       Navigator.of(context).pop();
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to delete card: $e',
+        'error'.tr,
+        'failed_to_delete_card'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -275,7 +275,7 @@ class _EditCardPageState extends State<EditCardPage> {
   String _selectedAssignee = '';
   List<String> _selectedCustomerIds = [];
   String _selectedCompany = 'none';
-  String _selectedCustomerInterest = 'เริ่มต้น';
+  String _selectedCustomerInterest = 'interest_initial'.tr;
   String _selectedStatus = 'Pending';
   DateTime? _expectedClosingDate;
   DateTime? _startDate;
@@ -305,31 +305,31 @@ class _EditCardPageState extends State<EditCardPage> {
 
   // Status options
   final List<Map<String, dynamic>> _statusOptions = [
-    {'value': 'Pending', 'label': 'Pending', 'icon': Icons.schedule},
-    {'value': 'In Progress', 'label': 'In Progress', 'icon': Icons.schedule},
-    {'value': 'Done', 'label': 'Done', 'icon': Icons.check},
-    {'value': 'Cancelled', 'label': 'Cancelled', 'icon': Icons.close},
+    {'value': 'Pending', 'label': 'status_pending'.tr, 'icon': Icons.schedule},
+    {'value': 'In Progress', 'label': 'status_in_progress'.tr, 'icon': Icons.schedule},
+    {'value': 'Done', 'label': 'status_done'.tr, 'icon': Icons.check},
+    {'value': 'Cancelled', 'label': 'status_cancelled'.tr, 'icon': Icons.close},
   ];
 
   // Document status options for Related Documents
   final List<Map<String, dynamic>> _documentStatusOptions = [
-    {'value': 'DRAFT', 'label': 'ร่าง'},
-    {'value': 'APPROVED', 'label': 'อนุมัติแล้ว'},
-    {'value': 'PENDING_APPROVAL', 'label': 'รออนุมัติ'},
-    {'value': 'SENT_FOR_APPROVAL', 'label': 'ส่งอนุมัติ'},
-    {'value': 'CANCELLED', 'label': 'ยกเลิก'},
-    {'value': 'REJECTED', 'label': 'ปฏิเสธ'},
-    {'value': 'INVOICED', 'label': 'ออกใบแจ้งหนี้แล้ว'},
-    {'value': 'FULLY_PAID', 'label': 'ชำระครบแล้ว'},
-    {'value': 'COMPLETED', 'label': 'เสร็จสิ้น'},
+    {'value': 'DRAFT', 'label': 'document_status_draft'.tr},
+    {'value': 'APPROVED', 'label': 'document_status_approved'.tr},
+    {'value': 'PENDING_APPROVAL', 'label': 'document_status_pending_approval'.tr},
+    {'value': 'SENT_FOR_APPROVAL', 'label': 'document_status_sent_for_approval'.tr},
+    {'value': 'CANCELLED', 'label': 'document_status_cancelled'.tr},
+    {'value': 'REJECTED', 'label': 'document_status_rejected'.tr},
+    {'value': 'INVOICED', 'label': 'document_status_invoiced'.tr},
+    {'value': 'FULLY_PAID', 'label': 'document_status_fully_paid'.tr},
+    {'value': 'COMPLETED', 'label': 'document_status_completed'.tr},
   ];
 
   // Customer Interest options (same as create page)
   final List<String> _customerInterestOptions = [
-    'เริ่มต้น',
-    'น้อย (Low)',
-    'กลาง (Medium)',
-    'มาก (High)',
+    'interest_initial'.tr,
+    'interest_low'.tr + ' (Low)',
+    'interest_medium'.tr + ' (Medium)',
+    'interest_high'.tr + ' (High)',
   ];
 
   // Add history/comment toggle state variable
@@ -418,7 +418,7 @@ class _EditCardPageState extends State<EditCardPage> {
     _selectedCustomerInterest =
         (widget.card.customerInterest?.isNotEmpty ?? false)
         ? widget.card.customerInterest!
-        : 'เริ่มต้น';
+        : 'interest_initial'.tr;
     _selectedStatus = widget.card.status;
     _startDate = widget.card.startDate;
     _endDate = widget.card.endDate;
@@ -720,7 +720,7 @@ class _EditCardPageState extends State<EditCardPage> {
     } else {
       // Initialize with default "None" option
       _availableCompanies = [
-        {'id': 'none', 'name': 'None'},
+        {'id': 'none', 'name': 'none_option_short'.tr},
       ];
       _selectedCompany = 'none';
     }
@@ -781,7 +781,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
       if (customer != null && customer.companyNames.isNotEmpty) {
         final companyMap = <String, Map<String, dynamic>>{};
-        companyMap['none'] = {'id': 'none', 'name': 'None'};
+        companyMap['none'] = {'id': 'none', 'name': 'none_option_short'.tr};
 
         for (final company in customer.companyNames) {
           companyMap[company['id']] = {
@@ -990,7 +990,7 @@ class _EditCardPageState extends State<EditCardPage> {
     return [
       {
         'id': 'img',
-        'label': 'Img',
+        'label': 'img'.tr,
         'type': 'image',
         'isVisible': true,
         'width': '60px',
@@ -998,7 +998,7 @@ class _EditCardPageState extends State<EditCardPage> {
       },
       {
         'id': 'name',
-        'label': 'Product/Service',
+        'label': 'product_service'.tr,
         'type': 'product_field',
         'sourceField': 'name',
         'isVisible': true,
@@ -1007,7 +1007,7 @@ class _EditCardPageState extends State<EditCardPage> {
       },
       {
         'id': 'quantity',
-        'label': 'Qty/Unit',
+        'label': 'qty_unit'.tr,
         'type': 'predefined',
         'predefinedField': 'quantity',
         'isVisible': true,
@@ -1016,7 +1016,7 @@ class _EditCardPageState extends State<EditCardPage> {
       },
       {
         'id': 'pricePerUnit',
-        'label': 'Price/Unit',
+        'label': 'price_unit'.tr,
         'type': 'product_field',
         'sourceField': 'pricePerUnit',
         'isVisible': true,
@@ -1025,7 +1025,7 @@ class _EditCardPageState extends State<EditCardPage> {
       },
       {
         'id': 'discount',
-        'label': 'Discount',
+        'label': 'discount'.tr,
         'type': 'predefined',
         'predefinedField': 'discount',
         'isVisible': true,
@@ -1034,7 +1034,7 @@ class _EditCardPageState extends State<EditCardPage> {
       },
       {
         'id': 'total',
-        'label': 'Total',
+        'label': 'total'.tr,
         'type': 'predefined',
         'predefinedField': 'line_total',
         'isVisible': true,
@@ -1384,9 +1384,9 @@ class _EditCardPageState extends State<EditCardPage> {
   Widget build(BuildContext context) {
     if (!_canView) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Edit Job Card')),
-        body: const Center(
-          child: Text('You do not have permission to view this card.'),
+        appBar: AppBar(title: Text('edit_job_card'.tr)),
+        body: Center(
+          child: Text('no_permission_view_card'.tr),
         ),
       );
     }
@@ -1407,9 +1407,9 @@ class _EditCardPageState extends State<EditCardPage> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
-          title: const Text(
-            'Edit Job Card',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          title: Text(
+            'edit_job_card'.tr,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
@@ -1453,10 +1453,10 @@ class _EditCardPageState extends State<EditCardPage> {
                     PopupMenuItem(
                       value: 'move',
                       child: Row(
-                        children: const [
+                        children: [
                           Icon(Icons.open_with, size: 18),
                           SizedBox(width: 8),
-                          Text('Move'),
+                          Text('move'.tr),
                         ],
                       ),
                     ),
@@ -1467,10 +1467,10 @@ class _EditCardPageState extends State<EditCardPage> {
                     PopupMenuItem(
                       value: 'archive',
                       child: Row(
-                        children: const [
+                        children: [
                           Icon(Icons.archive, size: 18),
                           SizedBox(width: 8),
-                          Text('Archive'),
+                          Text('archive'.tr),
                         ],
                       ),
                     ),
@@ -1481,7 +1481,7 @@ class _EditCardPageState extends State<EditCardPage> {
                     PopupMenuItem(
                       value: 'delete',
                       child: Row(
-                        children: const [
+                        children: [
                           Icon(
                             Icons.delete_forever,
                             color: Colors.red,
@@ -1489,8 +1489,8 @@ class _EditCardPageState extends State<EditCardPage> {
                           ),
                           SizedBox(width: 8),
                           Text(
-                            'Delete Permanently',
-                            style: TextStyle(color: Colors.red),
+                            'delete_permanently'.tr,
+                            style: const TextStyle(color: Colors.red),
                           ),
                         ],
                       ),
@@ -1509,7 +1509,7 @@ class _EditCardPageState extends State<EditCardPage> {
             children: [
               // Basic Information Section
               _buildSectionCard(
-                title: 'Basic Information',
+                title: 'basic_information'.tr,
                 icon: Icons.info_outline,
                 color: Colors.blue,
                 children: [
@@ -1537,14 +1537,14 @@ class _EditCardPageState extends State<EditCardPage> {
               const SizedBox(height: 24),
               // Timeline & Status Section
               _buildSectionCard(
-                title: 'Status',
+                title: 'status'.tr,
                 icon: Icons.schedule,
                 color: Colors.orange,
                 children: [_buildStatusChipsSection()],
               ),
               const SizedBox(height: 24),
               _buildSectionCard(
-                title: 'Description',
+                title: 'description'.tr,
                 icon: Icons.edit_document,
                 color: Colors.lightGreen,
                 children: [_buildDetailsSection()],
@@ -1552,7 +1552,7 @@ class _EditCardPageState extends State<EditCardPage> {
               const SizedBox(height: 24),
               // Content & Tasks Section
               _buildSectionCard(
-                title: 'Tasks',
+                title: 'card_tasks'.tr,
                 icon: Icons.task_alt,
                 color: Colors.indigo,
                 children: [_buildTodoListSection()],
@@ -1560,7 +1560,7 @@ class _EditCardPageState extends State<EditCardPage> {
               const SizedBox(height: 24),
               // Product Section
               _buildSectionCard(
-                title: 'Products & Services',
+                title: 'products_and_services'.tr,
                 icon: Icons.shopping_cart,
                 color: Colors.deepOrange,
                 children: [_buildProductSection()],
@@ -1568,7 +1568,7 @@ class _EditCardPageState extends State<EditCardPage> {
               const SizedBox(height: 24),
               // Related Documents Section
               _buildSectionCard(
-                title: 'Related Documents',
+                title: 'related_documents'.tr,
                 icon: Icons.description,
                 color: Colors.purple,
                 children: [_buildRelatedDocumentsSection()],
@@ -1576,7 +1576,7 @@ class _EditCardPageState extends State<EditCardPage> {
               const SizedBox(height: 24),
               // Attached Files Section
               _buildSectionCard(
-                title: 'Attached Files',
+                title: 'attached_files'.tr,
                 icon: Icons.attach_file,
                 color: Colors.teal,
                 children: [_buildAttachedFilesContent()],
@@ -1601,8 +1601,8 @@ class _EditCardPageState extends State<EditCardPage> {
           children: [
             Icon(Icons.calendar_today, size: 18, color: Colors.teal[700]),
             const SizedBox(width: 8),
-            const Text(
-              'Expected Closing Date',
+            Text(
+              'expected_closing_date'.tr,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1632,7 +1632,7 @@ class _EditCardPageState extends State<EditCardPage> {
                           Icon(Icons.today, size: 16, color: Colors.teal[700]),
                           const SizedBox(width: 6),
                           Text(
-                            'Start Date',
+                            'start_date_type'.tr,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.teal[700],
@@ -1645,7 +1645,7 @@ class _EditCardPageState extends State<EditCardPage> {
                       Text(
                         _startDate != null
                             ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                            : 'Select start date',
+                            : 'select_start_date'.tr,
                         style: const TextStyle(
                           fontSize: 16,
                           color: Colors.black87,
@@ -1699,7 +1699,7 @@ class _EditCardPageState extends State<EditCardPage> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'End Date',
+                            'end_date_type'.tr,
                             style: TextStyle(
                               fontSize: 12,
                               color: _endDate != null
@@ -1714,7 +1714,7 @@ class _EditCardPageState extends State<EditCardPage> {
                       Text(
                         _endDate != null
                             ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                            : 'Select end date',
+                            : 'select_end_date'.tr,
                         style: TextStyle(
                           fontSize: 16,
                           color: _endDate != null
@@ -1876,7 +1876,7 @@ class _EditCardPageState extends State<EditCardPage> {
                     ElevatedButton.icon(
                       onPressed: () {},
                       icon: const Icon(Icons.add),
-                      label: const Text('Add Product'),
+                      label: Text('add_product'.tr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryOrange,
                         foregroundColor: Colors.white,
@@ -1886,7 +1886,7 @@ class _EditCardPageState extends State<EditCardPage> {
                     ElevatedButton.icon(
                       onPressed: () {},
                       icon: const Icon(Icons.add),
-                      label: const Text('Add Custom'),
+                      label: Text('add_custom'.tr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey,
                         foregroundColor: Colors.white,
@@ -1905,48 +1905,48 @@ class _EditCardPageState extends State<EditCardPage> {
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'Img',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      'img'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                   Expanded(
                     flex: 3,
                     child: Text(
-                      'Product/Service',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      'product_service'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                   Expanded(
                     flex: 2,
                     child: Text(
-                      'Qty/Unit',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      'qty_unit'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                   Expanded(
                     flex: 2,
                     child: Text(
-                      'Price/Unit',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      'price_unit'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                   Expanded(
                     flex: 2,
                     child: Text(
-                      'Discount',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      'discount'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                   Expanded(
                     flex: 2,
                     child: Text(
-                      'Total',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      'total'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -1954,10 +1954,10 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
 
             const SizedBox(height: 16),
-            const Center(
+            Center(
               child: Text(
-                'No expense items added yet',
-                style: TextStyle(color: Colors.grey),
+                'no_expense_items_yet'.tr,
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           ],
@@ -1977,7 +1977,7 @@ class _EditCardPageState extends State<EditCardPage> {
             ElevatedButton.icon(
               onPressed: _createDocument,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Create Quotation'),
+              label: Text('create_quotation'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
@@ -2015,7 +2015,7 @@ class _EditCardPageState extends State<EditCardPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'No related documents yet',
+                    'no_related_documents_yet'.tr,
                     style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                 ),
@@ -2194,21 +2194,21 @@ class _EditCardPageState extends State<EditCardPage> {
     final jobCardId = widget.card.customId;
 
     // Handle seller information - check multiple possible fields
-    String seller = 'N/A';
+  String seller = 'not_available'.tr;
     if (documentData['seller'] != null) {
       if (documentData['seller'] is Map) {
         seller =
             documentData['seller']['displayName'] ??
             documentData['seller']['name'] ??
             documentData['sellerName'] ??
-            'N/A';
+            'not_available'.tr;
       }
     } else {
       seller =
           documentData['sellerName'] ??
           documentData['createdBy'] ??
           documentData['createdByDisplayName'] ??
-          'N/A';
+          'not_available'.tr;
     }
 
     // Handle total amount - check multiple possible fields
@@ -2453,19 +2453,19 @@ class _EditCardPageState extends State<EditCardPage> {
                 },
                 itemBuilder: (context) => status == 'NOT_FOUND'
                     ? [
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
                           child: Row(
                             children: [
                               Icon(Icons.delete, size: 16, color: Colors.red),
                               SizedBox(width: 8),
-                              Text('ลบอ้างอิง', style: TextStyle(fontSize: 12)),
+                              Text('delete_reference'.tr, style: TextStyle(fontSize: 12)),
                             ],
                           ),
                         ),
                       ]
                     : [
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'download',
                           child: Row(
                             children: [
@@ -2475,37 +2475,37 @@ class _EditCardPageState extends State<EditCardPage> {
                                 color: Colors.blue,
                               ),
                               SizedBox(width: 8),
-                              Text('ดาวน์โหลด', style: TextStyle(fontSize: 12)),
+                              Text('download'.tr, style: TextStyle(fontSize: 12)),
                             ],
                           ),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'duplicate',
                           child: Row(
                             children: [
                               Icon(Icons.copy, size: 16, color: Colors.orange),
                               SizedBox(width: 8),
-                              Text('คัดลอก', style: TextStyle(fontSize: 12)),
+                              Text('copy'.tr, style: TextStyle(fontSize: 12)),
                             ],
                           ),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'edit',
                           child: Row(
                             children: [
                               Icon(Icons.edit, size: 16, color: Colors.green),
                               SizedBox(width: 8),
-                              Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                              Text('edit'.tr, style: TextStyle(fontSize: 12)),
                             ],
                           ),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
                           child: Row(
                             children: [
                               Icon(Icons.delete, size: 16, color: Colors.red),
                               SizedBox(width: 8),
-                              Text('ลบ', style: TextStyle(fontSize: 12)),
+                              Text('delete'.tr, style: TextStyle(fontSize: 12)),
                             ],
                           ),
                         ),
@@ -2589,7 +2589,7 @@ class _EditCardPageState extends State<EditCardPage> {
           child: ElevatedButton.icon(
             onPressed: _canEditAttachments ? _addFile : null,
             icon: const Icon(Icons.attach_file, size: 18),
-            label: const Text('Add File'),
+            label: Text('add_file'.tr),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
               foregroundColor: Colors.white,
@@ -2609,34 +2609,34 @@ class _EditCardPageState extends State<EditCardPage> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
             border: Border.all(color: Colors.grey[300]!),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Expanded(
                 flex: 3,
                 child: Text(
-                  'File Name',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  'file_name'.tr,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
               Expanded(
                 flex: 2,
                 child: Text(
-                  'Uploaded By',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  'uploaded_by'.tr,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
               Expanded(
                 flex: 2,
                 child: Text(
-                  'Uploaded At',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  'uploaded_at'.tr,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
               Expanded(
                 flex: 1,
                 child: Text(
-                  'Actions',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  'actions'.tr,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -2739,7 +2739,7 @@ class _EditCardPageState extends State<EditCardPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'No attachments uploaded yet',
+                    'no_attachments_uploaded_yet'.tr,
                     style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                 ],
@@ -2773,8 +2773,8 @@ class _EditCardPageState extends State<EditCardPage> {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to pick file: $e',
+        'error'.tr,
+        'error_picking_file'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -2836,8 +2836,8 @@ class _EditCardPageState extends State<EditCardPage> {
       await _updateCardAttachments();
 
       Get.snackbar(
-        'Success',
-        'File uploaded successfully',
+        'success'.tr,
+        'file_uploaded_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -2845,8 +2845,8 @@ class _EditCardPageState extends State<EditCardPage> {
       );
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to upload file: $e',
+        'error'.tr,
+        'failed_to_upload_file'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -2915,8 +2915,8 @@ class _EditCardPageState extends State<EditCardPage> {
   void _downloadFile(Map<String, dynamic> attachment) {
     // TODO: Implement download functionality
     Get.snackbar(
-      'Download',
-      'Download functionality will be available soon',
+      'download'.tr,
+      'download_feature_coming_soon'.tr,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
@@ -2932,21 +2932,21 @@ class _EditCardPageState extends State<EditCardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Attachment'),
+        title: Text('delete_attachment'.tr),
         content: Text(
-          'Are you sure you want to delete "${attachment['name']}"?',
+          'are_you_sure_delete_attachment'.trParams({'name': attachment['name']}),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _performDeleteAttachment(attachment);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text('delete'.tr, style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -2962,8 +2962,8 @@ class _EditCardPageState extends State<EditCardPage> {
       await _updateCardAttachments();
 
       Get.snackbar(
-        'Success',
-        'Attachment deleted successfully',
+        'success'.tr,
+        'attachment_deleted_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -2971,8 +2971,8 @@ class _EditCardPageState extends State<EditCardPage> {
       );
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to delete attachment: $e',
+        'error'.tr,
+        'failed_to_delete_attachment'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -3050,8 +3050,8 @@ class _EditCardPageState extends State<EditCardPage> {
       }
 
       Get.snackbar(
-        'Success',
-        'Card moved successfully',
+        'success'.tr,
+        'card_moved_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -3062,8 +3062,8 @@ class _EditCardPageState extends State<EditCardPage> {
       Navigator.of(context).pop(true); // true = card was moved, need refresh
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to move card: $e',
+        'error'.tr,
+        'failed_to_move_card'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -3126,7 +3126,7 @@ class _EditCardPageState extends State<EditCardPage> {
                         ),
                       ),
                       child: Text(
-                        'History',
+                        'history_tab'.tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: _showHistory
@@ -3160,7 +3160,7 @@ class _EditCardPageState extends State<EditCardPage> {
                         ),
                       ),
                       child: Text(
-                        'Comment',
+                        'comment_tab'.tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: !_showHistory
@@ -3193,19 +3193,17 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Widget _buildHistoryContent() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.history, size: 48, color: Colors.grey),
           SizedBox(height: 16),
           Text(
-            'bew kiw created card Job Card Title in lane In Progress',
+            'history_feature_coming_soon'.tr,
             style: TextStyle(fontSize: 14, color: Colors.black87),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: 4),
-          Text('1 day ago', style: TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
@@ -3322,7 +3320,7 @@ class _EditCardPageState extends State<EditCardPage> {
                                               controller:
                                                   _editCommentController,
                                               decoration: InputDecoration(
-                                                hintText: 'Edit comment...',
+                                                hintText: 'edit_comment_placeholder'.tr,
                                                 border: OutlineInputBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(8),
@@ -3373,9 +3371,9 @@ class _EditCardPageState extends State<EditCardPage> {
                                     const SizedBox(height: 8),
                                     GestureDetector(
                                       onTap: () => _showReplyDialog(note['id']),
-                                      child: const Text(
-                                        'Reply',
-                                        style: TextStyle(
+                                      child: Text(
+                                        'reply'.tr,
+                                        style: const TextStyle(
                                           color: Colors.blue,
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
@@ -3403,7 +3401,7 @@ class _EditCardPageState extends State<EditCardPage> {
                   controller: _commentController,
                   enabled: _canEditNotes,
                   decoration: InputDecoration(
-                    hintText: 'Add a comment',
+                    hintText: 'enter_comment'.tr,
                     hintStyle: TextStyle(color: Colors.grey[500]),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -3444,9 +3442,9 @@ class _EditCardPageState extends State<EditCardPage> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Post',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                child: Text(
+                  'add_comment'.tr,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -3471,13 +3469,16 @@ class _EditCardPageState extends State<EditCardPage> {
     final difference = now.difference(dateTime);
 
     if (difference.inDays > 0) {
-      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+      final dayText = difference.inDays > 1 ? 'days_ago_multiple'.tr : 'day_ago_single'.tr;
+      return '${difference.inDays} $dayText';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+      final hourText = difference.inHours > 1 ? 'hours_ago_multiple'.tr : 'hour_ago_single'.tr;
+      return '${difference.inHours} $hourText';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+      final minuteText = difference.inMinutes > 1 ? 'minutes_ago_multiple'.tr : 'minute_ago_single'.tr;
+      return '${difference.inMinutes} $minuteText';
     } else {
-      return 'Just now';
+      return 'just_now'.tr;
     }
   }
 
@@ -3496,14 +3497,14 @@ class _EditCardPageState extends State<EditCardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          'Reply to Comment',
+        title: Text(
+          'reply_to_comment'.tr,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         content: TextField(
           controller: replyController,
           decoration: InputDecoration(
-            hintText: 'Type your reply...',
+            hintText: 'type_your_reply'.tr,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -3638,8 +3639,8 @@ class _EditCardPageState extends State<EditCardPage> {
       });
 
       Get.snackbar(
-        'Error',
-        'Failed to save comment. Please try again.',
+        'error'.tr,
+        'failed_to_add_comment'.trParams({'error': ''}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -3686,8 +3687,8 @@ class _EditCardPageState extends State<EditCardPage> {
     } catch (e) {
       print('❌ Failed to update comment: $e');
       Get.snackbar(
-        'Error',
-        'Failed to update comment. Please try again.',
+        'error'.tr,
+        'failed_to_update_comment'.trParams({'error': ''}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -3699,14 +3700,14 @@ class _EditCardPageState extends State<EditCardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Comment'),
-        content: const Text(
-          'Are you sure you want to delete this comment? This action cannot be undone.',
+        title: Text('delete_comment'.tr),
+        content: Text(
+          'delete_comment_confirm'.tr,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -3714,7 +3715,7 @@ class _EditCardPageState extends State<EditCardPage> {
               await _confirmDeleteComment(index, note);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text('delete'.tr, style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -3745,8 +3746,8 @@ class _EditCardPageState extends State<EditCardPage> {
         _notes.insert(index, note);
       });
       Get.snackbar(
-        'Error',
-        'Failed to delete comment. Please try again.',
+        'error'.tr,
+        'failed_to_delete_comment'.trParams({'error': ''}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -3812,8 +3813,8 @@ class _EditCardPageState extends State<EditCardPage> {
       });
 
       Get.snackbar(
-        'Error',
-        'Failed to save reply. Please try again.',
+        'error'.tr,
+        'failed_to_add_reply'.trParams({'error': ''}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -3849,7 +3850,7 @@ class _EditCardPageState extends State<EditCardPage> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Cancel'),
+                  child: Text('cancel'.tr),
                 ),
               ),
               const SizedBox(width: 16),
@@ -3872,7 +3873,7 @@ class _EditCardPageState extends State<EditCardPage> {
                             ),
                           ),
                         )
-                      : const Text('Save'),
+                      : Text('save'.tr),
                 ),
               ),
             ],
@@ -3904,8 +3905,8 @@ class _EditCardPageState extends State<EditCardPage> {
     }
     if (_titleController.text.trim().isEmpty) {
       Get.snackbar(
-        'Error',
-        'Title is required',
+        'error'.tr,
+        'card_title_required'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -4138,8 +4139,8 @@ class _EditCardPageState extends State<EditCardPage> {
       }
 
       Get.snackbar(
-        'Success',
-        'Card updated successfully',
+        'success'.tr,
+        'changes_saved_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -4224,7 +4225,7 @@ class _EditCardPageState extends State<EditCardPage> {
           ],
         ),
         const SizedBox(height: 12),
-        HashtagInputField(
+  HashtagInputField(
           selectedHashtags: _selectedHashtagIds,
           availableHashtags: _availableHashtags,
           onHashtagsChanged: (selectedHashtagIds) {
@@ -4232,8 +4233,8 @@ class _EditCardPageState extends State<EditCardPage> {
               _selectedHashtagIds = selectedHashtagIds;
             });
           },
-          label: 'Hashtags',
-          hintText: 'Select hashtags',
+          label: 'hashtags_label'.tr,
+          hintText: 'hashtags_hint'.tr,
           workspaceId: widget.card.workspaceId,
         ),
       ],
@@ -4244,8 +4245,8 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Job ID',
+        Text(
+          'job_id'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -4256,8 +4257,8 @@ class _EditCardPageState extends State<EditCardPage> {
         TextField(
           controller: _jobIdController,
           enabled: true,
-          decoration: const InputDecoration(
-            hintText: 'Enter Job ID',
+          decoration: InputDecoration(
+            hintText: 'enter_job_id'.tr,
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             fillColor: Colors.white,
@@ -4272,8 +4273,8 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Job Card Title',
+        Text(
+          'job_card_title'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -4283,8 +4284,8 @@ class _EditCardPageState extends State<EditCardPage> {
         const SizedBox(height: 8),
         TextFormField(
           controller: _titleController,
-          decoration: const InputDecoration(
-            hintText: 'Enter job title',
+          decoration: InputDecoration(
+            hintText: 'enter_job_title'.tr,
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
@@ -4297,9 +4298,9 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Lane',
-          style: TextStyle(
+        Text(
+          'lane_label'.tr,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
@@ -4312,10 +4313,10 @@ class _EditCardPageState extends State<EditCardPage> {
                   _availableLanes.any((lane) => lane['id'] == _selectedLane)
               ? _selectedLane
               : null,
-          decoration: const InputDecoration(
-            hintText: 'Select lane',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: InputDecoration(
+            hintText: 'select_lane'.tr,
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
           isExpanded: true,
           items: _availableLanes.map((lane) {
@@ -4359,10 +4360,10 @@ class _EditCardPageState extends State<EditCardPage> {
                   )
               ? _selectedAssignee
               : null,
-          decoration: const InputDecoration(
-            hintText: 'Select an assignee',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: InputDecoration(
+            hintText: 'assignee_hint'.tr,
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
           isExpanded: true,
           items: _availableAssignees.map((assignee) {
@@ -4435,10 +4436,10 @@ class _EditCardPageState extends State<EditCardPage> {
                 padding: const EdgeInsets.all(12),
                 child: DropdownButtonFormField<String>(
                   value: null,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
-                    hintText: 'Add Collaborator',
-                    contentPadding: EdgeInsets.symmetric(
+                    hintText: 'add_collaborator'.tr,
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 8,
                     ),
@@ -4521,10 +4522,10 @@ class _EditCardPageState extends State<EditCardPage> {
                 padding: const EdgeInsets.all(12),
                 child: DropdownButtonFormField<String>(
                   value: null,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
-                    hintText: 'Add Watcher',
-                    contentPadding: EdgeInsets.symmetric(
+                    hintText: 'add_watcher'.tr,
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 8,
                     ),
@@ -4601,8 +4602,8 @@ class _EditCardPageState extends State<EditCardPage> {
               });
             }
           },
-          label: 'Customer',
-          hintText: 'Select a customer',
+          label: 'customer_label'.tr,
+          hintText: 'select_customer'.tr,
           allowMultipleSelection: false,
           showBorder: false,
           workspaceId: widget.card.workspaceId,
@@ -4610,9 +4611,9 @@ class _EditCardPageState extends State<EditCardPage> {
         ),
         const SizedBox(height: 20),
         // Company Section
-        const Text(
-          'Company',
-          style: TextStyle(
+        Text(
+          'company_label'.tr,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
@@ -4625,10 +4626,10 @@ class _EditCardPageState extends State<EditCardPage> {
                   _availableCompanies.any((c) => c['id'] == _selectedCompany)
               ? _selectedCompany
               : null,
-          decoration: const InputDecoration(
-            hintText: 'Select company',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: InputDecoration(
+            hintText: 'select_company'.tr,
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
           isExpanded: true,
           items: _availableCompanies.map((company) {
@@ -4655,8 +4656,8 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Details',
+        Text(
+          'details'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -4673,7 +4674,7 @@ class _EditCardPageState extends State<EditCardPage> {
           child: HtmlEditor(
             controller: _htmlEditorController,
             htmlEditorOptions: HtmlEditorOptions(
-              hint: 'Enter job details...',
+              hint: 'enter_job_title'.tr,
               // Prevent auto-scrolling to the editor on init (parity with create page)
               shouldEnsureVisible: false,
               initialText: widget.card.description.isNotEmpty
@@ -4753,8 +4754,8 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'To-Do List',
+        Text(
+          'to_do_list'.tr,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -4767,7 +4768,7 @@ class _EditCardPageState extends State<EditCardPage> {
             ElevatedButton.icon(
               onPressed: _showTodoTemplates,
               icon: const Icon(Icons.description, size: 16),
-              label: const Text('Apply Template'),
+              label: Text('apply_template'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
@@ -4784,7 +4785,7 @@ class _EditCardPageState extends State<EditCardPage> {
             ElevatedButton.icon(
               onPressed: _addTodoItem,
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add Item'),
+              label: Text('add_item'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
@@ -4810,10 +4811,10 @@ class _EditCardPageState extends State<EditCardPage> {
               border: Border.all(color: Colors.grey[300]!),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'No to-do items yet. Add one to get started!',
-                style: TextStyle(color: Colors.grey),
+                'no_todo_items_yet'.tr,
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           )
@@ -5340,7 +5341,7 @@ class _EditCardPageState extends State<EditCardPage> {
       final currentBoardId = _controller.currentBoardId.value;
       final currentWorkspaceId = _controller.currentWorkspaceId.value;
       if (currentBoardId.isEmpty || currentWorkspaceId.isEmpty) {
-        _showError('No board or workspace selected');
+  _showError('no_board_or_workspace_selected'.tr);
         return;
       }
 
@@ -5355,7 +5356,7 @@ class _EditCardPageState extends State<EditCardPage> {
       if (boardData == null ||
           boardData['todoTemplates'] == null ||
           (boardData['todoTemplates'] as List).isEmpty) {
-        _showError('No todo templates available for this board');
+  _showError('no_todo_templates_for_board'.tr);
         return;
       }
 
@@ -5419,8 +5420,8 @@ class _EditCardPageState extends State<EditCardPage> {
         });
 
         Get.snackbar(
-          'Success',
-          'Todo template applied successfully',
+          'success'.tr,
+          'todo_template_applied_success'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -5429,13 +5430,13 @@ class _EditCardPageState extends State<EditCardPage> {
       }
     } catch (e) {
       print('❌ Error showing todo templates: $e');
-      _showError('Failed to load todo templates: ${e.toString()}');
+  _showError('failed_to_load_todo_templates'.trParams({'error': e.toString()}));
     }
   }
 
   void _showError(String message) {
     Get.snackbar(
-      'Error',
+      'error'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
@@ -5452,9 +5453,9 @@ class _EditCardPageState extends State<EditCardPage> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Product Items',
-              style: TextStyle(
+            Text(
+              'products_and_services'.tr,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -5470,7 +5471,7 @@ class _EditCardPageState extends State<EditCardPage> {
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedTemplateId,
-                  hint: const Text('Select Template'),
+                  hint: Text('select_template'.tr),
                   items: _quotationTemplates.map((template) {
                     return DropdownMenuItem<String>(
                       value: template['id'],
@@ -5514,7 +5515,7 @@ class _EditCardPageState extends State<EditCardPage> {
                 ElevatedButton.icon(
                   onPressed: _addProduct,
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Product'),
+                  label: Text('add_product'.tr),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepOrange,
                     foregroundColor: Colors.white,
@@ -5536,7 +5537,7 @@ class _EditCardPageState extends State<EditCardPage> {
                 OutlinedButton.icon(
                   onPressed: _addCustomProduct,
                   icon: const Icon(Icons.edit, size: 18),
-                  label: const Text('Add Custom'),
+                  label: Text('add_custom'.tr),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.deepOrange,
                     side: const BorderSide(
@@ -6180,7 +6181,7 @@ class _EditCardPageState extends State<EditCardPage> {
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Subtotal', subtotal),
+          _buildSummaryRow('subtotal'.tr, subtotal),
 
           // Additional Discount Row with Toggle
           Container(
@@ -6276,7 +6277,7 @@ class _EditCardPageState extends State<EditCardPage> {
                                 ),
                               ),
                               child: Text(
-                                'เปอร์เซ็น',
+                                'percentage'.tr,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color:
@@ -6316,7 +6317,7 @@ class _EditCardPageState extends State<EditCardPage> {
                                 ),
                               ),
                               child: Text(
-                                'บาท',
+                                'baht'.tr,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color:
@@ -6342,7 +6343,7 @@ class _EditCardPageState extends State<EditCardPage> {
             ),
           ),
 
-          _buildSummaryRow('Total Amount', totalAmount),
+          _buildSummaryRow('total_amount'.tr, totalAmount),
 
           // VAT Row with Toggle
           Container(
@@ -6363,9 +6364,9 @@ class _EditCardPageState extends State<EditCardPage> {
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'VAT (7%)',
-                      style: TextStyle(
+                    Text(
+                      'vat_7_percent'.tr,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -6385,7 +6386,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
           const Divider(),
           _buildSummaryRow(
-            'Grand Total:',
+            'grand_total'.tr + ':',
             grandTotal,
             isBold: true,
             fontSize: 16,
@@ -6464,7 +6465,7 @@ class _EditCardPageState extends State<EditCardPage> {
           if (_withholdingTaxPercentage > 0) ...[
             const Divider(),
             _buildSummaryRow(
-              'ยอดชำระสุทธิ:',
+              'net_payment'.tr + ':',
               finalAmount,
               isBold: true,
               fontSize: 16,
@@ -6573,9 +6574,9 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Customer Interest',
-          style: TextStyle(
+        Text(
+          'customer_interest_label'.tr,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
@@ -6704,8 +6705,8 @@ class _EditCardPageState extends State<EditCardPage> {
 
     // Show a helpful message
     Get.snackbar(
-      'Custom Product Added',
-      'Empty product row added. You can now edit the details.',
+      'success'.tr,
+      'custom_product_row_added'.tr,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.green,
       colorText: Colors.white,
@@ -6857,8 +6858,8 @@ class _EditCardPageState extends State<EditCardPage> {
       await _loadRelatedDocumentsDetails();
 
       Get.snackbar(
-        'Success',
-        'Document status updated successfully',
+        'success'.tr,
+        'document_status_updated_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -6866,8 +6867,8 @@ class _EditCardPageState extends State<EditCardPage> {
       );
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to update document status: $e',
+        'error'.tr,
+        'failed_to_update_document_status'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -6879,8 +6880,8 @@ class _EditCardPageState extends State<EditCardPage> {
   void _downloadDocument(Map<String, dynamic> document) {
     // TODO: Implement download functionality
     Get.snackbar(
-      'Download',
-      'Download functionality will be available soon',
+      'download'.tr,
+      'download_feature_coming_soon'.tr,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
@@ -6891,8 +6892,8 @@ class _EditCardPageState extends State<EditCardPage> {
   void _duplicateDocument(Map<String, dynamic> document) {
     // TODO: Implement duplicate functionality
     Get.snackbar(
-      'Duplicate',
-      'Duplicate functionality will be available soon',
+      'duplicate'.tr,
+      'duplicate_feature_coming_soon'.tr,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.orange,
       colorText: Colors.white,
@@ -6913,8 +6914,8 @@ class _EditCardPageState extends State<EditCardPage> {
       );
     } else {
       Get.snackbar(
-        'Error',
-        'Cannot open document: Invalid document ID',
+        'error'.tr,
+        'cannot_open_document_invalid_id'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -6937,8 +6938,8 @@ class _EditCardPageState extends State<EditCardPage> {
       );
     } else {
       Get.snackbar(
-        'Error',
-        'Cannot open document: Invalid document ID',
+        'error'.tr,
+        'cannot_open_document_invalid_id'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -6949,7 +6950,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
   void _deleteDocument(Map<String, dynamic> document) {
     final documentId = document['id'] ?? '';
-    final docNo = document['docNo'] ?? 'N/A';
+  final docNo = document['docNo'] ?? 'not_available'.tr;
     final documentData = document['data'] as Map<String, dynamic>? ?? {};
     final status = documentData['status'] ?? 'DRAFT';
 
@@ -6958,16 +6959,16 @@ class _EditCardPageState extends State<EditCardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isNotFound ? 'ลบอ้างอิงเอกสาร' : 'ลบเอกสาร'),
+        title: Text(isNotFound ? 'delete_reference_document'.tr : 'delete_document'.tr),
         content: Text(
           isNotFound
-              ? 'คุณแน่ใจหรือไม่ที่จะลบอ้างอิงเอกสาร $docNo?\n\nเอกสารนี้ไม่พบในระบบแล้ว จะลบเฉพาะอ้างอิงออกจากการ์ดนี้'
-              : 'คุณแน่ใจหรือไม่ที่จะลบเอกสาร $docNo?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้',
+              ? 'confirm_delete_reference_with_docno'.trParams({'docNo': docNo.toString()})
+              : 'confirm_delete_document_with_docno'.trParams({'docNo': docNo.toString()}),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+            child: Text('cancel'.tr),
           ),
           TextButton(
             onPressed: () {
@@ -6975,7 +6976,7 @@ class _EditCardPageState extends State<EditCardPage> {
               _performDeleteDocument(documentId, '');
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(isNotFound ? 'ลบอ้างอิง' : 'ลบ'),
+            child: Text(isNotFound ? 'delete_reference'.tr : 'delete'.tr),
           ),
         ],
       ),
@@ -7071,10 +7072,10 @@ class _EditCardPageState extends State<EditCardPage> {
       await _loadRelatedDocumentsDetails();
 
       Get.snackbar(
-        'Success',
+        'success'.tr,
         status == 'NOT_FOUND'
-            ? 'Document reference removed successfully'
-            : 'Document deleted successfully',
+            ? 'document_reference_removed_successfully'.tr
+            : 'document_deleted_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -7082,8 +7083,8 @@ class _EditCardPageState extends State<EditCardPage> {
       );
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to delete document: $e',
+        'error'.tr,
+        'failed_to_delete_document'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -7121,12 +7122,12 @@ class _EditCardPageState extends State<EditCardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Product'),
-        content: const Text('Are you sure you want to delete this product?'),
+        title: Text('delete'.tr + ' ' + 'product'.tr),
+        content: Text('are_you_sure_delete_product'.tr),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr),
           ),
           TextButton(
             onPressed: () {
@@ -7135,8 +7136,8 @@ class _EditCardPageState extends State<EditCardPage> {
               });
               Navigator.of(context).pop();
               Get.snackbar(
-                'Success',
-                'Product deleted successfully',
+                'success'.tr,
+                'product_deleted_successfully'.tr,
                 snackPosition: SnackPosition.BOTTOM,
                 backgroundColor: Colors.green,
                 colorText: Colors.white,
@@ -7144,7 +7145,7 @@ class _EditCardPageState extends State<EditCardPage> {
               );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text('delete'.tr),
           ),
         ],
       ),
@@ -7406,9 +7407,9 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
               const SizedBox(height: 20),
 
               // Lane Selection
-              const Text(
-                'Lane',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              Text(
+                'lane_label'.tr,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
               if (_isLoadingLanes)
@@ -7422,15 +7423,15 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
                     border: Border.all(color: Colors.grey[300]!, width: 1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                      SizedBox(width: 12),
-                      Text('Loading lanes...'),
+                      const SizedBox(width: 12),
+                      Text('loading_lanes'.tr),
                     ],
                   ),
                 )
@@ -7450,10 +7451,10 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
                     children: [
                       Icon(Icons.warning, color: Colors.red[600], size: 20),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'No lanes available in this board',
-                          style: TextStyle(color: Colors.red),
+                          'no_lanes_available'.tr,
+                          style: const TextStyle(color: Colors.red),
                         ),
                       ),
                     ],
@@ -7475,7 +7476,7 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
                       value: _selectedLaneId.isNotEmpty
                           ? _selectedLaneId
                           : null,
-                      hint: const Text('Select Lane'),
+                      hint: Text('select_lane'.tr),
                       isExpanded: true,
                       icon: const Icon(Icons.arrow_drop_down),
                       items: _availableLanes.map((lane) {
@@ -7523,7 +7524,7 @@ class _MoveCardDialogState extends State<_MoveCardDialog> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Move Card'),
+                  child: Text('move_card'.tr),
                 ),
               ],
             ),

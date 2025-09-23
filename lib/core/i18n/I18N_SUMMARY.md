@@ -5,6 +5,43 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Edit Card Page Full Localization (2025-09-23)
+Files: `lib/features/board/view/edit_card_page.dart`, `lib/core/i18n/app_translations.dart`
+
+- Replaced remaining hardcoded strings in edit card UI with translation keys:
+   - Hints/labels: hashtags_label/hashtags_hint, lane_label/select_lane, assignee_hint, customer_label/select_customer, company_label/select_company
+   - Buttons/dialog: move_card, loading_lanes, no_lanes_available
+   - Comments: enter_comment (input hint)
+   - Fallbacks: not_available for 'N/A'
+- Added new keys (en/th): add_collaborator, add_watcher, select_lane, not_available
+- Verified existing keys and reused where possible (select_customer, select_company, hashtags_hint, assignee_hint)
+- Result: `edit_card_page.dart` now fully uses .tr for user-facing text matching patterns in `create_card_page.dart`.
+
+Update (2025-09-23 final sweep):
+- Localized remaining literals in `edit_card_page.dart`:
+   - Title required snackbar → 'error'.tr + 'card_title_required'.tr
+   - Todo template apply success → 'success'.tr + 'todo_template_applied_success'.tr
+   - _showError usage now uses 'error'.tr as title and localized messages:
+      - 'no_board_or_workspace_selected'.tr
+      - 'no_todo_templates_for_board'.tr
+      - 'failed_to_load_todo_templates'.trParams({'error': e.toString()})
+- Financial summary and actions (previous pass):
+   - Subtotal, Total Amount, Grand Total, Net Payment, VAT 7%, Baht, Percentage
+   - Document actions (download/duplicate coming soon, invalid ID, delete dialogs with {docNo}, success/failure snackbars)
+   - Attachments and custom product row messages
+- Notes:
+   - Removed const from Text where using .tr
+   - Verified all keys exist in `app_translations.dart` (en/th)
+
+Follow-up (2025-09-24 screenshot audit):
+- Localized additional UI strings seen still in English while Thai locale was active:
+   - Product section header → products_and_services.tr
+   - Product table default column labels → img.tr, product_service.tr, qty_unit.tr, price_unit.tr, discount.tr, total.tr
+   - Action buttons → add_product.tr, add_custom.tr
+   - Dropdown hint → select_template.tr
+   - Comments → Reply link uses reply.tr, Post button uses add_comment.tr
+   - Ensured no const Text remains where .tr is used
+
 ### Create Card Page Keys (2025-09-23)
 Files: `lib/features/board/view/create_card_page.dart`, `lib/core/i18n/app_translations.dart`
 
@@ -511,6 +548,194 @@ Update (2025-09-23 final touch):
 6. **Improved Error Handling**: User-friendly error messages instead of technical exceptions
 7. **Better UX**: Enhanced UI layout and visual feedback
 
+### Edit Card Page Translation (2025-01-15) - UPDATED
+**File**: `lib/features/board/view/edit_card_page.dart`
+
+#### Analysis:
+- Found extensive hardcoded English and Thai text throughout the edit card page
+- Missing translation keys for card editing functionality including dialogs, forms, buttons, and status messages
+- Mixed hardcoded strings in AppBar, dialogs, section headers, form fields, and action buttons
+
+#### Changes Made:
+1. **AppBar and Main Actions**:
+   - 'Edit Job Card' → 'edit_job_card'.tr
+   - 'Archive' → 'archive'.tr
+   - 'Delete' → 'delete'.tr
+
+2. **Dialog Translations**:
+   - Archive dialog: 'Archive Card', 'Are you sure you want to archive this card?', 'Archive', 'Cancel'
+   - Delete dialog: 'Delete Card', 'Are you sure you want to delete this card? This action cannot be undone.', 'Delete', 'Cancel'
+   - Move dialog: 'Move Card', 'Select destination board and lane', 'Destination Board', 'Destination Lane', 'Move', 'Cancel'
+
+3. **Section Headers and Labels**:
+   - 'Basic Information' → 'basic_information'.tr
+   - 'Attached Files' → 'attached_files'.tr
+   - 'To-Do List' → 'todo_list_section'.tr
+   - 'Additional Information' → 'additional_information'.tr
+   - 'Pricing & Financial Information' → 'pricing_financial_info'.tr
+
+4. **Form Fields and Inputs**:
+   - 'Job Title' → 'job_title'.tr
+   - 'Enter job title...' → 'enter_job_title_hint'.tr
+   - 'Customer' → 'customer'.tr
+   - 'Select Customer' → 'select_customer'.tr
+   - 'Assignee' → 'assignee'.tr
+   - 'Select Assignee' → 'select_assignee'.tr
+   - 'Description' → 'description'.tr
+   - 'Enter job description...' → 'enter_job_description_hint'.tr
+   - 'Hashtags' → 'hashtags'.tr
+   - 'Collaborators' → 'collaborators'.tr
+   - 'Watchers' → 'watchers'.tr
+   - 'Priority' → 'priority'.tr
+   - 'Interest Level' → 'interest_level'.tr
+
+5. **File Management**:
+   - 'Browse files' → 'browse_files'.tr
+   - 'No files attached' → 'no_files_attached'.tr
+   - Thai file actions: 'ดูไฟล์' → 'view_file'.tr, 'ลบไฟล์' → 'delete_file'.tr
+
+6. **Financial Information**:
+   - 'Grand Total' → 'grand_total'.tr
+   - 'Net Total' → 'net_total'.tr
+   - 'Discount Amount' → 'discount_amount'.tr
+   - 'VAT Amount' → 'vat_amount'.tr
+   - 'WHT Amount' → 'wht_amount'.tr
+   - 'Before Discount' → 'before_discount'.tr
+
+7. **Status Messages and Actions**:
+   - 'Card archived successfully' → 'card_archived_successfully'.tr
+   - 'Failed to archive card' → 'failed_to_archive_card'.tr
+   - 'Card deleted successfully' → 'card_deleted_successfully'.tr
+   - 'Failed to delete card' → 'failed_to_delete_card'.tr
+   - 'Card moved successfully' → 'card_moved_successfully'.tr
+   - 'Failed to move card' → 'failed_to_move_card'.tr
+   - 'Card updated successfully' → 'card_updated_successfully'.tr
+   - 'Failed to update card' → 'failed_to_update_card'.tr
+
+8. **Action Buttons**:
+   - 'Cancel' → 'cancel'.tr
+   - 'Save' → 'save'.tr
+
+9. **Status and Options Localization**:
+   - Status options: 'Pending' → 'status_pending'.tr, 'In Progress' → 'status_in_progress'.tr, etc.
+   - Document status options: 'ร่าง' → 'document_status_draft'.tr, 'อนุมัติแล้ว' → 'document_status_approved'.tr, etc.
+   - Customer interest options: 'เริ่มต้น' → 'interest_initial'.tr, 'น้อย (Low)' → 'interest_low'.tr + ' (Low)', etc.
+   - Permission denied message: 'Permission denied' → 'permission_denied'.tr
+   - Archived status: 'Archived' → 'archived_status'.tr
+   - Company none option: 'None' → 'none_option_short'.tr
+
+#### Added Translation Keys (70+ new keys):
+```dart
+// English Keys
+'edit_job_card': 'Edit Job Card',
+'archive_card_title': 'Archive Card',
+'archive_card_message': 'Are you sure you want to archive this card?',
+'delete_card_title': 'Delete Card', 
+'delete_card_message': 'Are you sure you want to delete this card? This action cannot be undone.',
+'move_card': 'Move Card',
+'move_card_message': 'Select destination board and lane',
+'destination_board': 'Destination Board',
+'destination_lane': 'Destination Lane',
+'basic_information': 'Basic Information',
+'attached_files': 'Attached Files',
+'todo_list_section': 'To-Do List',
+'additional_information': 'Additional Information',
+'pricing_financial_info': 'Pricing & Financial Information',
+'job_title': 'Job Title',
+'enter_job_title_hint': 'Enter job title...',
+'enter_job_description_hint': 'Enter job description...',
+'browse_files': 'Browse files',
+'no_files_attached': 'No files attached',
+'view_file': 'View File',
+'delete_file': 'Delete File',
+'grand_total': 'Grand Total',
+'net_total': 'Net Total',
+'discount_amount': 'Discount Amount',
+'vat_amount': 'VAT Amount',
+'wht_amount': 'WHT Amount',
+'before_discount': 'Before Discount',
+'card_archived_successfully': 'Card archived successfully',
+'failed_to_archive_card': 'Failed to archive card',
+'card_deleted_successfully': 'Card deleted successfully',
+'failed_to_delete_card': 'Failed to delete card',
+'card_moved_successfully': 'Card moved successfully',
+'failed_to_move_card': 'Failed to move card',
+'card_updated_successfully': 'Card updated successfully',
+'failed_to_update_card': 'Failed to update card',
+'permission_denied': 'Permission denied',
+'archived_status': 'Archived',
+'document_status_draft': 'Draft', 
+'document_status_approved': 'Approved',
+'document_status_pending_approval': 'Pending Approval',
+'document_status_sent_for_approval': 'Sent for Approval',
+'document_status_cancelled': 'Cancelled',
+'document_status_rejected': 'Rejected',
+'document_status_invoiced': 'Invoiced',
+'document_status_fully_paid': 'Fully Paid',
+'document_status_completed': 'Completed',
+
+// Thai Keys
+'edit_job_card': 'แก้ไขการ์ดงาน',
+'archive_card_title': 'เก็บการ์ดเข้าคลัง',
+'archive_card_message': 'คุณแน่ใจหรือไม่ที่จะเก็บการ์ดนี้เข้าคลัง?',
+'delete_card_title': 'ลบการ์ด',
+'delete_card_message': 'คุณแน่ใจหรือไม่ที่จะลบการ์ดนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้',
+'move_card': 'ย้ายการ์ด',
+'move_card_message': 'เลือกบอร์ดและเลนปลายทาง',
+'destination_board': 'บอร์ดปลายทาง',
+'destination_lane': 'เลนปลายทาง',
+'basic_information': 'ข้อมูลพื้นฐาน',
+'attached_files': 'ไฟล์แนบ',
+'todo_list_section': 'รายการสิ่งที่ต้องทำ',
+'additional_information': 'ข้อมูลเพิ่มเติม',
+'pricing_financial_info': 'ข้อมูลราคาและการเงิน',
+'job_title': 'หัวข้องาน',
+'enter_job_title_hint': 'กรอกหัวข้องาน...',
+'enter_job_description_hint': 'กรอกรายละเอียดงาน...',
+'browse_files': 'เรียกดูไฟล์',
+'no_files_attached': 'ไม่มีไฟล์แนบ',
+'view_file': 'ดูไฟล์',
+'delete_file': 'ลบไฟล์',
+'grand_total': 'ยอดรวมทั้งสิ้น',
+'net_total': 'ยอดสุทธิ',
+'discount_amount': 'จำนวนส่วนลด',
+'vat_amount': 'จำนวน VAT',
+'wht_amount': 'จำนวน WHT',
+'before_discount': 'ก่อนหักส่วนลด',
+'card_archived_successfully': 'เก็บการ์ดเข้าคลังเรียบร้อยแล้ว',
+'failed_to_archive_card': 'เก็บการ์ดเข้าคลังไม่สำเร็จ',
+'card_deleted_successfully': 'ลบการ์ดเรียบร้อยแล้ว',
+'failed_to_delete_card': 'ลบการ์ดไม่สำเร็จ',
+'card_moved_successfully': 'ย้ายการ์ดเรียบร้อยแล้ว',
+'failed_to_move_card': 'ย้ายการ์ดไม่สำเร็จ',
+'card_updated_successfully': 'อัปเดตการ์ดเรียบร้อยแล้ว',
+'failed_to_update_card': 'อัปเดตการ์ดไม่สำเร็จ',
+'permission_denied': 'ไม่อนุญาต',
+'archived_status': 'เก็บเข้าคลัง',
+'document_status_draft': 'ร่าง',
+'document_status_approved': 'อนุมัติแล้ว',
+'document_status_pending_approval': 'รออนุมัติ',
+'document_status_sent_for_approval': 'ส่งอนุมัติ',
+'document_status_cancelled': 'ยกเลิก',
+'document_status_rejected': 'ปฏิเสธ',
+'document_status_invoiced': 'ออกใบแจ้งหนี้แล้ว',
+'document_status_fully_paid': 'ชำระครบแล้ว',
+'document_status_completed': 'เสร็จสิ้น',
+```
+
+#### Status:
+- ✅ All hardcoded text in edit_card_page.dart is properly translated using .tr keys
+- ✅ All translation keys exist in both English and Thai
+- ✅ Used consistent i18n pattern with GetX
+- ✅ Card editing functionality fully localized including dialogs, forms, and status messages
+- ✅ File management actions properly translated
+- ✅ Financial information fields translated for business context
+- ✅ Archive, delete, and move card actions properly localized
+- ✅ Status options and document status options properly localized
+- ✅ Customer interest options properly localized
+- ✅ Permission and error messages properly translated
+- ✅ Company selection options properly translated
+
 ## Notes
 - Fixed duplicate translation key issues during implementation
 - All hardcoded Thai text in login and forgot password pages has been replaced with proper translation keys
@@ -519,3 +744,5 @@ Update (2025-09-23 final touch):
 - Added comprehensive error handling with context-specific error messages
 - Improved UI layout for better user experience and accessibility
 - Error messages are now localized and user-friendly
+- Removed const keywords from Text widgets when using .tr extensions to avoid compilation errors
+- Edit card page now fully supports Thai-English language switching across all UI elements

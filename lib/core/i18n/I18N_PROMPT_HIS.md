@@ -6,7 +6,7 @@
     - To give me better answers, please write a summary or review or document of each response to a file named `lib/core/i18n/I18N_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - File translate `lib/core/i18n/app_translations.dart`   
-    - *important* after finish add command in terminal `say "finish prompt"`
+    - *important* after finish add command or type in terminal `say "finish prompt"`
 
 Topic: Translate attach file .dart
 Detail: Translate attach file .dart
