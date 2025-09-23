@@ -5,6 +5,254 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Unified Filter Page Translation (2025-09-23)
+**File**: `lib/features/board/view/unified_filter_page.dart`
+
+#### Analysis:
+- Found minimal hardcoded text in unified filter page
+- Most text was already properly using translation keys (.tr)
+- Missing specific date filter type options that were hardcoded
+- Missing Thai translations for several Board Filter Page keys
+
+#### Changes Made:
+1. **Hardcoded Text Replacements**:
+   - 'Start Date' → 'start_date_type'.tr
+   - 'End Date' → 'end_date_type'.tr  
+   - 'Created Date' → 'created_date_type'.tr
+   - 'To-Do Date' → 'due_date_type'.tr
+   - 'Updated At' → 'updated_at_type'.tr
+
+2. **Added Translation Keys**:
+   ```dart
+   // English Date Filter Types
+   'start_date_type': 'Start Date',
+   'end_date_type': 'End Date', 
+   'created_date_type': 'Created Date',
+   'due_date_type': 'To-Do Date',
+   'updated_at_type': 'Updated At',
+   
+   // Thai Date Filter Types
+   'start_date_type': 'วันที่เริ่มต้น',
+   'end_date_type': 'วันที่สิ้นสุด',
+   'created_date_type': 'วันที่สร้าง', 
+   'due_date_type': 'วันที่ต้องทำ',
+   'updated_at_type': 'วันที่อัปเดต',
+   ```
+
+3. **Added Missing Thai Board Filter Keys**:
+   ```dart
+   // Thai translations that were missing
+   'select_date_type': 'เลือกประเภทวันที่:',
+   'quick_options': 'ตัวเลือกด่วน:',
+   'select_start_date': 'เลือกวันที่เริ่มต้น',
+   'select_end_date': 'เลือกวันที่สิ้นสุด',
+   'show_unselected_dates': 'แสดงวันที่ไม่ได้เลือก',
+   'show_tasks_without_date_in_selected_type': 'แสดงงานที่ไม่มีวันที่ในประเภทที่เลือก',
+   'set_custom_date_range': 'กำหนดช่วงวันที่เอง:',
+   'select_assignees_multiple': 'เลือกผู้รับผิดชอบ (เลือกหลายคน):',
+   'no_assignees_in_system': 'ไม่มีผู้รับผิดชอบในระบบ',
+   'select_customers_multiple': 'เลือกลูกค้า (เลือกหลายคน):',
+   'no_customers_in_system': 'ไม่มีลูกค้าในระบบ',
+   'select_hashtags_multiple': 'เลือกแฮชแท็ก (เลือกหลายคน):',
+   'no_hashtags_in_system': 'ไม่มีแฮชแท็กในระบบ',
+   'select_interests_multiple': 'เลือกความสนใจ (เลือกหลายคน):',
+   'no_interests_in_system': 'ไม่มีข้อมูลความสนใจในระบบ',
+   'apply_filter': 'ใช้ตัวกรอง',
+   ```
+
+#### Status:
+- ✅ All hardcoded text in unified_filter_page.dart is properly translated using .tr keys
+- ✅ Added 5 new date filter type translation key pairs (English/Thai)
+- ✅ Added 15+ missing Thai translation keys for Board Filter functionality
+- ✅ Unified filter page now fully supports Thai-English localization
+- ✅ Date filter type options properly localized for better user experience
+
+### Board Management Translation (2025-09-23)
+**Files Translated**: 
+- `lib/features/board/view/board_management_page.dart`
+- `lib/features/board/view/create_board_page.dart`
+- `lib/features/board/view/edit_board_page.dart`
+- `lib/features/board/view/create_workspace_page.dart`
+- `lib/features/board/view/edit_workspace_page.dart`
+- `lib/features/board/view/card_view_page.dart`
+- `lib/features/board/widgets/lane_header.dart`
+
+#### Analysis:
+- Found extensive hardcoded text in board management functionality
+- Missing translation keys for workspace, board, and job card management
+- Mixed English and Thai hardcoded text throughout the files
+
+#### Changes Made:
+1. **Board Management Page (`board_management_page.dart`)**:
+   - 'Board Management' → 'board_management'.tr
+   - 'No boards found' → 'no_boards_found'.tr
+   - 'Create your first board to get started' → 'create_first_board'.tr
+   - 'Create Board' → 'create_board'.tr
+   - 'Lanes: X' → 'board_lanes'.tr + ': X'
+   - 'Members: X' → 'board_members'.tr + ': X'
+   - 'Created: X' → 'board_created'.tr + ': X'
+   - Thai hardcoded text: 'คุณไม่มีสิทธิ์จัดการบอร์ด' → 'no_permission_manage_boards'.tr
+
+2. **Create Board Page (`create_board_page.dart`)**:
+   - 'New Board' → 'new_board'.tr
+   - 'You do not have permission to create boards' → 'no_permission_create_boards'.tr
+   - 'Board name is required' → 'board_name_required'.tr
+   - 'Board created successfully' → 'board_created_successfully'.tr
+   - 'Failed to create board' → 'failed_to_create_board'.tr
+   - 'Create Board' → 'create_board'.tr
+   - 'Board Name' → 'board_name'.tr
+   - 'Enter board name' → 'enter_board_name'.tr
+   - 'What will be created:' → 'what_will_be_created'.tr
+   - 'A new board with the specified name' → 'new_board_with_name'.tr
+   - 'Default lanes: To Do, In Progress, Done' → 'default_lanes_todo'.tr
+   - 'Board will be added to current workspace' → 'board_added_to_workspace'.tr
+   - Thai text: 'คุณไม่มีสิทธิ์สร้างบอร์ด' → 'no_permission_create_board_msg'.tr
+   - Thai text: 'ปิด' → 'close_btn'.tr
+
+3. **Create/Edit Workspace Pages**:
+   - 'Workspace name is required' → 'workspace_name_required'.tr
+   - 'User not authenticated' → 'user_not_authenticated'.tr
+   - 'Workspace created successfully' → 'workspace_created_successfully'.tr
+   - 'Failed to create workspace' → 'failed_to_create_workspace'.tr
+   - 'Create New Workspace' → 'workspace_create_new'.tr
+   - 'Workspace Name' → 'workspace_name'.tr
+   - 'e.g. My New Business' → 'workspace_name_hint'.tr
+   - 'A workspace contains its own boards, customers, products, and settings.' → 'workspace_description'.tr
+   - 'Create' → 'create_btn'.tr
+   - 'Cancel' → 'cancel'.tr (already existed)
+
+4. **Card View Page (`card_view_page.dart`)**:
+   - 'Job Card Details' → 'job_card_details'.tr
+   - 'Close' → 'close'.tr
+   - 'You do not have permission to edit this card' → 'no_permission_edit_card'.tr
+   - 'Edit Card' → 'edit_card'.tr
+   - 'Duplicate Card' → 'duplicate_card'.tr
+   - 'Delete Card' → 'delete_card'.tr
+   - 'Job ID' → 'job_id'.tr
+   - Various other card-related labels
+
+5. **Lane Header Widget (`lane_header.dart`)**:
+   - 'Display Summary' → 'display_summary'.tr
+   - 'Total (before discount)' → 'total_before_discount'.tr
+   - 'Total (after discount)' → 'lane_total_after_discount'.tr
+   - 'Grand Total (after VAT)' → 'grand_total_after_vat'.tr
+   - 'Net Total (after VAT & WHT)' → 'net_total_after_vat_wht'.tr
+   - 'None' → 'lane_none'.tr
+   - 'Duplicate Lane' → 'duplicate_lane'.tr
+   - 'Delete Lane' → 'delete_lane'.tr
+
+6. **Added Translation Keys** (70+ new keys):
+   ```dart
+   // English Keys
+   'board_management': 'Board Management',
+   'no_boards_found': 'No boards found',
+   'create_first_board': 'Create your first board to get started',
+   'create_board': 'Create Board',
+   'board_lanes': 'Lanes',
+   'board_members': 'Members',
+   'board_created': 'Created',
+   'edit_board': 'Edit Board',
+   'duplicate_board': 'Duplicate Board',
+   'delete_board': 'Delete Board',
+   'board_deleted_successfully': 'Board deleted successfully',
+   'failed_to_delete_board': 'Failed to delete board',
+   'no_permission_create_boards': 'You do not have permission to create boards',
+   'no_permission_manage_boards': 'คุณไม่มีสิทธิ์จัดการบอร์ด',
+   'new_board': 'New Board',
+   'board_name_required': 'Board name is required',
+   'board_created_successfully': 'Board created successfully',
+   'board_updated_successfully': 'Board updated successfully',
+   'failed_to_create_board': 'Failed to create board',
+   'failed_to_update_board': 'Failed to update board',
+   'enter_board_name': 'Enter board name',
+   'board_name': 'Board Name',
+   'what_will_be_created': 'What will be created:',
+   'new_board_with_name': 'A new board with the specified name',
+   'default_lanes_todo': 'Default lanes: To Do, In Progress, Done',
+   'board_added_to_workspace': 'Board will be added to current workspace',
+   'no_permission_create_board_msg': 'คุณไม่มีสิทธิ์สร้างบอร์ด',
+   'need_board_manage_permission': 'ต้องการสิทธิ์ settings:board:manage หรือเป็นเจ้าของ Workspace',
+   'close_btn': 'ปิด',
+   'workspace_create_new': 'Create New Workspace',
+   'edit_workspace': 'Edit Workspace',
+   'workspace_name_required': 'Workspace name is required',
+   'user_not_authenticated': 'User not authenticated',
+   'workspace_created_successfully': 'Workspace created successfully',
+   'workspace_updated_successfully': 'Workspace name updated successfully',
+   'workspace_deleted_successfully': 'Workspace deleted successfully',
+   'failed_to_create_workspace': 'Failed to create workspace',
+   'failed_to_update_workspace': 'Failed to update workspace',
+   'failed_to_delete_workspace': 'Failed to delete workspace',
+   'workspace_description': 'A workspace contains its own boards, customers, products, and settings.',
+   'workspace_name': 'Workspace Name',
+   'workspace_name_hint': 'e.g. My New Business',
+   'create_btn': 'Create',
+   'delete_workspace': 'Delete Workspace',
+   'delete_workspace_confirmation': 'Are you sure you want to delete "{name}"? This action cannot be undone and will delete all boards, cards, and data in this workspace.',
+   'no_permission_delete_workspace': "You don't have permission to delete this workspace",
+   'no_permission_update_workspace': "You don't have permission to update workspace settings",
+   'no_changes_made': 'No changes made',
+   'job_card_details': 'Job Card Details',
+   'edit_card': 'Edit Card',
+   'duplicate_card': 'Duplicate Card',
+   'delete_card': 'Delete Card',
+   'no_permission_edit_card': 'You do not have permission to edit this card',
+   'job_id': 'Job ID',
+   'job_card_title': 'Job Card Title',
+   'current_board': 'Current Board',
+   'lane': 'Lane',
+   'no_hashtags': 'No hashtags',
+   'no_customer': 'No customer',
+   'no_company': 'None',
+   'expected_closing_date': 'Expected Closing Date',
+   'no_date_set': 'No date set',
+   'card_information': 'Card Information',
+   'date_range': 'Date Range',
+   'created_date': 'Created Date',
+   'customer_interest': 'Customer Interest',
+   'collaborators': 'Collaborators',
+   'priority': 'Priority',
+   'card_grand_total': 'Grand Total',
+   'card_net_total': 'Net Total',
+   'card_details': 'Details',
+   'no_description': 'No description',
+   'no_todo_items': 'No to-do items',
+   'display_summary': 'Display Summary',
+   'total_before_discount': 'Total (before discount)',
+   'lane_total_after_discount': 'Total (after discount)',
+   'grand_total_after_vat': 'Grand Total (after VAT)',
+   'net_total_after_vat_wht': 'Net Total (after VAT & WHT)',
+   'lane_none': 'None',
+   'duplicate_lane': 'Duplicate Lane',
+   'delete_lane': 'Delete Lane',
+   'no_permission': 'Permission',
+
+   // Thai Keys
+   'board_management': 'จัดการบอร์ด',
+   'no_boards_found': 'ไม่พบบอร์ด',
+   'create_first_board': 'สร้างบอร์ดแรกของคุณเพื่อเริ่มต้น',
+   'create_board': 'สร้างบอร์ด',
+   'board_lanes': 'เลน',
+   'board_members': 'สมาชิก',
+   'board_created': 'สร้างเมื่อ',
+   'edit_board': 'แก้ไขบอร์ด',
+   'duplicate_board': 'ทำสำเนาบอร์ด',
+   'delete_board': 'ลบบอร์ด',
+   'board_deleted_successfully': 'ลบบอร์ดเรียบร้อยแล้ว',
+   'failed_to_delete_board': 'ลบบอร์ดไม่สำเร็จ',
+   'no_permission_create_boards': 'คุณไม่มีสิทธิ์สร้างบอร์ด',
+   'no_permission_manage_boards': 'คุณไม่มีสิทธิ์จัดการบอร์ด',
+   [... and many more Thai translations]
+   ```
+
+#### Status:
+- ✅ All hardcoded text in board management files is properly translated using .tr keys
+- ✅ All translation keys exist in both English and Thai
+- ✅ Used consistent i18n pattern with GetX
+- ✅ Board, workspace, and job card management functionality fully localized
+- ✅ Lane header display options properly translated
+- ✅ Card view functionality translated for better user experience
+
 ### Workspace App Bar Translation (2025-09-23)
 **File**: `lib/features/board/widgets/workspace_app_bar.dart`
 

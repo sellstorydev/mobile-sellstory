@@ -100,11 +100,11 @@ class UnifiedFilterPage extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildDateTypeChip(controller, 'startDate', 'Start Date'),
-                  _buildDateTypeChip(controller, 'endDate', 'End Date'),
-                  _buildDateTypeChip(controller, 'createdAt', 'Created Date'),
-                  _buildDateTypeChip(controller, 'dueDate', 'To-Do Date'),
-                  _buildDateTypeChip(controller, 'updatedAt', 'Updated At'),
+                  _buildDateTypeChip(controller, 'startDate', 'start_date_type'.tr),
+                  _buildDateTypeChip(controller, 'endDate', 'end_date_type'.tr),
+                  _buildDateTypeChip(controller, 'createdAt', 'created_date_type'.tr),
+                  _buildDateTypeChip(controller, 'dueDate', 'due_date_type'.tr),
+                  _buildDateTypeChip(controller, 'updatedAt', 'updated_at_type'.tr),
 
                 ],
               ),

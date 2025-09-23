@@ -207,7 +207,7 @@ class LaneHeader extends StatelessWidget {
                     children: [
                       // Display Summary Section
                       Text(
-                        'Display Summary',
+                        'display_summary'.tr,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppTheme.textPrimary,
@@ -221,7 +221,7 @@ class LaneHeader extends StatelessWidget {
                         contentPadding: EdgeInsets.zero,
                         value: LaneDisplayMode.totalBeforeDiscount,
                         groupValue: currentDisplayMode,
-                        title: const Text('Total (before discount)'),
+                        title: Text('total_before_discount'.tr),
                         onChanged: (value) {
                           if (value != null) {
                             // Apply to all lanes automatically
@@ -243,7 +243,7 @@ class LaneHeader extends StatelessWidget {
                         contentPadding: EdgeInsets.zero,
                         value: LaneDisplayMode.totalAfterDiscount,
                         groupValue: currentDisplayMode,
-                        title: const Text('Total (after discount)'),
+                        title: Text('lane_total_after_discount'.tr),
                         onChanged: (value) {
                           if (value != null) {
                             // Apply to all lanes automatically
@@ -265,7 +265,7 @@ class LaneHeader extends StatelessWidget {
                         contentPadding: EdgeInsets.zero,
                         value: LaneDisplayMode.grandTotal,
                         groupValue: currentDisplayMode,
-                        title: const Text('Grand Total (after VAT)'),
+                        title: Text('grand_total_after_vat'.tr),
                         onChanged: (value) {
                           if (value != null) {
                             // Apply to all lanes automatically
@@ -287,7 +287,7 @@ class LaneHeader extends StatelessWidget {
                         contentPadding: EdgeInsets.zero,
                         value: LaneDisplayMode.netTotal,
                         groupValue: currentDisplayMode,
-                        title: const Text('Net Total (after VAT & WHT)'),
+                        title: Text('net_total_after_vat_wht'.tr),
                         onChanged: (value) {
                           if (value != null) {
                             // Apply to all lanes automatically
@@ -309,7 +309,7 @@ class LaneHeader extends StatelessWidget {
                         contentPadding: EdgeInsets.zero,
                         value: LaneDisplayMode.none,
                         groupValue: currentDisplayMode,
-                        title: const Text('None'),
+                        title: Text('lane_none'.tr),
                         onChanged: (value) {
                           if (value != null) {
                             // Apply to all lanes automatically
@@ -336,7 +336,7 @@ class LaneHeader extends StatelessWidget {
                           color: AppTheme.textSecondary,
                         ),
                         title: Text(
-                          'Duplicate Lane',
+                          'duplicate_lane'.tr,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: AppTheme.textPrimary,
                           ),
@@ -355,8 +355,8 @@ class LaneHeader extends StatelessWidget {
                           Icons.delete_outline,
                           color: Colors.red,
                         ),
-                        title: const Text(
-                          'Delete Lane',
+                        title: Text(
+                          'delete_lane'.tr,
                           style: TextStyle(color: Colors.red),
                         ),
                         onTap: () {

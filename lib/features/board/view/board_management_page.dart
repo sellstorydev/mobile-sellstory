@@ -42,7 +42,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
 
   void _denySnack() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('คุณไม่มีสิทธิ์จัดการบอร์ด')),
+      SnackBar(content: Text('no_permission_manage_boards'.tr)),
     );
   }
 
@@ -294,7 +294,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Board Management'),
+        title: Text('board_management'.tr),
         backgroundColor: AppTheme.primaryOrange,
         foregroundColor: Colors.white,
         actions: [
@@ -325,8 +325,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                                   color: Colors.grey,
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
-                                  'No boards found',
+                                Text(
+                                  'no_boards_found'.tr,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w500,
@@ -334,8 +334,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
-                                  'Create your first board to get started',
+                                Text(
+                                  'create_first_board'.tr,
                                   style: TextStyle(
                                     color: Colors.grey,
                                   ),
@@ -347,7 +347,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                                   child: ElevatedButton.icon(
                                     onPressed: _navigateToCreateBoard,
                                     icon: const Icon(Icons.add),
-                                    label: const Text('Create Board'),
+                                    label: Text('create_board'.tr),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.primaryOrange,
                                       foregroundColor: Colors.white,
@@ -383,9 +383,9 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                                     subtitle: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('Lanes: ${board.lanes.length}')
-                                        ,Text('Members: ${board.memberUids.length}'),
-                                        Text('Created: ${_formatDate(board.createdAt)}'),
+                                        Text('${'board_lanes'.tr}: ${board.lanes.length}')
+                                        ,Text('${'board_members'.tr}: ${board.memberUids.length}'),
+                                        Text('${'board_created'.tr}: ${_formatDate(board.createdAt)}'),
                                       ],
                                     ),
                                     trailing: PermissionGuard(
