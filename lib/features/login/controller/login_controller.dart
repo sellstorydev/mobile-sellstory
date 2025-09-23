@@ -11,8 +11,7 @@ import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/mobile_api.dart';
 import '../../../app/routes.dart';
-
-
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class LoginController extends GetxController {
   final FirebaseAuthService _authService = Get.find<FirebaseAuthService>();
@@ -20,7 +19,7 @@ class LoginController extends GetxController {
   // Form fields
   final identity = ''.obs;
   final password = ''.obs;
-  
+
   // UI state
   final isLoading = false.obs;
   final obscurePassword = true.obs;
@@ -50,7 +49,7 @@ class LoginController extends GetxController {
     try {
       isLoading.value = true;
       await _authService.signInWithEmail(identity.value, password.value);
-      
+
       // Ensure dependencies are properly setup after login
       Locator.setup();
 
@@ -66,16 +65,19 @@ class LoginController extends GetxController {
         await AnalyticsService.to.logLogin(method: 'password');
       }
 
-
       // Prefetch permissions for user's active workspace
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           final chatService = Get.find<ChatService>();
-          String? workspaceId = await chatService.getUserCurrentWorkspaceId(user.uid);
+          String? workspaceId = await chatService.getUserCurrentWorkspaceId(
+            user.uid,
+          );
           workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
           if (workspaceId != null && workspaceId.isNotEmpty) {
-            await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
+            await MobilePermissionsService.to.getMyPermissions(
+              workspaceId: workspaceId,
+            );
           }
         }
       } catch (_) {
@@ -113,13 +115,18 @@ class LoginController extends GetxController {
       final data = resp.data ?? const <String, dynamic>{};
       if (status >= 200 && status < 300) {
         // Prefer activeWorkspace.id; fallback to user.lastActiveWorkspaceId or first workspace.id
-        final aw = (data['activeWorkspace'] is Map) ? (data['activeWorkspace'] as Map) : null;
+        final aw = (data['activeWorkspace'] is Map)
+            ? (data['activeWorkspace'] as Map)
+            : null;
         final awId = (aw?['id']?.toString() ?? '').trim();
         if (awId.isNotEmpty) return awId;
         final user = (data['user'] is Map) ? (data['user'] as Map) : null;
-        final lastId = (user?['lastActiveWorkspaceId']?.toString() ?? '').trim();
+        final lastId = (user?['lastActiveWorkspaceId']?.toString() ?? '')
+            .trim();
         if (lastId.isNotEmpty) return lastId;
-        final ws = (user?['workspaces'] is List) ? (user!['workspaces'] as List) : const [];
+        final ws = (user?['workspaces'] is List)
+            ? (user!['workspaces'] as List)
+            : const [];
         if (ws.isNotEmpty) {
           final first = (ws.first is Map) ? (ws.first as Map) : null;
           final fid = (first?['id']?.toString() ?? '').trim();
@@ -132,9 +139,15 @@ class LoginController extends GetxController {
       final data = (e.response?.data is Map<String, dynamic>)
           ? (e.response!.data as Map<String, dynamic>)
           : const <String, dynamic>{};
-      final wsId = (data['workspaceId']?.toString() ?? data['workspace_id']?.toString() ?? '').trim();
+      final wsId =
+          (data['workspaceId']?.toString() ??
+                  data['workspace_id']?.toString() ??
+                  '')
+              .trim();
       if (wsId.isNotEmpty) return wsId;
-      debugPrint('bootstrap-social failed: ${e.message} (${e.response?.statusCode})');
+      debugPrint(
+        'bootstrap-social failed: ${e.message} (${e.response?.statusCode})',
+      );
     } catch (e) {
       debugPrint('bootstrap-social unexpected: $e');
     }
@@ -169,13 +182,12 @@ class LoginController extends GetxController {
     return null;
   }
 
-
   // Google Sign-In
   Future<void> signInWithGoogle() async {
     try {
       isLoading.value = true;
       await _authService.signInWithGoogle();
-      
+
       // Ensure dependencies are properly setup after login
       Locator.setup();
       // First-time social provisioning (bootstrap): ensure user profile + initial workspace
@@ -202,7 +214,9 @@ class LoginController extends GetxController {
           workspaceId ??= await chatService.getUserCurrentWorkspaceId(user.uid);
           workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
           if (workspaceId != null && workspaceId.isNotEmpty) {
-            await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
+            await MobilePermissionsService.to.getMyPermissions(
+              workspaceId: workspaceId,
+            );
           }
         }
       } catch (_) {
@@ -241,7 +255,7 @@ class LoginController extends GetxController {
 
     try {
       isLoading.value = true;
-      // await _authService.signInWithAppleFirebase();
+      await _authService.signInWithAppleFirebase();
 
       // Ensure dependencies are properly setup after login
       Locator.setup();
@@ -270,19 +284,61 @@ class LoginController extends GetxController {
           workspaceId ??= await chatService.getUserCurrentWorkspaceId(user.uid);
           workspaceId ??= await chatService.getUserFirstWorkspaceId(user.uid);
           if (workspaceId != null && workspaceId.isNotEmpty) {
-            await MobilePermissionsService.to.getMyPermissions(workspaceId: workspaceId);
+            await MobilePermissionsService.to.getMyPermissions(
+              workspaceId: workspaceId,
+            );
           }
         }
       } catch (_) {}
 
       Get.offAllNamed('/shell');
     } on FirebaseAuthException catch (e) {
-      _handleAuthError(e);
+   
+      // Show firebase-specific auth error
+      final msg = e.message?.toString().trim().isNotEmpty == true
+          ? e.message!
+          : 'ไม่สามารถเข้าสู่ระบบด้วย Apple ได้ (${e.code})';
+
+      print(msg);
+      Get.snackbar(
+        'เข้าสู่ระบบไม่สำเร็จ',
+        msg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // Map Apple auth errors
+      String msg;
+      switch (e.code) {
+        case AuthorizationErrorCode.canceled:
+          msg = 'ยกเลิกการเข้าสู่ระบบ';
+          break;
+        case AuthorizationErrorCode.failed:
+          msg = 'การเข้าสู่ระบบล้มเหลว กรุณาลองใหม่';
+          break;
+        case AuthorizationErrorCode.invalidResponse:
+          msg = 'การตอบกลับไม่ถูกต้องจาก Apple';
+          break;
+        case AuthorizationErrorCode.notHandled:
+          msg = 'คำขอเข้าสู่ระบบไม่ได้ถูกจัดการ';
+          break;
+        case AuthorizationErrorCode.unknown:
+        default:
+          msg = 'เกิดข้อผิดพลาดไม่ทราบสาเหตุจาก Apple';
+      }
+      Get.snackbar(
+        'เข้าสู่ระบบไม่สำเร็จ',
+        msg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
+        colorText: Get.theme.colorScheme.error,
+      );
     } catch (e) {
       debugPrint('signInWithApple error: $e');
       Get.snackbar(
-        'Error',
-        'Invalid email or password',
+        'เข้าสู่ระบบไม่สำเร็จ',
+        'ไม่สามารถเข้าสู่ระบบด้วย Apple: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,

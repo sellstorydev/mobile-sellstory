@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'dart:math';
 import 'dart:convert';
@@ -54,31 +55,67 @@ class FirebaseAuthService {
     return digest.toString();
   }
   Future<void> signInWithAppleFirebase() async {
+    // Create a nonce for replay protection
     final rawNonce = _randomNonce();
-    final nonce = _sha256ofString(rawNonce); // <- ต้องส่งตัวนี้ไปกับ request
+    final hashedNonce = _sha256ofString(rawNonce);
 
+    // 1) Request Apple credential with nonce
+    final appleCredential = await SignInWithApple.getAppleIDCredential(
+      scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ],
+      nonce: hashedNonce,
+    );
 
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
-    // 2) ดึง idToken จาก Apple
-    final idToken = credential.identityToken;
-    if (idToken == null) {
+    // 2) Extract idToken
+    final idToken = appleCredential.identityToken;
+    if (idToken == null || idToken.isEmpty) {
       throw FirebaseAuthException(
         code: 'ERROR_MISSING_ID_TOKEN',
         message: 'Apple identityToken is null',
       );
     }
-      final oAuthCredential = OAuthProvider("apple.com").credential(
-        idToken: credential.identityToken,
-        accessToken: credential.authorizationCode,
-      );
-    // 4) Sign in กับ Firebase
-    await FirebaseAuth.instance.signInWithCredential(oAuthCredential);
+
+    if (kDebugMode) {
+      // Basic diagnostics for troubleshooting
+      debugPrint('[Apple Sign-In] idToken length=${idToken.length}');
+      debugPrint('[Apple Sign-In] expected nonce (hashed) = $hashedNonce');
+      final parts = idToken.split('.');
+      if (parts.length == 3) {
+        debugPrint('[Apple Sign-In] JWT header/payload present');
+        try {
+          final payloadB64 = base64Url.normalize(parts[1]);
+          final payloadJson = utf8.decode(base64Url.decode(payloadB64));
+          final payload = jsonDecode(payloadJson) as Map<String, dynamic>;
+          debugPrint('[Apple Sign-In] token.aud = ${payload['aud']}');
+          debugPrint('[Apple Sign-In] token.iss = ${payload['iss']}');
+          debugPrint('[Apple Sign-In] token.nonce = ${payload['nonce']}');
+          debugPrint('[Apple Sign-In] token.email = ${payload['email']}');
+          debugPrint(
+            '[Apple Sign-In] token.email_verified = ${payload['email_verified']}',
+          );
+        } catch (e) {
+          debugPrint('[Apple Sign-In] Failed to decode JWT payload: $e');
+        }
+      } else {
+        debugPrint(
+          '[Apple Sign-In] Unexpected idToken format: parts=${parts.length}',
+        );
+      }
+    }
+
+    // 3) Build OAuth credential with the raw nonce
+    final oAuthCredential = OAuthProvider('apple.com').credential(
+      idToken: idToken,
+      rawNonce: rawNonce,
+      accessToken: appleCredential.authorizationCode,
+    );
+
+    // 4) Sign in to Firebase
+    await _auth.signInWithCredential(oAuthCredential);
   }
+
 
 
   // Password Reset
