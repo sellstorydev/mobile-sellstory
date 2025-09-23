@@ -5,6 +5,42 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Workspace App Bar Translation (2025-09-23)
+**File**: `lib/features/board/widgets/workspace_app_bar.dart`
+
+#### Analysis:
+- Found multiple hardcoded text strings in workspace app bar component
+- Missing translation keys for workspace and board management functionality
+
+#### Changes Made:
+1. **Hardcoded Text Replacements**:
+   - 'Job Card ของคุณ X ใบ' → 'job_card_count'.trParams({'count': 'X'})
+   - 'My Workspace1' → 'no_name'.tr
+   - 'Board' → 'board'.tr
+   - 'Calendar' → 'calendar'.tr (tooltip)
+   - 'Workspace' → 'workspace'.tr
+
+2. **Added Translation Keys**:
+   - 'select_workspace_and_board': 'Select Workspace and Board' / 'เลือกเวิร์กสเปซและบอร์ด'
+   - 'current_workspace': 'Current Workspace' / 'เวิร์กสเปซปัจจุบัน'
+   - 'select_board': 'Select Board' / 'เลือกบอร์ด'
+   - 'manage_board': 'Manage Board' / 'จัดการบอร์ด'
+   - 'change_workspace': 'Change Workspace' / 'เปลี่ยนเวิร์กสเปซ'
+   - 'loading_boards': 'Loading boards...' / 'กำลังโหลดบอร์ด...'
+   - 'no_boards_in_workspace': 'No boards in this workspace' / 'ไม่มีบอร์ดในเวิร์กสเปซนี้'
+   - 'single_workspace_message': 'You currently have only one workspace' / 'คุณมีเพียงหนึ่งเวิร์กสเปซในขณะนี้'
+   - 'card_settings': 'Card Settings' / 'ตั้งค่าการ์ด'
+   - 'create_new_workspace': 'Create New Workspace' / 'สร้างเวิร์กสเปซใหม่'
+   - 'job_card_count': '{count} Job Cards' / 'การ์ดงาน {count} ใบ'
+   - 'workspace': 'Workspace' / 'เวิร์กสเปซ'
+   - 'board': 'Board' / 'บอร์ด'
+
+#### Status:
+- ✅ All hardcoded text in workspace_app_bar.dart is properly translated using .tr keys
+- ✅ All translation keys exist in both English and Thai
+- ✅ Used .trParams() for dynamic job card count display
+- ✅ Workspace management functionality fully localized
+
 ### Chat Widgets Translation (2025-01-15)
 **Files**: Multiple chat widget files including `chat_filter_sheet.dart` and others
 

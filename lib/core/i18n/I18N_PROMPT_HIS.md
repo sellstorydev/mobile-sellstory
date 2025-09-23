@@ -15,6 +15,5 @@ Steps:
     - If have text not translate go to app_translations.dart check if have the text go to translate it.
     - If not have the text add it to app_translations.dart and translate it.
     - If words that don't mean anything change them to something that makes sense.
-    - Check keywords that are not translated in the code and translate them.
- 
+    - Check keywords that are not have in app_translations.dart and add them.
 

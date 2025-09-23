@@ -267,7 +267,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                             .expand((lane) => lane.cards)
                                             .length;
                                         return Text(
-                                          'Job Card ของคุณ $boardCards ใบ',
+                                          'job_card_count'.tr.replaceAll('{count}', '$boardCards'),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey[600],
@@ -469,7 +469,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                                               ),
                                                             ),
                                                             Text(
-                                                              'Job Card ของคุณ ${_boardCardCounts[board['id']] ?? 0} ใบ',
+                                                              'job_card_count'.tr.replaceAll('{count}', '${_boardCardCounts[board['id']] ?? 0}'),
                                                               style: TextStyle(
                                                                 fontSize: 12,
                                                                 color: Colors.grey[600],
@@ -653,7 +653,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black87,
-        title: const Text('Workspace'),
+        title: Text('workspace'.tr),
       );
     }
 
@@ -699,7 +699,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                               Text(
                                 ctrl.currentWorkspaceName.value.isNotEmpty
                                     ? ctrl.currentWorkspaceName.value
-                                    : 'My Workspace1',
+                                    : 'no_name'.tr,
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -746,7 +746,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                   ),
                 );
               }
-              return const Text('Board');
+              return Text('board'.tr);
             }),
       actions: [
         // Calendar Button
@@ -757,7 +757,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
             return IconButton(
               onPressed: () => (widget.onMenuAction ?? (v) => _defaultOnMenuAction(v, context))('calendar'),
               icon: const Icon(Icons.calendar_month),
-              tooltip: 'Calendar',
+              tooltip: 'calendar'.tr,
             );
           }
           return const SizedBox.shrink();
