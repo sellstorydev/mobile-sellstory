@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../../../data/services/firebase_auth_service.dart';
 import '../../../data/services/webview_api_service.dart';
 import '../../../core/di/locator.dart';
+import '../../../core/services/fcm_service.dart';
 
 class MoreController extends GetxController {
   final FirebaseAuthService _authService = Get.find<FirebaseAuthService>();
@@ -65,6 +66,9 @@ class MoreController extends GetxController {
     await _loadUserDataFromFirestore();
   }
 
+
+
+
   // Logout with confirmation
   Future<void> logout() async {
     // Show confirmation dialog
@@ -92,6 +96,12 @@ class MoreController extends GetxController {
     if (confirmed == true) {
       try {
         isLoading.value = true;
+        // Unregister FCM device & delete token before auth sign-out
+        try {
+          if (Get.isRegistered<FcmService>()) {
+            await Get.find<FcmService>().unregisterDeviceForPush();
+          }
+        } catch (_) {}
         await _authService.signOut();
         
         // Reset dependencies to prevent issues after logout

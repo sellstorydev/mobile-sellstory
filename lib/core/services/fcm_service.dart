@@ -379,6 +379,68 @@ class FcmService extends GetxService {
     }
   }
 
+  // Unregister this device for push notifications (used on explicit logout)
+  Future<void> unregisterDeviceForPush() async {
+    try {
+      LoggerService.to.addFcmLog('unregister_device_start');
+      final uid = _auth.currentUser?.uid;
+      // Stop device watcher to avoid loops during sign-out
+      try {
+        await _deviceWatcher?.cancel();
+      } catch (_) {}
+      _deviceWatcher = null;
+
+      // Mark device inactive in Firestore and clear root-level token
+      if (uid != null) {
+        try {
+          if (_cachedDeviceId != null && _cachedDeviceId!.isNotEmpty) {
+            final docRef = FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .collection('devices')
+                .doc(_cachedDeviceId);
+            await docRef.set({
+              'isActive': false,
+              'forceSignOut': false,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+          }
+        } catch (e) {
+          LoggerService.to.warning('Failed to mark device inactive: $e');
+        }
+
+        try {
+          final userDoc = FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid);
+          await userDoc.set({
+            'fcmToken': FieldValue.delete(),
+            'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          LoggerService.to.warning('Failed to clear user root fcmToken: $e');
+        }
+      }
+
+      // Delete the local FCM token
+      try {
+        await _messaging.deleteToken();
+        LoggerService.to.addFcmLog('fcm_token_deleted');
+      } catch (e) {
+        LoggerService.to.warning('deleteToken failed: $e');
+      }
+
+      // Clear caches to avoid stale state
+      _cachedToken = null;
+      // Keep deviceId so we can reuse after login; if you prefer reset: uncomment next line
+      // _cachedDeviceId = null;
+
+      LoggerService.to.addFcmLog('unregister_device_done');
+    } catch (e) {
+      LoggerService.to.warning('unregisterDeviceForPush failed: $e');
+    }
+  }
+
   void _handleRemoteMessageNavigation(RemoteMessage message) {
     final data = message.data;
     final link = data['link'] as String? ?? data['url'] as String?;
