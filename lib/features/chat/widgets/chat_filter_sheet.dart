@@ -255,7 +255,7 @@ class _ChatFilterSheetState extends State<ChatFilterSheet> {
               statusRadio('DONE', 'done'.tr),
 
               const SizedBox(height: 8),
-              Text('Hashtag', style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('hashtag'.tr, style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               pickerTile(
                 icon: Icons.tag,

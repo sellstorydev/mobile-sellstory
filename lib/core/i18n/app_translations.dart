@@ -566,6 +566,7 @@ class AppTranslations extends Translations {
           'tasks': 'tasks',
           
           // Chat Module
+          'chat_search_hint': 'Search chat...', 
           'chat_confirm_assign_sale': 'Confirm Sales Assignment',
           'chat_assign_sale_success': 'Sales assigned successfully',
           'chat_assign_sale_failed': 'Failed to assign sales',
@@ -707,6 +708,12 @@ class AppTranslations extends Translations {
           'chat_rename_title': 'Rename Chat',
           'chat_rename_hint': 'Enter new chat name',
           'chat_name_cannot_be_empty': 'Chat name cannot be empty',
+          // Chat filter sheet
+          'channel': 'Channel',
+          'facebook_channel': 'Facebook',
+          'instagram_channel': 'Instagram',
+          'line_channel': 'LINE',
+          'select_hashtag': 'Select Hashtag',
           'chat_name_saved_success': 'Chat name saved',
           'chat_original_name_not_found': 'Original chat name not found',
           'chat_name_reset_success': 'Chat name reset',
@@ -752,6 +759,43 @@ class AppTranslations extends Translations {
           // Multi-image
           'uploading_images_start': 'Uploading {total} images…',
           'uploading_images_progress': 'Uploading images… {current}/{total} ({percent}%)',
+          
+          // Login Page additional keys
+          'email_field_label': 'Email',
+          'password_field_label': 'Password',
+          'enter_email_hint': 'Enter email',
+          'enter_password_hint': 'Enter password',
+          'sign_in_with_google': 'Sign in with Google',
+          'sign_in_with_apple': 'Sign in with Apple',
+          'or_divider': 'or',
+          'for_more_information': 'For more information',
+          
+          // Forgot Password Pages
+          'forgot_password_title': 'Forgot Password',
+          'enter_registered_email': 'Enter registered email',
+          'forgot_password_description': 'We will send a verification code to your email address',
+          'request_otp': 'Request OTP',
+          'enter_6_digit_code': 'Please enter the 6-digit code',
+          'enter_6_digit_code_with_phone': 'Please enter the 6-digit code sent to ••••{last4}',
+          'resend': 'Resend',
+          'resend_in_seconds': 'Resend in {seconds}s',
+          'reset_password_title': 'Reset Password',
+          'new_password': 'New Password',
+          'new_password_hint': 'At least 8 characters',
+          'confirm_password_hint': 'Type again',
+          'passwords_match': 'Passwords match',
+          'passwords_do_not_match': 'Passwords do not match',
+          'request_failed': 'Request failed',
+          'otp_sent_again': 'OTP sent again',
+          'password_changed_success': 'Password changed successfully',
+          'info': 'Info',
+          'email_not_found': 'Email not found in system',
+          'network_error': 'Network connection error',
+          'invalid_otp': 'Invalid OTP code',
+          'otp_expired': 'OTP code has expired',
+          'verification_failed': 'Verification failed',
+          'password_too_weak': 'Password is too weak',
+          'password_reset_failed': 'Password reset failed',
         },
         'th': {
           'link_job_card': 'Job Card',
@@ -1280,6 +1324,7 @@ class AppTranslations extends Translations {
           'invoiced_already': 'ออกใบแจ้งหนี้แล้ว',
 
           // Chat Module (misc labels and notifications)
+          'chat_search_hint': 'ค้นหาแชท...',
           'notifications': 'การแจ้งเตือน',
           'chat_notification_toggle_success': 'ปิด/เปิดการแจ้งเตือนแล้ว',
           // Add filter chip labels (Thai)
@@ -1418,8 +1463,54 @@ class AppTranslations extends Translations {
 
           'preparing_images': 'Preparing images…',
           // Multi-image
-          'uploading_images_start': 'Uploading {total} images…',
-          'uploading_images_progress': 'Uploading images… {current}/{total} ({percent}%)',
+          'uploading_images_start': 'กำลังอัปโหลดรูปภาพ {total} รูป…',
+          'uploading_images_progress': 'กำลังอัปโหลดรูปภาพ… {current}/{total} ({percent}%)',
+          
+          // Login Page additional keys
+          'email_field_label': 'อีเมล',
+          'password_field_label': 'รหัสผ่าน',
+          'enter_email_hint': 'กรอกอีเมล',
+          'enter_password_hint': 'กรอกรหัสผ่าน',
+          'sign_in_with_google': 'เข้าสู่ระบบด้วย Google',
+          'sign_in_with_apple': 'เข้าสู่ระบบด้วย Apple',
+          'or_divider': 'หรือ',
+          'for_more_information': 'สอบถามข้อมูลเพิ่มเติม',
+          
+          // Forgot Password Pages
+          'forgot_password_title': 'ลืมรหัสผ่าน',
+          'enter_registered_email': 'กรอกอีเมลที่ใช้สมัคร',
+          'forgot_password_description': 'เราจะส่งรหัสยืนยันไปยังที่อยู่อีเมลของคุณ',
+          'request_otp': 'ขอรหัส OTP',
+          'enter_6_digit_code': 'กรุณากรอกรหัส 6 หลัก',
+          'enter_6_digit_code_with_phone': 'กรุณากรอกรหัส 6 หลักที่ส่งไปยัง ••••{last4}',
+          'resend': 'ส่งใหม่',
+          'resend_in_seconds': 'ส่งใหม่ใน {seconds}s',
+          'reset_password_title': 'รีเซ็ตรหัสผ่าน',
+          'new_password': 'รหัสผ่านใหม่',
+          'new_password_hint': 'อย่างน้อย 8 ตัวอักษร',
+          'confirm_password_hint': 'พิมพ์ซ้ำอีกครั้ง',
+          'passwords_match': 'รหัสผ่านตรงกัน',
+          'passwords_do_not_match': 'รหัสผ่านไม่ตรงกัน',
+          'request_failed': 'การขอข้อมูลไม่สำเร็จ',
+          'otp_sent_again': 'ส่ง OTP อีกครั้งแล้ว',
+          'password_changed_success': 'เปลี่ยนรหัสผ่านสำเร็จ',
+          'info': 'ข้อมูล',
+          'email_not_found': 'ไม่พบอีเมลในระบบ',
+          'network_error': 'ปัญหาการเชื่อมต่อเครือข่าย',
+          'invalid_otp': 'รหัส OTP ไม่ถูกต้อง',
+          'otp_expired': 'รหัส OTP หมดอายุแล้ว',
+          'verification_failed': 'การยืนยันไม่สำเร็จ',
+          'password_too_weak': 'รหัสผ่านไม่ปลอดภัยเพียงพอ',
+          'password_reset_failed': 'การรีเซ็ตรหัสผ่านไม่สำเร็จ',
+          'chat_center_no_permission': 'คุณไม่มีสิทธิ์เข้าถึงศูนย์การสนทนา',
+          // Chat filter sheet (Thai)
+          'channel': 'ช่องทาง',
+          'facebook_channel': 'Facebook',
+          'instagram_channel': 'Instagram',
+          'line_channel': 'LINE',
+          'select_hashtag': 'เลือกแฮชแท็ก',
+          'search_customer_name_or_id': 'ค้นหาชื่อลูกค้า / รหัส',
+          'hashtag': 'แฮชแท็ก',
         },
       };
 }

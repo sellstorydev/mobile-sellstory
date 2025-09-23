@@ -7,6 +7,40 @@
     - *important* after finish add command in terminal "say finish prompt"
 
 Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: เมื่อทำการกด Select date type เป็น start date แล้วกด quick option เป็น today มันแสดงไม่ครบ คือจริงจะต้องแสดง card
+Today,+1 day,+3 days,+7 days,+14 days,+30 days,End date 22/09/2025 , this week, this month, jobcard title1234 เนื่องจากมี start data คาบเกีวกับ
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: เมื่อผมทำการกดที่ quick option แล้วมันไปล่างค่า select date type ออกหมดจริงๆๆมันต้องไม่ล้างออก ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: ผมทำการกด last month แต่มันแสดง card last month กับ this month จริงๆมันต้องแสดงแค่ last month อย่างเดียว ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: คือตอนนี่มันแสดงผิดอยู่นิดหน่อย  ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail:คือตอนนี่มันแสดงผิดอยู่นิดหน่อย ผิดแค่ตอนติ๊ก checkbox Show Unselected Datesแล้ว card +1 day มันไม่ขึ้น แต่ card no date ขึ้น แต่จริงๆต้องขึ้นทั้ง 2 อันเลย คือ +1 day กับ no date ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail:ยังแสดงผิดอยู่ ถ้าไม่ได้ checkbox Show Unselected Dates จะต้องขึ้นแค่ card +1 day แต่เมื่อติกจะต้อง ขึ้น +1day กับ no date ดูหน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: จาก filter ในรูปควรแสดง card ที่ีมี start date หรือ end date อยู่ในช่วงวันที่ที่เลือกและแสดง card ที่ไม่มี start และ end date แต่เมื่อทดสอบจริงๆ กลับแสดง card ที่ไม่มี start date หรือ end date อย่างเดียว fix ให้หน่อย ช่วยดูข้อมูลหน่อยจริงๆต้องโชว์ 2 card ใหมคือ +1 day กับ no date มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
 Detail: Job card date filter select date type,quick option set custom date range: not working.
 
 Select date type section:
