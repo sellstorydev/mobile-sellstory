@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 
 class CardFieldDisplay extends StatelessWidget {
@@ -114,15 +115,15 @@ class CardFieldDisplay extends StatelessWidget {
     switch (priority.toLowerCase()) {
       case 'high':
         badgeColor = Colors.red[100]!;
-        displayText = 'High';
+        displayText = 'priority_high_label'.tr;
         break;
       case 'medium':
         badgeColor = Colors.orange[100]!;
-        displayText = 'Medium';
+        displayText = 'priority_medium_label'.tr;
         break;
       case 'low':
         badgeColor = Colors.green[100]!;
-        displayText = 'Low';
+        displayText = 'priority_low_label'.tr;
         break;
       default:
         badgeColor = Colors.grey[100]!;

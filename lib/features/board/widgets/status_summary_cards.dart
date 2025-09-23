@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import 'package:sellstory/core/enums/lane_display_mode.dart';
 import '../../../domain/entities/job_card.dart';
 import '../../../core/utils/lane_total_calculator.dart';
@@ -42,7 +43,7 @@ class StatusSummaryCards extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             _buildSummaryCard(
-              title: 'Pending',
+              title: 'pending_status'.tr,
               amount: _calculateAmountByStatus('Pending'),
               count: _getCountByStatus('Pending'),
               color: const Color(0xFF6B7280),
@@ -54,7 +55,7 @@ class StatusSummaryCards extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             _buildSummaryCard(
-              title: 'Completed',
+              title: 'completed_status'.tr,
               amount: _calculateAmountByStatus('Done'),
               count: _getCountByStatus('Done'),
               color: const Color(0xFF027F00),
@@ -66,7 +67,7 @@ class StatusSummaryCards extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             _buildSummaryCard(
-              title: 'In Progress',
+              title: 'in_progress_status'.tr,
               amount: _calculateAmountByStatus('In Progress'),
               count: _getCountByStatus('In Progress'),
               color: const Color(0xFFFAB73F),
@@ -78,7 +79,7 @@ class StatusSummaryCards extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             _buildSummaryCard(
-              title: 'Cancelled',
+              title: 'cancelled_status'.tr,
               amount: _calculateAmountByStatus('Cancelled'),
               count: _getCountByStatus('Cancelled'),
               color: const Color(0xFFFF6C0C),

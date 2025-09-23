@@ -5,6 +5,39 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Create Card Page Keys (2025-09-23)
+Files: `lib/features/board/view/create_card_page.dart`, `lib/core/i18n/app_translations.dart`
+
+- Added missing keys for create card UI and flows (both en/th). Highlights:
+   - Form labels/hints: hashtags_hint, assignee_hint, card_title_label
+   - Validation/messages: card_title_required, assignee_required, customer_required, no_create_permission, description_unavailable
+   - Buttons/progress: saving_progress, save_card, set, set_duration, set_todo_time
+   - Sections: expected_closing_date_label, collaborators_label, watchers_label, to_do_list, lane_label, company_label_short, none_option_short
+   - Status/interest options: interest_initial/low/medium/high; status_pending/done/cancelled already existed; normalized usage
+   - Dialogs/snackbars: select_todo_template, no_board_or_workspace_selected, no_todo_templates_for_board, todo_template_applied_success, failed_to_load_todo_templates, failed_to_create_card, unknown_user
+   - Removed duplicates and aligned with existing keys (hashtags_label, description_label, collaborators_label, apply_template etc.)
+
+Update (2025-09-23 later pass):
+- New keys added (en/th) and wired in UI:
+   - need_jobcard_create_permission, unnamed_template
+   - available_to_add, all_users_selected
+   - enter_description_hint, no_todo_items_yet, enter_todo_item_hint
+   - current, currently_set, clear_all_times
+   - end_time, enter_duration_minutes, quick_select, minutes_short, hour, hours
+- Replaced remaining literals in `create_card_page.dart`:
+   - Duration dialog title/labels/hints and quick-select chips now use .tr keys
+   - Cancel/Set buttons localized
+   - Todo input hint localized
+   - Error snackbar uses failed_to_create_card.trParams
+   - Inline chips for Due/End labels localized
+
+- Notes:
+   - Avoided duplicate map keys; de-duped apply_template and label repeats.
+   - Followed existing English/Thai tone and terminology used across board features.
+
+Update (2025-09-23 final touch):
+- Added missing Thai translation for `apply_template` → `ใช้แม่แบบ` to fix UI label “Apply Template ไม่ได้แปล”.
+
 ### Unified Filter Page Translation (2025-09-23)
 **File**: `lib/features/board/view/unified_filter_page.dart`
 
