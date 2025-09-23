@@ -5,6 +5,30 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Chat Widgets Translation (2025-01-15)
+**Files**: Multiple chat widget files including `chat_filter_sheet.dart` and others
+
+#### Analysis:
+- Most chat widgets were already well-translated with proper .tr keys
+- Found one hardcoded "Hashtag" text in chat_filter_sheet.dart that needed translation
+- Added missing translation keys for chat filter functionality
+
+#### Changes Made:
+1. **Hardcoded Text**: Replaced 'Hashtag' with 'hashtag'.tr in chat_filter_sheet.dart
+2. **Missing Translation Keys**: Added new translation keys for chat filter functionality:
+   - 'channel': 'Channel' / 'ช่องทาง'
+   - 'facebook_channel': 'Facebook' / 'Facebook'
+   - 'instagram_channel': 'Instagram' / 'Instagram'
+   - 'line_channel': 'LINE' / 'LINE'
+   - 'select_hashtag': 'Select Hashtag' / 'เลือกแฮชแท็ก'
+   - 'search_customer_name_or_id': 'Search customer name / ID' / 'ค้นหาชื่อลูกค้า / รหัส'
+
+#### Status:
+- ✅ All chat widget files use proper .tr translation keys
+- ✅ All translation keys exist in both English and Thai
+- ✅ Files use consistent i18n pattern with GetX
+- ✅ Chat filter functionality fully translated
+
 ### Chat Center Page Translation (2025-01-15)
 **File**: `lib/features/chat/view/chat_center_page.dart`
 

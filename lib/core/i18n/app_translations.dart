@@ -566,7 +566,7 @@ class AppTranslations extends Translations {
           'tasks': 'tasks',
           
           // Chat Module
-          'chat_search_hint': 'Search chat...',
+          'chat_search_hint': 'Search chat...', 
           'chat_confirm_assign_sale': 'Confirm Sales Assignment',
           'chat_assign_sale_success': 'Sales assigned successfully',
           'chat_assign_sale_failed': 'Failed to assign sales',
@@ -698,6 +698,12 @@ class AppTranslations extends Translations {
           'chat_rename_title': 'Rename Chat',
           'chat_rename_hint': 'Enter new chat name',
           'chat_name_cannot_be_empty': 'Chat name cannot be empty',
+          // Chat filter sheet
+          'channel': 'Channel',
+          'facebook_channel': 'Facebook',
+          'instagram_channel': 'Instagram',
+          'line_channel': 'LINE',
+          'select_hashtag': 'Select Hashtag',
           'chat_name_saved_success': 'Chat name saved',
           'chat_original_name_not_found': 'Original chat name not found',
           'chat_name_reset_success': 'Chat name reset',
@@ -1423,6 +1429,14 @@ class AppTranslations extends Translations {
           'password_too_weak': 'รหัสผ่านไม่ปลอดภัยเพียงพอ',
           'password_reset_failed': 'การรีเซ็ตรหัสผ่านไม่สำเร็จ',
           'chat_center_no_permission': 'คุณไม่มีสิทธิ์เข้าถึงศูนย์การสนทนา',
+          // Chat filter sheet (Thai)
+          'channel': 'ช่องทาง',
+          'facebook_channel': 'Facebook',
+          'instagram_channel': 'Instagram',
+          'line_channel': 'LINE',
+          'select_hashtag': 'เลือกแฮชแท็ก',
+          'search_customer_name_or_id': 'ค้นหาชื่อลูกค้า / รหัส',
+          'hashtag': 'แฮชแท็ก',
         },
       };
 }
