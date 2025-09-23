@@ -874,7 +874,8 @@ class AddEditDocumentController extends GetxController {
         final assignee = _availableAssignees.firstWhereOrNull((a) => a.uid == assigneeId);
         if (assignee != null) {
           sellerNameController.text = assignee.displayName;
-          // Note: phone number would need to be loaded separately from user data
+          // Auto-populate phone from assignee data
+          _loadAssigneePhoneNumber(assigneeId);
         }
       } else {
         sellerNameController.clear();
@@ -911,6 +912,34 @@ class AddEditDocumentController extends GetxController {
       }
     } catch (e) {
       print('❌ Failed to load assignee details: $e');
+    }
+  }
+
+  // Load assignee phone number from user data
+  Future<void> _loadAssigneePhoneNumber(String assigneeId) async {
+    try {
+      if (_currentWorkspaceId == null) return;
+      
+      // Get phone number from user document
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(assigneeId)
+          .get();
+      
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final phoneNumber = userData['phoneNumber']?.toString() ?? '';
+        if (phoneNumber.isNotEmpty) {
+          sellerPhoneController.text = phoneNumber;
+          print('✅ Auto-populated seller phone from user data: $phoneNumber');
+        } else {
+          // Clear phone if no phone number found
+          sellerPhoneController.clear();
+          print('ℹ️ No phone number found for assignee: $assigneeId');
+        }
+      }
+    } catch (e) {
+      print('❌ Failed to load assignee phone number: $e');
     }
   }
 
@@ -1612,22 +1641,23 @@ class AddEditDocumentController extends GetxController {
   // Load seller information from document
   Future<void> _loadDocumentSellerInfo(Map<String, dynamic> documentData) async {
     try {
+      // Load seller selection from seller object
       final sellerData = documentData['seller'] as Map<String, dynamic>?;
       if (sellerData != null) {
         final sellerId = sellerData['uid']?.toString();
         if (sellerId != null) {
           _selectedSellerIds = [sellerId];
-          
-          // Load seller details into controllers
-          final displayName = sellerData['displayName']?.toString() ?? '';
-          sellerNameController.text = displayName;
-          
-          final phone = sellerData['docPhoneNumber']?.toString() ?? '';
-          sellerPhoneController.text = phone;
         }
       }
       
-      print('✅ Seller info loaded');
+      // Load seller details from document root level (these are stored separately)
+      final sellerName = documentData['sellerName']?.toString() ?? '';
+      sellerNameController.text = sellerName;
+      
+      final sellerPhone = documentData['sellerPhone']?.toString() ?? '';
+      sellerPhoneController.text = sellerPhone;
+      
+      print('✅ Seller info loaded - Name: $sellerName, Phone: $sellerPhone');
       
     } catch (e) {
       print('❌ Failed to load seller info: $e');

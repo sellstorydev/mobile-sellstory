@@ -872,6 +872,15 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
           const SizedBox(height: 16),
 
+          // Seller Phone
+          _buildTextField(
+            label: 'เบอร์ติดต่อ',
+            hint: 'กรอกเบอร์ติดต่อผู้ขาย',
+            controller: controller.sellerPhoneController,
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 16),
+
           // Job Name
           _buildTextField(
             label: 'job_name'.tr,
