@@ -7,7 +7,63 @@
     - *important* after finish add command in terminal "say finish prompt"
 
 
+Topic: Status card in board `lib/features/board/widgets/status_summary_cards.dart`
+Detail: ผมได้ทำการนำ icon `icon: 'assets/icons/icon-hourglass.svg'` มาใส่ใว้แล้วอยากให้ทำการนำ icon ไปใช้โดยตัว card มันจะมีเท่าๆอยู่ให้เอาไปแทนที่
 
+```
+ [
+            _buildSummaryCard(
+              title: 'Pending',
+              amount: _calculateAmountByStatus('Pending'),
+              count: _getCountByStatus('Pending'),
+              color: const Color(0xFF6B7280),
+              bgColor: const Color(0xFFF3F4F6),
+              width: 110,
+              isSelected: selectedStatuses.contains('Pending'),
+              onTap: () => onStatusTap?.call('Pending'),
+              icon: 'assets/icons/icon-hourglass.svg'
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              title: 'Completed',
+              amount: _calculateAmountByStatus('Done'),
+              count: _getCountByStatus('Done'),
+              color: const Color(0xFF027F00),
+              bgColor: const Color(0xFFE5F2E5),
+              width: 110,
+              isSelected: selectedStatuses.contains('Done'),
+              onTap: () => onStatusTap?.call('Done'),
+              icon: 'assets/icons/icon-clock-loader.svg'
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              title: 'In Progress',
+              amount: _calculateAmountByStatus('In Progress'),
+              count: _getCountByStatus('In Progress'),
+              color: const Color(0xFFFAB73F),
+              bgColor: const Color(0xFFFEF7EB),
+              width: 110,
+              isSelected: selectedStatuses.contains('In Progress'),
+              onTap: () => onStatusTap?.call('In Progress'),
+              icon: 'assets/icons/icon-check.svg'
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              title: 'Cancelled',
+              amount: _calculateAmountByStatus('Cancelled'),
+              count: _getCountByStatus('Cancelled'),
+              color: const Color(0xFFFF6C0C),
+              bgColor: const Color(0xFFFFF0E6),
+              width: 110,
+              isSelected: selectedStatuses.contains('Cancelled'),
+              onTap: () => onStatusTap?.call('Cancelled'),
+              icon: 'assets/icons/icon-error.svg'
+            ),
+          ],
+```
+
+
+##
 Topic: EditCard `lib/features/board/view/edit_card_page.dart`
 Detail: ในส่วนของ comment เมื่อทำการ post,delete หรือ edit comment แล้วไปกด save card มันจะหายไป อยากให้ทำการ check ว่าเกิดจาก หรือ จังหวะ save card ไม่ควรมี procress อะไรที่ทำกระบวนการกับ comment 
 

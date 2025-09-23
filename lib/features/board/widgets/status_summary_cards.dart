@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:sellstory/core/enums/lane_display_mode.dart';
 import '../../../domain/entities/job_card.dart';
@@ -41,6 +42,18 @@ class StatusSummaryCards extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             _buildSummaryCard(
+              title: 'Pending',
+              amount: _calculateAmountByStatus('Pending'),
+              count: _getCountByStatus('Pending'),
+              color: const Color(0xFF6B7280),
+              bgColor: const Color(0xFFF3F4F6),
+              width: 110,
+              isSelected: selectedStatuses.contains('Pending'),
+              onTap: () => onStatusTap?.call('Pending'),
+              icon: 'assets/icons/icon-hourglass.svg'
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
               title: 'Completed',
               amount: _calculateAmountByStatus('Done'),
               count: _getCountByStatus('Done'),
@@ -49,6 +62,7 @@ class StatusSummaryCards extends StatelessWidget {
               width: 110,
               isSelected: selectedStatuses.contains('Done'),
               onTap: () => onStatusTap?.call('Done'),
+              icon: 'assets/icons/icon-clock-loader.svg'
             ),
             const SizedBox(width: 12),
             _buildSummaryCard(
@@ -60,17 +74,7 @@ class StatusSummaryCards extends StatelessWidget {
               width: 110,
               isSelected: selectedStatuses.contains('In Progress'),
               onTap: () => onStatusTap?.call('In Progress'),
-            ),
-            const SizedBox(width: 12),
-            _buildSummaryCard(
-              title: 'Pending',
-              amount: _calculateAmountByStatus('Pending'),
-              count: _getCountByStatus('Pending'),
-              color: const Color(0xFF6B7280),
-              bgColor: const Color(0xFFF3F4F6),
-              width: 110,
-              isSelected: selectedStatuses.contains('Pending'),
-              onTap: () => onStatusTap?.call('Pending'),
+              icon: 'assets/icons/icon-check.svg'
             ),
             const SizedBox(width: 12),
             _buildSummaryCard(
@@ -82,6 +86,7 @@ class StatusSummaryCards extends StatelessWidget {
               width: 110,
               isSelected: selectedStatuses.contains('Cancelled'),
               onTap: () => onStatusTap?.call('Cancelled'),
+              icon: 'assets/icons/icon-error.svg'
             ),
           ],
         ),
@@ -97,6 +102,7 @@ class StatusSummaryCards extends StatelessWidget {
     required Color bgColor,
     required double width,
     required bool isSelected,
+    required String icon,
     VoidCallback? onTap,
   }) {
     return GestureDetector(
@@ -154,8 +160,11 @@ class StatusSummaryCards extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFD9D9D9),
+                          child: SvgPicture.asset(
+                            icon,
+                            width: 8,
+                            height: 8,
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ],
@@ -164,8 +173,8 @@ class StatusSummaryCards extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '$title ($count)',
-                    style: const TextStyle(
-                      color: Color(0xFF4D4D4D),
+                    style: TextStyle(
+                      color: color,
                       fontSize: 8,
                       fontFamily: 'Prompt',
                       fontWeight: FontWeight.w400,

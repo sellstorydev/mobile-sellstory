@@ -2,6 +2,86 @@
 
 ## Recent Changes
 
+### Status Summary Cards Icon Integration (September 23, 2025)
+
+**Topic:** Status card in board `lib/features/board/widgets/status_summary_cards.dart` - Replace placeholder icons with actual SVG icons
+
+**Issue Analysis:**
+User had already added icon paths to the status summary cards but they were still showing gray placeholder boxes instead of the actual icons. The cards had icon parameter but were using a static gray container instead of displaying the icons.
+
+**Root Cause Analysis:**
+- Each status card had `icon` parameter passed with correct asset paths
+- The `_buildSummaryCard` method was rendering a gray `Container` with `Color(0xFFD9D9D9)` instead of using the icon
+- Icons were SVG format but needed to be converted to PNG for `Image.asset` widget
+- Static decoration was overriding the dynamic icon display
+
+**Solution Applied:**
+
+**1. Replaced Static Container with Image Widget:**
+```dart
+// Before: Static gray container
+Container(
+  width: 8,
+  height: 8,
+  decoration: const BoxDecoration(
+    color: Color(0xFFD9D9D9),
+  ),
+),
+
+// After: Dynamic image widget
+Container(
+  width: 8,
+  height: 8,
+  child: Image.asset(
+    icon,
+    width: 8,
+    height: 8,
+    fit: BoxFit.contain,
+  ),
+),
+```
+
+**2. Updated Icon Asset Paths to PNG:**
+```dart
+// Updated all status card icons from .svg to .png
+Pending: 'assets/icons/icon-hourglass.png'
+Completed: 'assets/icons/icon-check.png'  
+In Progress: 'assets/icons/icon-clock-loader.png'
+Cancelled: 'assets/icons/icon-error.png'
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/widgets/status_summary_cards.dart`
+  - Replaced static gray container with `Image.asset` widget in `_buildSummaryCard` method
+  - Updated all status card icon paths from `.svg` to `.png` format
+  - Applied proper sizing and fit properties for icon display
+
+**Status Card Icon Mapping:**
+- **Pending**: hourglass icon (gray theme)
+- **Completed**: check icon (green theme)  
+- **In Progress**: clock-loader icon (orange theme)
+- **Cancelled**: error icon (orange theme)
+
+**Benefits:**
+- **Visual Hierarchy**: Icons provide clear visual distinction between status types
+- **Professional Appearance**: Replaces placeholder gray boxes with meaningful icons
+- **Consistent Design**: Icons match the color theme of each status card
+- **Better UX**: Users can quickly identify status types by icon + color combination
+
+**User Impact:**
+- Status summary cards now display appropriate icons for each status type
+- Visual identification of status types improved with icon + color coding
+- Board overview more intuitive with proper iconography
+- Professional appearance matches design specifications
+
+**Implementation Notes:**
+- Icons use `Image.asset` widget for PNG format compatibility
+- Sizing maintained at 8x8 pixels to fit card design
+- `BoxFit.contain` ensures proper aspect ratio
+- Icon parameter properly utilized instead of static decoration
+
 ### Comment Preservation Fix in EditCard (September 23, 2025)
 
 **Topic:** EditCard `lib/features/board/view/edit_card_page.dart` - Comment disappearance issue when saving card after post/delete/edit comment operations
