@@ -55,6 +55,9 @@ Status:
 - ✅ Keys exist in both locales
 - ✅ Lint clean-up applied
 
+### Thai phrasing refinements (2025-09-23)
+- Updated `user_not_found` → `ไม่พบผู้ใช้` for clarity and consistency.
+
 ### Company Tile i18n (2025-09-23)
 File: `lib/features/companies/widgets/company_tile.dart`
 
