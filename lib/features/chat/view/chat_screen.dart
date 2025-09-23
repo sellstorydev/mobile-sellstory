@@ -73,13 +73,13 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _nearBottom = true;
 
   // dynamic fetch limit
-  int _messageLimit = 500;
-  final int _maxMessageLimit = 500;
+  int _messageLimit = 100;
+  final int _maxMessageLimit = 300;
   String? _pendingFocusMessageId; // message id waiting to focus after loading more
 
   // === New: upward pagination state ===
   bool _isLoadingMore = false; // loading older messages when scrolled up
-  final int _loadMoreStep = 500; // how many to add per page
+  final int _loadMoreStep = 100; // how many to add per page
   DateTime? _lastLoadMoreAt; // throttle timestamp
   int _lastRequestedLimit = 500; // avoid duplicate requests
   String? _anchorMessageId; // preserve scroll position when loading more

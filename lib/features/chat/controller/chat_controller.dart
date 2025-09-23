@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import '../../../data/services/firestore_service.dart';
 import '../../../core/services/logger_service.dart';
+import '../../../core/services/user_cache_service.dart';
 import '../../board/controller/board_controller.dart'; // Add this import
 import '../../../data/services/mobile_permissions_service.dart';
 
@@ -545,7 +546,7 @@ class ChatController extends GetxController {
           } catch (_) {
             enriched['assigneesKnown'] = false;
           }
-          
+
 
 
           // Preserve previous assignee info if we don't have fresh info yet
@@ -943,13 +944,8 @@ class ChatController extends GetxController {
             if (uids.isEmpty) {
               names = const [];
             } else {
-              final futures = uids.map((uid) async {
-                final u = await FirestoreService.to.usersCollection.doc(uid).get();
-                final m = u.data() ?? {};
-                final dn = (m['displayName'] ?? m['name'] ?? '').toString();
-                return dn.isNotEmpty ? dn : uid;
-              });
-              names = await Future.wait(futures);
+              final map = await UserCacheService.to.getDisplayNames(uids);
+              names = uids.map((id) => (map[id] ?? id)).toList();
             }
             _assigneesCache[cid] = names;
             _assigneeUidsCache[cid] = uids; // cache UIDs too
@@ -991,20 +987,19 @@ class ChatController extends GetxController {
             uids = raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
           } else {
             // Fallback: read from chatroom doc
-            final chatDoc = await _firestoreService
-                .getChatroomsCollection(wsId)
-                .doc((item['id'] ?? '').toString())
-                .get();
-            final m = chatDoc.data() ?? {};
-            uids = ((m['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+            final id = (item['id'] ?? '').toString();
+            if (id.isNotEmpty) {
+              // Avoid read here; rely on stream data carrying assignees in most cases
+              // If really needed, this could be toggled by a flag, but we skip extra get() to reduce reads.
+              uids = const [];
+            }
           }
-          final futures = uids.map((id) async {
-            final u = await FirestoreService.to.usersCollection.doc(id).get();
-            final m = u.data() ?? {};
-            final dn = (m['displayName'] ?? m['name'] ?? '').toString();
-            return dn.isNotEmpty ? dn : id;
-          });
-          final names = await Future.wait(futures);
+          final names = (uids.isEmpty)
+              ? const <String>[]
+              : (await UserCacheService.to.getDisplayNames(uids)).entries
+                    .where((e) => uids.contains(e.key))
+                    .map((e) => e.value)
+                    .toList();
           final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
           if (idx >= 0) {
             conversations[idx]['assigneeNames'] = names;
