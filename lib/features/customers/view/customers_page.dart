@@ -318,6 +318,7 @@ class _CustomersPageState extends State<CustomersPage> {
                           'customers',
                         );
                       }
+                      
                     : () async {
                         // Guard quota at action time too (recheck latest server state)
                         final wsId = _controller.currentWorkspaceId.value;
@@ -327,8 +328,8 @@ class _CustomersPageState extends State<CustomersPage> {
                           'customers',
                         );
                         if (!ok) return;
-                        guardAction(context, 'customer:create', () {
-                          Navigator.push(
+                        guardAction(context, 'customer:create', () async {
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => AddEditCustomerPage(
@@ -336,6 +337,8 @@ class _CustomersPageState extends State<CustomersPage> {
                               ),
                             ),
                           );
+                          // Refresh regardless to ensure the latest list is shown
+                          await _controller.refreshCustomers();
                         });
                       },
               );
@@ -425,7 +428,10 @@ class _CustomersPageState extends State<CustomersPage> {
                       MaterialPageRoute(
                         builder: (_) => CustomerDetailPage(customer: customer),
                       ),
-                    );
+                    ).then((value) async {
+                      // Always refresh on return to capture edits/deletions
+                      await _controller.refreshCustomers();
+                    });
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),

@@ -149,7 +149,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           : customer.workspaceId;
       await _controller.deleteCustomer(workspaceId, customer.id);
       if (mounted) {
-        Navigator.of(context).pop(); // leave detail page after delete
+        Navigator.of(context).pop(true); // signal parent to refresh
       }
     }
   }
@@ -1002,7 +1002,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                                   _currentCustomer!.nationalId,
                                 ),
                             ]),
-                            
+
                             const SizedBox(height: 16),
                             _buildInfoSection('ข้อมูลติดต่อ', [
                               _buildEmailsDisplay(),
