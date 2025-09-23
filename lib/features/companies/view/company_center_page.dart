@@ -162,6 +162,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
                 controller: _controller.searchController,
                 focusNode: _searchFocus,
                 onChanged: _controller.onSearchChanged,
+                onSubmitted: (_) => _triggerSearch(), // Trigger search when Enter is pressed
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
                   hintText: 'ชื่อบริษัท, เลขประจำตัวผู้เสียภาษี, สาขา, เบอร์โทร, อีเมล',
@@ -324,6 +325,26 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
         );
       }
 
+      // Show searching state when Algolia search is in progress
+      if (_controller.isSearching.value) {
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: AppTheme.primaryOrange),
+              SizedBox(height: 16),
+              Text(
+                'กำลังค้นหาบริษัท...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
       if (_controller.filteredCompanies.isEmpty) {
         final isSearching = _controller.searchQuery.value.isNotEmpty;
         return _EmptyState(
@@ -393,9 +414,8 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
 
   void _triggerSearch() {
     final query = _controller.searchController.text.trim();
-    if (query.isNotEmpty) {
-      _controller.triggerAlgoliaSearch(query);
-    }
+    // Always trigger Algolia search when button is clicked, even if empty
+    _controller.triggerAlgoliaSearch(query);
     _searchFocus.unfocus();
   }
 }
