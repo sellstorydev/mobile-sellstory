@@ -467,7 +467,7 @@ class _CalendarPageState extends State<CalendarPage> {
         // Weekday headers
         Row(
           children: [
-            'sun'.tr, 'mon'.tr, 'tue'.tr, 'wed'.tr, 'thu'.tr, 'fri'.tr, 'sat'.tr
+            'mon'.tr, 'tue'.tr, 'wed'.tr, 'thu'.tr, 'fri'.tr, 'sat'.tr, 'sun'.tr
           ].map(
             (day) => Expanded(
               child: Container(
