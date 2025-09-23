@@ -16,6 +16,8 @@ class MessageBubble extends StatelessWidget {
   final bool focused; // emphasize currently focused match
   final VoidCallback? onLongPress; // for actions like Quote Reply
   final void Function(String originalMessageId)? onTapReply; // new callback
+  // NEW: called when user taps the bubble or any interactive content; use to unfocus input
+  final VoidCallback? onTap;
 
   const MessageBubble({
     Key? key,
@@ -27,6 +29,7 @@ class MessageBubble extends StatelessWidget {
     this.focused = false,
     this.onLongPress,
     this.onTapReply,
+    this.onTap,
   }) : super(key: key);
 
   @override
@@ -69,6 +72,7 @@ class MessageBubble extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: GestureDetector(
         onLongPress: onLongPress,
+        onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Row(
           mainAxisAlignment: isFromCurrentUser
@@ -228,6 +232,8 @@ class MessageBubble extends StatelessWidget {
         if (imageUrl.isNotEmpty)
           GestureDetector(
             onTap: () {
+              // Unfocus input before opening viewer
+              if (onTap != null) onTap!();
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ImageViewerPage(url: imageUrl, title: 'รูปภาพ'),
@@ -265,6 +271,8 @@ class MessageBubble extends StatelessWidget {
         GestureDetector(
           onTap: () {
             if (videoUrl.toString().isEmpty) return;
+            // Unfocus input before opening viewer
+            if (onTap != null) onTap!();
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => VideoViewerPage(url: videoUrl, title: 'วิดีโอ'),
@@ -298,6 +306,8 @@ class MessageBubble extends StatelessWidget {
     final lower = fileName.toLowerCase();
     return GestureDetector(
       onTap: () {
+        // Unfocus input before opening viewer or launching URL
+        if (onTap != null) onTap!();
         if (lower.endsWith('.pdf')) {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -340,6 +350,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
+
   Widget _buildAudioMessage(BuildContext context) {
     final audioUrl = messageData['audioUrl'] ?? messageData['fileUrl'] ?? messageData['url'] ?? '';
     final fileName = (messageData['fileName'] ?? (messageData['text'] ?? 'ข้อความเสียง')).toString();
@@ -347,6 +358,8 @@ class MessageBubble extends StatelessWidget {
       (
       onTap: () {
         if (audioUrl.toString().isEmpty) return;
+        // Unfocus input before opening viewer
+        if (onTap != null) onTap!();
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => AudioViewerPage(url: audioUrl, title: fileName.isNotEmpty ? fileName : 'เสียง'),
@@ -435,7 +448,6 @@ class MessageBubble extends StatelessWidget {
     final name = nameRaw.toUpperCase();
     final text = (reply['text'] ?? '').toString();
     final type = (reply['type'] ?? '').toString();
-    final avatar = reply['avatar'];
     final snippet = text.isNotEmpty ? text : _fallbackLabel(type);
     final tap = () { if (onTapReply != null && id.isNotEmpty) onTapReply!(id); };
 

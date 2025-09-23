@@ -331,7 +331,9 @@ class _ChatScreenState extends State<ChatScreen> {
         'text.length': text.trim().length,
       });
     }
+
     try {
+      if (mounted) setState(() { _isLoading = true; _error = null; });
       final result = await _chatService.sendTextMessage(
         workspaceId: widget.workspaceId,
         chatroomId: widget.conversationId,
@@ -351,12 +353,15 @@ class _ChatScreenState extends State<ChatScreen> {
       _logger.failure('Send text failed', e, st);
       setState(() { _error = 'error_occurred_details'.tr.replaceFirst('{error}', '$e'); });
       _showErrorSnackBar(_error!);
+    } finally {
+      if (mounted) setState(() { _isLoading = false; });
     }
   }
 
 
   Future<void> _sendImageMessage(String imageUrl) async {
-    _isLoading = true; _error = null; await _ensureCurrentUserProfile();
+    if (mounted) setState(() { _isLoading = true; _error = null; });
+    await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
       if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
@@ -389,7 +394,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendFileMessage(String fileUrl, String fileName) async {
-    _isLoading = true; _error = null; await _ensureCurrentUserProfile();
+    if (mounted) setState(() { _isLoading = true; _error = null; });
+    await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
       if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
@@ -424,7 +430,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // เพิ่มฟังก์ชั่นส่งข้อความประเภทอื่นๆ
   Future<void> _sendVideoMessage(String videoUrl) async {
-    _isLoading = true; _error = null; await _ensureCurrentUserProfile();
+    if (mounted) setState(() { _isLoading = true; _error = null; });
+    await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
       if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
@@ -458,7 +465,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendStickerMessage(String stickerId, String stickerPackageId) async {
     if (_sourceType.toLowerCase() != 'line') { _showErrorSnackBar('sticker_line_only'.tr); return; }
-    _isLoading = true; _error = null; await _ensureCurrentUserProfile();
+    if (mounted) setState(() { _isLoading = true; _error = null; });
+    await _ensureCurrentUserProfile();
     try {
       final sender = _buildSenderPayload();
       if (_replyToMessageId != null && _replyToMessageId!.isNotEmpty) {
@@ -1292,7 +1300,15 @@ class _ChatScreenState extends State<ChatScreen> {
                                 highlightQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
                                 focused: focused,
                                 onLongPress: () => _onLongPressMessage(messageId, messageData, messageType),
-                                onTapReply: (origId) => _focusReplyOriginal(origId),
+                                onTapReply: (origId) {
+                                  // Hide keyboard when user taps reply block
+                                  FocusScope.of(context).unfocus();
+                                  _focusReplyOriginal(origId);
+                                },
+                                onTap: () {
+                                  // Unfocus input when tapping text/image/video/file/audio bubbles
+                                  FocusScope.of(context).unfocus();
+                                },
                               ),
                             );
 

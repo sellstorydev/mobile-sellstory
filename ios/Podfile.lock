@@ -1387,8 +1387,6 @@ PODS:
     - OrderedSet (~> 6.0.3)
   - flutter_keyboard_visibility (0.0.1):
     - Flutter
-  - flutter_native_splash (2.4.3):
-    - Flutter
   - google_sign_in_ios (0.0.1):
     - AppAuth (>= 1.7.4)
     - Flutter
@@ -1608,7 +1606,6 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_inappwebview_ios (from `.symlinks/plugins/flutter_inappwebview_ios/ios`)
   - flutter_keyboard_visibility (from `.symlinks/plugins/flutter_keyboard_visibility/ios`)
-  - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
   - google_sign_in_ios (from `.symlinks/plugins/google_sign_in_ios/darwin`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
@@ -1688,8 +1685,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_inappwebview_ios/ios"
   flutter_keyboard_visibility:
     :path: ".symlinks/plugins/flutter_keyboard_visibility/ios"
-  flutter_native_splash:
-    :path: ".symlinks/plugins/flutter_native_splash/ios"
   google_sign_in_ios:
     :path: ".symlinks/plugins/google_sign_in_ios/darwin"
   image_picker_ios:
@@ -1748,7 +1743,6 @@ SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_inappwebview_ios: b89ba3482b96fb25e00c967aae065701b66e9b99
   flutter_keyboard_visibility: 4625131e43015dbbe759d9b20daaf77e0e3f6619
-  flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
   google_sign_in_ios: b48bb9af78576358a168361173155596c845f0b9
   GoogleAdsOnDeviceConversion: 2be6297a4f048459e0ae17fad9bfd2844e10cf64
   GoogleAppMeasurement: 700dce7541804bec33db590a5c496b663fbe2539

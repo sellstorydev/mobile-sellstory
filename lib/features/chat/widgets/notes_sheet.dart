@@ -310,19 +310,52 @@ class _NotesSheetState extends State<NotesSheet> {
     }
   }
 
+
   Future<void> _removeNote(NoteItem note) async {
     try {
       // Try delete storage files
       if (note.storagePath != null && note.storagePath!.isNotEmpty) {
-        await FirebaseStorage.instance.ref(note.storagePath!).delete().catchError((_){});
+        await FirebaseStorage.instance
+            .ref(note.storagePath!)
+            .delete()
+            .catchError((_) {});
       }
       if (note.thumbnailStoragePath != null && note.thumbnailStoragePath!.isNotEmpty) {
-        await FirebaseStorage.instance.ref(note.thumbnailStoragePath!).delete().catchError((_){});
+        await FirebaseStorage.instance
+            .ref(note.thumbnailStoragePath!)
+            .delete()
+            .catchError((_) {});
       }
       setState(() => _notes.removeWhere((n) => n.id == note.id));
       await _persistNotes();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ลบไม่สำเร็จ: $e')));
+    }
+  }
+
+  Future<void> _confirmRemoveNote(NoteItem note) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยืนยันการลบ'),
+        content: const Text('ต้องการลบโน้ตนี้หรือไม่?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('cancel'.tr)),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ลบ'),
+          ),
+        ],
+      ),
+    );
+    if (result == true) {
+      if (mounted) setState(() => _busy = true);
+      try {
+        await _removeNote(note);
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
     }
   }
 
@@ -386,11 +419,11 @@ class _NotesSheetState extends State<NotesSheet> {
                           if (n.type == NoteType.text)
                             IconButton(
                               icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => _editText(n),
+                              onPressed: _busy ? null : () => _editText(n),
                             ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _removeNote(n),
+                            onPressed: _busy ? null : () => _confirmRemoveNote(n),
                           ),
                         ],
                       ),

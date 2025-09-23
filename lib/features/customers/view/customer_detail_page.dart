@@ -996,7 +996,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                               _buildInfoRow('เพศ', _currentCustomer!.gender),
                               _buildInfoRow('อายุ', '${_currentCustomer!.age} ปี'),
                               _buildInfoRow('ประเภท', _currentCustomer!.customerType),
+                              if (_currentCustomer!.nationalId.isNotEmpty)
+                                _buildInfoRow(
+                                  'เลขประจำตัวประชาชน',
+                                  _currentCustomer!.nationalId,
+                                ),
                             ]),
+                            
                             const SizedBox(height: 16),
                             _buildInfoSection('ข้อมูลติดต่อ', [
                               _buildEmailsDisplay(),
@@ -1015,8 +1021,6 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                             ]),
                             const SizedBox(height: 16),
                             _buildInfoSection('ข้อมูลเพิ่มเติม', [
-                              if (_currentCustomer!.nationalId.isNotEmpty)
-                                _buildInfoRow('เลขบัตรประชาชน', _currentCustomer!.nationalId),
                               if (_currentCustomer!.source.isNotEmpty)
                                 _buildInfoRow('แหล่งที่มา', _currentCustomer!.source),
                               _buildHashtagDisplay(),
@@ -1124,6 +1128,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
         ),
       );
     }
+    
 
     return Container(
       color: AppTheme.backgroundGrey,
