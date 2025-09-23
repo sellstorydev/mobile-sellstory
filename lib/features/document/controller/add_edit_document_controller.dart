@@ -100,6 +100,8 @@ class AddEditDocumentController extends GetxController {
       TextEditingController();
   final TextEditingController customerNationalIdController =
       TextEditingController();
+  final TextEditingController customerWebsiteController =
+      TextEditingController();
   final TextEditingController customerPhoneController = TextEditingController();
   final TextEditingController customerEmailController = TextEditingController();
 
@@ -330,6 +332,7 @@ class AddEditDocumentController extends GetxController {
     customerAddressController.dispose();
     customerPostalCodeController.dispose();
     customerNationalIdController.dispose();
+    customerWebsiteController.dispose();
     customerPhoneController.dispose();
     customerEmailController.dispose();
     sellerNameController.dispose();
@@ -524,6 +527,7 @@ class AddEditDocumentController extends GetxController {
       customerAddressController.addListener(() => update());
       customerPostalCodeController.addListener(() => update());
       customerNationalIdController.addListener(() => update());
+      customerWebsiteController.addListener(() => update());
       customerPhoneController.addListener(() => update());
       customerEmailController.addListener(() => update());
       
@@ -575,6 +579,7 @@ class AddEditDocumentController extends GetxController {
           customerAddressController.text = customer.address;
           customerPostalCodeController.text = ''; // Customers don't have postal code field
           customerNationalIdController.text = customer.nationalId;
+          customerWebsiteController.text = ''; // Website will be loaded from customer.website if available
 
           // Load all phone numbers
           _customerPhones.clear();
@@ -615,6 +620,7 @@ class AddEditDocumentController extends GetxController {
         customerAddressController.clear();
         customerPostalCodeController.clear();
         customerNationalIdController.clear();
+        customerWebsiteController.clear();
         customerPhoneController.clear();
         customerEmailController.clear();
         
@@ -669,6 +675,7 @@ class AddEditDocumentController extends GetxController {
             customerAddressController.text = customer.address;
             customerPostalCodeController.text = ''; // Customers don't have postal code field
             customerNationalIdController.text = customer.nationalId;
+            customerWebsiteController.text = ''; // Website will be loaded from customer.website if available
 
             // Re-load all phone numbers
             _customerPhones.clear();
@@ -757,6 +764,13 @@ class AddEditDocumentController extends GetxController {
           print('✅ Auto-filled tax ID: $taxId');
         }
 
+        // Auto-fill website from company
+        final website = companyData['website']?.toString() ?? '';
+        if (website.isNotEmpty) {
+          customerWebsiteController.text = website;
+          print('✅ Auto-filled website: $website');
+        }
+
         // Auto-fill emails from company
         final companyEmails = companyData['emails'] as List<dynamic>?;
         if (companyEmails != null && companyEmails.isNotEmpty) {
@@ -806,6 +820,7 @@ class AddEditDocumentController extends GetxController {
         customerAddressController.clear();
         customerPostalCodeController.clear();
         customerNationalIdController.clear();
+        customerWebsiteController.clear();
         customerPhoneController.clear();
         customerEmailController.clear();
         
@@ -1591,6 +1606,9 @@ class AddEditDocumentController extends GetxController {
           
           final nationalId = customerData['nationalId']?.toString() ?? '';
           customerNationalIdController.text = nationalId;
+          
+          final website = customerData['website']?.toString() ?? '';
+          customerWebsiteController.text = website;
           
           // Load all customer emails and phones
           final emails = customerData['emails'] as List<dynamic>?;
@@ -3698,6 +3716,7 @@ class AddEditDocumentController extends GetxController {
           'address': customerAddressController.text,
           'postalCode': customerPostalCodeController.text,
           'nationalId': customerNationalIdController.text,
+          'website': customerWebsiteController.text,
           'emails': _customerEmails.where((email) => email['value']?.toString().isNotEmpty == true).toList(),
           'phones': _customerPhones.where((phone) => phone['value']?.toString().isNotEmpty == true).toList(),
           'companyNames': selectedCustomer!.companyNames,

@@ -817,6 +817,15 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
           const SizedBox(height: 16),
 
+          // Website
+          _buildTextField(
+            label: 'เว็บไซต์',
+            hint: 'กรอกเว็บไซต์',
+            controller: controller.customerWebsiteController,
+            keyboardType: TextInputType.url,
+          ),
+          const SizedBox(height: 16),
+
           // Multiple Phones
           _buildMultipleContactFields(
             controller: controller,

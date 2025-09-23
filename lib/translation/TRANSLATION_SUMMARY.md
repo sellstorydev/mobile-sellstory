@@ -603,8 +603,8 @@ Successfully completed comprehensive translation for the Document module add/edi
 - `enter_customer_address` / `กรอกที่อยู่ลูกค้า`
 - `postal_code` / `รหัสไปรษณีย์`
 - `enter_postal_code` / `กรอกรหัสไปรษณีย์`
-- `id_number` / `เลขประจำตัวประชาชน`
-- `enter_id_number` / `กรอกเลขประจำตัวประชาชน`
+- `id_number` / `เลขประจำตัวผู้เสียภาษี`
+- `enter_id_number` / `กรอกเลขประจำตัวผู้เสียภาษี`
 - `phone_number` / `เบอร์โทรศัพท์`
 - `enter_phone_number` / `กรอกเบอร์โทรศัพท์`
 - `enter_email` / `กรอกอีเมล`
