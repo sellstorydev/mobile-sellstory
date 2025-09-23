@@ -4131,6 +4131,7 @@ class _EditCardPageState extends State<EditCardPage> {
         withholdingTaxPercentage:
             _withholdingTaxPercentage, // Include withholding tax
         quotationTemplateId: _selectedTemplateId, // เก็บ template ID ที่เลือก
+        notes: _notes, // Preserve comments during save operation
         updatedAt: DateTime.now(),
         updatedByDisplayName: assigneeDisplayName,
       );

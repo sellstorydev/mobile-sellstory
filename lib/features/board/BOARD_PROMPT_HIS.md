@@ -6,6 +6,12 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
 
+
+
+Topic: EditCard `lib/features/board/view/edit_card_page.dart`
+Detail: ในส่วนของ comment เมื่อทำการ post,delete หรือ edit comment แล้วไปกด save card มันจะหายไป อยากให้ทำการ check ว่าเกิดจาก หรือ จังหวะ save card ไม่ควรมี procress อะไรที่ทำกระบวนการกับ comment 
+
+##
 Topic: EditCard `lib/features/board/view/edit_card_page.dart`
 Detail: In Content and tasks section button apply template not working. go to copy flow from create card page `lib/features/board/view/create_card_page.dart`
 

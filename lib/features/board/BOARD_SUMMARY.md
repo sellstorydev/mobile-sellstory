@@ -2,6 +2,78 @@
 
 ## Recent Changes
 
+### Comment Preservation Fix in EditCard (September 23, 2025)
+
+**Topic:** EditCard `lib/features/board/view/edit_card_page.dart` - Comment disappearance issue when saving card after post/delete/edit comment operations
+
+**Issue Analysis:**
+User reported that comments disappear when saving a card after performing comment operations (post, delete, or edit). The issue was specifically that comments created, modified, or deleted would be lost when the user clicked "Save Card" button.
+
+**Root Cause Analysis:**
+- Comments are stored in local `_notes` list and synced with Firestore during comment operations
+- When saving the card, the `_saveChanges()` method uses `widget.card.copyWith()` to create updated card
+- The copyWith operation was missing the `notes: _notes` parameter
+- This caused the card to be saved without preserving the current comment state
+- Comments existed in local state but were lost during card save operation
+
+**Solution Applied:**
+
+**Added Notes Preservation to Save Operation:**
+```dart
+// Before: Missing notes field in copyWith
+final updatedCard = widget.card.copyWith(
+  title: _titleController.text.trim(),
+  description: htmlDescription,
+  // ... other fields
+  updatedAt: DateTime.now(),
+  updatedByDisplayName: assigneeDisplayName,
+);
+
+// After: Added notes preservation
+final updatedCard = widget.card.copyWith(
+  title: _titleController.text.trim(),
+  description: htmlDescription,
+  // ... other fields
+  notes: _notes, // Preserve comments during save operation
+  updatedAt: DateTime.now(),
+  updatedByDisplayName: assigneeDisplayName,
+);
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/view/edit_card_page.dart`
+  - Added `notes: _notes` parameter to `widget.card.copyWith()` call in `_saveChanges()` method
+  - Ensures comment state is preserved during card save operations
+
+**Comment Flow Fixed:**
+1. **Comment Operations**: Users can post, edit, or delete comments (updates `_notes` list)
+2. **Local State Sync**: Comments are immediately reflected in UI via local `_notes` state
+3. **Firestore Sync**: Comment operations sync with Firestore via `addNoteToCard`, `updateNoteInCard`, `deleteNoteFromCard`
+4. **Card Save**: When user saves card, `notes: _notes` preserves current comment state
+5. **Data Persistence**: Comments remain available after card save operation
+
+**Benefits:**
+- **Comment Preservation**: Comments no longer disappear after card save operations
+- **Data Consistency**: Local comment state properly synced with card save operation
+- **User Experience**: Users can confidently manage comments without losing them during save
+- **Simple Fix**: Minimal code change with maximum impact
+
+**User Impact:**
+- Comments persist correctly after post/delete/edit operations followed by card save
+- No data loss when users manage comments and then save card changes
+- Improved workflow confidence when working with comments in edit card page
+- Consistent behavior between comment operations and card save functionality
+
+**Implementation Notes:**
+- Fix addresses the gap between comment state management and card save operation
+- Local `_notes` list properly included in card update via copyWith parameter
+- No changes needed to existing comment CRUD functionality
+- Solution maintains existing comment system architecture
+
+## Recent Changes
+
 ### Apply Template Button Fix in EditCard (September 23, 2025)
 
 **Topic:** EditCard `lib/features/board/view/edit_card_page.dart` - Apply template button in Content and tasks section not working, copy flow from create card page
