@@ -25,6 +25,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   int _limit = _pageSize;
   final ScrollController _scrollController = ScrollController();
   DateTime _lastLoadMoreAt = DateTime.fromMillisecondsSinceEpoch(0);
+  List<DocumentSnapshot<Map<String, dynamic>>> _cachedDocs = [];
+  bool _isLoadingMore = false;
 
   @override
   void initState() {
@@ -42,16 +44,39 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients) return;
+    if (!_scrollController.hasClients || _isLoadingMore) return;
     final pos = _scrollController.position;
     if (pos.pixels >= pos.maxScrollExtent - 200) {
       final now = DateTime.now();
-      if (now.difference(_lastLoadMoreAt).inMilliseconds > 500) {
-        setState(() {
-          _limit += _pageSize;
-          _lastLoadMoreAt = now;
-        });
+      if (now.difference(_lastLoadMoreAt).inMilliseconds > 1000) {
+        print('🔄 PAGINATION: Loading more notifications. Current limit: $_limit -> ${_limit + _pageSize}');
+        _isLoadingMore = true;
+        _lastLoadMoreAt = now;
+        
+        // Use cached docs approach instead of setState
+        _loadMoreNotifications();
       }
+    }
+  }
+
+  void _loadMoreNotifications() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final query = _baseQuery(user.uid).limit(_limit + _pageSize);
+      final snapshot = await query.get();
+      
+      setState(() {
+        _cachedDocs = snapshot.docs;
+        _limit += _pageSize;
+        _isLoadingMore = false;
+      });
+      
+      print('📋 CACHED: Updated cache with ${_cachedDocs.length} items');
+    } catch (e) {
+      print('❌ LOAD MORE ERROR: $e');
+      setState(() => _isLoadingMore = false);
     }
   }
 
@@ -345,96 +370,127 @@ class _NotificationsPageState extends State<NotificationsPage> {
       );
     }
 
-    final stream = _baseQuery(user.uid).limit(_limit).snapshots();
+    // Use cached docs if available, otherwise use stream for initial load
+    final docs = _cachedDocs.isNotEmpty ? _cachedDocs : null;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
       ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: stream,
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snap.hasError) {
-            return Center(child: Text('Error: ${snap.error}'));
-          }
-          final docs = snap.data?.docs ?? const [];
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() => _limit = _pageSize);
-              // Small delay to allow stream to reflect the new limit
-              await Future.delayed(const Duration(milliseconds: 200));
+      body: docs != null 
+        ? _buildNotificationsList(docs)
+        : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: _baseQuery(user.uid).limit(_limit).snapshots(),
+            builder: (context, snap) {
+              print('🔄 STREAM: Connection state: ${snap.connectionState}');
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snap.hasError) {
+                print('❌ STREAM ERROR: ${snap.error}');
+                return Center(child: Text('Error: ${snap.error}'));
+              }
+              final streamDocs = snap.data?.docs ?? const [];
+              print('📋 NOTIFICATIONS: Loaded ${streamDocs.length} items (limit: $_limit)');
+              
+              // Cache the initial docs
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_cachedDocs.isEmpty) {
+                  setState(() => _cachedDocs = streamDocs);
+                }
+              });
+              
+              return _buildNotificationsList(streamDocs);
             },
-            child: ListView.separated(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: docs.isEmpty ? 1 : docs.length + 1,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                if (docs.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Center(child: Text('No notifications')),
+          ),
+    );
+  }
+
+  Widget _buildNotificationsList(List<DocumentSnapshot<Map<String, dynamic>>> docs) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        print('🔄 REFRESH: Resetting cache and limit');
+        setState(() {
+          _cachedDocs.clear();
+          _limit = _pageSize;
+          _isLoadingMore = false;
+        });
+        await Future.delayed(const Duration(milliseconds: 200));
+      },
+      child: ListView.separated(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: docs.isEmpty ? 1 : docs.length + 1,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        addAutomaticKeepAlives: true,
+        addRepaintBoundaries: true,
+        itemBuilder: (context, index) {
+          if (docs.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Center(child: Text('No notifications')),
+            );
+          }
+
+          if (index == docs.length) {
+            return _isLoadingMore 
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : const SizedBox(height: 24);
+          }
+
+          final doc = docs[index];
+          final data = doc.data();
+          print('📄 ITEM $index: ${doc.id} - ${data?['title'] ?? 'No title'}');
+          final title = (data?['title'] ?? 'Notification').toString();
+          final message = (data?['message'] ?? '').toString();
+          final read = (data?['read'] ?? false) == true;
+          final tsRaw = data?['timestamp'];
+          DateTime? ts;
+          if (tsRaw is int) {
+            ts = DateTime.fromMillisecondsSinceEpoch(tsRaw);
+          } else if (tsRaw is Timestamp) {
+            ts = tsRaw.toDate();
+          }
+
+          return Container(
+            key: ValueKey(doc.id),
+            child: ListTile(
+              leading: Icon(
+                read ? Icons.notifications_none : Icons.notifications_active,
+                color: read ? Colors.grey : Colors.orange,
+              ),
+              title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (message.isNotEmpty)
+                    Text(message, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (ts != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        _formatThai(ts),
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ),
+                ],
+              ),
+              trailing: read
+                  ? null
+                  : const Icon(Icons.brightness_1, size: 10, color: Colors.orange),
+              onTap: () async {
+                if (!read) await _markAsRead(doc.reference);
+                final link = (data?['link'] ?? '').toString();
+                if (link.isNotEmpty) {
+                  await _handleLinkTap(link);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('no_link_for_notification'.tr)),
                   );
                 }
-
-                if (index == docs.length) {
-                  // Footer spacing; auto-load triggers via scroll listener
-                  return const SizedBox(height: 24);
-                }
-
-                final doc = docs[index];
-                final data = doc.data();
-                final title = (data['title'] ?? 'Notification').toString();
-                final message = (data['message'] ?? '').toString();
-                final read = (data['read'] ?? false) == true;
-                final tsRaw = data['timestamp'];
-                DateTime? ts;
-                if (tsRaw is int) {
-                  ts = DateTime.fromMillisecondsSinceEpoch(tsRaw);
-                } else if (tsRaw is Timestamp) {
-                  ts = tsRaw.toDate();
-                }
-
-                return ListTile(
-                  leading: Icon(
-                    read ? Icons.notifications_none : Icons.notifications_active,
-                    color: read ? Colors.grey : Colors.orange,
-                  ),
-                  title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (message.isNotEmpty)
-                        Text(message, maxLines: 2, overflow: TextOverflow.ellipsis),
-                      if (ts != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            _formatThai(ts),
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ),
-                    ],
-                  ),
-                  trailing: read
-                      ? null
-                      : const Icon(Icons.brightness_1, size: 10, color: Colors.orange),
-                  onTap: () async {
-                    if (!read) await _markAsRead(doc.reference);
-                    final link = (data['link'] ?? '').toString();
-                    if (link.isNotEmpty) {
-                      await _handleLinkTap(link);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('no_link_for_notification'.tr)),
-                      );
-                    }
-                  },
-                );
               },
             ),
           );

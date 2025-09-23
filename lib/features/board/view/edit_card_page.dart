@@ -22,6 +22,7 @@ import '../../customers/view/add_edit_customer_page.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/widgets/customers_input_field.dart' as cif;
+import '../../../data/services/firestore_service.dart';
 
 class EditCardPage extends StatefulWidget {
   final JobCard card;
@@ -1517,19 +1518,16 @@ class _EditCardPageState extends State<EditCardPage> {
                   _buildTitleSection(),
                   const SizedBox(height: 20),
                   _buildLaneSection(),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Assignment Section
-              _buildSectionCard(
-                title: 'Assignment & Tags',
-                icon: Icons.assignment_ind,
-                color: Colors.purple,
-                children: [
-                  _buildHashtagSection(),
+                  const SizedBox(height: 20),
+                  _buildExpectedClosingDateSection(),
                   const SizedBox(height: 20),
                   _buildAssigneeSection(),
+                  const SizedBox(height: 20),
+                  _buildCustomerSection(),
+                  const SizedBox(height: 20),
+                  _buildCustomerInterestSection(),
+                  const SizedBox(height: 20),
+                  _buildHashtagSection(),
                   const SizedBox(height: 20),
                   _buildCollaboratorsSection(),
                   const SizedBox(height: 20),
@@ -1537,20 +1535,29 @@ class _EditCardPageState extends State<EditCardPage> {
                 ],
               ),
               const SizedBox(height: 24),
-
-              // Customer Information Section
+              // Timeline & Status Section
               _buildSectionCard(
-                title: 'Customer Information',
-                icon: Icons.business,
-                color: Colors.green,
-                children: [
-                  _buildCustomerSection(),
-                  const SizedBox(height: 20),
-                  _buildCustomerInterestSection(),
-                ],
+                title: 'Status',
+                icon: Icons.schedule,
+                color: Colors.orange,
+                children: [_buildStatusChipsSection()],
               ),
               const SizedBox(height: 24),
-
+              _buildSectionCard(
+                title: 'Description',
+                icon: Icons.edit_document,
+                color: Colors.lightGreen,
+                children: [_buildDetailsSection()],
+              ),
+              const SizedBox(height: 24),
+              // Content & Tasks Section
+              _buildSectionCard(
+                title: 'Tasks',
+                icon: Icons.task_alt,
+                color: Colors.indigo,
+                children: [_buildTodoListSection()],
+              ),
+              const SizedBox(height: 24),
               // Product Section
               _buildSectionCard(
                 title: 'Products & Services',
@@ -1559,7 +1566,6 @@ class _EditCardPageState extends State<EditCardPage> {
                 children: [_buildProductSection()],
               ),
               const SizedBox(height: 24),
-
               // Related Documents Section
               _buildSectionCard(
                 title: 'Related Documents',
@@ -1568,38 +1574,6 @@ class _EditCardPageState extends State<EditCardPage> {
                 children: [_buildRelatedDocumentsSection()],
               ),
               const SizedBox(height: 24),
-
-              // Content Section
-              _buildSectionCard(
-                title: 'Content & Details',
-                icon: Icons.edit_document,
-                color: Colors.indigo,
-                children: [_buildDetailsSection()],
-              ),
-              const SizedBox(height: 24),
-
-              // Content & Tasks Section
-              _buildSectionCard(
-                title: 'Content & Tasks',
-                icon: Icons.task_alt,
-                color: Colors.purple,
-                children: [_buildTodoListSection()],
-              ),
-              const SizedBox(height: 24),
-
-              // Timeline & Status Section
-              _buildSectionCard(
-                title: 'Timeline & Status',
-                icon: Icons.schedule,
-                color: Colors.orange,
-                children: [
-                  _buildExpectedClosingDateSection(),
-                  const SizedBox(height: 20),
-                  _buildStatusChipsSection(),
-                ],
-              ),
-              const SizedBox(height: 24),
-
               // Attached Files Section
               _buildSectionCard(
                 title: 'Attached Files',
@@ -1608,7 +1582,6 @@ class _EditCardPageState extends State<EditCardPage> {
                 children: [_buildAttachedFilesContent()],
               ),
               const SizedBox(height: 24),
-
               // History & Comments Section
               _buildHistoryCommentSection(),
               const SizedBox(height: 100), // Space for bottom buttons
@@ -1764,90 +1737,68 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Widget _buildStatusChipsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.flag, size: 18, color: Colors.orange[700]),
-            const SizedBox(width: 6),
-            const Text(
-              'Status',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.grey[50],
+      ),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: _statusOptions.map((status) {
+          final isSelected = _selectedStatus == status['value'];
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.primaryOrange.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedStatus = status['value'];
+                });
+              },
+              icon: Icon(status['icon'], size: 16),
+              label: Text(
+                status['label'],
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSelected
+                    ? AppTheme.primaryOrange
+                    : Colors.white,
+                foregroundColor: isSelected ? Colors.white : Colors.black87,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primaryOrange
+                        : Colors.grey[300]!,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                elevation: isSelected ? 2 : 0,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.grey[50],
-          ),
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: _statusOptions.map((status) {
-              final isSelected = _selectedStatus == status['value'];
-              return Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppTheme.primaryOrange.withOpacity(0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _selectedStatus = status['value'];
-                    });
-                  },
-                  icon: Icon(status['icon'], size: 16),
-                  label: Text(
-                    status['label'],
-                    style: TextStyle(
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isSelected
-                        ? AppTheme.primaryOrange
-                        : Colors.white,
-                    foregroundColor: isSelected ? Colors.white : Colors.black87,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      side: BorderSide(
-                        color: isSelected
-                            ? AppTheme.primaryOrange
-                            : Colors.grey[300]!,
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    elevation: isSelected ? 2 : 0,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -4130,6 +4081,7 @@ class _EditCardPageState extends State<EditCardPage> {
         withholdingTaxPercentage:
             _withholdingTaxPercentage, // Include withholding tax
         quotationTemplateId: _selectedTemplateId, // เก็บ template ID ที่เลือก
+        notes: _notes, // Preserve comments during save operation
         updatedAt: DateTime.now(),
         updatedByDisplayName: assigneeDisplayName,
       );
@@ -5383,8 +5335,113 @@ class _EditCardPageState extends State<EditCardPage> {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  void _showTodoTemplates() {
-    // Implementation for todo templates
+  void _showTodoTemplates() async {
+    try {
+      final currentBoardId = _controller.currentBoardId.value;
+      final currentWorkspaceId = _controller.currentWorkspaceId.value;
+      if (currentBoardId.isEmpty || currentWorkspaceId.isEmpty) {
+        _showError('No board or workspace selected');
+        return;
+      }
+
+      // Get todo templates from Firestore directly
+      final firestoreService = Get.find<FirestoreService>();
+      final boardsCollection = firestoreService.getWorkspaceBoardsCollection(
+        currentWorkspaceId,
+      );
+      final boardDocRef = boardsCollection.doc(currentBoardId);
+      final boardData = await firestoreService.getDocument(boardDocRef);
+
+      if (boardData == null ||
+          boardData['todoTemplates'] == null ||
+          (boardData['todoTemplates'] as List).isEmpty) {
+        _showError('No todo templates available for this board');
+        return;
+      }
+
+      final todoTemplates = boardData['todoTemplates'] as List;
+
+      // Show template selection dialog
+      final selectedTemplate = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select Todo Template'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: todoTemplates.length,
+              itemBuilder: (context, index) {
+                final template = todoTemplates[index];
+                return ListTile(
+                  title: Text(template['name'] ?? 'Unnamed Template'),
+                  onTap: () => Navigator.of(context).pop(template),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+
+      if (selectedTemplate != null && selectedTemplate['todos'] != null) {
+        // Apply the selected template
+        final todos = selectedTemplate['todos'] as List;
+        setState(() {
+          for (final todo in todos) {
+            // Calculate due date from dueInDays
+            DateTime? calculatedDueDate;
+            if (todo['dueInDays'] != null && todo['dueInDays'] is int) {
+              final now = DateTime.now();
+              // Set time to 00:00:00 and add the specified days
+              calculatedDueDate = DateTime(
+                now.year,
+                now.month,
+                now.day,
+              ).add(Duration(days: todo['dueInDays'] as int));
+            }
+
+            _todoItems.add({
+              'id': DateTime.now().millisecondsSinceEpoch.toString(),
+              'text': todo['title'] ?? '',
+              'isCompleted': false,
+              'dueDate': calculatedDueDate,
+              'duration': null,
+              'endTime': null,
+              'controller': TextEditingController(text: todo['title'] ?? ''),
+            });
+          }
+        });
+
+        Get.snackbar(
+          'Success',
+          'Todo template applied successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      print('❌ Error showing todo templates: $e');
+      _showError('Failed to load todo templates: ${e.toString()}');
+    }
+  }
+
+  void _showError(String message) {
+    Get.snackbar(
+      'Error',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
   }
 
   Widget _buildProductSection() {

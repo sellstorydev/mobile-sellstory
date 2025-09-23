@@ -2,6 +2,237 @@
 
 ## Recent Changes
 
+### Status Summary Cards Icon Integration (September 23, 2025)
+
+**Topic:** Status card in board `lib/features/board/widgets/status_summary_cards.dart` - Replace placeholder icons with actual SVG icons
+
+**Issue Analysis:**
+User had already added icon paths to the status summary cards but they were still showing gray placeholder boxes instead of the actual icons. The cards had icon parameter but were using a static gray container instead of displaying the icons.
+
+**Root Cause Analysis:**
+- Each status card had `icon` parameter passed with correct asset paths
+- The `_buildSummaryCard` method was rendering a gray `Container` with `Color(0xFFD9D9D9)` instead of using the icon
+- Icons were SVG format but needed to be converted to PNG for `Image.asset` widget
+- Static decoration was overriding the dynamic icon display
+
+**Solution Applied:**
+
+**1. Replaced Static Container with Image Widget:**
+```dart
+// Before: Static gray container
+Container(
+  width: 8,
+  height: 8,
+  decoration: const BoxDecoration(
+    color: Color(0xFFD9D9D9),
+  ),
+),
+
+// After: Dynamic image widget
+Container(
+  width: 8,
+  height: 8,
+  child: Image.asset(
+    icon,
+    width: 8,
+    height: 8,
+    fit: BoxFit.contain,
+  ),
+),
+```
+
+**2. Updated Icon Asset Paths to PNG:**
+```dart
+// Updated all status card icons from .svg to .png
+Pending: 'assets/icons/icon-hourglass.png'
+Completed: 'assets/icons/icon-check.png'  
+In Progress: 'assets/icons/icon-clock-loader.png'
+Cancelled: 'assets/icons/icon-error.png'
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/widgets/status_summary_cards.dart`
+  - Replaced static gray container with `Image.asset` widget in `_buildSummaryCard` method
+  - Updated all status card icon paths from `.svg` to `.png` format
+  - Applied proper sizing and fit properties for icon display
+
+**Status Card Icon Mapping:**
+- **Pending**: hourglass icon (gray theme)
+- **Completed**: check icon (green theme)  
+- **In Progress**: clock-loader icon (orange theme)
+- **Cancelled**: error icon (orange theme)
+
+**Benefits:**
+- **Visual Hierarchy**: Icons provide clear visual distinction between status types
+- **Professional Appearance**: Replaces placeholder gray boxes with meaningful icons
+- **Consistent Design**: Icons match the color theme of each status card
+- **Better UX**: Users can quickly identify status types by icon + color combination
+
+**User Impact:**
+- Status summary cards now display appropriate icons for each status type
+- Visual identification of status types improved with icon + color coding
+- Board overview more intuitive with proper iconography
+- Professional appearance matches design specifications
+
+**Implementation Notes:**
+- Icons use `Image.asset` widget for PNG format compatibility
+- Sizing maintained at 8x8 pixels to fit card design
+- `BoxFit.contain` ensures proper aspect ratio
+- Icon parameter properly utilized instead of static decoration
+
+### Comment Preservation Fix in EditCard (September 23, 2025)
+
+**Topic:** EditCard `lib/features/board/view/edit_card_page.dart` - Comment disappearance issue when saving card after post/delete/edit comment operations
+
+**Issue Analysis:**
+User reported that comments disappear when saving a card after performing comment operations (post, delete, or edit). The issue was specifically that comments created, modified, or deleted would be lost when the user clicked "Save Card" button.
+
+**Root Cause Analysis:**
+- Comments are stored in local `_notes` list and synced with Firestore during comment operations
+- When saving the card, the `_saveChanges()` method uses `widget.card.copyWith()` to create updated card
+- The copyWith operation was missing the `notes: _notes` parameter
+- This caused the card to be saved without preserving the current comment state
+- Comments existed in local state but were lost during card save operation
+
+**Solution Applied:**
+
+**Added Notes Preservation to Save Operation:**
+```dart
+// Before: Missing notes field in copyWith
+final updatedCard = widget.card.copyWith(
+  title: _titleController.text.trim(),
+  description: htmlDescription,
+  // ... other fields
+  updatedAt: DateTime.now(),
+  updatedByDisplayName: assigneeDisplayName,
+);
+
+// After: Added notes preservation
+final updatedCard = widget.card.copyWith(
+  title: _titleController.text.trim(),
+  description: htmlDescription,
+  // ... other fields
+  notes: _notes, // Preserve comments during save operation
+  updatedAt: DateTime.now(),
+  updatedByDisplayName: assigneeDisplayName,
+);
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/view/edit_card_page.dart`
+  - Added `notes: _notes` parameter to `widget.card.copyWith()` call in `_saveChanges()` method
+  - Ensures comment state is preserved during card save operations
+
+**Comment Flow Fixed:**
+1. **Comment Operations**: Users can post, edit, or delete comments (updates `_notes` list)
+2. **Local State Sync**: Comments are immediately reflected in UI via local `_notes` state
+3. **Firestore Sync**: Comment operations sync with Firestore via `addNoteToCard`, `updateNoteInCard`, `deleteNoteFromCard`
+4. **Card Save**: When user saves card, `notes: _notes` preserves current comment state
+5. **Data Persistence**: Comments remain available after card save operation
+
+**Benefits:**
+- **Comment Preservation**: Comments no longer disappear after card save operations
+- **Data Consistency**: Local comment state properly synced with card save operation
+- **User Experience**: Users can confidently manage comments without losing them during save
+- **Simple Fix**: Minimal code change with maximum impact
+
+**User Impact:**
+- Comments persist correctly after post/delete/edit operations followed by card save
+- No data loss when users manage comments and then save card changes
+- Improved workflow confidence when working with comments in edit card page
+- Consistent behavior between comment operations and card save functionality
+
+**Implementation Notes:**
+- Fix addresses the gap between comment state management and card save operation
+- Local `_notes` list properly included in card update via copyWith parameter
+- No changes needed to existing comment CRUD functionality
+- Solution maintains existing comment system architecture
+
+## Recent Changes
+
+### Apply Template Button Fix in EditCard (September 23, 2025)
+
+**Topic:** EditCard `lib/features/board/view/edit_card_page.dart` - Apply template button in Content and tasks section not working, copy flow from create card page
+
+**Issue Analysis:**
+User reported that the "Apply Template" button in the Content and tasks section of edit_card_page.dart is not working. The button exists in the UI but clicking it does nothing.
+
+**Root Cause Analysis:**
+- The `_showTodoTemplates` method in edit_card_page.dart is empty (only contains a comment)
+- The create_card_page.dart has a fully implemented `_showTodoTemplates` method that works correctly
+- Missing FirestoreService import needed for template loading
+- Edit card page lacks error handling methods used by template functionality
+
+**Solution Applied:**
+
+**1. Added Required Import:**
+```dart
+// Added missing import to edit_card_page.dart
+import '../../../data/services/firestore_service.dart';
+```
+
+**2. Implemented _showTodoTemplates Method:**
+Copied the complete implementation from create_card_page.dart with proper adaptations:
+- Loads todo templates from Firestore board configuration
+- Shows template selection dialog with available templates
+- Applies selected template by adding todos to existing _todoItems list
+- Calculates due dates from template dueInDays configuration
+- Shows success/error feedback to user
+
+**3. Added Error Handling Method:**
+```dart
+void _showError(String message) {
+  Get.snackbar(
+    'Error',
+    message,
+    snackPosition: SnackPosition.BOTTOM,
+    backgroundColor: Colors.red,
+    colorText: Colors.white,
+    duration: const Duration(seconds: 3),
+  );
+}
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/view/edit_card_page.dart`
+  - Added FirestoreService import
+  - Implemented complete _showTodoTemplates method with template loading and selection
+  - Added _showError helper method for user feedback
+  - Template functionality now matches create_card_page.dart behavior
+
+**Apply Template Flow:**
+1. **Template Loading**: Fetches todoTemplates from board configuration in Firestore
+2. **Template Selection**: Shows dialog with available template options
+3. **Template Application**: Adds template todos to current card's todo list
+4. **Due Date Calculation**: Converts template dueInDays to actual dates from current date
+5. **User Feedback**: Shows success message after template application
+
+**Benefits:**
+- **Working Template Button**: Apply Template button now functions correctly in edit card page
+- **Consistent Behavior**: Edit card template functionality matches create card page
+- **User Experience**: Templates can be applied to existing cards during editing
+- **Error Handling**: Proper error messages for template loading failures
+
+**User Impact:**
+- Users can now apply todo templates while editing existing cards
+- Template functionality works identically between create and edit flows
+- Better workflow efficiency when updating cards with standard todo sets
+- Clear feedback when templates are applied or when errors occur
+
+**Implementation Notes:**
+- Template data structure maintained: {name, todos: [{title, dueInDays}]}
+- Due dates calculated as: current date + dueInDays with 00:00:00 time
+- Templates loaded from: `/workspaces/{workspaceId}/boards/{boardId}/todoTemplates`
+- Error handling covers missing workspace, board, or template data scenarios
+
+## Recent Changes
+
 ### Quick Filter Date Type Preservation Fix (September 22, 2025)
 
 **Topic:** Fix filter cards unified_filter_page.dart - Quick options should NOT clear selected date types

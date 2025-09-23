@@ -722,7 +722,7 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                     const SizedBox(width: 6),
                                     Flexible(
                                       child: Text(
-                                        ctrl.currentBoardName.value,
+                                        '${ctrl.currentBoardName.value}(${ctrl.totalCardCount})',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey[600],
