@@ -403,8 +403,7 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                     const SizedBox(height: 16),
                     _buildMultiplePhonesSection(),
                     const SizedBox(height: 16),
-                    _buildTextField('address'.tr, _addressController, maxLines: 3),
-                    const SizedBox(height: 16),
+                    
                     _buildLocationSection(),
                     const SizedBox(height: 16),
                     _buildSectionDivider(),
@@ -587,10 +586,23 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
         ),
       );
 
-  Widget _buildTextField(String label, TextEditingController controller, {bool isRequired = false, int maxLines = 1, TextInputType? keyboardType}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    bool isRequired = false,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    isShowBorder = true,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppTheme.backgroundWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+      padding: isShowBorder ? const EdgeInsets.all(16) : EdgeInsets.zero,
+      decoration: isShowBorder
+          ? BoxDecoration(
+              color: AppTheme.backgroundWhite,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            )
+          : null,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Text(label.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
@@ -738,6 +750,13 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('location'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
         const SizedBox(height: 16),
+          _buildTextField(
+            'address'.tr,
+            _addressController,
+            maxLines: 3,
+            isShowBorder: false,
+          ),
+          const SizedBox(height: 16),
         _buildLocationDropdown('province'.tr, _selectedProvinceId, _provinces, (v) {
           setState(() {
             _selectedProvinceId = v;
@@ -762,9 +781,18 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
           }
         }),
         const SizedBox(height: 16),
-        _buildTextField('postal_code'.tr, _postalCodeController, keyboardType: TextInputType.number),
+          _buildTextField(
+            'postal_code'.tr,
+            _postalCodeController,
+            keyboardType: TextInputType.number,
+            isShowBorder: false,
+          ),
         const SizedBox(height: 16),
-        _buildTextField('country'.tr, _countryController),
+          _buildTextField(
+            'country'.tr,
+            _countryController,
+            isShowBorder: false,
+          ),
       ]),
     );
   }

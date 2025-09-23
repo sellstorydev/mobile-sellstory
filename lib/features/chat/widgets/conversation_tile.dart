@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../../../core/widgets/permission_guard.dart';
+// Removed permission_guard import; permission checks are handled via MobilePermissionsService
+import '../../../data/services/mobile_permissions_service.dart';
 
 class ConversationTile extends StatelessWidget {
   final Map<String, dynamic> conversation;
@@ -86,19 +87,7 @@ class ConversationTile extends StatelessWidget {
     return 'unknown';
   }
 
-  String _pageName(Map<String, dynamic> c) {
-    final direct = (c['pageName'] ?? '').toString();
-    if (direct.isNotEmpty) return direct;
-    final conn = c['connection'];
-    if (conn is Map) {
-      final nested = (conn['pageName'] ?? conn['name'] ?? conn['displayName'] ?? '').toString();
-      if (nested.isNotEmpty) return nested;
-    }
-    // Other common aliases we might carry along
-    final alt = (c['providerName'] ?? c['connectionName'] ?? c['igUsername'] ?? '').toString();
-    if (alt.isNotEmpty) return alt;
-    return '';
-  }
+  // Removed unused _pageName helper
 
   (_PlatformIconColor, IconData) _platformStyle(String platform) {
     switch (platform) {
@@ -122,26 +111,7 @@ class ConversationTile extends StatelessWidget {
   }
 
 
-  String _platformLabel(String platform) {
-    switch (platform) {
-      case 'facebook':
-        return 'Facebook';
-      case 'instagram':
-        return 'Instagram';
-      case 'line':
-        return 'LINE';
-      case 'whatsapp':
-        return 'WhatsApp';
-      case 'tiktok':
-        return 'TikTok';
-      case 'lazada':
-        return 'Lazada';
-      case 'shopee':
-        return 'Shopee';
-      default:
-        return '';
-    }
-  }
+  // Removed unused _platformLabel helper
 
   Color _parseHexColor(String? hex, {Color fallback = const Color(0xFFF1F5F9)}) {
     if (hex == null) return fallback;
@@ -521,19 +491,71 @@ class ConversationTile extends StatelessWidget {
 
                     Widget jobCardWidget = const SizedBox();
                     if (ids.isNotEmpty) {
-                      jobCardWidget = Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: List.generate(ids.length, (i) => Padding(
+                        if (ids.length == 1) {
+                          // Single job card: show its title/id
+                          final text =
+                              (titles.isNotEmpty && titles.first.isNotEmpty)
+                              ? titles.first
+                              : ids.first;
+                          jobCardWidget = Padding(
                           padding: const EdgeInsets.only(top: 2, bottom: 2),
                           child: Row(
                             children: [
                               const Icon(Icons.card_travel_outlined, size: 16, color: Colors.orange),
                               const SizedBox(width: 4),
-                              Flexible(child: Text(titles.length > i && titles[i].isNotEmpty ? titles[i] : ids[i], style: const TextStyle(fontSize: 13, color: Colors.orange, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                                Flexible(
+                                  child: Text(
+                                    text,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                             ],
-                          ),
-                        )),
-                      );
+                            ),
+                          );
+                        } else {
+                          // Multiple job cards: summarize as +N
+                          final count = ids.length;
+                          jobCardWidget = Padding(
+                            padding: const EdgeInsets.only(top: 2, bottom: 2),
+                            child: Row(
+                              children: const [
+                                Icon(
+                                  Icons.card_travel_outlined,
+                                  size: 16,
+                                  color: Colors.orange,
+                                ),
+                                SizedBox(width: 4),
+                              ],
+                            ),
+                          );
+                          // Append +N as a separate text to keep ellipsis behavior consistent
+                          jobCardWidget = Padding(
+                            padding: const EdgeInsets.only(top: 2, bottom: 2),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.card_travel_outlined,
+                                  size: 16,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '+$count',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
                     } else if (singleJobCardId.isNotEmpty || singleJobCardTitle.isNotEmpty) {
                       final text = singleJobCardTitle.isNotEmpty ? singleJobCardTitle : 'Job Card: $singleJobCardId';
                       jobCardWidget = Padding(
@@ -554,7 +576,10 @@ class ConversationTile extends StatelessWidget {
                       final text = customerName.isNotEmpty ? customerName : '${'customer'.tr}: $customerId';
                       chips.add(
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 0,
+                              vertical: 4,
+                            ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(999),
@@ -599,122 +624,166 @@ class ConversationTile extends StatelessWidget {
       ),
     );
 
+    // Build action panes only when there are visible actions to avoid layout issues
+    const double unitRatio = 0.24; // each action ~24% width
+    final perms = MobilePermissionsService.to;
+
+    final List<Widget> startActions = [];
+    if (perms.can('chat:bot:manage')) {
+      startActions.add(
+        CustomSlidableAction(
+          onPressed: (_) => onToggleBot?.call(),
+          backgroundColor: const Color(0xFFFF7A00),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.smart_toy_outlined,
+                color: Colors.white,
+                size: 22,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isBotEnabled ? 'chat_bot_disable'.tr : 'chat_bot_enable'.tr,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (perms.can('chat:manage')) {
+      startActions.add(
+        CustomSlidableAction(
+          onPressed: (_) => onTogglePin?.call(),
+          backgroundColor: Colors.amber.shade700,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.push_pin, color: Colors.white, size: 22),
+              const SizedBox(height: 4),
+              Text(
+                isPinned ? 'unpin'.tr : 'pin'.tr,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final List<Widget> endActions = [];
+    if (perms.can('chat:manage')) {
+      endActions.add(
+        CustomSlidableAction(
+          onPressed: (_) => onAddHashtag?.call(),
+          backgroundColor: Colors.indigo,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.tag, color: Colors.white, size: 22),
+              SizedBox(height: 4),
+              Text(
+                'Hashtag',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (perms.can('customer:edit:all')) {
+      endActions.add(
+        CustomSlidableAction(
+          onPressed: (_) => onAssignSale?.call(),
+          backgroundColor: Colors.teal,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.person_add, color: Colors.white, size: 22),
+              SizedBox(height: 4),
+              Text(
+                'Assign',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (perms.can('chat:manage')) {
+      endActions.add(
+        CustomSlidableAction(
+          onPressed: (_) => onChangeStatus?.call(),
+          backgroundColor: Colors.deepOrange,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.flag, color: Colors.white, size: 22),
+              SizedBox(height: 4),
+              Text(
+                'Status',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final double startExtent = (startActions.length * unitRatio).clamp(
+      0.0,
+      1.0,
+    );
+    final double endExtent = (endActions.length * unitRatio).clamp(0.0, 1.0);
+
     return Slidable(
       key: ValueKey(conversation['id'] ?? name),
       closeOnScroll: true,
-      startActionPane: ActionPane(
-        motion: const DrawerMotion(),
-        extentRatio: 0.48, // 2 actions * 0.24
-        children: [
-          PermissionGuard(
-            permission: 'chat:bot:manage',
-            child: CustomSlidableAction(
-              onPressed: (_) => onToggleBot?.call(),
-              backgroundColor: const Color(0xFFFF7A00),
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 22),
-                  const SizedBox(height: 4),
-                  Text(
-                    isBotEnabled ? 'chat_bot_disable'.tr : 'chat_bot_enable'.tr,
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
+      startActionPane: startActions.isEmpty
+          ? null
+          : ActionPane(
+              motion: const DrawerMotion(),
+              extentRatio: startExtent,
+              children: startActions,
             ),
-          ),
-          PermissionGuard(
-            permission: 'chat:manage',
-            child: CustomSlidableAction(
-              onPressed: (_) => onTogglePin?.call(),
-              backgroundColor: Colors.amber.shade700,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.push_pin, color: Colors.white, size: 22),
-                  const SizedBox(height: 4),
-                  Text(
-                    isPinned ? 'unpin'.tr : 'pin'.tr,
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
+      endActionPane: endActions.isEmpty
+          ? null
+          : ActionPane(
+              motion: const DrawerMotion(),
+              extentRatio: endExtent,
+              children: endActions,
             ),
-          ),
-        ],
-      ),
-      endActionPane: ActionPane(
-        motion: const DrawerMotion(),
-        extentRatio: 0.72, // 3 actions * 0.24
-        children: [
-          PermissionGuard(
-            permission: 'chat:manage',
-            child: CustomSlidableAction(
-              onPressed: (_) => onAddHashtag?.call(),
-              backgroundColor: Colors.indigo,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.tag, color: Colors.white, size: 22),
-                  SizedBox(height: 4),
-                  Text(
-                    'Hashtag',
-                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          PermissionGuard(
-            permission: 'customer:edit:all',
-            child: CustomSlidableAction(
-              onPressed: (_) => onAssignSale?.call(),
-              backgroundColor: Colors.teal,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.person_add, color: Colors.white, size: 22),
-                  SizedBox(height: 4),
-                  Text(
-                    'Assign',
-                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          PermissionGuard(
-            permission: 'chat:manage',
-            child: CustomSlidableAction(
-              onPressed: (_) => onChangeStatus?.call(),
-              backgroundColor: Colors.deepOrange,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.flag, color: Colors.white, size: 22),
-                  SizedBox(height: 4),
-                  Text(
-                    'Status',
-                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
       child: content,
     );
   }

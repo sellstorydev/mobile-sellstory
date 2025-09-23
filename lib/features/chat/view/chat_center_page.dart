@@ -369,8 +369,10 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
           () => Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
         child: ChatFilterChips(
-          activeFilter: _controller.activeFilter.value,
-          onFilterChanged: (filter) => _controller.setFilter(filter),
+          activeStatus: _controller.statusFilter.value,
+          unreadSelected: _controller.activeFilter.value == 'unread',
+          onStatusChanged: (status) => _controller.setStatusFilter(status),
+          onUnreadChanged: (on) => _controller.setFilter(on ? 'unread' : 'all'),
           // แนะนำ: ภายใน ChatFilterChips ปรับให้เป็น ChoiceChip/ActionChip โทนเดียวกับภาพ
         ),
       ),

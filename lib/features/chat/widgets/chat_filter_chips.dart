@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 class ChatFilterChips extends StatelessWidget {
-  final String activeFilter;
-  final Function(String) onFilterChanged;
+  // Selected status filter: '', 'NEW', 'IN_PROGRESS', 'DONE'
+  final String activeStatus;
+  // Whether the Unread chip is active (maps to activeFilter == 'unread')
+  final bool unreadSelected;
+  // Callbacks
+  final ValueChanged<String> onStatusChanged;
+  final ValueChanged<bool> onUnreadChanged;
 
   const ChatFilterChips({
     Key? key,
-    required this.activeFilter,
-    required this.onFilterChanged,
+    required this.activeStatus,
+    required this.unreadSelected,
+    required this.onStatusChanged,
+    required this.onUnreadChanged,
   }) : super(key: key);
+
 
   @override
   Widget build(BuildContext context) {
@@ -19,21 +26,79 @@ class ChatFilterChips extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 0),
         scrollDirection: Axis.horizontal,
         children: [
-          // _buildChip('ทั้งหมด', 'all'),
-          _buildChip('unread'.tr, 'unread'),
-          _buildChip('new'.tr, 'new'),
-          _buildChip('pinned'.tr, 'pinned', icon: Icons.push_pin),
-          _buildChip('group_chat'.tr, 'groupOnly', icon: Icons.groups),
-          // _buildChip('LINE', 'line', icon: Icons.chat),
+          _buildStatusChip(
+            'รอดำเนินการ',
+            'NEW',
+            isSelected: activeStatus == 'NEW',
+            icon: Icons.pending_actions,
+          ),
+          _buildStatusChip(
+            'กำลังดำเนินการ',
+            'IN_PROGRESS',
+            isSelected: activeStatus == 'IN_PROGRESS',
+            icon: Icons.play_arrow,
+          ),
+          _buildStatusChip(
+            'เสร็จสิ้น',
+            'DONE',
+            isSelected: activeStatus == 'DONE',
+            icon: Icons.check_circle,
+          ),
+          _buildUnreadChip(
+            'ยังไม่ได้อ่าน',
+            isSelected: unreadSelected,
+            icon: Icons.mark_chat_unread,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildChip(String label, String value, {IconData? icon}) {
-    // Don't visually select any chip when activeFilter == 'all'
-    final isSelected = (activeFilter == value) && value != 'all';
+  Widget _buildStatusChip(
+    String label,
+    String statusValue, {
+    required bool isSelected,
+    IconData? icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 14),
+              const SizedBox(width: 4),
+            ],
+            Text(label),
+          ],
+        ),
+        selected: isSelected,
+        onSelected: (_) {
+          // Toggle: tap again to clear status
+          if (isSelected) {
+            onStatusChanged('');
+          } else {
+            onStatusChanged(statusValue);
+          }
+        },
+        selectedColor: Colors.blue.shade100,
+        checkmarkColor: Colors.blue.shade800,
+        backgroundColor: Colors.grey.shade100,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.blue.shade800 : Colors.grey.shade700,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 14, // Adjust font size based on label length (example
+        ),
+      ),
+    );
+  }
 
+  Widget _buildUnreadChip(
+    String label, {
+    required bool isSelected,
+    IconData? icon,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
@@ -49,12 +114,8 @@ class ChatFilterChips extends StatelessWidget {
         ),
         selected: isSelected,
         onSelected: (_) {
-          // If tapping the same selected chip again, unselect by switching to 'all'
-          if (isSelected && value != 'all') {
-            onFilterChanged('all');
-          } else {
-            onFilterChanged(value);
-          }
+          // Toggle unread filter on/off
+          onUnreadChanged(!isSelected);
         },
         selectedColor: Colors.blue.shade100,
         checkmarkColor: Colors.blue.shade800,
