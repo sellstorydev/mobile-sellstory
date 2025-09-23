@@ -8,8 +8,21 @@ import '../../../core/widgets/permission_guard.dart';
 import '../../../core/services/quota_guard.dart';
 
 
-class ProductsPage extends StatelessWidget {
+class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key});
+
+  @override
+  State<ProductsPage> createState() => _ProductsPageState();
+}
+
+class _ProductsPageState extends State<ProductsPage> {
+  final FocusNode _searchFocus = FocusNode();
+
+  @override
+  void dispose() {
+    _searchFocus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,42 +71,7 @@ class ProductsPage extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Search Bar
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: AppTheme.backgroundWhite,
-              child: TextField(
-                controller: controller.safeSearchController,
-                onChanged: (value) {
-                  if (Get.isRegistered<ProductsController>()) {
-                    controller.onSearchChanged(value);
-                  }
-                },
-                decoration: InputDecoration(
-                  hintText: 'search_products'.tr,
-                  prefixIcon: const Icon(Icons.search, color: AppTheme.textGrey),
-                  suffixIcon: _buildSearchAndClearSuffixIcons(controller),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppTheme.borderGrey),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppTheme.borderGrey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppTheme.primaryOrange),
-                  ),
-                  filled: true,
-                  fillColor: AppTheme.backgroundGrey,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ),
+            _buildSearchBar(context),
 
             // Products Count and Add Button
             Container(
@@ -193,6 +171,26 @@ class ProductsPage extends StatelessWidget {
                         ElevatedButton(
                           onPressed: controller.refreshProducts,
                           child: Text('try_again'.tr),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // Show searching state when Algolia search is in progress
+                if (controller.isSearching.value) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(color: AppTheme.primaryOrange),
+                        SizedBox(height: 16),
+                        Text(
+                          'กำลังค้นหาสินค้า...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -334,49 +332,100 @@ class ProductsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchAndClearSuffixIcons(ProductsController controller) {
-    final hasSearchText = controller.searchQuery.value.isNotEmpty;
-
+  // === UI: Search Bar ===
+  Widget _buildSearchBar(BuildContext context) {
+    final controller = Get.find<ProductsController>();
     return Container(
-      margin: const EdgeInsets.only(right: 8),
+      color: AppTheme.backgroundWhite,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // Search button
-          Obx(() => IconButton(
-            onPressed: () => _triggerSearch(controller),
-            icon: controller.isSearching.value
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppTheme.primaryOrange,
-                    ),
-                  )
-                : Icon(
-                    Icons.search,
-                    color: hasSearchText 
-                        ? AppTheme.primaryOrange
-                        : AppTheme.textGrey,
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundGrey,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: TextField(
+                controller: controller.safeSearchController,
+                focusNode: _searchFocus,
+                onChanged: (value) {
+                  if (Get.isRegistered<ProductsController>()) {
+                    controller.onSearchChanged(value);
+                  }
+                },
+                onSubmitted: (_) => _triggerSearch(controller), // Trigger search when Enter is pressed
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'search_products'.tr,
+                  hintStyle: const TextStyle(color: AppTheme.textSecondary),
+                  border: InputBorder.none,
+                  prefixIcon: Obx(
+                    () => controller.isSearching.value
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppTheme.primaryOrange,
+                              ),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.search,
+                            color: AppTheme.textSecondary,
+                          ),
                   ),
-          )),
-          // Clear button
-          if (hasSearchText)
-            IconButton(
-              icon: const Icon(Icons.clear, color: AppTheme.textGrey),
-              onPressed: controller.clearSearch,
+                  suffixIcon: _buildSearchAndClearSuffixIcons(controller),
+                ),
+              ),
             ),
+          ),
+          const SizedBox(width: 10),
+          Material(
+            color: AppTheme.primaryOrange,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => _triggerSearch(controller),
+              child: const SizedBox(
+                height: 44,
+                width: 44,
+                child: Icon(Icons.search, color: Colors.white),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
+  Widget _buildSearchAndClearSuffixIcons(ProductsController controller) {
+    return Obx(() {
+      final hasSearchText = controller.searchQuery.value.isNotEmpty;
+      
+      if (!hasSearchText) {
+        return const SizedBox.shrink();
+      }
+
+      return IconButton(
+        tooltip: 'ล้างคำค้น',
+        icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
+        onPressed: () {
+          controller.clearSearch();
+          _searchFocus.requestFocus();
+        },
+      );
+    });
+  }
+
   void _triggerSearch(ProductsController controller) {
-    final searchController = controller.safeSearchController;
-    final query = searchController.text.trim();
-    if (query.isNotEmpty) {
-      controller.triggerAlgoliaSearch(query);
-    }
+    final query = controller.safeSearchController.text.trim();
+    // Always trigger Algolia search when button is clicked, even if empty
+    controller.triggerAlgoliaSearch(query);
+    _searchFocus.unfocus();
   }
 }
