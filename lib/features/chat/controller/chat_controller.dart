@@ -545,6 +545,7 @@ class ChatController extends GetxController {
           } catch (_) {
             enriched['assigneesKnown'] = false;
           }
+          
 
 
           // Preserve previous assignee info if we don't have fresh info yet
