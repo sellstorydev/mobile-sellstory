@@ -10,7 +10,6 @@ import '../../../core/services/algolia_document_sync_service.dart';
 import 'quotations_list_controller.dart';
 import 'invoice_list_controller.dart';
 import 'receipt_list_controller.dart';
-import '../view/add_edit_document_page.dart';
 
 class AddEditDocumentController extends GetxController {
   final String? documentId;
@@ -101,6 +100,8 @@ class AddEditDocumentController extends GetxController {
       TextEditingController();
   final TextEditingController customerNationalIdController =
       TextEditingController();
+  final TextEditingController customerWebsiteController =
+      TextEditingController();
   final TextEditingController customerPhoneController = TextEditingController();
   final TextEditingController customerEmailController = TextEditingController();
 
@@ -182,8 +183,8 @@ class AddEditDocumentController extends GetxController {
   String? get selectedCompanySealId => _selectedCompanySealId;
 
   // More options section
-  String? _selectedPaymentMethod;
-  String? get selectedPaymentMethod => _selectedPaymentMethod;
+  String? _selectedPaymentDetailId;
+  String? get selectedPaymentDetailId => _selectedPaymentDetailId;
 
   List<String> _availablePaymentMethods = [];
   List<String> get availablePaymentMethods => _availablePaymentMethods;
@@ -191,6 +192,48 @@ class AddEditDocumentController extends GetxController {
   // Store full payment details for reference
   List<Map<String, dynamic>> _paymentDetails = [];
   List<Map<String, dynamic>> get paymentDetails => _paymentDetails;
+
+  // Get selected payment method display name
+  String? get selectedPaymentMethodDisplay {
+    if (_selectedPaymentDetailId == null) return null;
+    final paymentDetail = getPaymentDetailById(_selectedPaymentDetailId!);
+    if (paymentDetail == null) return null;
+    final accountName = paymentDetail['accountName'] as String?;
+    final bankName = paymentDetail['bankName'] as String?;
+    if (accountName != null && bankName != null) {
+      return '$accountName ($bankName)';
+    }
+    return null;
+  }
+
+  // Get payment detail by ID
+  Map<String, dynamic>? getPaymentDetailById(String id) {
+    try {
+      return _paymentDetails.firstWhere(
+        (detail) => detail['id'] == id,
+        orElse: () => <String, dynamic>{},
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Get payment method options for dropdown (returns map of id -> display name)
+  List<Map<String, String>> get paymentMethodOptions {
+    return _paymentDetails.map((detail) {
+      final accountName = detail['accountName'] as String?;
+      final bankName = detail['bankName'] as String?;
+      final id = detail['id'] as String?;
+      
+      if (accountName != null && bankName != null && id != null) {
+        return {
+          'id': id,
+          'displayName': '$accountName ($bankName)',
+        };
+      }
+      return <String, String>{};
+    }).where((option) => option.isNotEmpty).toList();
+  }
 
   final TextEditingController notesController = TextEditingController();
 
@@ -289,6 +332,7 @@ class AddEditDocumentController extends GetxController {
     customerAddressController.dispose();
     customerPostalCodeController.dispose();
     customerNationalIdController.dispose();
+    customerWebsiteController.dispose();
     customerPhoneController.dispose();
     customerEmailController.dispose();
     sellerNameController.dispose();
@@ -483,6 +527,7 @@ class AddEditDocumentController extends GetxController {
       customerAddressController.addListener(() => update());
       customerPostalCodeController.addListener(() => update());
       customerNationalIdController.addListener(() => update());
+      customerWebsiteController.addListener(() => update());
       customerPhoneController.addListener(() => update());
       customerEmailController.addListener(() => update());
       
@@ -534,6 +579,7 @@ class AddEditDocumentController extends GetxController {
           customerAddressController.text = customer.address;
           customerPostalCodeController.text = ''; // Customers don't have postal code field
           customerNationalIdController.text = customer.nationalId;
+          customerWebsiteController.text = ''; // Website will be loaded from customer.website if available
 
           // Load all phone numbers
           _customerPhones.clear();
@@ -574,6 +620,7 @@ class AddEditDocumentController extends GetxController {
         customerAddressController.clear();
         customerPostalCodeController.clear();
         customerNationalIdController.clear();
+        customerWebsiteController.clear();
         customerPhoneController.clear();
         customerEmailController.clear();
         
@@ -628,6 +675,7 @@ class AddEditDocumentController extends GetxController {
             customerAddressController.text = customer.address;
             customerPostalCodeController.text = ''; // Customers don't have postal code field
             customerNationalIdController.text = customer.nationalId;
+            customerWebsiteController.text = ''; // Website will be loaded from customer.website if available
 
             // Re-load all phone numbers
             _customerPhones.clear();
@@ -716,6 +764,13 @@ class AddEditDocumentController extends GetxController {
           print('✅ Auto-filled tax ID: $taxId');
         }
 
+        // Auto-fill website from company
+        final website = companyData['website']?.toString() ?? '';
+        if (website.isNotEmpty) {
+          customerWebsiteController.text = website;
+          print('✅ Auto-filled website: $website');
+        }
+
         // Auto-fill emails from company
         final companyEmails = companyData['emails'] as List<dynamic>?;
         if (companyEmails != null && companyEmails.isNotEmpty) {
@@ -765,6 +820,7 @@ class AddEditDocumentController extends GetxController {
         customerAddressController.clear();
         customerPostalCodeController.clear();
         customerNationalIdController.clear();
+        customerWebsiteController.clear();
         customerPhoneController.clear();
         customerEmailController.clear();
         
@@ -833,7 +889,8 @@ class AddEditDocumentController extends GetxController {
         final assignee = _availableAssignees.firstWhereOrNull((a) => a.uid == assigneeId);
         if (assignee != null) {
           sellerNameController.text = assignee.displayName;
-          // Note: phone number would need to be loaded separately from user data
+          // Auto-populate phone from assignee data
+          _loadAssigneePhoneNumber(assigneeId);
         }
       } else {
         sellerNameController.clear();
@@ -870,6 +927,34 @@ class AddEditDocumentController extends GetxController {
       }
     } catch (e) {
       print('❌ Failed to load assignee details: $e');
+    }
+  }
+
+  // Load assignee phone number from user data
+  Future<void> _loadAssigneePhoneNumber(String assigneeId) async {
+    try {
+      if (_currentWorkspaceId == null) return;
+      
+      // Get phone number from user document
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(assigneeId)
+          .get();
+      
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final phoneNumber = userData['phoneNumber']?.toString() ?? '';
+        if (phoneNumber.isNotEmpty) {
+          sellerPhoneController.text = phoneNumber;
+          print('✅ Auto-populated seller phone from user data: $phoneNumber');
+        } else {
+          // Clear phone if no phone number found
+          sellerPhoneController.clear();
+          print('ℹ️ No phone number found for assignee: $assigneeId');
+        }
+      }
+    } catch (e) {
+      print('❌ Failed to load assignee phone number: $e');
     }
   }
 
@@ -1399,44 +1484,65 @@ class AddEditDocumentController extends GetxController {
       final notes = documentData['notes']?.toString() ?? '';
       notesController.text = notes;
       
-      // Job name and ref ID
-      final jobName = documentData['jobName']?.toString() ?? '';
-      jobNameController.text = jobName;
-      
-      final refId = documentData['refId']?.toString() ?? '';
-      refIdController.text = refId;
-      
-      // Payment methods - handle both string and array formats
-      final paymentMethodData = documentData['paymentMethod'];
-      if (paymentMethodData != null) {
-        String? paymentMethodValue;
+      // Job name and ref ID - load from project object
+      final projectData = documentData['project'] as Map<String, dynamic>?;
+      if (projectData != null) {
+        final projectName = projectData['name']?.toString() ?? '';
+        jobNameController.text = projectName;
         
-        if (paymentMethodData is List && paymentMethodData.isNotEmpty) {
-          // Handle array format (legacy)
-          paymentMethodValue = paymentMethodData.first.toString();
-        } else if (paymentMethodData is String && paymentMethodData.isNotEmpty) {
-          // Handle string format (current)
-          paymentMethodValue = paymentMethodData;
-        }
+        final projectRefId = projectData['refId']?.toString() ?? '';
+        refIdController.text = projectRefId;
+      } else {
+        // Fallback to legacy fields for backward compatibility
+        final jobName = documentData['jobName']?.toString() ?? '';
+        jobNameController.text = jobName;
         
-        if (paymentMethodValue != null && paymentMethodValue.isNotEmpty) {
-          // Always set the payment method from the document, even if it's not in current workspace
-          // This preserves data integrity in case workspace configuration changed
-          _selectedPaymentMethod = paymentMethodValue;
+        final refId = documentData['refId']?.toString() ?? '';
+        refIdController.text = refId;
+      }
+      
+      // Payment methods - handle both new selectedPaymentDetailId and legacy paymentMethod formats
+      final selectedPaymentDetailId = documentData['selectedPaymentDetailId']?.toString();
+      if (selectedPaymentDetailId != null && selectedPaymentDetailId.isNotEmpty) {
+        // New format: use selectedPaymentDetailId directly
+        _selectedPaymentDetailId = selectedPaymentDetailId;
+        print('✅ Loaded payment detail ID from document: $selectedPaymentDetailId');
+      } else {
+        // Legacy format: convert paymentMethod display string to payment detail ID
+        final paymentMethodData = documentData['paymentMethod'];
+        if (paymentMethodData != null) {
+          String? paymentMethodValue;
           
-          // Validate that the payment method exists in available methods for UI consistency
-          if (_availablePaymentMethods.contains(paymentMethodValue)) {
-            print('✅ Loaded and validated payment method from document: $paymentMethodValue');
-          } else {
-            // Payment method from document is no longer available in workspace, but keep it for data preservation
-            print('⚠️ Payment method from document not found in current workspace: $paymentMethodValue');
-            print('Available payment methods: $_availablePaymentMethods');
-            print('ℹ️ Keeping original payment method for data preservation');
+          if (paymentMethodData is List && paymentMethodData.isNotEmpty) {
+            // Handle array format (legacy)
+            paymentMethodValue = paymentMethodData.first.toString();
+          } else if (paymentMethodData is String && paymentMethodData.isNotEmpty) {
+            // Handle string format (current)
+            paymentMethodValue = paymentMethodData;
+          }
+          
+          if (paymentMethodValue != null && paymentMethodValue.isNotEmpty) {
+            // Try to find matching payment detail by display name
+            final matchingPaymentDetail = _paymentDetails.firstWhere(
+              (detail) {
+                final accountName = detail['accountName'] as String?;
+                final bankName = detail['bankName'] as String?;
+                if (accountName != null && bankName != null) {
+                  final displayName = '$accountName ($bankName)';
+                  return displayName == paymentMethodValue;
+                }
+                return false;
+              },
+              orElse: () => <String, dynamic>{},
+            );
             
-            // Add the original payment method to available methods to prevent UI issues
-            if (!_availablePaymentMethods.contains(paymentMethodValue)) {
-              _availablePaymentMethods.add(paymentMethodValue);
-              print('✅ Added original payment method to available options: $paymentMethodValue');
+            if (matchingPaymentDetail.isNotEmpty && matchingPaymentDetail['id'] != null) {
+              _selectedPaymentDetailId = matchingPaymentDetail['id'].toString();
+              print('✅ Converted legacy payment method to ID: $paymentMethodValue -> ${_selectedPaymentDetailId}');
+            } else {
+              print('⚠️ Could not find matching payment detail for legacy payment method: $paymentMethodValue');
+              // Keep legacy behavior - will show in UI but won't save as ID
+              _selectedPaymentDetailId = null;
             }
           }
         }
@@ -1501,6 +1607,9 @@ class AddEditDocumentController extends GetxController {
           final nationalId = customerData['nationalId']?.toString() ?? '';
           customerNationalIdController.text = nationalId;
           
+          final website = customerData['website']?.toString() ?? '';
+          customerWebsiteController.text = website;
+          
           // Load all customer emails and phones
           final emails = customerData['emails'] as List<dynamic>?;
           _customerEmails.clear();
@@ -1550,22 +1659,23 @@ class AddEditDocumentController extends GetxController {
   // Load seller information from document
   Future<void> _loadDocumentSellerInfo(Map<String, dynamic> documentData) async {
     try {
+      // Load seller selection from seller object
       final sellerData = documentData['seller'] as Map<String, dynamic>?;
       if (sellerData != null) {
         final sellerId = sellerData['uid']?.toString();
         if (sellerId != null) {
           _selectedSellerIds = [sellerId];
-          
-          // Load seller details into controllers
-          final displayName = sellerData['displayName']?.toString() ?? '';
-          sellerNameController.text = displayName;
-          
-          final phone = sellerData['docPhoneNumber']?.toString() ?? '';
-          sellerPhoneController.text = phone;
         }
       }
       
-      print('✅ Seller info loaded');
+      // Load seller details from document root level (these are stored separately)
+      final sellerName = documentData['sellerName']?.toString() ?? '';
+      sellerNameController.text = sellerName;
+      
+      final sellerPhone = documentData['sellerPhone']?.toString() ?? '';
+      sellerPhoneController.text = sellerPhone;
+      
+      print('✅ Seller info loaded - Name: $sellerName, Phone: $sellerPhone');
       
     } catch (e) {
       print('❌ Failed to load seller info: $e');
@@ -2677,9 +2787,9 @@ class AddEditDocumentController extends GetxController {
   }
 
   // More options section methods
-  void onPaymentMethodChanged(String? method) {
+  void onPaymentMethodChanged(String? paymentDetailId) {
     try {
-      _selectedPaymentMethod = method;
+      _selectedPaymentDetailId = paymentDetailId;
       update();
     } catch (e) {
       print('❌ Failed to change payment method: $e');
@@ -3100,7 +3210,7 @@ class AddEditDocumentController extends GetxController {
     try {
       if (!_isWhtEnabled) return 0.0;
       final percentage = double.tryParse(whtPercentageController.text) ?? 3.0;
-      return afterVat * (percentage / 100);
+      return afterDiscount * (percentage / 100);
     } catch (e) {
       print('❌ Failed to calculate WHT amount: $e');
       return 0.0;
@@ -3596,7 +3706,7 @@ class AddEditDocumentController extends GetxController {
         'sellerName': sellerNameController.text,
         'sellerPhone': sellerPhoneController.text,
         'notes': notesController.text,
-        'paymentMethod': _selectedPaymentMethod,
+        'selectedPaymentDetailId': _selectedPaymentDetailId,
         'signatureAssignments': _buildSignatureAssignments(),
         'companySealId': _selectedCompanySealId,
         'templateId': _selectedTemplateId ?? '',
@@ -3606,11 +3716,11 @@ class AddEditDocumentController extends GetxController {
           'address': customerAddressController.text,
           'postalCode': customerPostalCodeController.text,
           'nationalId': customerNationalIdController.text,
+          'website': customerWebsiteController.text,
           'emails': _customerEmails.where((email) => email['value']?.toString().isNotEmpty == true).toList(),
           'phones': _customerPhones.where((phone) => phone['value']?.toString().isNotEmpty == true).toList(),
           'companyNames': selectedCustomer!.companyNames,
         } : null,
-        'jobName': jobNameController.text,
         'validUntil': _validUntilDate?.millisecondsSinceEpoch,
         'company': selectedCompanyData != null ? {
           'value': selectedCompanyData!['value'] ?? '',

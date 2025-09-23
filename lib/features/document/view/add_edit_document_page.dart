@@ -817,6 +817,15 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           ),
           const SizedBox(height: 16),
 
+          // Website
+          _buildTextField(
+            label: 'เว็บไซต์',
+            hint: 'กรอกเว็บไซต์',
+            controller: controller.customerWebsiteController,
+            keyboardType: TextInputType.url,
+          ),
+          const SizedBox(height: 16),
+
           // Multiple Phones
           _buildMultipleContactFields(
             controller: controller,
@@ -869,6 +878,15 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
             isLoading: controller.isLoadingAssignees,
             allowMultipleSelection: false, // Single selection for seller
             showBorder: false,
+          ),
+          const SizedBox(height: 16),
+
+          // Seller Phone
+          _buildTextField(
+            label: 'เบอร์ติดต่อ',
+            hint: 'กรอกเบอร์ติดต่อผู้ขาย',
+            controller: controller.sellerPhoneController,
+            keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: 16),
 
@@ -1500,11 +1518,11 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           _buildDropdownField(
             label: 'payment_method'.tr,
             hint: 'hint_payment_method'.tr,
-            value: controller.selectedPaymentMethod,
-            items: controller.availablePaymentMethods.map((method) => 
+            value: controller.selectedPaymentDetailId,
+            items: controller.paymentMethodOptions.map((option) => 
               DropdownMenuItem<String>(
-                value: method,
-                child: Text(method),
+                value: option['id'],
+                child: Text(option['displayName']!),
               )
             ).toList(),
             onChanged: controller.onPaymentMethodChanged,
