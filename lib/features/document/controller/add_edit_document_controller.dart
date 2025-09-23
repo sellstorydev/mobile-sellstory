@@ -3100,7 +3100,7 @@ class AddEditDocumentController extends GetxController {
     try {
       if (!_isWhtEnabled) return 0.0;
       final percentage = double.tryParse(whtPercentageController.text) ?? 3.0;
-      return afterVat * (percentage / 100);
+      return afterDiscount * (percentage / 100);
     } catch (e) {
       print('❌ Failed to calculate WHT amount: $e');
       return 0.0;
