@@ -16,5 +16,3 @@ Steps:
     - If not have the text add it to app_translations.dart and translate it.
     - If words that don't mean anything change them to something that makes sense.
     - Check keywords that are not translated in the code and translate them.
- 
-

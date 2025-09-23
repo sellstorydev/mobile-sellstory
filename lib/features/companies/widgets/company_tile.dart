@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/company.dart';
 
@@ -78,15 +79,11 @@ class CompanyTile extends StatelessWidget {
 
                 if (company.customId.isNotEmpty) ...[
                   Text(
-                      'รหัส: ${company.customId}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
+                    'code_with_value'.trParams({'code': company.customId}),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
                 const SizedBox(height: 4),
 
@@ -103,7 +100,9 @@ class CompanyTile extends StatelessWidget {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          'เลขประจำตัวผู้เสียภาษี: ${company.taxId}',
+                          'tax_id_with_value'.trParams({
+                            'taxId': company.taxId,
+                          }),
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade600,
@@ -254,7 +253,7 @@ class CompanyTile extends StatelessWidget {
     }
 
     return Text(
-      'ไม่มีข้อมูลติดต่อ',
+      'no_contact_info'.tr,
       style: TextStyle(
         fontSize: 11,
         color: Colors.grey.shade400,

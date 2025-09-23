@@ -88,9 +88,13 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
       });
     } else {
       // Initialize with default empty entries
-      _emails = [{'label': 'หลัก', 'value': ''}];
-      _phones = [{'label': 'หลัก', 'value': ''}];
-      _countryController.text = 'ไทย';
+      _emails = [
+        {'label': 'primary'.tr, 'value': ''},
+      ];
+      _phones = [
+        {'label': 'primary'.tr, 'value': ''},
+      ];
+      _countryController.text = 'thailand'.tr;
     }
   }
 
@@ -238,7 +242,7 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
 
   Widget _buildBasicInfoSection() {
     return _buildSection(
-      title: 'ข้อมูลพื้นฐาน',
+      title: 'basic_information'.tr,
       children: [
         _buildTextField(
           controller: _nameController,
@@ -254,7 +258,7 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
         _buildTextField(
           controller: _branchController,
           label: 'สาขา',
-          hint: 'เช่น สำนักงานใหญ่, สาขาบางนา',
+          hint: 'branch_hint_example'.tr,
         ),
         const SizedBox(height: 16),
         _buildTextField(

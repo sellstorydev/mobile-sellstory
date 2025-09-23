@@ -56,7 +56,8 @@ class _UserPickerSheetState extends State<UserPickerSheet> {
       final m = u.data() ?? {};
       return UserItem(
         uid: uid,
-        displayName: (m['displayName'] ?? m['name'] ?? 'Unknown') as String,
+          displayName:
+              (m['displayName'] ?? m['name'] ?? 'no_name'.tr) as String,
         email: (m['email'] ?? '') as String,
         photoURL: (m['photoURL'] ?? m['avatar']) as String?,
         role: members[uid]?.toString(),

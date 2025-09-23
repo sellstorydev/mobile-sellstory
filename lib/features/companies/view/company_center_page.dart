@@ -127,10 +127,10 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
       ),
       body: PermissionGuard(
         permission: 'company:view',
-        fallback: const Center(
+        fallback: Center(
           child: Text(
-            'คุณไม่มีสิทธิ์ดูรายชื่อบริษัท',
-            style: TextStyle(color: AppTheme.textSecondary),
+            'no_permission_view_companies'.tr,
+            style: const TextStyle(color: AppTheme.textSecondary),
           ),
         ),
         child: Column(
@@ -164,7 +164,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
                 onChanged: _controller.onSearchChanged,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'ชื่อบริษัท, เลขประจำตัวผู้เสียภาษี, สาขา, เบอร์โทร, อีเมล',
+                  hintText: 'search_placeholder_companies'.tr,
                   hintStyle: const TextStyle(color: AppTheme.textSecondary),
                   border: InputBorder.none,
                   prefixIcon: Obx(
@@ -247,7 +247,13 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
                         fontSize: 14,
                       ),
                     ),
-                    const Text(' บริษัท', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+                    Text(
+                      ' ${'companies'.tr}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -281,7 +287,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.business, size: 18),
-                label: Text(isFull ? 'โควต้าเต็ม' : 'เพิ่มบริษัท'),
+                label: Text(isFull ? 'quota_full'.tr : 'add_company'.tr),
                 onPressed: () async {
                   final wsId = _controller.currentWorkspaceId.value;
                   final ok = await QuotaGuard.ensureCanCreate(context, wsId, 'customers');
@@ -328,10 +334,12 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
         final isSearching = _controller.searchQuery.value.isNotEmpty;
         return _EmptyState(
           icon: isSearching ? Icons.search_off : Icons.business_outlined,
-          title: isSearching ? 'ไม่พบบริษัทที่ค้นหา' : 'ไม่มีบริษัท',
+          title: isSearching
+              ? 'no_companies_found_matching'.tr
+              : 'no_companies'.tr,
           subtitle: isSearching
-              ? 'ลองค้นหาด้วยคำอื่น'
-              : 'เริ่มต้นเพิ่มบริษัทแรกของคุณ',
+              ? 'try_different_search'.tr
+              : 'start_adding_first_company'.tr,
         );
       }
 
@@ -381,7 +389,7 @@ class _CompanyCenterPageState extends State<CompanyCenterPage> {
       }
 
       return IconButton(
-        tooltip: 'ล้างคำค้น',
+        tooltip: 'clear_search'.tr,
         icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
         onPressed: () {
           _controller.clearSearch();

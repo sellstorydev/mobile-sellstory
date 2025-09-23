@@ -39,8 +39,8 @@ class ChatScreenController extends GetxController {
 
   Future<void> loadMessages() async {
     if (_conversationId == null || _workspaceId == null) {
-      error.value = 'Missing conversation or workspace ID';
-      _logger.failure('Missing conversation or workspace ID', null);
+  error.value = 'missing_conversation_or_workspace_id'.tr;
+  _logger.failure('missing_conversation_or_workspace_id'.tr, null);
       return;
     }
 
@@ -48,7 +48,7 @@ class ChatScreenController extends GetxController {
       isLoading.value = true;
       error.value = '';
 
-      _logger.info('Loading messages for conversation: $_conversationId in workspace: $_workspaceId');
+  _logger.info('Loading messages for conversation: $_conversationId in workspace: $_workspaceId');
 
       // Get messages with proper ordering
       final result = await _firestoreService.getMessages(
@@ -107,7 +107,7 @@ class ChatScreenController extends GetxController {
           case 'file':
             // Ensure file messages have proper structure
             data['fileUrl'] = data['fileUrl'] ?? data['url'] ?? data['file_url'];
-            data['fileName'] = data['fileName'] ?? data['name'] ?? 'Unknown file';
+            data['fileName'] = data['fileName'] ?? data['name'] ?? 'unknown_file'.tr;
             break;
         }
 
@@ -115,7 +115,7 @@ class ChatScreenController extends GetxController {
         if (data['sender'] == null) {
           data['sender'] = {
             'id': 'unknown',
-            'name': 'Unknown User',
+            'name': 'unknown_user'.tr,
             'type': 'user',
             'avatar': null,
           };
@@ -132,7 +132,7 @@ class ChatScreenController extends GetxController {
       });
 
       messages.value = messageList;
-      _logger.success('Loaded and processed ${messageList.length} messages');
+  _logger.success('Loaded and processed ${messageList.length} messages');
 
       // Scroll to bottom after loading messages
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -140,8 +140,8 @@ class ChatScreenController extends GetxController {
       });
 
     } catch (e) {
-      error.value = 'Failed to load messages: $e';
-      _logger.failure('Failed to load messages', e);
+      error.value = 'load_messages_failed_details'.trParams({'error': e.toString()});
+      _logger.failure('load_messages_failed_details'.trParams({'error': e.toString()}), e);
 
       // Add more detailed error logging
       _logger.failure('Error details', {
@@ -174,7 +174,7 @@ class ChatScreenController extends GetxController {
         'timestamp': now.millisecondsSinceEpoch,
         'sender': {
           'id': 'current_user', // You might want to get actual user ID
-          'name': 'You',
+          'name': 'you'.tr,
           'type': 'user',
           'avatar': null,
         },
@@ -198,7 +198,7 @@ class ChatScreenController extends GetxController {
         {
           'last_message_info.message': messageText.trim(),
           'last_message_info.last_upd': now.toIso8601String(),
-          'last_message_info.who_name': 'You',
+          'last_message_info.who_name': 'you'.tr,
           'last_message_info.msg_timestamp': now.millisecondsSinceEpoch.toString(),
         },
       );
@@ -207,21 +207,21 @@ class ChatScreenController extends GetxController {
       loadMessages();
 
     } catch (e) {
-      error.value = 'Failed to send message: $e';
-      _logger.failure('Failed to send message', e);
+      error.value = 'send_message_failed_details'.trParams({'error': e.toString()});
+      _logger.failure('send_message_failed_details'.trParams({'error': e.toString()}), e);
     }
   }
 
   Future<void> sendImage() async {
     // TODO: Implement image sending
     _logger.info('Send image requested');
-    Get.snackbar('Coming Soon', 'Image sending will be implemented soon');
+    Get.snackbar('coming_soon'.tr, 'image_sending_coming_soon'.tr);
   }
 
   Future<void> sendFile() async {
     // TODO: Implement file sending
     _logger.info('Send file requested');
-    Get.snackbar('Coming Soon', 'File sending will be implemented soon');
+    Get.snackbar('coming_soon'.tr, 'file_sending_coming_soon'.tr);
   }
 
   void togglePin() {

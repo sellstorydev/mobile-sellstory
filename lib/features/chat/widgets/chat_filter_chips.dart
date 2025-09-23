@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ChatFilterChips extends StatelessWidget {
   // Selected status filter: '', 'NEW', 'IN_PROGRESS', 'DONE'
@@ -27,25 +28,25 @@ class ChatFilterChips extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         children: [
           _buildStatusChip(
-            'รอดำเนินการ',
+            'status_todo'.tr,
             'NEW',
             isSelected: activeStatus == 'NEW',
             icon: Icons.pending_actions,
           ),
           _buildStatusChip(
-            'กำลังดำเนินการ',
+            'status_in_progress'.tr,
             'IN_PROGRESS',
             isSelected: activeStatus == 'IN_PROGRESS',
             icon: Icons.play_arrow,
           ),
           _buildStatusChip(
-            'เสร็จสิ้น',
+            'status_completed'.tr,
             'DONE',
             isSelected: activeStatus == 'DONE',
             icon: Icons.check_circle,
           ),
           _buildUnreadChip(
-            'ยังไม่ได้อ่าน',
+            'unread'.tr,
             isSelected: unreadSelected,
             icon: Icons.mark_chat_unread,
           ),

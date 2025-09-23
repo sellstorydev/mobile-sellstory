@@ -421,12 +421,12 @@ class _ChatInputState extends State<ChatInput> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ข้อผิดพลาด'),
+        title: Text('error'.tr),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ตกลง'),
+            child: Text('ok'.tr),
           ),
         ],
       ),
@@ -478,7 +478,7 @@ class _ChatInputState extends State<ChatInput> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('ตอบกลับ', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                                Text('reply'.tr, style: const TextStyle(fontSize: 12, color: Colors.black54)),
                                 Text(
                                   widget.replyPreview!,
                                   maxLines: 2,

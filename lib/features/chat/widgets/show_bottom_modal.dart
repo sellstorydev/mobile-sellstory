@@ -1221,7 +1221,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
         final m = u.data() ?? {};
         return UserItem(
           uid: uid,
-          displayName: (m['displayName'] ?? m['name'] ?? 'Unknown').toString(),
+            displayName: (m['displayName'] ?? m['name'] ?? 'no_name'.tr)
+                .toString(),
           email: (m['email'] ?? '').toString(),
           photoURL: (m['photoURL'] ?? m['avatar']) as String?,
           role: null,

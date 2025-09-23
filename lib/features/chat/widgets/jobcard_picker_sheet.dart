@@ -145,7 +145,7 @@ class _JobCardPickerSheetState extends State<JobCardPickerSheet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ผูก Job Card'),
+        title: Text('link_job_card'.tr),
         actions: widget.multiSelect
             ? [
                 TextButton(
@@ -162,10 +162,10 @@ class _JobCardPickerSheetState extends State<JobCardPickerSheet> {
               padding: const EdgeInsets.all(12.0),
               child: TextField(
                 controller: _searchCtrl,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'ค้นหา Job Card...',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'search_job_card'.tr,
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ),
@@ -174,11 +174,13 @@ class _JobCardPickerSheetState extends State<JobCardPickerSheet> {
             else if (_error.isNotEmpty)
               Expanded(
                 child: Center(
-                  child: Text('เกิดข้อผิดพลาดในการโหลด: $_error'),
+                  child: Text(
+                    'load_failed_details'.trParams({'error': _error}),
+                  ),
                 ),
               )
             else if (_visible.isEmpty)
-              const Expanded(child: Center(child: Text('ไม่พบ Job Card')))
+              Expanded(child: Center(child: Text('no_jobcards_found'.tr)))
             else
               Expanded(
                 child: ListView.separated(

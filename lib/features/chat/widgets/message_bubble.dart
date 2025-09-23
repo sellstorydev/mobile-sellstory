@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import 'viewers/image_viewer_page.dart';
@@ -36,7 +37,7 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final messageType = messageData['type'] ?? 'text';
     final sender = messageData['sender'] as Map<String, dynamic>? ?? {};
-    final senderName = sender['name'] ?? 'Unknown';
+    final senderName = sender['name'] ?? 'no_name'.tr;
     final senderAvatar = sender['avatar'];
     final timestamp = _parseTimestamp(messageData['timestamp']);
 
@@ -236,7 +237,8 @@ class MessageBubble extends StatelessWidget {
               if (onTap != null) onTap!();
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => ImageViewerPage(url: imageUrl, title: 'รูปภาพ'),
+                  builder: (_) =>
+                      ImageViewerPage(url: imageUrl, title: 'image_message'.tr),
                 ),
               );
             },
@@ -275,7 +277,8 @@ class MessageBubble extends StatelessWidget {
             if (onTap != null) onTap!();
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => VideoViewerPage(url: videoUrl, title: 'วิดีโอ'),
+                builder: (_) =>
+                    VideoViewerPage(url: videoUrl, title: 'video_message'.tr),
               ),
             );
           },
@@ -302,7 +305,7 @@ class MessageBubble extends StatelessWidget {
 
   Widget _buildFileMessage(BuildContext context) {
     final fileUrl = messageData['fileUrl'] ?? messageData['url'] ?? '';
-    final fileName = (messageData['fileName'] ?? 'ไฟล์').toString();
+    final fileName = (messageData['fileName'] ?? 'file_message'.tr).toString();
     final lower = fileName.toLowerCase();
     return GestureDetector(
       onTap: () {
@@ -353,7 +356,9 @@ class MessageBubble extends StatelessWidget {
 
   Widget _buildAudioMessage(BuildContext context) {
     final audioUrl = messageData['audioUrl'] ?? messageData['fileUrl'] ?? messageData['url'] ?? '';
-    final fileName = (messageData['fileName'] ?? (messageData['text'] ?? 'ข้อความเสียง')).toString();
+    final fileName =
+        (messageData['fileName'] ?? (messageData['text'] ?? 'audio_message'.tr))
+            .toString();
     return GestureDetector
       (
       onTap: () {
@@ -362,7 +367,10 @@ class MessageBubble extends StatelessWidget {
         if (onTap != null) onTap!();
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => AudioViewerPage(url: audioUrl, title: fileName.isNotEmpty ? fileName : 'เสียง'),
+            builder: (_) => AudioViewerPage(
+              url: audioUrl,
+              title: fileName.isNotEmpty ? fileName : 'audio_message'.tr,
+            ),
           ),
         );
       },
@@ -379,7 +387,7 @@ class MessageBubble extends StatelessWidget {
             const SizedBox(width: 8),
             Flexible(
               child: Text(
-                fileName.isNotEmpty ? fileName : 'ข้อความเสียง',
+                fileName.isNotEmpty ? fileName : 'audio_message'.tr,
                 style: TextStyle(color: isFromCurrentUser ? Colors.white : Colors.black87, fontWeight: FontWeight.w600),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -428,17 +436,17 @@ class MessageBubble extends StatelessWidget {
   String _fallbackLabel(String type) {
     switch (type) {
       case 'image':
-        return '[รูปภาพ]';
+        return 'image_message'.tr;
       case 'video':
-        return '[วิดีโอ]';
+        return 'video_message'.tr;
       case 'audio':
-        return '[เสียง]';
+        return 'audio_message'.tr;
       case 'file':
-        return '[ไฟล์]';
+        return 'file_message'.tr;
       case 'sticker':
-        return '[สติ๊กเกอร์]';
+        return 'sticker_message'.tr;
       default:
-        return '[ข้อความ]';
+        return 'empty_message'.tr;
     }
   }
 
@@ -482,7 +490,7 @@ class MessageBubble extends StatelessWidget {
               //
               // const SizedBox(width: 6),
               Text(
-                "ตอบกลับ "+ (name.isNotEmpty ? name : 'UNKNOWN'),
+                '${'reply'.tr} ' + (name.isNotEmpty ? name : 'no_name'.tr),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(

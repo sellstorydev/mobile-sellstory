@@ -132,7 +132,7 @@ class ConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     // print(conversation);
     // Removed unused isGroup variable
-    final name = (conversation['name'] ?? 'Unknown').toString();
+    final name = (conversation['name'] ?? 'no_name'.tr).toString();
     final chat_provider_name = (conversation['chat_provider_name'] ?? '').toString();
     final lastMsg = (conversation['last_message'] ?? conversation['lastMessage'] ?? '').toString();
     // Prefer the normalized field, fallback to raw sources

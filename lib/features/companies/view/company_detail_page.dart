@@ -148,7 +148,7 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
       appBar: AppBar(
         elevation: 0,
         title: Text(
-          company.name.isNotEmpty ? company.name : 'รายละเอียดบริษัท',
+          company.name.isNotEmpty ? company.name : 'company_detail_title'.tr,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
@@ -372,6 +372,7 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
   }
 
   Widget _buildSummaryBar() {
+    final company = _currentCompany ?? widget.company;
     Widget cell(String title, String value, {Color? valueColor}) {
       return Expanded(
         child: Container(
@@ -406,8 +407,6 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
       );
     }
 
-    final company = _currentCompany ?? widget.company;
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -418,19 +417,22 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
       ),
       child: Row(
         children: [
-          cell('ลูกค้าที่เชื่อมโยง', '${company.associatedCustomerIds.length} คน'),
+          cell(
+            'associated_customers'.tr,
+            '${company.associatedCustomerIds.length} คน',
+          ),
           Container(
             width: 0.5,
             height: 60,
             color: const Color(0xFFE5E7EB),
           ),
-          cell('งานทั้งหมด', '0 งาน'),
+          cell('total_jobs'.tr, '0 งาน'),
           Container(
             width: 0.5,
             height: 60,
             color: const Color(0xFFE5E7EB),
           ),
-          cell('ยอดขายรวม', '฿0.00', valueColor: const Color(0xFF10B981)),
+          cell('total_sales'.tr, '฿0.00', valueColor: const Color(0xFF10B981)),
         ],
       ),
     );
@@ -456,8 +458,6 @@ class _CompanyDetailPageState extends State<CompanyDetailPage> {
 
 
   Widget _buildCompanyDetailsTile() {
-    final company = _currentCompany ?? widget.company;
-
     return _tileWrapper(
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),

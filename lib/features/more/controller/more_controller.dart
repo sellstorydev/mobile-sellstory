@@ -74,8 +74,8 @@ class MoreController extends GetxController {
     // Show confirmation dialog
     final bool? confirmed = await Get.dialog<bool>(
       AlertDialog(
-        title: const Text('ออกจากระบบ'),
-        content: const Text('คุณต้องการออกจากระบบหรือไม่?'),
+        title: Text('logout'.tr),
+        content: Text('confirm_logout_question'.tr),
         actions: [
           TextButton(
             onPressed: () => Get.back(result: false),
@@ -86,7 +86,7 @@ class MoreController extends GetxController {
             style: TextButton.styleFrom(
               foregroundColor: Colors.red,
             ),
-            child: const Text('ออกจากระบบ'),
+            child: Text('logout'.tr),
           ),
         ],
       ),
@@ -110,8 +110,8 @@ class MoreController extends GetxController {
         Get.offAllNamed('/login');
       } catch (e) {
         Get.snackbar(
-          'Error',
-          'Logout failed: ${e.toString()}',
+          'error'.tr,
+          'logout_failed_details'.trParams({'error': e.toString()}),
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -131,7 +131,7 @@ class MoreController extends GetxController {
     
     // Fallback to Firebase Auth data
     final currentUser = user.value;
-    if (currentUser == null) return 'Guest';
+    if (currentUser == null) return 'guest'.tr;
     
     if (currentUser.displayName != null && currentUser.displayName!.isNotEmpty) {
       return currentUser.displayName!;
@@ -141,12 +141,12 @@ class MoreController extends GetxController {
       return currentUser.email!.split('@')[0];
     }
     
-    return 'User';
+    return 'user'.tr;
   }
 
   // Get user email
   String get email {
-    return user.value?.email ?? 'No email';
+    return user.value?.email ?? 'no_email'.tr;
   }
 
   // Get user photo URL (prioritize Firestore data)
@@ -178,12 +178,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Hashtag Settings',
+          'title': 'hashtag_settings'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load hashtag settings',
+          'error'.tr,
+          'failed_load_hashtag_settings'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -191,8 +191,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open hashtag settings: ${e.toString()}',
+        'error'.tr,
+        'failed_open_hashtag_settings'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -218,13 +218,13 @@ class MoreController extends GetxController {
         print('✅ Company settings URL obtained: $webviewUrl');
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Company Settings',
+          'title': 'company_settings'.tr,
         });
       } else {
         print('❌ Failed to get company settings URL');
         Get.snackbar(
-          'Error',
-          'ไม่สามารถโหลดตั้งค่าบริษัทได้ กรุณาลองใหม่อีกครั้ง',
+          'error'.tr,
+          'failed_load_company_settings'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -233,20 +233,20 @@ class MoreController extends GetxController {
       }
     } on DioException catch (e) {
       print('❌ DioException in openCompanySettings: ${e.message}');
-      String errorMessage = 'ไม่สามารถเปิดตั้งค่าบริษัทได้';
-      
+      String errorMessage = 'cannot_open_company_settings'.tr;
+
       if (e.response?.statusCode == 500) {
-        errorMessage = 'เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่อีกครั้ง';
+        errorMessage = 'server_problem_try_again'.tr;
       } else if (e.response?.statusCode == 404) {
-        errorMessage = 'ไม่พบหน้าเว็บที่ต้องการ';
+        errorMessage = 'page_not_found'.tr;
       } else if (e.type == DioExceptionType.connectionTimeout) {
-        errorMessage = 'การเชื่อมต่อช้า กรุณาตรวจสอบอินเทอร์เน็ต';
+        errorMessage = 'connection_slow_check_internet'.tr;
       } else if (e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = 'การตอบสนองช้า กรุณาลองใหม่อีกครั้ง';
+        errorMessage = 'response_slow_try_again'.tr;
       }
-      
+
       Get.snackbar(
-        'Error',
+        'error'.tr,
         errorMessage,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
@@ -256,8 +256,8 @@ class MoreController extends GetxController {
     } catch (e) {
       print('❌ Unexpected error in openCompanySettings: $e');
       Get.snackbar(
-        'Error',
-        'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง',
+        'error'.tr,
+        'server_problem_try_again'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -281,12 +281,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Board Settings',
+          'title': 'board_settings'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load board settings',
+          'error'.tr,
+          'failed_load_board_settings'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -294,8 +294,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open board settings: ${e.toString()}',
+        'error'.tr,
+        'failed_open_board_settings'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -318,12 +318,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Notification Settings',
+          'title': 'notification_settings'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load notification settings',
+          'error'.tr,
+          'failed_load_notification_settings'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -331,8 +331,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open notification settings: ${e.toString()}',
+        'error'.tr,
+        'failed_open_notification_settings'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -355,12 +355,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Welcome Message Settings',
+          'title': 'welcome_message'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load welcome message settings',
+          'error'.tr,
+          'failed_load_welcome_message_settings'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -368,8 +368,10 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open welcome message settings: ${e.toString()}',
+        'error'.tr,
+        'failed_open_welcome_message_settings'.trParams({
+          'error': e.toString(),
+        }),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -392,12 +394,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Chatbot Settings',
+          'title': 'chatbot_settings'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load chatbot settings',
+          'error'.tr,
+          'failed_load_chatbot_settings'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -405,8 +407,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open chatbot settings: ${e.toString()}',
+        'error'.tr,
+        'failed_open_chatbot_settings'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -429,12 +431,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'ID Generation Rules',
+          'title': 'id_generation_rules'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load ID generation rules',
+          'error'.tr,
+          'failed_load_id_generation_rules'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -442,8 +444,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open ID generation rules: ${e.toString()}',
+        'error'.tr,
+        'failed_open_id_generation_rules'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -466,12 +468,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Roles & Permissions',
+          'title': 'roles_permissions'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load roles & permissions',
+          'error'.tr,
+          'failed_load_roles_permissions'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -479,8 +481,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open roles & permissions: ${e.toString()}',
+        'error'.tr,
+        'failed_open_roles_permissions'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -503,12 +505,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Approval Conditions',
+          'title': 'approval_conditions'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load approval conditions',
+          'error'.tr,
+          'failed_load_approval_conditions'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -516,8 +518,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open approval conditions: ${e.toString()}',
+        'error'.tr,
+        'failed_open_approval_conditions'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -540,12 +542,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Document Settings',
+          'title': 'document_settings'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load document settings',
+          'error'.tr,
+          'failed_load_document_settings'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -553,8 +555,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open document settings: ${e.toString()}',
+        'error'.tr,
+        'failed_open_document_settings'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,
@@ -577,12 +579,12 @@ class MoreController extends GetxController {
       if (webviewUrl != null) {
         Get.toNamed('/webview', parameters: {
           'url': webviewUrl,
-          'title': 'Catalog Settings',
+          'title': 'catalog_settings'.tr,
         });
       } else {
         Get.snackbar(
-          'Error',
-          'Failed to load catalog settings',
+          'error'.tr,
+          'failed_load_catalog_settings'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
           colorText: Get.theme.colorScheme.error,
@@ -590,8 +592,8 @@ class MoreController extends GetxController {
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to open catalog settings: ${e.toString()}',
+        'error'.tr,
+        'failed_open_catalog_settings'.trParams({'error': e.toString()}),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.colorScheme.error.withOpacity(0.1),
         colorText: Get.theme.colorScheme.error,

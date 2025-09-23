@@ -614,6 +614,7 @@ class AppTranslations extends Translations {
           'unread': 'Unread',
           // Add filter chip labels
           'new': 'New',
+      'in_progress': 'In Progress',
           'pinned': 'Pinned',
           'group_chat': 'Group Chat',
           // Canned responses UI
@@ -663,11 +664,27 @@ class AppTranslations extends Translations {
           'no_customers_in_workspace': 'No customers found in workspace',
           // Hashtag modal
           'add_new_hashtag': 'Add New Hashtag',
-          'add_jobcard': 'Add Job Card',
+          
           'select_color': 'Select Color',
           'select': 'Select',
           // PDF viewer
           'failed_load_pdf': 'Failed to load PDF: {error}',
+      'cannot_open_file': 'Cannot open file',
+      'save_failed_details': 'Save failed: {error}',
+      'upload_failed_details': 'Upload failed: {error}',
+      'delete_failed_details': 'Delete failed: {error}',
+      'viewer_image_title': 'Image',
+      'viewer_video_title': 'Video',
+      'viewer_audio_title': 'Audio',
+      // Job Card picker
+      'link_job_card': 'Link Job Card',
+      'search_job_card': 'Search Job Card...',
+      'load_failed_details': 'Load failed: {error}',
+      'no_jobcards_found': 'No Job Cards found',
+      // Hashtag picker
+      'search_hashtag_hint': 'Search hashtag...',
+      'no_hashtag_list': 'No hashtags available',
+      'load_list_failed': 'Failed to load list',
           'select_more_color': 'Select More Color',
           'hashtag_name_hint': 'e.g. VIP, Hot, Follow-up',
           'chat_hashtag_updated_success': 'Hashtag updated',
@@ -695,7 +712,7 @@ class AppTranslations extends Translations {
           'change_chat_status': 'Change chat status',
           'auto_reply': 'Auto Reply',
           'toggle_auto_reply': 'Toggle auto-reply: enable/disable',
-          'link_job_card': 'Job Card',
+          
 
           // Job Card action messages (ensure present)
           'jobcard_linked_success': 'Job Card linked',
@@ -725,7 +742,7 @@ class AppTranslations extends Translations {
           'no_permission_view_jobcard_detail': 'You do not have permission to view Job Card details',
           'loading_jobcard_title': 'Loading card title...',
           // Chat More Sheet (missing keys)
-          'notes': 'Notes',
+          
           'chat_reset_name': 'Reset Chat Name',
           'no_assignees_hint': 'No sales assigned yet. Tap “Add Sales” to link a responsible person.',
           'moved_notes_customer_to_chat': 'Moved notes from customer to chat',
@@ -744,6 +761,7 @@ class AppTranslations extends Translations {
           'uploading_image_percent': 'Uploading image… {percent}%',
           'sending_image': 'Sending image…',
           'upload_image_failed_details': 'Failed to upload image: {error}',
+      'upload_images_failed_details': 'Failed to upload images: {error}',
 
           'uploading_file': 'Uploading file…',
           'uploading_file_percent': 'Uploading file… {percent}%',
@@ -796,9 +814,87 @@ class AppTranslations extends Translations {
           'verification_failed': 'Verification failed',
           'password_too_weak': 'Password is too weak',
           'password_reset_failed': 'Password reset failed',
+      // More Controller & Settings Webviews
+      'hashtag_settings': 'Hashtag Settings',
+      'failed_load_hashtag_settings': 'Failed to load hashtag settings',
+      'failed_open_hashtag_settings':
+          'Failed to open hashtag settings: {error}',
+      'failed_load_board_settings': 'Failed to load board settings',
+      'failed_open_board_settings': 'Failed to open board settings: {error}',
+      'failed_load_notification_settings':
+          'Failed to load notification settings',
+      'failed_open_notification_settings':
+          'Failed to open notification settings: {error}',
+      'failed_load_welcome_message_settings':
+          'Failed to load welcome message settings',
+      'failed_open_welcome_message_settings':
+          'Failed to open welcome message settings: {error}',
+      'failed_load_chatbot_settings': 'Failed to load chatbot settings',
+      'failed_open_chatbot_settings':
+          'Failed to open chatbot settings: {error}',
+      'failed_load_id_generation_rules': 'Failed to load ID generation rules',
+      'failed_open_id_generation_rules':
+          'Failed to open ID generation rules: {error}',
+      'failed_load_roles_permissions': 'Failed to load roles & permissions',
+      'failed_open_roles_permissions':
+          'Failed to open roles & permissions: {error}',
+      'failed_load_approval_conditions': 'Failed to load approval conditions',
+      'failed_open_approval_conditions':
+          'Failed to open approval conditions: {error}',
+      'failed_load_document_settings': 'Failed to load document settings',
+      'failed_open_document_settings':
+          'Failed to open document settings: {error}',
+      'failed_load_catalog_settings': 'Failed to load catalog settings',
+      'failed_open_catalog_settings':
+          'Failed to open catalog settings: {error}',
+      'failed_load_company_settings': 'Failed to load company settings',
+      'cannot_open_company_settings': 'Cannot open company settings',
+      'server_problem_try_again': 'Server problem, please try again',
+      'page_not_found': 'Page not found',
+      'connection_slow_check_internet':
+          'Connection is slow, please check your internet',
+      'response_slow_try_again': 'Response is slow, please try again',
+      'guest': 'Guest',
+      'user': 'User',
+      'no_email': 'No email',
+      'logout_failed_details': 'Logout failed: {error}',
+      'confirm_logout_question': 'Do you want to log out?',
+      // Chat screen controller messages
+      'missing_conversation_or_workspace_id':
+          'Missing conversation or workspace ID',
+      'load_messages_failed_details': 'Failed to load messages: {error}',
+      'send_message_failed_details': 'Failed to send message: {error}',
+      'image_sending_coming_soon': 'Image sending will be implemented soon',
+      'file_sending_coming_soon': 'File sending will be implemented soon',
+      'unknown_user': 'Unknown User',
+      'you': 'You',
+      'notifications': 'Notifications',
+
+      // Companies Module
+      'no_permission_view_companies':
+          'You do not have permission to view companies',
+      'search_placeholder_companies':
+          'Company name, Tax ID, Branch, Phone, Email',
+      'companies': 'companies',
+      'quota_full': 'Quota full',
+      'add_company': 'Add Company',
+      'no_companies_found_matching': 'No matching companies found',
+      'no_companies': 'No companies',
+      'start_adding_first_company': 'Start adding your first company',
+      'company_detail_title': 'Company Detail',
+      'basic_information': 'Basic Information',
+      'branch_hint_example': 'e.g. Head Office, Bangna Branch',
+      'primary': 'Primary',
+      'thailand': 'Thailand',
+      'associated_customers': 'Associated customers',
+      'total_jobs': 'Total jobs',
+      'total_sales': 'Total sales',
+      // Company tile specific
+      'code_with_value': 'Code: {code}',
+      'tax_id_with_value': 'Tax ID: {taxId}',
+      'no_contact_info': 'No contact information',
         },
-        'th': {
-          'link_job_card': 'Job Card',
+    'th': {
           'add_jobcard': 'เพิ่ม Job Card',
           'calendar': 'ปฏิทิน',
           'week': 'สัปดาห์',
@@ -1219,7 +1315,7 @@ class AppTranslations extends Translations {
           'document_settings': 'ตั้งค่าเอกสาร',
           'catalog_settings': 'ตั้งค่าแคตตาล็อก',
           'data_disclosure_consent': 'การยินยอมเปิดเผยข้อมูล',
-          'logout': 'Logout',
+      'logout': 'ออกจากระบบ',
           'delete_account': 'ลบบัญชี ยกเลิกการใช้งาน',
           
           // Coming Soon Messages
@@ -1325,11 +1421,13 @@ class AppTranslations extends Translations {
 
           // Chat Module (misc labels and notifications)
           'chat_search_hint': 'ค้นหาแชท...',
-          'notifications': 'การแจ้งเตือน',
+      'notification': 'การแจ้งเตือน',
+      'refresh': 'รีเฟรช',
           'chat_notification_toggle_success': 'ปิด/เปิดการแจ้งเตือนแล้ว',
           // Add filter chip labels (Thai)
           'unread': 'ยังไม่ได้อ่าน',
           'new': 'ใหม่',
+      'in_progress': 'กำลังดำเนินการ',
           'pinned': 'ปักหมุด',
           'group_chat': 'แชทกลุ่ม',
           // Canned responses UI (Thai)
@@ -1374,12 +1472,27 @@ class AppTranslations extends Translations {
           'search_customer_name_or_id': 'Search customer name / ID',
           'no_customers_in_workspace': 'No customers found in workspace',
           // Hashtag modal
-          'add_new_hashtag': 'Add New Hashtag',
-          'add_jobcard': 'Add Job Card',
+      'add_new_hashtag': 'Add New Hashtag',
           'select_color': 'Select Color',
           'select': 'Select',
           // PDF viewer
           'failed_load_pdf': 'Failed to load PDF: {error}',
+      'cannot_open_file': 'ไม่สามารถเปิดไฟล์ได้',
+      'save_failed_details': 'บันทึกไม่สำเร็จ: {error}',
+      'upload_failed_details': 'อัปโหลดไม่สำเร็จ: {error}',
+      'delete_failed_details': 'ลบไม่สำเร็จ: {error}',
+      'viewer_image_title': 'รูปภาพ',
+      'viewer_video_title': 'วิดีโอ',
+      'viewer_audio_title': 'เสียง',
+      // Job Card picker
+      'link_job_card': 'ผูก Job Card',
+      'search_job_card': 'ค้นหา Job Card...',
+      'load_failed_details': 'เกิดข้อผิดพลาดในการโหลด: {error}',
+      'no_jobcards_found': 'ไม่พบ Job Card',
+      // Hashtag picker
+      'search_hashtag_hint': 'ค้นหาแฮชแท็ก...',
+      'no_hashtag_list': 'ไม่มีรายการแฮชแท็ก',
+      'load_list_failed': 'โหลดรายการไม่สำเร็จ',
           'select_more_color': 'Select More Color',
           'hashtag_name_hint': 'e.g. VIP, Hot, Follow-up',
           'chat_hashtag_updated_success': 'Hashtag updated',
@@ -1406,8 +1519,7 @@ class AppTranslations extends Translations {
           'more_menu': 'More Options',
           'change_chat_status': 'Change chat status',
           'auto_reply': 'Auto Reply',
-          'toggle_auto_reply': 'Toggle auto-reply: enable/disable',
-          'link_job_card': 'Job Card',
+      'toggle_auto_reply': 'Toggle auto-reply: enable/disable',
 
           // Job Card action messages (ensure present)
           'jobcard_linked_success': 'Job Card linked',
@@ -1430,8 +1542,7 @@ class AppTranslations extends Translations {
           'no_permission_unlink_customer': 'You do not have permission to unlink customer',
           'no_permission_view_jobcard_detail': 'You do not have permission to view Job Card details',
           'loading_jobcard_title': 'Loading card title...',
-          // Chat More Sheet (missing keys)
-          'notes': 'Notes',
+      // Chat More Sheet (missing keys)
           'chat_reset_name': 'Reset Chat Name',
           'no_assignees_hint': 'No sales assigned yet. Tap “Add Sales” to link a responsible person.',
           'moved_notes_customer_to_chat': 'Moved notes from customer to chat',
@@ -1465,6 +1576,7 @@ class AppTranslations extends Translations {
           // Multi-image
           'uploading_images_start': 'กำลังอัปโหลดรูปภาพ {total} รูป…',
           'uploading_images_progress': 'กำลังอัปโหลดรูปภาพ… {current}/{total} ({percent}%)',
+      'upload_images_failed_details': 'อัปโหลดรูปภาพไม่สำเร็จ: {error}',
           
           // Login Page additional keys
           'email_field_label': 'อีเมล',
@@ -1475,6 +1587,20 @@ class AppTranslations extends Translations {
           'sign_in_with_apple': 'เข้าสู่ระบบด้วย Apple',
           'or_divider': 'หรือ',
           'for_more_information': 'สอบถามข้อมูลเพิ่มเติม',
+
+      // Chat Center titles and empty state
+      'chat_center': 'ศูนย์การสนทนา',
+      'no_chats_found': 'ไม่พบแชทที่ตรงกับเงื่อนไข',
+
+      // Chat Center actions and confirmations
+      'chat_confirm_assign_sale': 'ยืนยันการมอบหมายเซล',
+      'chat_confirm_assign_sale_message':
+          'คุณต้องการมอบหมายผู้ใช้นี้ให้กับแชท/ลูกค้าหรือไม่?',
+      'chat_assign_sale_success': 'มอบหมายเซลสำเร็จ',
+      'chat_assign_sale_failed': 'มอบหมายเซลไม่สำเร็จ',
+      'chat_workspace_or_chatroom_not_found': 'ไม่พบ Workspace หรือห้องแชท',
+      'chat_status_updated': 'อัปเดตสถานะแล้ว',
+      'chat_status_update_failed': 'อัปเดตสถานะไม่สำเร็จ',
           
           // Forgot Password Pages
           'forgot_password_title': 'ลืมรหัสผ่าน',
@@ -1509,8 +1635,83 @@ class AppTranslations extends Translations {
           'instagram_channel': 'Instagram',
           'line_channel': 'LINE',
           'select_hashtag': 'เลือกแฮชแท็ก',
-          'search_customer_name_or_id': 'ค้นหาชื่อลูกค้า / รหัส',
+          
           'hashtag': 'แฮชแท็ก',
+      // More Controller & Settings Webviews
+      'hashtag_settings': 'ตั้งค่าแฮชแท็ก',
+      'failed_load_hashtag_settings': 'ไม่สามารถโหลดตั้งค่าแฮชแท็กได้',
+      'failed_open_hashtag_settings': 'ไม่สามารถเปิดตั้งค่าแฮชแท็กได้: {error}',
+      'failed_load_board_settings': 'ไม่สามารถโหลดตั้งค่า Board ได้',
+      'failed_open_board_settings': 'ไม่สามารถเปิดตั้งค่า Board ได้: {error}',
+      'failed_load_notification_settings':
+          'ไม่สามารถโหลดตั้งค่าการแจ้งเตือนได้',
+      'failed_open_notification_settings':
+          'ไม่สามารถเปิดตั้งค่าการแจ้งเตือนได้: {error}',
+      'failed_load_welcome_message_settings':
+          'ไม่สามารถโหลดตั้งค่าข้อความต้อนรับได้',
+      'failed_open_welcome_message_settings':
+          'ไม่สามารถเปิดตั้งค่าข้อความต้อนรับได้: {error}',
+      'failed_load_chatbot_settings': 'ไม่สามารถโหลดตั้งค่า Chatbot ได้',
+      'failed_open_chatbot_settings':
+          'ไม่สามารถเปิดตั้งค่า Chatbot ได้: {error}',
+      'failed_load_id_generation_rules': 'ไม่สามารถโหลดกฎการสร้าง ID ได้',
+      'failed_open_id_generation_rules':
+          'ไม่สามารถเปิดกฎการสร้าง ID ได้: {error}',
+      'failed_load_roles_permissions': 'ไม่สามารถโหลดบทบาทและสิทธิ์ได้',
+      'failed_open_roles_permissions':
+          'ไม่สามารถเปิดบทบาทและสิทธิ์ได้: {error}',
+      'failed_load_approval_conditions': 'ไม่สามารถโหลดเงื่อนไขการอนุมัติได้',
+      'failed_open_approval_conditions':
+          'ไม่สามารถเปิดเงื่อนไขการอนุมัติได้: {error}',
+      'failed_load_document_settings': 'ไม่สามารถโหลดตั้งค่าเอกสารได้',
+      'failed_open_document_settings': 'ไม่สามารถเปิดตั้งค่าเอกสารได้: {error}',
+      'failed_load_catalog_settings': 'ไม่สามารถโหลดตั้งค่าแคตตาล็อกได้',
+      'failed_open_catalog_settings':
+          'ไม่สามารถเปิดตั้งค่าแคตตาล็อกได้: {error}',
+      'failed_load_company_settings': 'ไม่สามารถโหลดตั้งค่าบริษัทได้',
+      'cannot_open_company_settings': 'ไม่สามารถเปิดตั้งค่าบริษัทได้',
+      'server_problem_try_again': 'เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่อีกครั้ง',
+      'page_not_found': 'ไม่พบหน้าเว็บที่ต้องการ',
+      'connection_slow_check_internet':
+          'การเชื่อมต่อช้า กรุณาตรวจสอบอินเทอร์เน็ต',
+      'response_slow_try_again': 'การตอบสนองช้า กรุณาลองใหม่อีกครั้ง',
+      'guest': 'ผู้เยี่ยมชม',
+      'user': 'ผู้ใช้',
+      'no_email': 'ไม่มีอีเมล',
+      'logout_failed_details': 'ออกจากระบบไม่สำเร็จ: {error}',
+      'confirm_logout_question': 'คุณต้องการออกจากระบบหรือไม่?',
+      // Chat screen controller messages
+      'missing_conversation_or_workspace_id': 'ไม่มี ID ห้องแชทหรือเวิร์กสเปซ',
+      'load_messages_failed_details': 'โหลดข้อความไม่สำเร็จ: {error}',
+      'send_message_failed_details': 'ส่งข้อความไม่สำเร็จ: {error}',
+      'image_sending_coming_soon': 'ฟีเจอร์ส่งรูปภาพจะพร้อมใช้งานเร็วๆ นี้',
+      'file_sending_coming_soon': 'ฟีเจอร์ส่งไฟล์จะพร้อมใช้งานเร็วๆ นี้',
+      'unknown_user': 'ไม่ทราบผู้ใช้',
+      'you': 'คุณ',
+      'notifications': 'การแจ้งเตือน',
+
+      // Companies Module
+      'no_permission_view_companies': 'คุณไม่มีสิทธิ์ดูรายชื่อบริษัท',
+      'search_placeholder_companies':
+          'ชื่อบริษัท, เลขประจำตัวผู้เสียภาษี, สาขา, เบอร์โทร, อีเมล',
+      'companies': 'บริษัท',
+      'quota_full': 'โควต้าเต็ม',
+      'add_company': 'เพิ่มบริษัท',
+      'no_companies_found_matching': 'ไม่พบบริษัทที่ค้นหา',
+      'no_companies': 'ไม่มีบริษัท',
+      'start_adding_first_company': 'เริ่มต้นเพิ่มบริษัทแรกของคุณ',
+      'company_detail_title': 'รายละเอียดบริษัท',
+      'basic_information': 'ข้อมูลพื้นฐาน',
+      'branch_hint_example': 'เช่น สำนักงานใหญ่, สาขาบางนา',
+      'primary': 'หลัก',
+      'thailand': 'ไทย',
+      'associated_customers': 'ลูกค้าที่เชื่อมโยง',
+      'total_jobs': 'งานทั้งหมด',
+      'total_sales': 'ยอดขายรวม',
+      // Company tile specific
+      'code_with_value': 'รหัส: {code}',
+      'tax_id_with_value': 'เลขประจำตัวผู้เสียภาษี: {taxId}',
+      'no_contact_info': 'ไม่มีข้อมูลติดต่อ',
         },
       };
 }

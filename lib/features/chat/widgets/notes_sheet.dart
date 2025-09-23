@@ -167,7 +167,11 @@ class _NotesSheetState extends State<NotesSheet> {
         });
         await _persistNotes();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('บันทึกไม่สำเร็จ: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('save_failed_details'.trParams({'error': '$e'})),
+          ),
+        );
       } finally {
         if (mounted) setState(() => _busy = false);
       }
@@ -274,7 +278,11 @@ class _NotesSheetState extends State<NotesSheet> {
       });
       await _persistNotes();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('อัปโหลดไม่สำเร็จ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('upload_failed_details'.trParams({'error': '$e'})),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -329,7 +337,11 @@ class _NotesSheetState extends State<NotesSheet> {
       setState(() => _notes.removeWhere((n) => n.id == note.id));
       await _persistNotes();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ลบไม่สำเร็จ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('delete_failed_details'.trParams({'error': '$e'})),
+        ),
+      );
     }
   }
 

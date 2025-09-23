@@ -5,6 +5,88 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Company Tile i18n (2025-09-23)
+File: `lib/features/companies/widgets/company_tile.dart`
+
+- Replaced hardcoded Thai strings with i18n keys using GetX `.tr`/`.trParams`:
+   - 'รหัส: {customId}' → `code_with_value`
+   - 'เลขประจำตัวผู้เสียภาษี: {taxId}' → `tax_id_with_value`
+   - 'ไม่มีข้อมูลติดต่อ' → `no_contact_info`
+- Added new keys to `app_translations.dart` (EN/TH):
+   - `code_with_value`: 'Code: {code}' / 'รหัส: {code}'
+   - `tax_id_with_value`: 'Tax ID: {taxId}' / 'เลขประจำตัวผู้เสียภาษี: {taxId}'
+   - `no_contact_info`: 'No contact information' / 'ไม่มีข้อมูลติดต่อ'
+
+Status:
+- ✅ Widget now fully localized
+- ✅ Keys exist in both en_US and th
+
+### Chat Screen Controller + Companies pages (2025-09-23)
+Files:
+- `lib/features/chat/controller/chat_screen_controller.dart`
+- `lib/features/companies/view/company_center_page.dart`
+- `lib/features/companies/view/company_detail_page.dart`
+- `lib/features/companies/view/add_edit_company_page.dart`
+
+Changes:
+- Replaced hardcoded strings with i18n keys across the controller and company views.
+- Added new keys (EN/TH) in `app_translations.dart`:
+   - Chat controller: `missing_conversation_or_workspace_id`, `load_messages_failed_details`, `send_message_failed_details`, `image_sending_coming_soon`, `file_sending_coming_soon`, `unknown_user`, `you`, `notifications`.
+   - Companies module: `no_permission_view_companies`, `search_placeholder_companies`, `companies`, `quota_full`, `add_company`, `no_companies_found_matching`, `no_companies`, `start_adding_first_company`, `company_detail_title`, `basic_information`, `branch_hint_example`, `primary`, `thailand`, `associated_customers`, `total_jobs`, `total_sales`.
+- Localized default labels and hints in Add/Edit Company.
+- Localized Company Center permission fallback, search placeholder, count label, clear tooltip, and empty states.
+- Localized Company Detail default title and summary bar.
+
+Notes:
+- Removed a duplicate Thai `notifications` key to resolve a map duplicate error.
+
+### Chat Filter Chips (2025-09-23)
+File: `lib/features/chat/widgets/chat_filter_chips.dart`
+
+- Replaced hardcoded Thai labels with i18n keys using GetX `.tr`:
+   - 'รอดำเนินการ' → `status_todo`
+   - 'กำลังดำเนินการ' → `status_in_progress`
+   - 'เสร็จสิ้น' → `status_completed`
+   - 'ยังไม่ได้อ่าน' → `unread`
+- Added `get` import for `.tr` usage.
+- All referenced keys already exist in `app_translations.dart` (EN/TH).
+
+### MoreController Translation (2025-09-23)
+File: `lib/features/more/controller/more_controller.dart`
+
+- Replaced hardcoded texts with i18n keys using GetX `.tr`/`.trParams()`:
+   - Logout dialog title/button/content now use: `logout`, `confirm_logout_question`, `cancel`
+   - Snackbar errors standardized: `error`, `logout_failed_details`
+   - Guest/user/email fallbacks: `guest`, `user`, `no_email`
+   - Webview titles use existing menu keys: `company_settings`, `board_settings`, `notification_settings`, `welcome_message`, `chatbot_settings`, `id_generation_rules`, `roles_permissions`, `approval_conditions`, `document_settings`, `catalog_settings`, plus new: `hashtag_settings`
+
+- Added missing keys to `app_translations.dart` (EN/TH):
+   - Webview titles/messages: `hashtag_settings`, `failed_load_*`, `failed_open_*` for all settings pages
+   - Company settings Dio error variants: `server_problem_try_again`, `page_not_found`, `connection_slow_check_internet`, `response_slow_try_again`, `cannot_open_company_settings`
+   - Logout flow and fallbacks: `confirm_logout_question`, `logout_failed_details`, `guest`, `user`, `no_email`
+   - Corrected Thai value for `logout` → `ออกจากระบบ`
+
+- Cleanup:
+   - Resolved duplicate key warnings in Thai map by removing repeated keys present earlier in the file.
+
+Status:
+- ✅ Controller now fully localized
+- ✅ Keys exist in both en_US and th
+- ✅ Consistent error handling and titles across webview openings
+
+### Chat Center Page Keys (2025-09-23)
+File: `lib/features/chat/view/chat_center_page.dart`
+
+- Verified keys used by the page and ensured Thai translations exist:
+   - Toolbar and actions: `chat_center`, `refresh`, `notification`
+   - Empty state: `no_chats_found`
+   - Permissions: `chat_center_no_permission` (already present)
+   - Status updates and assignment: `chat_status_updated`, `chat_status_update_failed`,
+      `chat_confirm_assign_sale`, `chat_confirm_assign_sale_message`, `chat_assign_sale_success`,
+      `chat_assign_sale_failed`, `chat_workspace_or_chatroom_not_found`
+
+- Added missing Thai strings and aligned wording for consistency.
+
 ### Chat Widgets Translation (2025-01-15)
 **Files**: Multiple chat widget files including `chat_filter_sheet.dart` and others
 
@@ -180,25 +262,35 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 - 'confirm_password_change' (already existed in translations)
 - 'reset_password_title' (already existed in translations)
 
-## Features
-1. **Parameterized Translations**: Used .trParams() for dynamic content like phone numbers and countdown timers
-2. **Consistent Pattern**: All forgot password flow now follows same i18n pattern as login page
-3. **Complete Flow Coverage**: All three pages in forgot password flow are now translated
+### Chat Message & Notes Localization (2025-09-23)
+Files:
+- `lib/features/chat/widgets/message_bubble.dart`
+- `lib/features/chat/widgets/note_viewers.dart`
+- `lib/features/chat/widgets/notes_sheet.dart`
 
-## Benefits
-1. **Language Switching**: Users can now switch between Thai and English for login and forgot password flows
-2. **Maintainability**: Text changes only need to be updated in translation files
-3. **Consistency**: All text follows the established i18n pattern
-4. **Localization Ready**: Easy to add more languages in the future
-5. **Dynamic Content**: Proper parameter handling for phone numbers and timers
-6. **Improved Error Handling**: User-friendly error messages instead of technical exceptions
-7. **Better UX**: Enhanced UI layout and visual feedback
+Changes:
+- Replaced hardcoded Thai/English labels in message bubble with i18n keys (image_message, video_message, audio_message, file_message, sticker_message, empty_message, no_name).
+- Localized viewer titles and error messages in note viewers; ensured `failed_load_pdf` and `cannot_open_file` keys exist.
+- Converted SnackBar Thai strings in notes sheet to parameterized translation keys: `save_failed_details`, `upload_failed_details`, `delete_failed_details`.
+- Added missing translation keys in `app_translations.dart` for EN/TH, including `cannot_open_file`, `viewer_*_title`, and the error detail keys.
 
-## Notes
-- Fixed duplicate translation key issues during implementation
-- All hardcoded Thai text in login and forgot password pages has been replaced with proper translation keys
-- Login and forgot password flows now fully support GetX internationalization system
-- Used .trParams() for dynamic content that requires variable insertion
-- Added comprehensive error handling with context-specific error messages
-- Improved UI layout for better user experience and accessibility
-- Error messages are now localized and user-friendly
+Status:
+- All attached files now use `.tr` consistently and required keys are present in both locales.
+
+### Chat widgets (round 2) – i18n updates (2025-09-23)
+Files: chat_status_button.dart, chat_unread_button.dart, conversation_tile.dart, customer_picker_sheet.dart, hashtag_picker_sheet.dart, jobcard_picker_sheet.dart
+- Replaced remaining hardcoded labels and fallbacks with i18n keys:
+  - Unknown names → no_name
+  - Job Card picker titles, hints, errors → link_job_card, search_job_card, load_failed_details, no_jobcards_found
+  - Hashtag picker search and empty/error states → search_hashtag_hint, no_hashtag_list, load_list_failed
+  - reply prefix in message_bubble uses reply
+- Added missing keys to app_translations.dart (EN/TH) for the above.
+- Verified tooltips and titles use .tr.
+
+### Chat input & Canned Responses – i18n updates (2025-09-23)
+Files: `chat_input.dart`, `canned_responses_sheet.dart`
+- Localized Chat Input error dialog title/button to use `error` and `ok` keys; reply label uses `reply`.
+- Added new keys to `app_translations.dart`:
+   - Status/filter: `in_progress`
+   - Multi-image errors: `upload_images_failed_details` (EN/TH)
+- Verified existing keys cover canned responses UI: group CRUD, search, preview, send-selected, and error messages.
