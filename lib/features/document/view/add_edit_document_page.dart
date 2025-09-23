@@ -1500,11 +1500,11 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
           _buildDropdownField(
             label: 'payment_method'.tr,
             hint: 'hint_payment_method'.tr,
-            value: controller.selectedPaymentMethod,
-            items: controller.availablePaymentMethods.map((method) => 
+            value: controller.selectedPaymentDetailId,
+            items: controller.paymentMethodOptions.map((option) => 
               DropdownMenuItem<String>(
-                value: method,
-                child: Text(method),
+                value: option['id'],
+                child: Text(option['displayName']!),
               )
             ).toList(),
             onChanged: controller.onPaymentMethodChanged,

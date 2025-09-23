@@ -611,8 +611,8 @@ Successfully completed comprehensive translation for the Document module add/edi
 - `seller_responsible_person` / `ผู้ขาย/ผู้รับผิดชอบ *`
 - `job_name` / `ชื่องาน`
 - `enter_job_name` / `กรอกชื่องาน`
-- `reference_code` / `รหัสอ้างอิง`
-- `enter_reference_code` / `กรอกรหัสอ้างอิง`
+- `reference_code` / `เลขที่อ้างอิง`
+- `enter_reference_code` / `กรอกเลขที่อ้างอิง`
 - `select_issue_date` / `เลือกวันที่ออกเอกสาร`
 - `note_hint` / `กรอกหมายเหตุเพิ่มเติม`
 - `discount_amount` / `จำนวนส่วนลด`
