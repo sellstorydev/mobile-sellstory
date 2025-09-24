@@ -9,7 +9,6 @@ import '../../../domain/entities/product.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/services/algolia_search_service.dart';
-import '../../../core/services/algolia_product_sync_service.dart';
 
 
 
@@ -34,10 +33,9 @@ class ProductsController extends GetxController {
   String _currentWorkspaceId = '';
   
   // Algolia search state
-  final RxBool useAlgoliaSearch = false.obs;
   final RxBool isSearching = false.obs;
   
-  // Search controller and debounce timer
+  // Search controller
   final searchController = TextEditingController();
   bool _isSearchControllerInitialized = false;
   bool _isDisposed = false;
@@ -85,7 +83,6 @@ class ProductsController extends GetxController {
   void onClose() {
     _isDisposed = true;
     _isSearchControllerInitialized = false;
-    _searchDebounceTimer?.cancel();
     
     // Safe disposal of search controller
     try {
@@ -189,7 +186,7 @@ class ProductsController extends GetxController {
       _repository.getProductsStream(_currentWorkspaceId).listen(
         (productsList) {
           products.value = productsList;
-          _filterProducts();
+          _resetFilteredProducts();
           _updateProductsCount();
         },
         onError: (error) {
@@ -218,12 +215,10 @@ class ProductsController extends GetxController {
     
     searchQuery.value = query;
     
-    // If query is empty, reset search immediately
+    // If query becomes empty, immediately reset to show all items
     if (query.trim().isEmpty) {
-      useAlgoliaSearch.value = false;
       isSearching.value = false;
-      _filterProducts();
-      return;
+      filteredProducts.value = products.toList();
     }
     
     // Debounce search for 500ms to avoid too many API calls while typing
@@ -234,96 +229,86 @@ class ProductsController extends GetxController {
     });
   }
 
-  /// Trigger Algolia search manually (called by search button)
-  void triggerAlgoliaSearch(String query) {
-    if (query.trim().isEmpty) {
-      // If query is empty, reset to show all products with current filters
-      useAlgoliaSearch.value = false;
+  /// Trigger Algolia search (only when search button is clicked)
+  Future<void> triggerAlgoliaSearch([String? query]) async {
+    final searchText = query ?? searchController.text.trim();
+    
+    if (searchText.isEmpty) {
+      // If query is empty, reset to show all items
       isSearching.value = false;
-      _filterProducts();
+      filteredProducts.value = products.toList();
       return;
     }
     
     isSearching.value = true;
-    _searchWithAlgolia(query.trim());
+    _searchWithAlgolia(searchText);
   }
 
-  void searchProducts(String query) {
-    searchQuery.value = query;
-    
-    // Use Algolia search when query is not empty
-    if (query.trim().isNotEmpty) {
-      _searchWithAlgolia(query.trim());
-    } else {
-      useAlgoliaSearch.value = false;
-      _filterProducts();
-    }
-  }
 
-  void _filterProducts() {
-    if (searchQuery.value.isEmpty || useAlgoliaSearch.value) {
-      // Don't filter when using Algolia search
-      if (!useAlgoliaSearch.value) {
-        filteredProducts.value = products;
-      }
-    } else {
-      final query = searchQuery.value.toLowerCase();
-      filteredProducts.value = products.where((product) {
-        return product.name.toLowerCase().contains(query) ||
-               product.description.toLowerCase().contains(query) ||
-               product.sku.toLowerCase().contains(query) ||
-               product.searchableKeywords.any((keyword) => 
-                   keyword.toLowerCase().contains(query));
-      }).toList();
+
+  /// Reset filtered products to show all products (used when products list changes)
+  void _resetFilteredProducts() {
+    // Only reset if we're not currently searching with Algolia
+    if (!isSearching.value) {
+      filteredProducts.value = products.toList();
     }
   }
 
   /// Search products using Algolia
-  void _searchWithAlgolia(String query) async {
+  Future<void> _searchWithAlgolia(String query) async {
     try {
-      useAlgoliaSearch.value = true;
-      isSearching.value = true;
+      if (_currentWorkspaceId.isEmpty) {
+        isSearching.value = false;
+        return;
+      }
       
-      // Search with Algolia
       final searchStream = AlgoliaSearchService.searchProducts(
         query: query,
         workspaceId: _currentWorkspaceId,
-        hitsPerPage: 100,
+        hitsPerPage: 50,
       );
       
       // Listen to search results
       searchStream.listen(
         (response) {
           final hits = response.hits;
-          final results = hits.map((hit) {
-            try {
-              final data = Map<String, dynamic>.from(hit);
-              data['id'] = hit['objectID'] ?? '';
-              return Product.fromMap(data, data['id']);
-            } catch (e) {
-              _logger.error('Error parsing product from Algolia: $e');
-              return null;
-            }
-          }).where((product) => product != null).cast<Product>().toList();
+          final algoliaResults = <Product>[];
           
-          filteredProducts.value = results;
+          // Convert Algolia results to Product objects
+          for (final hit in hits) {
+            try {
+              // Find the product in our local list by ID
+              final productId = hit['objectID'] as String?;
+              if (productId != null) {
+                final product = products.firstWhere(
+                  (p) => p.id == productId,
+                  orElse: () => throw StateError('Product not found'),
+                );
+                algoliaResults.add(product);
+              }
+            } catch (e) {
+              print('⚠️ Failed to convert Algolia hit to Product: $e');
+            }
+          }
+          
+          // Update the filtered items with search results
+          filteredProducts.value = algoliaResults;
           isSearching.value = false;
-          _logger.info('Algolia search results: ${results.length} products found');
+          print('🔍 Algolia search results: ${algoliaResults.length} products found');
         },
         onError: (error) {
-          _logger.error('Algolia search error: $error');
-          // Fallback to local search
-          useAlgoliaSearch.value = false;
+          print('❌ Algolia search error: $error');
+          // Don't fallback to local search - just show empty results
           isSearching.value = false;
-          _filterProducts();
+          filteredProducts.value = [];
         },
       );
       
     } catch (e) {
-      _logger.error('Failed to search with Algolia: $e');
-      useAlgoliaSearch.value = false;
+      print('❌ Failed to search with Algolia: $e');
       isSearching.value = false;
-      _filterProducts();
+      // Show empty results on search error instead of fallback
+      filteredProducts.value = [];
     }
   }
 
@@ -340,17 +325,9 @@ class ProductsController extends GetxController {
     }
     
     searchQuery.value = '';
-    
-    // Clear search controller safely
-    try {
-      safeSearchController.clear();
-    } catch (e) {
-      print('⚠️ SearchController disposed during clearSearch: $e');
-    }
-    
-    useAlgoliaSearch.value = false;
+    searchController.clear();
     isSearching.value = false;
-    _filterProducts();
+    filteredProducts.value = products.toList(); // Direct assignment instead of calling removed filter method
   }
 
   Future<void> refreshProducts() async {

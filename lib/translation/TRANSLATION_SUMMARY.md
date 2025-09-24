@@ -603,16 +603,16 @@ Successfully completed comprehensive translation for the Document module add/edi
 - `enter_customer_address` / `กรอกที่อยู่ลูกค้า`
 - `postal_code` / `รหัสไปรษณีย์`
 - `enter_postal_code` / `กรอกรหัสไปรษณีย์`
-- `id_number` / `เลขประจำตัวประชาชน`
-- `enter_id_number` / `กรอกเลขประจำตัวประชาชน`
+- `id_number` / `เลขประจำตัวผู้เสียภาษี`
+- `enter_id_number` / `กรอกเลขประจำตัวผู้เสียภาษี`
 - `phone_number` / `เบอร์โทรศัพท์`
 - `enter_phone_number` / `กรอกเบอร์โทรศัพท์`
 - `enter_email` / `กรอกอีเมล`
 - `seller_responsible_person` / `ผู้ขาย/ผู้รับผิดชอบ *`
 - `job_name` / `ชื่องาน`
 - `enter_job_name` / `กรอกชื่องาน`
-- `reference_code` / `รหัสอ้างอิง`
-- `enter_reference_code` / `กรอกรหัสอ้างอิง`
+- `reference_code` / `เลขที่อ้างอิง`
+- `enter_reference_code` / `กรอกเลขที่อ้างอิง`
 - `select_issue_date` / `เลือกวันที่ออกเอกสาร`
 - `note_hint` / `กรอกหมายเหตุเพิ่มเติม`
 - `discount_amount` / `จำนวนส่วนลด`

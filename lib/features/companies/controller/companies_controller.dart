@@ -56,9 +56,8 @@ class CompaniesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Listen to search query changes
-    ever(searchQuery, (_) => _filterCompanies());
-    ever(companies, (_) => _filterCompanies());
+    // Only listen to companies changes to reset filtered list when companies are loaded
+    ever(companies, (_) => _resetFilteredCompanies());
 
     // Try to initialize workspace from BoardController if available
     if (Get.isRegistered<BoardController>()) {
@@ -68,6 +67,14 @@ class CompaniesController extends GetxController {
           currentWorkspaceId.value = board.currentWorkspaceId.value;
         }
       } catch (_) {}
+    }
+  }
+
+  /// Reset filtered companies to show all companies (used when companies list changes)
+  void _resetFilteredCompanies() {
+    // Only reset if we're not currently searching with Algolia
+    if (!isSearching.value) {
+      filteredCompanies.value = companies.toList();
     }
   }
 
@@ -151,73 +158,24 @@ class CompaniesController extends GetxController {
     }
   }
 
-  /// Search and filter companies
-  void setSearchQuery(String query) {
-    searchQuery.value = query.trim().toLowerCase();
-  }
-
   void onSearchChanged(String query) {
-    // Cancel previous timer if exists
-    _searchDebounceTimer?.cancel();
-    
+    // Only update the search query for display purposes in UI
+    // No search or filtering should happen while typing
     searchQuery.value = query;
     
-    // If query is empty, reset search immediately
+    // If query becomes empty, immediately reset to show all companies
     if (query.trim().isEmpty) {
       isSearching.value = false;
-      _filterCompanies();
-      return;
+      filteredCompanies.value = companies.toList();
     }
-    
-    // Debounce search for 500ms to avoid too many API calls while typing
-    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-      triggerAlgoliaSearch(query.trim());
-    });
+    // Note: For non-empty queries, do nothing - wait for user to click search button
   }
 
   void clearSearch() {
     searchQuery.value = '';
     searchController.clear();
     isSearching.value = false;
-    _filterCompanies();
-  }
-
-  void _filterCompanies() {
-    if (searchQuery.value.isEmpty) {
-      filteredCompanies.value = companies.toList();
-      return;
-    }
-
-    final query = searchQuery.value.toLowerCase();
-    filteredCompanies.value = companies.where((company) {
-      // Search in company name
-      if (company.name.toLowerCase().contains(query)) return true;
-
-      // Search in tax ID
-      if (company.taxId.toLowerCase().contains(query)) return true;
-
-      // Search in branch
-      if (company.branch.toLowerCase().contains(query)) return true;
-
-      // Search in emails
-      for (final email in company.emails) {
-        if ((email['value'] ?? '').toString().toLowerCase().contains(query)) {
-          return true;
-        }
-      }
-
-      // Search in phones
-      for (final phone in company.phones) {
-        if ((phone['value'] ?? '').toString().toLowerCase().contains(query)) {
-          return true;
-        }
-      }
-
-      // Search in website
-      if (company.website.toLowerCase().contains(query)) return true;
-
-      return false;
-    }).toList();
+    filteredCompanies.value = companies.toList();
   }
 
   bool _can(String permission) =>
@@ -464,17 +422,19 @@ class CompaniesController extends GetxController {
     }
   }
 
-  /// Trigger Algolia search for companies
-  Future<void> triggerAlgoliaSearch(String query) async {
-    if (query.trim().isEmpty) {
-      // If query is empty, reset to show all companies with current filters
+  /// Trigger Algolia search for companies (only when search button is clicked)
+  Future<void> triggerAlgoliaSearch([String? query]) async {
+    final searchText = query ?? searchController.text.trim();
+    
+    if (searchText.isEmpty) {
+      // If query is empty, reset to show all companies
       isSearching.value = false;
       filteredCompanies.value = companies.toList();
       return;
     }
     
     isSearching.value = true;
-    _searchWithAlgolia(query.trim());
+    _searchWithAlgolia(searchText);
   }
 
   Future<void> _searchWithAlgolia(String query) async {
@@ -520,17 +480,18 @@ class CompaniesController extends GetxController {
         },
         onError: (error) {
           print('❌ Algolia search error: $error');
-          // Fallback to local search
+          // Don't fallback to local search - just reset searching state
           isSearching.value = false;
-          setSearchQuery(query);
+          // Show empty results on search error
+          filteredCompanies.value = [];
         },
       );
       
     } catch (e) {
       print('❌ Failed to search with Algolia: $e');
       isSearching.value = false;
-      // Fallback to local search
-      setSearchQuery(query);
+      // Show empty results on search error instead of fallback to local search
+      filteredCompanies.value = [];
     }
   }
 

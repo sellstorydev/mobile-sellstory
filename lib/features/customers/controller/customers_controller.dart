@@ -54,9 +54,6 @@ class CustomersController extends GetxController {
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _workspaceQuotaSub;
   StreamSubscription<User?>? _authSub;
 
-  // Algolia search state
-  final RxBool useAlgoliaSearch = false.obs;
-
   CustomersController(this._customerRepository);
 
   bool _can(String permission) =>
@@ -65,8 +62,8 @@ class CustomersController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Listen to search query changes
-    ever(searchQuery, (_) => _filterCustomers());
+    // Only listen to customers changes to reset filtered list when customers are loaded
+    ever(customers, (_) => _resetFilteredCustomers());
 
     // Initialize with current user
     print('[CustomersController] onInit');
@@ -219,7 +216,7 @@ class CustomersController extends GetxController {
       customers.addAll(result.customers);
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
-      _filterCustomers();
+      _applyPermissionFiltering();
 
       // Fetch total count (not limited by pagination)
       try {
@@ -251,7 +248,7 @@ class CustomersController extends GetxController {
       );
       if (result.customers.isNotEmpty) {
         customers.addAll(result.customers);
-        _filterCustomers();
+        _applyPermissionFiltering();
       }
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
@@ -309,8 +306,16 @@ class CustomersController extends GetxController {
     }
   }
 
-  // Filter customers based on search query
-  void _filterCustomers() {
+  /// Reset filtered customers to show all customers (used when customers list changes)
+  void _resetFilteredCustomers() {
+    // Only reset if we're not currently searching with Algolia
+    if (!isSearching.value) {
+      _applyPermissionFiltering();
+    }
+  }
+
+  /// Apply permission-based filtering without search query
+  void _applyPermissionFiltering() {
     // Determine permission
     final isOwner = MobilePermissionsService.to.isOwner;
     final canViewAll = MobilePermissionsService.to.can('customer:view:all');
@@ -327,96 +332,37 @@ class CustomersController extends GetxController {
       baseList = [];
     }
 
-    if (searchQuery.value.isEmpty) {
-      filteredCustomers.value = baseList;
-    } else {
-      filteredCustomers.value = baseList.where((customer) {
-        final query = searchQuery.value.toLowerCase();
-        // Search in emails
-        final emailMatch = customer.emails.any((email) =>
-          email['value']?.toString().toLowerCase().contains(query) == true ||
-          email['label']?.toString().toLowerCase().contains(query) == true
-        );
-
-        // Search in phones
-        final phoneMatch = customer.phones.any((phone) =>
-          phone['value']?.toString().toLowerCase().contains(query) == true ||
-          phone['label']?.toString().toLowerCase().contains(query) == true
-        );
-
-        // Search in company names
-        final companyNameMatch = customer.companyNames.any((c) =>
-          (c['value']?.toString().toLowerCase().contains(query) ?? false) ||
-          (c['label']?.toString().toLowerCase().contains(query) ?? false)
-        );
-
-        // Search in linked companies index (name or taxId)
-        bool companyIndexMatch = false;
-        for (final c in customer.companyNames) {
-          final compId = (c['id']?.toString() ?? '').trim();
-          if (compId.isEmpty) continue;
-          final idx = _companyIndex[compId];
-          if (idx != null) {
-            final name = idx['name']?.toLowerCase() ?? '';
-            final tax = idx['taxId']?.toLowerCase() ?? '';
-            if (name.contains(query) || tax.contains(query)) {
-              companyIndexMatch = true;
-              break;
-            }
-          }
-        }
-
-        return customer.name.toLowerCase().contains(query) ||
-               customer.customId.toLowerCase().contains(query) ||
-               customer.nationalId.toLowerCase().contains(query) ||
-               (customer.source.toLowerCase().contains(query)) ||
-               emailMatch ||
-               phoneMatch ||
-               companyNameMatch ||
-               companyIndexMatch;
-      }).toList();
-    }
+    filteredCustomers.value = baseList;
   }
 
-  // Set search query
-  void setSearchQuery(String query) {
-    searchQuery.value = query;
-  }
-
-  // Handle search input changes with debouncing
+  // Handle search input changes with NO automatic search
   void onSearchChanged(String query) {
-    // Cancel previous timer if exists
-    _searchDebounceTimer?.cancel();
-
+    // Only update the search query for display purposes in UI
+    // No search or filtering should happen while typing
     searchQuery.value = query;
-
-    // If query is empty, reset search immediately
+    
+    // If query becomes empty, immediately reset to show all customers
     if (query.trim().isEmpty) {
-      useAlgoliaSearch.value = false;
       isSearching.value = false;
-      _filterCustomers();
-      return;
+      _applyPermissionFiltering();
     }
-
-    // Debounce search for 500ms to avoid too many API calls while typing
-    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-      triggerAlgoliaSearch(query.trim());
-    });
+    // Note: For non-empty queries, do nothing - wait for user to click search button
   }
 
-  /// Trigger Algolia search manually (called by search button)
-  void triggerAlgoliaSearch(String query) {
-    if (query.trim().isEmpty) {
+  /// Trigger Algolia search for customers (only when search button is clicked)
+  void triggerAlgoliaSearch([String? query]) async {
+    final searchText = query ?? searchController.text.trim();
+    
+    if (searchText.isEmpty) {
       // If query is empty, reset to show all customers
-      useAlgoliaSearch.value = false;
       isSearching.value = false;
-      _filterCustomers();
+      _applyPermissionFiltering();
       return;
     }
 
-    print('🔍 Triggering Algolia search for customers with query: "$query"');
+    print('🔍 Triggering Algolia search for customers with query: "$searchText"');
     isSearching.value = true;
-    searchWithAlgolia(query.trim());
+    searchWithAlgolia(searchText);
   }
 
   /// Test method to search for customers by company name
@@ -429,10 +375,9 @@ class CustomersController extends GetxController {
   void clearSearch() {
     searchQuery.value = '';
     searchController.clear();
-    useAlgoliaSearch.value = false;
     isSearching.value = false;
     _searchDebounceTimer?.cancel();
-    _filterCustomers();
+    _applyPermissionFiltering();
   }
 
   // Get customer by ID
@@ -602,7 +547,7 @@ class CustomersController extends GetxController {
       final index = customers.indexWhere((c) => c.id == customer.id);
       if (index != -1) {
         customers[index] = customer;
-        _filterCustomers();
+        _applyPermissionFiltering();
       }
 
       // Sync company links if we have previous data
@@ -838,14 +783,12 @@ class CustomersController extends GetxController {
   /// Search customers using Algolia (alternative to local search)
   void searchWithAlgolia(String query) async {
     if (query.trim().isEmpty) {
-      useAlgoliaSearch.value = false;
-      _filterCustomers();
+      isSearching.value = false;
+      _applyPermissionFiltering();
       return;
     }
 
     try {
-      useAlgoliaSearch.value = true;
-      
       // Search with Algolia
       final searchStream = AlgoliaSearchService.searchCustomers(
         query: query,
@@ -869,7 +812,7 @@ class CustomersController extends GetxController {
           }).where((customer) => customer != null).cast<Customer>().toList();
           
           // Apply permission filtering to results
-          _applyPermissionFiltering(results);
+          _applyPermissionFilteringToResults(results);
           isSearching.value = false;
 
           print('🔍 Algolia search results: ${results.length} customers found for query: "$query"');
@@ -884,21 +827,22 @@ class CustomersController extends GetxController {
         },
         onError: (error) {
           print('❌ Algolia search error: $error');
-          // Fallback to local search
-          useAlgoliaSearch.value = false;
-          _filterCustomers();
+          // Don't fallback to local search - just show empty results
+          isSearching.value = false;
+          filteredCustomers.value = [];
         },
       );
       
     } catch (e) {
       print('❌ Failed to search with Algolia: $e');
-      useAlgoliaSearch.value = false;
-      _filterCustomers();
+      isSearching.value = false;
+      // Show empty results on search error instead of fallback
+      filteredCustomers.value = [];
     }
   }
 
   /// Apply permission filtering to search results
-  void _applyPermissionFiltering(List<Customer> searchResults) {
+  void _applyPermissionFilteringToResults(List<Customer> searchResults) {
     final isOwner = MobilePermissionsService.to.isOwner;
     final canViewAll = MobilePermissionsService.to.can('customer:view:all');
     final canViewAssigned = MobilePermissionsService.to.can('customer:view:assigned');
