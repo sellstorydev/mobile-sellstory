@@ -6,6 +6,38 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
 
+Topic:Board Edit Page Error
+Detail: เมื่อทำการกดเข้าไปที่จัดการ board เกิด error ขึ้นมาตามนี่ /fix error 
+```
+[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: type '_Map<dynamic, dynamic>' is not a subtype of type 'Map<String, dynamic>' in type cast
+#0      _BoardManagementPageState._subscribeQuota.<anonymous closure> (package:sellstory/features/board/view/board_management_page.dart:97:43)
+board_management_page.dart:97
+#1      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+zone.dart:1778
+#2      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+stream_impl.dart:381
+#3      _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+stream_impl.dart:312
+#4      _ForwardingStreamSubscription._add (dart:async/stream_pipe.dart:154:11)
+stream_pipe.dart:154
+#5      _MapStream._handleData (dart:async/stream_pipe.dart:252:10)
+stream_pipe.dart:252
+#6      _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+stream_pipe.dart:184
+#7      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+zone.dart:1778
+#8      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+stream_impl.dart:381
+#9      _DelayedData.perform (dart:async/stream_impl.dart:573:14)
+stream_impl.dart:573
+#10     _PendingEvents.handleNext (dart:async/stream_impl.dart:678:11)
+stream_impl.dart:678
+#11     _PendingEvents.schedule.<anonymous closure> (dart:async/stream_impl.dart:649:7)
+stream_impl.dart:649
+#12     _microtaskLoop (dart:async/schedule_microtask.dart:40:35)
+schedule_microtask.dart:40
+#13     _startMicrotaskLoop (dart:async/schedule_microtask.dart:49:5)
+```
 
 Topic: Workspace Edit Page Error
 Detail: เมื่อทำการกดเข้าไปที่จัดการ Workspaces เกิด error overflow หลังจากกด input  ขึ้นมาตามนี่ /fix error 

@@ -2,6 +2,66 @@
 
 ## Recent Changes
 
+### Board Management Page Type Cast Error Fix (September 24, 2025)
+
+**Topic:** Board Edit Page Error - Type cast error in board management page quota subscription
+
+**Issue Analysis:**
+User reported a type cast exception when accessing board management page:
+```
+Unhandled Exception: type '_Map<dynamic, dynamic>' is not a subtype of type 'Map<String, dynamic>' in type cast
+#0 _BoardManagementPageState._subscribeQuota.<anonymous closure> (package:sellstory/features/board/view/board_management_page.dart:97:43)
+```
+
+**Root Cause Analysis:**
+- Firestore snapshot data returns `Map<dynamic, dynamic>` for nested objects
+- Direct casting `(data['quota'] ?? {}) as Map<String, dynamic>` fails when quota field contains dynamic types
+- Runtime type casting error occurs when Firestore returns different map type than expected
+- No safe conversion method was used for handling dynamic map types
+
+**Solution Applied:**
+
+**Enhanced Type Safe Conversion:**
+```dart
+// Before: Unsafe direct casting causing runtime error
+final quota = (data['quota'] ?? {}) as Map<String, dynamic>;
+
+// After: Safe conversion using Map.from() constructor
+final quota = Map<String, dynamic>.from(data['quota'] ?? {});
+```
+
+**Technical Changes:**
+
+**Files Modified:**
+- `lib/features/board/view/board_management_page.dart`
+  - Fixed `_subscribeQuota()` method line 97 with safe map conversion
+  - Replaced direct type casting with `Map<String, dynamic>.from()` constructor
+  - Handles dynamic map types from Firestore safely without runtime exceptions
+
+**Type Safety Improvements:**
+- **Safe Conversion**: `Map.from()` constructor safely converts any map type to target type
+- **Null Safety**: Maintains existing null coalescing operator `??` for empty map fallback
+- **Runtime Protection**: Prevents type casting exceptions during Firestore data access
+- **Backward Compatibility**: Works with any map structure returned from Firestore
+
+**Benefits:**
+- **No More Type Cast Errors**: Safe conversion prevents runtime casting exceptions
+- **Robust Data Handling**: Handles various Firestore map return types gracefully
+- **Better Error Prevention**: Eliminates specific casting error without changing functionality
+- **Maintained Performance**: Map.from() conversion adds minimal overhead
+
+**User Impact:**
+- Board management page loads without type casting errors
+- Quota subscription works reliably with different Firestore data structures
+- No interruption to board management workflow
+- Improved app stability when accessing workspace quota information
+
+**Implementation Notes:**
+- `Map<String, dynamic>.from()` safely converts any iterable of key-value pairs to target map type
+- Preserves all existing quota handling logic while fixing type safety
+- Handles edge cases where Firestore returns different map types
+- No changes needed to downstream quota processing code
+
 ### Workspace Edit Page Overflow Error Fix (September 24, 2025)
 
 **Topic:** Workspace Edit Page Error - Column overflow error when keyboard input appears in edit workspace page

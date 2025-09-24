@@ -94,7 +94,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
         return;
       }
       final data = snap.data() ?? {};
-      final quota = (data['quota'] ?? {}) as Map<String, dynamic>;
+      final quota = Map<String, dynamic>.from(data['quota'] ?? {});
 
       int asInt(dynamic v, {int fallback = 0}) {
         if (v is int) return v;
