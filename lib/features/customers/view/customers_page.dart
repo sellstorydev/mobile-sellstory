@@ -18,7 +18,8 @@ class CustomersPage extends StatefulWidget {
   State<CustomersPage> createState() => _CustomersPageState();
 }
 
-class _CustomersPageState extends State<CustomersPage> with WidgetsBindingObserver, RouteAware {
+class _CustomersPageState extends State<CustomersPage>
+    with WidgetsBindingObserver, RouteAware {
   late CustomersController _controller;
   final FocusNode _searchFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -34,7 +35,7 @@ class _CustomersPageState extends State<CustomersPage> with WidgetsBindingObserv
     
     // Add lifecycle observers
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Refresh customer data when entering customers page
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final workspaceId = _controller.currentWorkspaceId.value;
@@ -94,7 +95,7 @@ class _CustomersPageState extends State<CustomersPage> with WidgetsBindingObserv
     _searchFocus.dispose();
     _scrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    
+
     // Unsubscribe from route observer
     if (Get.isRegistered<RouteObserver>()) {
       Get.find<RouteObserver>().unsubscribe(this);
@@ -221,7 +222,8 @@ class _CustomersPageState extends State<CustomersPage> with WidgetsBindingObserv
                 controller: _controller.searchController,
                 focusNode: _searchFocus,
                 onChanged: _controller.onSearchChanged,
-                onSubmitted: (_) => _triggerSearch(), // Trigger search when Enter is pressed
+                onSubmitted: (_) =>
+                    _triggerSearch(), // Trigger search when Enter is pressed
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
                   hintText: 'search_placeholder_customers'.tr,
@@ -433,10 +435,7 @@ class _CustomersPageState extends State<CustomersPage> with WidgetsBindingObserv
               SizedBox(height: 16),
               Text(
                 'กำลังค้นหาลูกค้า...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textSecondary,
-                ),
+                style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
               ),
             ],
           ),
@@ -453,10 +452,7 @@ class _CustomersPageState extends State<CustomersPage> with WidgetsBindingObserv
               SizedBox(height: 16),
               Text(
                 'กำลังค้นหาลูกค้า...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textSecondary,
-                ),
+                style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
               ),
             ],
           ),

@@ -179,14 +179,16 @@ class _ProductsPageState extends State<ProductsPage> {
 
                 // Show searching state when Algolia search is in progress
                 if (controller.isSearching.value) {
-                  return const Center(
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(color: AppTheme.primaryOrange),
-                        SizedBox(height: 16),
+                        const CircularProgressIndicator(
+                          color: AppTheme.primaryOrange,
+                        ),
+                        const SizedBox(height: 16),
                         Text(
-                          'กำลังค้นหาสินค้า...',
+                          'searching_products'.tr,
                           style: TextStyle(
                             fontSize: 16,
                             color: AppTheme.textSecondary,
@@ -219,6 +221,7 @@ class _ProductsPageState extends State<ProductsPage> {
               ),
             ),
                         const SizedBox(height: 8),
+
             Text(
                           controller.searchQuery.value.isEmpty
                               ? 'start_adding_first_product'.tr
@@ -412,7 +415,7 @@ class _ProductsPageState extends State<ProductsPage> {
       }
 
       return IconButton(
-        tooltip: 'ล้างคำค้น',
+        tooltip: 'clear_search_tooltip'.tr,
         icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
         onPressed: () {
           controller.clearSearch();

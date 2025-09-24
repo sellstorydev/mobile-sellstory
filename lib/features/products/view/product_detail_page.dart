@@ -467,7 +467,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  _buildDetailRow('SKU', _currentProduct.sku),
+                  _buildDetailRow('product_sku'.tr, _currentProduct.sku),
                   const SizedBox(height: 8),
 
                   if (_currentProduct.unit.isNotEmpty) ...[

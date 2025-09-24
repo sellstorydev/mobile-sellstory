@@ -1,9 +1,74 @@
+### English Customer Keys Addition (2025-09-24)
+Added missing English translations for existing Thai-only keys:
+* edit_customer_title -> Edit Customer
+* add_customer_title -> Add Customer
+* upload_image_failed -> Upload image failed
+* lead -> Lead
+* customer_type_lead -> Lead
+
 # I18N Translation Summary
 
 ## Overview
 This document tracks the internationalization (i18n) work done on the SellStory mobile application to ensure proper Thai-English translation support.
 
 ## Translation Work Done
+
+### Products Page Translation (2025-09-24)
+File: `lib/features/products/view/products_page.dart`
+
+#### Analysis:
+- Products page already used translation keys but several keys existed only in Thai section (`th`) without English counterparts
+- Missing English keys caused fallback or mismatched UI when locale = en_US
+- Added comprehensive English product-related keys to mirror Thai definitions and ensure full bilingual support
+
+#### Added English Keys (with Thai already existing):
+```
+products: Products
+add_product: Add Product
+add_products: Add Products
+edit_product: Edit Product
+search_products: Search products...
+no_products: No products yet
+no_products_found: No products found
+start_adding_first_product: Start adding your first product
+try_different_search: Try a different search
+all_products_count: All Products ({count})
+no_permission_view_products: You do not have permission to view products
+error_occurred: An error occurred
+try_again: Try Again
+confirm_delete_product: Confirm Delete Product
+delete_product_confirmation: Are you sure you want to delete product "{name}"? (irreversible)
+error: Error (added for product context though global existed in Thai only instance earlier)
+cannot_delete_product_no_workspace: Cannot delete product: Workspace not found
+product_deleted_successfully: Product deleted successfully
+cannot_delete_product: Cannot delete product
+error_deleting_product: Error deleting product: {error}
+not_on_sale: Not on sale
+product_name: Product Name
+product_description: Product Description
+product_price: Price
+product_quantity: Quantity
+product_unit: Unit
+product_stock: Stock
+product_status: Status
+product_active: Active
+product_inactive: Inactive
+add_product_hint: Click "Add Product" to start adding items
+```
+
+#### Thai Keys Alignment:
+- Ensured Thai section retains existing keys: products, add_product, search_products, no_products, no_products_found, start_adding_first_product, try_different_search, all_products_count, no_permission_view_products, add_product_hint
+- No duplicate insertion performed in Thai map (already present)
+
+#### Result:
+- Products page now fully localized both EN/TH with symmetrical key coverage
+- Prevents missing-key fallbacks and improves clarity of product management UI
+
+#### Next Suggestions:
+- Consider adding pagination/status keys if pagination UX evolves (e.g., loading_more_products, end_of_list)
+- Audit `add_edit_product_page.dart` for any remaining literals (most already translated)
+
+---
 
 ### Edit Card Page Full Localization (2025-09-23)
 Files: `lib/features/board/view/edit_card_page.dart`, `lib/core/i18n/app_translations.dart`
@@ -1141,6 +1206,22 @@ Changes:
 - ✅ Edit board page now fully supports Thai-English language switching
 
 ## Notes
+### Product Detail Page Translation Pass (2025-09-24)
+File: `lib/features/products/view/product_detail_page.dart`
+
+Changes:
+- Replaced hardcoded label `SKU` with translation key `product_sku`.tr
+- Added missing English translation keys for product detail labels that previously only existed in Thai (or not at all):
+   - product_sku, unit, details, barcode, category, cost_price, initial_stock, status, tags, product_info, on_sale, draft
+- Ensured status mapping (`active`, `draft`, `discontinued`) resolves to localized keys (`on_sale`, `draft`, `not_on_sale`). Added `on_sale` and `draft` keys to English section for parity.
+
+Result:
+- Product detail page now fully localized for both English and Thai with no raw text labels.
+- Prevents fallback to raw English literals when switching locales.
+
+Next Suggestions:
+- Audit other product-related views for any remaining raw strings (e.g., list tiles, dialogs) to guarantee consistency.
+
 - Fixed duplicate translation key issues during implementation
 - All hardcoded Thai text in login and forgot password pages has been replaced with proper translation keys
 - Login and forgot password flows now fully support GetX internationalization system
@@ -1222,3 +1303,16 @@ Changes:
 - ✅ Used consistent i18n pattern with GetX throughout
 
 ````
+
+## Add/Edit Customer Page Localization (2025-09-24)
+* Verified page uses translation keys for all labels (customer type, gender, emails, phones, location, company picker, save button).
+* Existing keys in translations already cover: edit_customer_title, add_customer_title, personal_information (as customer_section_basic_info), customer_source (source), customer_name (customer_field_name / customer_name_field), age (customer_field_age), national_id (customer_field_national_id), company_info (customer_section_company_info), customer_id (customer_field_customer_id), add_company_success, upload_image_failed.
+* Added no new keys (all required keys present); only ensured consistent usage.
+* Confirmed dynamic dropdown options (Female/Male/Other, Lead/Customer) already localized via existing gender/type keys mapping.
+* Page ready; no duplicate map key introductions.
+
+## Translation Map Deduplication Cleanup (2025-09-24 - pass 2)
+* Removed legacy duplicate chat-related keys (bot_disabled, chat_pinned, canned_responses, etc.) keeping canonical later definitions.
+* Eliminated secondary occurrences of chat utility/status/media picker keys (error_picking_images, error_taking_photo, pick_video_failed, etc.).
+* Result: `app_translations.dart` now compiles with zero duplicate key errors (verified after edits).
+* No changes to meaning of retained keys; only structural deduplication. Future additions should search file before inserting to avoid regressions.
