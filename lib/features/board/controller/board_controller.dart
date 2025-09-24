@@ -1095,7 +1095,6 @@ class BoardController extends GetxController implements BoardView {
         safeContains(card.assignedTo, searchLower) ||              // Raw user ID
         assignedToDisplayName.contains(searchLower) ||             // Display name
         safeContains(card.status, searchLower) ||
-        safeContains(card.updatedByDisplayName, searchLower) ||
         safeContains(card.company?['value'], searchLower) ||
         watchersDisplayNames.contains(searchLower) ||              // Watchers names
         collaboratorsDisplayNames.contains(searchLower) ||         // Collaborators names
