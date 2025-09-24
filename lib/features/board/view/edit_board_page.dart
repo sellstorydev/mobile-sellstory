@@ -132,12 +132,13 @@ class _EditBoardPageState extends State<EditBoardPage> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Edit Board'),
-          backgroundColor: AppTheme.primaryOrange,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
           actions: [
             IconButton(
               onPressed: () => Get.back(),
-              icon: const Icon(Icons.close),
+              icon: const Icon(Icons.close, color: Colors.black),
             ),
           ],
         ),
@@ -169,12 +170,13 @@ class _EditBoardPageState extends State<EditBoardPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Board'),
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, color: Colors.black),
           ),
         ],
       ),
@@ -254,7 +256,7 @@ class _EditBoardPageState extends State<EditBoardPage> {
                           Text('• Name: ${widget.board.name}'),
                           Text('• Created: ${_formatDate(widget.board.createdAt)}'),
                           Text('• Updated: ${_formatDate(widget.board.updatedAt)}'),
-                          Text('• Lanes: ${widget.board.lanes.length}'),
+                          // Text('• Lanes: ${widget.board.lanes.length}'),
                           Text('• Members: ${widget.board.memberUids.length}'),
                         ],
                       ),
