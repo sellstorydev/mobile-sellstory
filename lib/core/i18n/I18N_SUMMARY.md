@@ -1088,6 +1088,60 @@ appBar: AppBar(
 - ✅ Danger zone section properly translated
 - ✅ Edit workspace page now fully supports Thai-English language switching
 
+### Board Management Final Translation Pass (2025-09-24)
+**Files Translated**: 
+- `lib/features/board/view/edit_board_page.dart`
+- `lib/features/board/view/board_management_page.dart`
+
+#### Changes Made:
+1. **Edit Board Page (`edit_board_page.dart`)**:
+   - App Bar titles → 'edit_board'.tr
+   - Thai hardcoded permission messages → 'no_permission_edit_board_msg'.tr, 'need_board_manage_permission'.tr  
+   - Form labels → 'board_name'.tr, 'enter_board_name'.tr
+   - Action buttons → 'update_board'.tr, 'delete_board'.tr, 'close_btn'.tr
+   - Information section → 'board_information'.tr
+   - Board details → 'name'.tr, 'board_created'.tr, 'updated_at_label'.tr, 'board_members'.tr
+   - Error messages → 'no_permission_edit_board'.tr, 'board_name_required'.tr, 'no_permission_delete_board'.tr
+   - Success messages → 'success'.tr, 'board_updated_successfully'.tr, 'board_deleted_successfully'.tr
+   - Error snackbar → 'error'.tr, 'failed_to_update_board'.tr, 'failed_to_delete_board'.tr  
+   - Delete confirmation dialog → 'delete_board'.tr, 'delete_board_confirmation'.tr
+
+2. **Board Management Page (`board_management_page.dart`)**:
+   - Menu options → 'edit_board'.tr
+   - Dialog buttons → 'cancel'.tr
+
+#### Added Translation Keys (11 new keys):
+```dart
+// English Keys
+'no_permission_edit_board_msg': 'You do not have permission to edit this board',
+'no_permission_edit_board': 'You do not have permission to edit this board',
+'no_permission_delete_board': 'You do not have permission to delete this board',
+'board_information': 'Board Information',
+'update_board': 'Update Board',
+'updated_at_label': 'Updated',
+'delete_board_confirmation': 'Are you sure you want to delete "{name}"?\n\nThis will also delete all lanes and cards in this board. This action cannot be undone.',
+
+// Thai Keys
+'no_permission_edit_board_msg': 'คุณไม่มีสิทธิ์แก้ไขบอร์ดนี้',
+'no_permission_edit_board': 'คุณไม่มีสิทธิ์แก้ไขบอร์ดนี้',
+'no_permission_delete_board': 'คุณไม่มีสิทธิ์ลบบอร์ดนี้',
+'board_information': 'ข้อมูลบอร์ด',
+'update_board': 'อัปเดตบอร์ด',
+'updated_at_label': 'อัปเดตเมื่อ',
+'delete_board_confirmation': 'คุณแน่ใจหรือไม่ที่จะลบ "{name}"?\n\nการดำเนินการนี้จะลบเลนและการ์ดทั้งหมดในบอร์ดนี้ด้วย และไม่สามารถยกเลิกได้',
+```
+
+#### Status:
+- ✅ All hardcoded Thai text in edit_board_page.dart is properly translated using .tr keys
+- ✅ All hardcoded English text in edit_board_page.dart is properly translated using .tr keys  
+- ✅ All dialog titles and action buttons in board_management_page.dart are translated
+- ✅ All translation keys exist in both English and Thai
+- ✅ Used consistent i18n pattern with GetX
+- ✅ Board editing functionality fully localized including permission messages, validation, and status messages
+- ✅ Delete confirmation dialogs use proper parameter replacement for board names
+- ✅ Error messages follow established error handling patterns
+- ✅ Edit board page now fully supports Thai-English language switching
+
 ## Notes
 - Fixed duplicate translation key issues during implementation
 - All hardcoded Thai text in login and forgot password pages has been replaced with proper translation keys

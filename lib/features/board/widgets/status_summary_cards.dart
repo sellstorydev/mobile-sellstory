@@ -51,7 +51,7 @@ class StatusSummaryCards extends StatelessWidget {
               width: 110,
               isSelected: selectedStatuses.contains('Pending'),
               onTap: () => onStatusTap?.call('Pending'),
-              icon: 'assets/icons/icon-hourglass.svg'
+              icon: 'assets/icons/icon-hourglass.svg',
             ),
             const SizedBox(width: 12),
             _buildSummaryCard(
@@ -63,7 +63,7 @@ class StatusSummaryCards extends StatelessWidget {
               width: 110,
               isSelected: selectedStatuses.contains('Done'),
               onTap: () => onStatusTap?.call('Done'),
-              icon: 'assets/icons/icon-clock-loader.svg'
+              icon: 'assets/icons/icon-check.svg',
             ),
             const SizedBox(width: 12),
             _buildSummaryCard(
@@ -75,7 +75,7 @@ class StatusSummaryCards extends StatelessWidget {
               width: 110,
               isSelected: selectedStatuses.contains('In Progress'),
               onTap: () => onStatusTap?.call('In Progress'),
-              icon: 'assets/icons/icon-check.svg'
+              icon: 'assets/icons/icon-clock-loader.svg',
             ),
             const SizedBox(width: 12),
             _buildSummaryCard(
@@ -87,7 +87,7 @@ class StatusSummaryCards extends StatelessWidget {
               width: 110,
               isSelected: selectedStatuses.contains('Cancelled'),
               onTap: () => onStatusTap?.call('Cancelled'),
-              icon: 'assets/icons/icon-error.svg'
+              icon: 'assets/icons/icon-error.svg',
             ),
           ],
         ),
@@ -166,6 +166,7 @@ class StatusSummaryCards extends StatelessWidget {
                             width: 8,
                             height: 8,
                             fit: BoxFit.contain,
+                            color: color,
                           ),
                         ),
                       ],
