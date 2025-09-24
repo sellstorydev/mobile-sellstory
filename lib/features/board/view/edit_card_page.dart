@@ -1544,7 +1544,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
               const SizedBox(height: 24),
               _buildSectionCard(
-                title: 'description'.tr,
+                title: 'description_label'.tr,
                 icon: Icons.edit_document,
                 color: Colors.lightGreen,
                 children: [_buildDetailsSection()],
@@ -4214,9 +4214,9 @@ class _EditCardPageState extends State<EditCardPage> {
           children: [
             Icon(Icons.tag, size: 18, color: Colors.purple[700]),
             const SizedBox(width: 6),
-            const Text(
-              'Hashtags',
-              style: TextStyle(
+            Text(
+              'hashtags_label'.tr,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -4390,9 +4390,9 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Collaborators',
-          style: TextStyle(
+        Text(
+          'collaborators_label'.tr,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
@@ -4476,9 +4476,9 @@ class _EditCardPageState extends State<EditCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Watchers',
-          style: TextStyle(
+        Text(
+          'watchers_label'.tr,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
@@ -5619,7 +5619,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
               const SizedBox(height: 20),
               Text(
-                'No products added yet',
+                'no_products_added_yet'.tr,
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.grey[700],
@@ -5628,7 +5628,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Click "Add Product" to start adding products or services',
+                'add_product_hint'.tr,
                 style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                 textAlign: TextAlign.center,
               ),

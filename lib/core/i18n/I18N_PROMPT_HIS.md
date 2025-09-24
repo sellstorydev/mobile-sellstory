@@ -1,5 +1,4 @@
 # PRE PROMPT
-
     - *important* You don't need to explain what you did. I don't want to know, it's a waste of time. Focus on editing the file to meet the task I gave you.
     - First read `lib/core/i18n/I18N_SUMMARY.md` file for review your memory and brainstrom your self.
     - For better answer me please read your mememory inside file `lib/core/i18n/I18N_SUMMARY.md`

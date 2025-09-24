@@ -42,6 +42,10 @@ Follow-up (2025-09-24 screenshot audit):
    - Comments → Reply link uses reply.tr, Post button uses add_comment.tr
    - Ensured no const Text remains where .tr is used
    - Assignee & Customer labels localized → assignee_label.tr / customer_label.tr (replaced hardcoded "Assignee *" & "Customer")
+   - Collaborators & Watchers labels localized → collaborators_label.tr / watchers_label.tr (replaced hardcoded "Collaborators" & "Watchers")
+   - Hashtags section header localized → hashtags_label.tr (replaced hardcoded "Hashtags")
+   - Description section card uses description_label.tr instead of description.tr for consistency
+   - Product table empty-state localized (no_products_added_yet, add_product_hint); discount & vat columns already using existing keys
 
 ### Create Card Page Keys (2025-09-23)
 Files: `lib/features/board/view/create_card_page.dart`, `lib/core/i18n/app_translations.dart`
