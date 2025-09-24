@@ -193,6 +193,80 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     return snap.data() ?? <String, dynamic>{};
   }
 
+  // ---- Job Card Link Helpers (Canonical) ----
+  // Always persist job card links as objects in linkedJobCards: [{id, docNo, type:'JC'}]
+  Future<void> _persistJobCardLinks(
+    List<String> ids,
+    List<String> docNos,
+  ) async {
+    // Normalise lengths
+    final safeIds = List<String>.from(ids);
+    final safeNos = List<String>.from(docNos);
+    while (safeNos.length < safeIds.length) {
+      safeNos.add('');
+    }
+    final links = <Map<String, dynamic>>[];
+    for (int i = 0; i < safeIds.length; i++) {
+      final id = safeIds[i];
+      if (id.isEmpty) continue;
+      final docNo = safeNos[i];
+      links.add({'id': id, 'docNo': docNo, 'type': 'JC'});
+    }
+    await _chatroomDoc.set({
+      'linkedJobCards': links,
+      // Keep legacy arrays for backward compatibility (can be removed later after full migration)
+      'jobCardIds': safeIds,
+      'jobCardTitles': safeNos, // titles mirror docNos for now
+      if (safeIds.isNotEmpty)
+        'jobCardId': safeIds.first
+      else
+        'jobCardId': FieldValue.delete(),
+      if (safeNos.isNotEmpty)
+        'jobCardTitle': safeNos.first
+      else
+        'jobCardTitle': FieldValue.delete(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> _migrateLegacyJobCardFieldsIfNeeded() async {
+    try {
+      final data = await _getChatroomData();
+      if (data.containsKey('linkedJobCards')) return; // already canonical
+      // Collect possible legacy lists
+      List<String> ids =
+          (data['jobCardIds'] as List?)?.map((e) => e.toString()).toList() ??
+          [];
+      if (ids.isEmpty) {
+        ids =
+            (data['linkedCardIds'] as List?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [];
+      }
+      if (ids.isEmpty && data['jobCards'] is List) {
+        final arr = data['jobCards'] as List;
+        ids = arr
+            .map((e) => (e is Map ? (e['id'] ?? '').toString() : e.toString()))
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+      if (ids.isEmpty) return; // nothing to migrate
+      List<String> docNos =
+          (data['jobCardTitles'] as List?)?.map((e) => e.toString()).toList() ??
+          [];
+      if (docNos.isEmpty && data['linkedJobCards'] is List) {
+        // improbable since we checked above, but keep safe branch
+        final arr = data['linkedJobCards'] as List;
+        docNos = arr
+            .map((e) => (e is Map ? (e['docNo'] ?? '').toString() : ''))
+            .toList();
+      }
+      await _persistJobCardLinks(ids, docNos);
+    } catch (_) {
+      // silent migration failure
+    }
+  }
+
   void _showTopSnack(String message, {bool isError = false}) {
 
     // Dismiss existing to avoid stacking many
@@ -963,6 +1037,9 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       await _chatroomDoc.set({
         'customerId': FieldValue.delete(),
         'customerName': FieldValue.delete(),
+        // Additional legacy / object forms clean up
+        'customer': FieldValue.delete(),
+        'customer_id': FieldValue.delete(),
       }, SetOptions(merge: true));
       if (!mounted) return;
       setState(() { _currentCustomerId = null; _currentCustomerName = null; });
@@ -989,6 +1066,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       // Load chatroom-level hashtags when no customer is linked
       _loadChatroomHashtags();
     }
+    // Perform a one-time migration of legacy job card fields to canonical linkedJobCards
+    Future.microtask(_migrateLegacyJobCardFieldsIfNeeded);
 
 
     // Realtime sync with chatroom document
@@ -1367,14 +1446,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
           final dm = d.data();
           final title = (dm['title'] ?? dm['name'] ?? 'Card').toString();
           final docNo = (dm['customId'] ?? title).toString();
-          final link = {'id': d.id, 'docNo': docNo, 'type': 'JC'};
-          await _chatroomDoc.set({
-            'linkedJobCards': [link],
-            'jobCardIds': [d.id],
-            'jobCardTitles': [docNo],
-            'jobCardId': d.id,
-            'jobCardTitle': docNo,
-          }, SetOptions(merge: true));
+          await _persistJobCardLinks([d.id], [docNo]);
           if (mounted) {
             setState(() { _jobCardIds = [d.id]; _jobCardTitles = [title]; _jobCardDocNos = [docNo]; });
             _showTopSnack('jobcard_linked_latest'.tr);
@@ -1450,18 +1522,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       // Persist linkage to chatroom (append)
       final newIds = [..._jobCardIds, cardId];
       final newNos = [..._jobCardDocNos, docNo];
-      final links = [
-        for (int i = 0; i < _jobCardIds.length; i++)
-          {'id': _jobCardIds[i], 'docNo': (_jobCardDocNos.length > i ? _jobCardDocNos[i] : (_jobCardTitles.length > i ? _jobCardTitles[i] : _jobCardIds[i])), 'type': 'JC'},
-        {'id': cardId, 'docNo': docNo, 'type': 'JC'},
-      ];
-      await _chatroomDoc.set({
-        'linkedJobCards': links,
-        'jobCardIds': newIds,
-        'jobCardTitles': newNos,
-        'jobCardId': newIds.isNotEmpty ? newIds.first : FieldValue.delete(),
-        'jobCardTitle': newNos.isNotEmpty ? newNos.first : FieldValue.delete(),
-      }, SetOptions(merge: true));
+      await _persistJobCardLinks(newIds, newNos);
 
       // Auto-link customer from job card
       if (cid != null && cid.isNotEmpty) {
@@ -1615,7 +1676,8 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                       newLinks.add({'id': idk, 'docNo': nok, 'type': 'JC'});
                     }
                     await _chatroomDoc.set({
-                      'linkedJobCards': newLinks,
+                        'linkedJobCards':
+                            newLinks, // still set explicitly here for immediate consistency
                       'jobCardIds': newIds,
                       'jobCardTitles': newNos,
                       if (newIds.isNotEmpty) 'jobCardId': newIds.first else 'jobCardId': FieldValue.delete(),
