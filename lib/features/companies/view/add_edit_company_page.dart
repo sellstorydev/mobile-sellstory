@@ -88,12 +88,8 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
       });
     } else {
       // Initialize with default empty entries
-      _emails = [
-        {'label': 'primary'.tr, 'value': ''},
-      ];
-      _phones = [
-        {'label': 'primary'.tr, 'value': ''},
-      ];
+      _emails = [{'label': 'main_label'.tr, 'value': ''}];
+      _phones = [{'label': 'main_label'.tr, 'value': ''}];
       _countryController.text = 'thailand'.tr;
     }
   }
@@ -200,7 +196,7 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
       appBar: AppBar(
         elevation: 0,
         title: Text(
-          _isEditMode ? 'แก้ไขบริษัท' : 'เพิ่มบริษัท',
+          _isEditMode ? 'edit_company'.tr : 'add_company'.tr,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
@@ -212,7 +208,7 @@ class _AddEditCompanyPageState extends State<AddEditCompanyPage> {
                     guardAction(context, needed, _submitForm);
                   },
             child: Text(
-              _isEditMode ? 'บันทึก' : 'เพิ่ม',
+              _isEditMode ? 'save_company'.tr : 'add_company_button'.tr,
               style: TextStyle(
                 color: _isSubmitting ? Colors.grey : AppTheme.primaryOrange,
                 fontWeight: FontWeight.w600,

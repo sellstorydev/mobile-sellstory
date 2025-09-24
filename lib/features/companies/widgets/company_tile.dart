@@ -138,7 +138,7 @@ class CompanyTile extends StatelessWidget {
                 ),
               ),
               Text(
-                'ลูกค้า',
+                'customers_label'.tr,
                 style: TextStyle(
                   fontSize: 10,
                   color: Colors.grey.shade600,

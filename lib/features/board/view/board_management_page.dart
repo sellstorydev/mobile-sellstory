@@ -41,9 +41,9 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   }
 
   void _denySnack() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('คุณไม่มีสิทธิ์จัดการบอร์ด')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('no_permission_manage_boards'.tr)));
   }
 
   @override
@@ -84,53 +84,56 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
         .collection('workspaces')
         .doc(workspaceId)
         .snapshots()
-        .listen((snap) {
-      if (!mounted) return;
-      if (!snap.exists) {
-        setState(() {
-          _boardsUsed = 0;
-          _boardsLimit = -2;
-        });
-        return;
-      }
-      final data = snap.data() ?? {};
-      final quota = (data['quota'] ?? {}) as Map<String, dynamic>;
+        .listen(
+          (snap) {
+            if (!mounted) return;
+            if (!snap.exists) {
+              setState(() {
+                _boardsUsed = 0;
+                _boardsLimit = -2;
+              });
+              return;
+            }
+            final data = snap.data() ?? {};
+            final quota = Map<String, dynamic>.from(data['quota'] ?? {});
 
-      int asInt(dynamic v, {int fallback = 0}) {
-        if (v is int) return v;
-        if (v is double) return v.toInt();
-        if (v is String) return int.tryParse(v) ?? fallback;
-        return fallback;
-      }
+            int asInt(dynamic v, {int fallback = 0}) {
+              if (v is int) return v;
+              if (v is double) return v.toInt();
+              if (v is String) return int.tryParse(v) ?? fallback;
+              return fallback;
+            }
 
-      int used = 0;
-      int limit = -1;
-      dynamic entry = quota['boards'];
-      if (entry is Map) {
-        used = asInt(entry['used']);
-        final rawLimit = entry['limit'] ?? entry['max'];
-        limit = rawLimit == null ? -1 : asInt(rawLimit, fallback: -1);
-      } else if (entry is int || entry is double || entry is String) {
-        limit = asInt(entry, fallback: -1);
-      }
-      final usedContainer = quota['used'];
-      if (usedContainer is Map) {
-        final alt = usedContainer['boards'];
-        if (alt != null) used = asInt(alt, fallback: used);
-      }
-      if (used < 0) used = 0;
+            int used = 0;
+            int limit = -1;
+            dynamic entry = quota['boards'];
+            if (entry is Map) {
+              used = asInt(entry['used']);
+              final rawLimit = entry['limit'] ?? entry['max'];
+              limit = rawLimit == null ? -1 : asInt(rawLimit, fallback: -1);
+            } else if (entry is int || entry is double || entry is String) {
+              limit = asInt(entry, fallback: -1);
+            }
+            final usedContainer = quota['used'];
+            if (usedContainer is Map) {
+              final alt = usedContainer['boards'];
+              if (alt != null) used = asInt(alt, fallback: used);
+            }
+            if (used < 0) used = 0;
 
-      setState(() {
-        _boardsUsed = used;
-        _boardsLimit = limit;
-      });
-    }, onError: (_) {
-      if (!mounted) return;
-      setState(() {
-        _boardsUsed = 0;
-        _boardsLimit = -2;
-      });
-    });
+            setState(() {
+              _boardsUsed = used;
+              _boardsLimit = limit;
+            });
+          },
+          onError: (_) {
+            if (!mounted) return;
+            setState(() {
+              _boardsUsed = 0;
+              _boardsLimit = -2;
+            });
+          },
+        );
   }
 
   Future<void> _loadBoards() async {
@@ -142,8 +145,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
       await _controller.getBoards();
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to load boards: ${e.toString()}',
+        'error'.tr,
+        '${'failed_to_load_boards'.tr}: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -171,7 +174,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   // Usage header
   Widget _buildUsageHeader(int totalBoards) {
     final isUnlimited = _boardsLimit == -1;
-    final isOver = !isUnlimited && _boardsLimit > 0 && _boardsUsed > _boardsLimit;
+    final isOver =
+        !isUnlimited && _boardsLimit > 0 && _boardsUsed > _boardsLimit;
     return Container(
       width: double.infinity,
       color: Colors.white,
@@ -181,34 +185,73 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                const Text('Total: ', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
-                Text('$totalBoards', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primaryOrange)),
-                const Text(' boards', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
-              ]),
+              Row(
+                children: [
+                  Text(
+                    '${'total'.tr}: ',
+                    style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+                  ),
+                  Text(
+                    '$totalBoards',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  ),
+                  Text(
+                    ' ${'boards_label'.tr}',
+                    style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+                  ),
+                ],
+              ),
               const SizedBox(height: 2),
-              Row(children: [
-                const Icon(Icons.storage_rounded, size: 14, color: AppTheme.textSecondary),
-                const SizedBox(width: 4),
-                Text(
-                  isUnlimited ? 'Usage: $_boardsUsed / ∞' : 'Usage: $_boardsUsed / $_boardsLimit',
-                  style: TextStyle(fontSize: 12, color: isOver ? Colors.red : AppTheme.textSecondary, fontWeight: isOver ? FontWeight.w600 : FontWeight.w400),
-                ),
-              ]),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.storage_rounded,
+                    size: 14,
+                    color: AppTheme.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    isUnlimited
+                        ? '${'usage_label'.tr}: $_boardsUsed / ∞'
+                        : '${'usage_label'.tr}: $_boardsUsed / $_boardsLimit',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isOver ? Colors.red : AppTheme.textSecondary,
+                      fontWeight: isOver ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
           const Spacer(),
           PermissionGuard(
             permission: 'settings:board:manage',
             hideIfUnauthorized: true,
+
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                foregroundColor: _isBoardsQuotaFull ? AppTheme.textSecondary : AppTheme.primaryOrange,
-                side: BorderSide(color: _isBoardsQuotaFull ? AppTheme.textSecondary : AppTheme.primaryOrange, width: 1),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                foregroundColor: _isBoardsQuotaFull
+                    ? AppTheme.textSecondary
+                    : AppTheme.primaryOrange,
+                side: BorderSide(
+                  color: _isBoardsQuotaFull
+                      ? AppTheme.textSecondary
+                      : AppTheme.primaryOrange,
+                  width: 1,
+                ),
               ),
               onPressed: _navigateToCreateBoard,
               icon: const Icon(Icons.add),
-              label: Text(_isBoardsQuotaFull ? 'Quota full' : 'Create Board'),
+              label: Text(_isBoardsQuotaFull ? 'quota_full'.tr : 'create_board'.tr),
             ),
           ),
         ],
@@ -227,7 +270,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text('Edit Board'),
+              title: Text('edit_board'.tr),
               onTap: () {
                 Navigator.of(context).pop();
                 _navigateToEditBoard(board);
@@ -235,7 +278,10 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Delete Board', style: TextStyle(color: Colors.red)),
+              title: Text(
+                'delete_board'.tr,
+                style: const TextStyle(color: Colors.red),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _showDeleteConfirmation(board);
@@ -246,7 +292,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text('cancel'.tr),
               ),
             ),
           ],
@@ -259,8 +305,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
     if (!_canManageBoards) return _denySnack();
     final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      title: 'Delete Board',
-      content: 'Are you sure you want to delete "${board.name}"?\n\nThis will also delete all lanes and cards in this board. This action cannot be undone.',
+      title: 'delete_board'.tr,
+      content: 'delete_board_confirmation'.tr.replaceAll('{name}', board.name),
     );
 
     if (confirmed == true) {
@@ -273,8 +319,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
     try {
       await _controller.deleteBoard(board.id);
       Get.snackbar(
-        'Success',
-        'Board deleted successfully',
+        'success'.tr,
+        'board_deleted_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -294,13 +340,14 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Board Management'),
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
+        title: Text('board_management'.tr),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: _loadBoards,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.black),
           ),
         ],
       ),
@@ -325,8 +372,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                                   color: Colors.grey,
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
-                                  'No boards found',
+                                Text(
+                                  'no_boards_found'.tr,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w500,
@@ -334,11 +381,9 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
-                                  'Create your first board to get started',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                  ),
+                                Text(
+                                  'create_first_board'.tr,
+                                  style: TextStyle(color: Colors.grey),
                                 ),
                                 const SizedBox(height: 24),
                                 PermissionGuard(
@@ -347,7 +392,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                                   child: ElevatedButton.icon(
                                     onPressed: _navigateToCreateBoard,
                                     icon: const Icon(Icons.add),
-                                    label: const Text('Create Board'),
+                                    label: Text('create_board'.tr),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.primaryOrange,
                                       foregroundColor: Colors.white,
@@ -381,21 +426,29 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                                       ),
                                     ),
                                     subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text('Lanes: ${board.lanes.length}')
-                                        ,Text('Members: ${board.memberUids.length}'),
-                                        Text('Created: ${_formatDate(board.createdAt)}'),
+                                        // Text('${'board_lanes'.tr}: ${board.lanes.length}')
+                                        Text(
+                                          '${'board_members'.tr}: ${board.memberUids.length}',
+                                        ),
+                                        Text(
+                                          '${'board_created'.tr}: ${_formatDate(board.createdAt)}',
+                                        ),
                                       ],
                                     ),
                                     trailing: PermissionGuard(
                                       permission: 'settings:board:manage',
                                       child: IconButton(
-                                        onPressed: () => _showBoardMenu(context, board),
+                                        onPressed: () =>
+                                            _showBoardMenu(context, board),
                                         icon: const Icon(Icons.more_vert),
                                       ),
                                     ),
-                                    onTap: () => _canManageBoards ? _navigateToEditBoard(board) : _denySnack(),
+                                    onTap: () => _canManageBoards
+                                        ? _navigateToEditBoard(board)
+                                        : _denySnack(),
                                   ),
                                 );
                               },
@@ -405,16 +458,16 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                 ],
               );
             }),
-      floatingActionButton: PermissionGuard(
-        permission: 'settings:board:manage',
-        hideIfUnauthorized: true,
-        child: FloatingActionButton(
-          onPressed: _navigateToCreateBoard,
-          backgroundColor: AppTheme.primaryOrange,
-          foregroundColor: Colors.white,
-          child: const Icon(Icons.add),
-        ),
-      ),
+      // floatingActionButton: PermissionGuard(
+      //   permission: 'settings:board:manage',
+      //   hideIfUnauthorized: true,
+      //   child: FloatingActionButton(
+      //     onPressed: _navigateToCreateBoard,
+      //     backgroundColor: AppTheme.primaryOrange,
+      //     foregroundColor: Colors.white,
+      //     child: const Icon(Icons.add),
+      //   ),
+      // ),
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/workspace_members_service.dart';
@@ -25,7 +26,7 @@ class CustomerDetailPage extends StatefulWidget {
   State<CustomerDetailPage> createState() => _CustomerDetailPageState();
 }
 
-class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTickerProviderStateMixin {
+class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
   final WorkspaceMembersService _workspaceMembersService = WorkspaceMembersService();
   final CustomersController _controller = Get.find<CustomersController>();
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -39,14 +40,47 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   
   // Tab controller
   late TabController _tabController;
+
+  Future<void> _refreshCustomerData() async {
+    print('[CustomerDetail] Refreshing customer data...');
+    
+    // Refresh customers list to get latest data
+    try {
+      await _controller.refreshCustomers();
+      
+      // Find updated customer data
+      final updatedCustomer = _controller.customers
+          .firstWhereOrNull((c) => c.id == widget.customer.id);
+      
+      if (updatedCustomer != null) {
+        setState(() {
+          _currentCustomer = updatedCustomer;
+        });
+        print('[CustomerDetail] ✅ Customer data refreshed');
+      } else {
+        print('[CustomerDetail] ⚠️ Customer not found in refreshed list');
+      }
+    } catch (e) {
+      print('[CustomerDetail] ❌ Failed to refresh customer data: $e');
+    }
+  }
   
   // Job cards data
   Stream<List<JobCard>>? _jobCardsStream;
   int _jobCardCount = 0;
   int _todoCount = 0;
+  int _historyCount = 0;
+  int _documentCount = 0;
   List<JobCard> _jobCards = [];
   bool _jobCardsLoading = true;
   StreamSubscription<List<JobCard>>? _jobCardsSub;
+
+  // History data  
+  List<QueryDocumentSnapshot> _historyActivities = [];
+  bool _historyLoading = false;
+
+  // Documents data
+  StreamSubscription<List<Map<String, dynamic>>>? _documentsSub;
 
   // Helper methods to check for valid data
   bool _hasValidEmails() {
@@ -98,6 +132,47 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     _loadWorkspaceMembers();
     _listenToCustomerUpdates();
     _initJobCardsStream();
+    _initDocumentsStream(); // Load documents data on page load
+    _loadHistoryData(); // Load history data on page load
+    
+    // Force UI rebuild after streams are initialized to update tab counts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+    
+    // Add observer for app lifecycle changes
+    WidgetsBinding.instance.addObserver(this);
+    
+    // Refresh customer data when entering the page
+    _refreshCustomerData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes only after dependencies are ready
+    final route = ModalRoute.of(context);
+    if (route is PageRoute && Get.isRegistered<RouteObserver>()) {
+      Get.find<RouteObserver>().subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    super.didPopNext();
+    // Called when returning to this page from another page
+    print('[CustomerDetail] Returned from another page, refreshing customer data...');
+    _refreshCustomerData();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh data when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      print('[CustomerDetail] App resumed, refreshing customer data...');
+      _refreshCustomerData();
+    }
   }
 
   bool _isCurrentUserAssigned() {
@@ -202,11 +277,276 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     });
   }
 
+  void _initDocumentsStream() {
+    final customer = _currentCustomer ?? widget.customer;
+    final workspaceId = customer.workspaceId;
+
+    // Quick one-shot prefetch to populate count ASAP before first stream emission
+    FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('cards')
+        .where('customers', arrayContains: customer.id)
+        .get()
+        .then((snapshot) {
+      if (!mounted) return;
+      int tempCount = 0;
+      for (var cardDoc in snapshot.docs) {
+        final cardData = cardDoc.data();
+        final relatedDocuments = cardData['relatedDocuments'] as List<dynamic>? ?? [];
+        tempCount += relatedDocuments.length;
+      }
+      // Only set if stream hasn't already provided a value
+      if (mounted && _documentCount == 0 && tempCount != 0) {
+        setState(() {
+          _documentCount = tempCount;
+        });
+      }
+    }).catchError((_) {});
+    
+    // Stream to monitor all cards in the workspace that have this customer
+    final stream = FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('cards')
+        .where('customers', arrayContains: customer.id)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> allDocuments = [];
+      
+      for (var cardDoc in snapshot.docs) {
+        final cardData = cardDoc.data();
+        final cardTitle = cardData['title'] ?? 'Untitled Card';
+        final relatedDocuments = cardData['relatedDocuments'] as List<dynamic>? ?? [];
+        
+        for (var docRef in relatedDocuments) {
+          final docData = Map<String, dynamic>.from(docRef);
+          
+          // Fetch detailed document information if needed
+          final documentId = docData['id'];
+          if (documentId != null) {
+            try {
+              final docSnapshot = await FirebaseFirestore.instance
+                  .collection('workspaces')
+                  .doc(workspaceId)
+                  .collection('documents')
+                  .doc(documentId)
+                  .get();
+              
+              if (docSnapshot.exists) {
+                final fullDocData = docSnapshot.data()!;
+                allDocuments.add({
+                  'id': documentId,
+                  'fileName': fullDocData['fileName'] ?? docData['docNo'] ?? 'Unknown File',
+                  'jobCard': cardTitle,
+                  'cardId': cardDoc.id,
+                  'uploadedBy': fullDocData['createdBy'] ?? 'Unknown',
+                  'uploadedAt': fullDocData['createdAt'],
+                  'type': fullDocData['type'] ?? docData['type'] ?? 'Unknown',
+                  'status': fullDocData['status'] ?? 'Active',
+                  'downloadUrl': fullDocData['downloadUrl'],
+                  ...fullDocData,
+                });
+              } else {
+                // Document not found, show placeholder
+                allDocuments.add({
+                  'id': documentId,
+                  'fileName': docData['docNo'] ?? 'Missing Document',
+                  'jobCard': cardTitle,
+                  'cardId': cardDoc.id,
+                  'uploadedBy': 'Unknown',
+                  'uploadedAt': null,
+                  'type': docData['type'] ?? 'Unknown',
+                  'status': 'NOT_FOUND',
+                });
+              }
+            } catch (e) {
+              print('Error loading document $documentId: $e');
+            }
+          }
+        }
+      }
+      
+      // Sort by upload date (newest first)
+      allDocuments.sort((a, b) {
+        final aDate = a['uploadedAt'];
+        final bDate = b['uploadedAt'];
+        if (aDate == null && bDate == null) return 0;
+        if (aDate == null) return 1;
+        if (bDate == null) return -1;
+        
+        if (aDate is String && bDate is String) {
+          return DateTime.parse(bDate).compareTo(DateTime.parse(aDate));
+        }
+        return 0;
+      });
+      
+      return allDocuments;
+    });
+
+    // Listen to documents stream to update count
+    _documentsSub = stream.listen((documents) {
+      if (!mounted) return;
+      setState(() {
+        _documentCount = documents.length;
+      });
+    }, onError: (error) {
+      print('Error loading documents: $error');
+      if (!mounted) return;
+      setState(() {
+        _documentCount = 0;
+      });
+    });
+  }
+
+  Future<void> _loadHistoryData() async {
+    if (_historyLoading) return;
+    
+    setState(() {
+      _historyLoading = true;
+    });
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.customer.workspaceId)
+          .collection('activities')
+          .where('type', isEqualTo: 'card-create')
+          .get();
+
+      final activities = snapshot.docs;
+      
+      // Sort activities by timestamp in descending order (client-side)
+      activities.sort((a, b) {
+        final aData = a.data();
+        final bData = b.data();
+        
+        // Handle timestamp that can be either Timestamp or int
+        Timestamp? aTimestamp;
+        Timestamp? bTimestamp;
+        
+        final aTimestampRaw = aData['timestamp'];
+        final bTimestampRaw = bData['timestamp'];
+        
+        if (aTimestampRaw is Timestamp) {
+          aTimestamp = aTimestampRaw;
+        } else if (aTimestampRaw is int) {
+          aTimestamp = Timestamp.fromMillisecondsSinceEpoch(aTimestampRaw);
+        }
+        
+        if (bTimestampRaw is Timestamp) {
+          bTimestamp = bTimestampRaw;
+        } else if (bTimestampRaw is int) {
+          bTimestamp = Timestamp.fromMillisecondsSinceEpoch(bTimestampRaw);
+        }
+        
+        if (aTimestamp == null && bTimestamp == null) return 0;
+        if (aTimestamp == null) return 1;
+        if (bTimestamp == null) return -1;
+        
+        return bTimestamp.compareTo(aTimestamp); // Descending order
+      });
+
+      if (mounted) {
+        setState(() {
+          _historyActivities = activities;
+          _historyCount = activities.length;
+          _historyLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _historyLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _updateTodoCompletion(String jobCardId, String todoId, bool completed) async {
+    if (jobCardId.isEmpty || todoId.isEmpty) return;
+
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value.isNotEmpty
+          ? _controller.currentWorkspaceId.value
+          : widget.customer.workspaceId;
+
+      // Try cards collection first (new structure)
+      DocumentReference docRef = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('cards')
+          .doc(jobCardId);
+      
+      DocumentSnapshot docSnapshot = await docRef.get();
+      
+      // If not found in cards, try jobCards collection (old structure)
+      if (!docSnapshot.exists) {
+        docRef = FirebaseFirestore.instance
+            .collection('workspaces')
+            .doc(workspaceId)
+            .collection('jobCards')
+            .doc(jobCardId);
+        
+        docSnapshot = await docRef.get();
+        
+        if (!docSnapshot.exists) {
+          throw Exception('Job card not found in both cards and jobCards collections');
+        }
+      }
+
+      // Get current todos from Firestore document
+      final docData = docSnapshot.data() as Map<String, dynamic>?;
+      final currentTodos = List<Map<String, dynamic>>.from(docData?['todos'] ?? []);
+      
+      // Find and update the specific todo
+      final todoIndex = currentTodos.indexWhere((todo) => todo['id'] == todoId);
+      if (todoIndex == -1) {
+        throw Exception('Todo item not found');
+      }
+
+      // Update the todo completion status
+      currentTodos[todoIndex]['completed'] = completed;
+
+      // Update the entire todos array
+      await docRef.update({'todos': currentTodos});
+
+      // Show success feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(completed ? 'ทำเครื่องหมายเสร็จแล้ว' : 'ยกเลิกการทำเครื่องหมาย'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('ไม่สามารถอัปเดตสถานะ To-Do ได้: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _customerUpdateListener?.dispose();
     _jobCardsSub?.cancel();
+    _documentsSub?.cancel();
     _tabController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    
+    // Unsubscribe from route observer
+    if (Get.isRegistered<RouteObserver>()) {
+      Get.find<RouteObserver>().unsubscribe(this);
+    }
+    
     super.dispose();
   }
 
@@ -1060,12 +1400,14 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                       tabs: [
                         Tab(text: 'Job card (' '$_jobCardCount' ')'),
                         Tab(text: 'สิ่งที่ต้องทำ (' '$_todoCount' ')'),
-                        const Tab(text: 'ประวัติ (0)'),
-                        const Tab(text: 'คลังเอกสาร (0)'),
+                        Tab(text: 'ประวัติ ($_historyCount)'),
+                        Tab(text: 'คลังเอกสาร ($_documentCount)'),
                         const Tab(text: 'โน๊ต (0)'),
                         const Tab(text: 'เอกสารการขาย (0)'),
                       ],
                     ),
+                    // version changes whenever any count changes -> forces rebuild
+                    _jobCardCount ^ _todoCount ^ _historyCount ^ _documentCount,
                   ),
                 ),
               ],
@@ -1441,6 +1783,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     final dueDate = todo['dueDate'];
     final jobCardTitle = todo['jobCardTitle'] as String? ?? '';
     final jobCardCustomId = todo['jobCardCustomId'] as String? ?? '';
+    final jobCardId = todo['jobCardId'] as String? ?? '';
+    final todoId = todo['id'] as String? ?? '';
     
     // Parse HTML title to plain text
     String plainTitle = todoTitle;
@@ -1486,24 +1830,27 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           Row(
             children: [
               // Completion checkbox
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: isCompleted ? Colors.green : Colors.transparent,
-                  border: Border.all(
-                    color: isCompleted ? Colors.green : AppTheme.textSecondary,
-                    width: 2,
+              GestureDetector(
+                onTap: () => _updateTodoCompletion(jobCardId, todoId, !isCompleted),
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: isCompleted ? Colors.green : Colors.transparent,
+                    border: Border.all(
+                      color: isCompleted ? Colors.green : AppTheme.textSecondary,
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  borderRadius: BorderRadius.circular(4),
+                  child: isCompleted
+                      ? const Icon(
+                          Icons.check,
+                          size: 14,
+                          color: Colors.white,
+                        )
+                      : null,
                 ),
-                child: isCompleted
-                    ? const Icon(
-                        Icons.check,
-                        size: 14,
-                        color: Colors.white,
-                      )
-                    : null,
               ),
               
               const SizedBox(width: 12),
@@ -1601,15 +1948,136 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildHistoryTab() {
     return Container(
       color: AppTheme.backgroundGrey,
-      child: Center(
-        child: Text(
-          'customer_tab_history_coming_soon'.tr,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.textSecondary,
-          ),
-        ),
+      child: RefreshIndicator(
+        onRefresh: _loadHistoryData,
+        child: _historyLoading && _historyActivities.isEmpty
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : _historyActivities.isEmpty
+                ? CustomScrollView(
+                    slivers: [
+                      SliverFillRemaining(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.history,
+                                size: 64,
+                                color: AppTheme.textSecondary.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'ยังไม่มีประวัติการสร้างการ์ด',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'ดึงลงเพื่ออัปเดต',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textSecondary.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _historyActivities.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final activity = _historyActivities[index].data() as Map<String, dynamic>;
+                      
+                      // Handle timestamp that can be either Timestamp or int
+                      Timestamp? timestamp;
+                      final timestampRaw = activity['timestamp'];
+                      if (timestampRaw is Timestamp) {
+                        timestamp = timestampRaw;
+                      } else if (timestampRaw is int) {
+                        timestamp = Timestamp.fromMillisecondsSinceEpoch(timestampRaw);
+                      }
+                      
+                      final details = activity['details'] as Map<String, dynamic>?;
+                      final userDisplayName = activity['userDisplayName'] as String? ?? 'ไม่ระบุชื่อ';
+                      final cardTitle = details?['cardTitle'] as String? ?? 'ไม่มีชื่อการ์ด';
+                      final laneName = details?['laneName'] as String? ?? 'ไม่ระบุโซน';
+
+                      return Card(
+                        margin: EdgeInsets.zero,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+                                    child: Icon(
+                                      Icons.add_card,
+                                      size: 16,
+                                      color: AppTheme.primaryOrange,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '$userDisplayName สร้างการ์ดใหม่',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'การ์ด: $cardTitle',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                        Text(
+                                          'โซน: $laneName',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (timestamp != null)
+                                    Text(
+                                      _formatThaiDateTime(timestamp.toDate()),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
       ),
     );
   }
@@ -1617,17 +2085,380 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildDocumentTab() {
     return Container(
       color: AppTheme.backgroundGrey,
-      child: Center(
-        child: Text(
-          'customer_tab_document_library_coming_soon'.tr,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.textSecondary,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search Bar
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search documents...',
+                prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppTheme.borderGrey),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppTheme.borderGrey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppTheme.primaryOrange),
+                ),
+              ),
+            ),
           ),
+          
+          // Upload File Button
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ElevatedButton.icon(
+              onPressed: _uploadFile,
+              icon: const Icon(Icons.cloud_upload_outlined),
+              label: const Text('Upload File'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          
+          // Header Row
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.borderGrey.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              children: [
+                Expanded(flex: 3, child: Text('File Name', style: TextStyle(fontWeight: FontWeight.w600))),
+                Expanded(flex: 2, child: Text('Job Card', style: TextStyle(fontWeight: FontWeight.w600))),
+                Expanded(flex: 2, child: Text('Uploaded By', style: TextStyle(fontWeight: FontWeight.w600))),
+                Expanded(flex: 2, child: Text('Uploaded At', style: TextStyle(fontWeight: FontWeight.w600))),
+                SizedBox(width: 60, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.w600))),
+              ],
+            ),
+          ),
+          
+          // Document List
+          Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _getRelatedDocumentsStream(),
+              initialData: const [],
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error loading documents: ${snapshot.error}',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+                
+                final documents = snapshot.data ?? [];
+                
+                if (documents.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.folder_open,
+                          size: 48,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No documents found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
+                return ListView.builder(
+                  itemCount: documents.length,
+                  itemBuilder: (context, index) {
+                    final document = documents[index];
+                    return _buildDocumentItem(document);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Upload file functionality
+  Future<void> _uploadFile() async {
+    // TODO: Implement file upload functionality
+    Get.snackbar(
+      'Info',
+      'File upload feature coming soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: AppTheme.primaryOrange,
+      colorText: Colors.white,
+    );
+  }
+
+  // Get stream of related documents from all customer's job cards
+  Stream<List<Map<String, dynamic>>> _getRelatedDocumentsStream() {
+    final customer = _currentCustomer ?? widget.customer;
+    final workspaceId = customer.workspaceId;
+    
+    // Stream to monitor all cards in the workspace that have this customer
+    return FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('cards')
+        .where('customers', arrayContains: customer.id)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> allDocuments = [];
+      
+      for (var cardDoc in snapshot.docs) {
+        final cardData = cardDoc.data();
+        final cardTitle = cardData['title'] ?? 'Untitled Card';
+        final relatedDocuments = cardData['relatedDocuments'] as List<dynamic>? ?? [];
+        
+        for (var docRef in relatedDocuments) {
+          final docData = Map<String, dynamic>.from(docRef);
+          
+          // Fetch detailed document information if needed
+          final documentId = docData['id'];
+          if (documentId != null) {
+            try {
+              final docSnapshot = await FirebaseFirestore.instance
+                  .collection('workspaces')
+                  .doc(workspaceId)
+                  .collection('documents')
+                  .doc(documentId)
+                  .get();
+              
+              if (docSnapshot.exists) {
+                final fullDocData = docSnapshot.data()!;
+                allDocuments.add({
+                  'id': documentId,
+                  'fileName': fullDocData['fileName'] ?? docData['docNo'] ?? 'Unknown File',
+                  'jobCard': cardTitle,
+                  'cardId': cardDoc.id,
+                  'uploadedBy': fullDocData['createdBy'] ?? 'Unknown',
+                  'uploadedAt': fullDocData['createdAt'],
+                  'type': fullDocData['type'] ?? docData['type'] ?? 'Unknown',
+                  'status': fullDocData['status'] ?? 'Active',
+                  'downloadUrl': fullDocData['downloadUrl'],
+                  ...fullDocData,
+                });
+              } else {
+                // Document not found, show placeholder
+                allDocuments.add({
+                  'id': documentId,
+                  'fileName': docData['docNo'] ?? 'Missing Document',
+                  'jobCard': cardTitle,
+                  'cardId': cardDoc.id,
+                  'uploadedBy': 'Unknown',
+                  'uploadedAt': null,
+                  'type': docData['type'] ?? 'Unknown',
+                  'status': 'NOT_FOUND',
+                });
+              }
+            } catch (e) {
+              print('Error loading document $documentId: $e');
+            }
+          }
+        }
+      }
+      
+      // Sort by upload date (newest first)
+      allDocuments.sort((a, b) {
+        final aDate = a['uploadedAt'];
+        final bDate = b['uploadedAt'];
+        if (aDate == null && bDate == null) return 0;
+        if (aDate == null) return 1;
+        if (bDate == null) return -1;
+        
+        if (aDate is String && bDate is String) {
+          return DateTime.parse(bDate).compareTo(DateTime.parse(aDate));
+        }
+        return 0;
+      });
+      
+      return allDocuments;
+    });
+  }
+
+  Widget _buildDocumentItem(Map<String, dynamic> document) {
+    final fileName = document['fileName'] ?? 'Unknown File';
+    final jobCard = document['jobCard'] ?? 'Unknown Job Card';
+    final uploadedBy = document['uploadedBy'] ?? 'Unknown';
+    final uploadedAt = document['uploadedAt'];
+    final status = document['status'] ?? 'Active';
+    
+    String formattedDate = 'Unknown Date';
+    if (uploadedAt != null) {
+      try {
+        DateTime date;
+        if (uploadedAt is String) {
+          date = DateTime.parse(uploadedAt);
+        } else if (uploadedAt is Timestamp) {
+          date = uploadedAt.toDate();
+        } else {
+          date = DateTime.now();
+        }
+        formattedDate = _formatThaiDateTime(date);
+      } catch (e) {
+        formattedDate = 'Invalid Date';
+      }
+    }
+    
+    final isNotFound = status == 'NOT_FOUND';
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 1),
+      decoration: BoxDecoration(
+        color: isNotFound ? Colors.red.withOpacity(0.1) : Colors.white,
+        border: Border(
+          bottom: BorderSide(color: AppTheme.borderGrey.withOpacity(0.5)),
+        ),
+      ),
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Icon(
+          isNotFound ? Icons.error_outline : _getFileIcon(fileName),
+          color: isNotFound ? Colors.red : AppTheme.primaryOrange,
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Text(
+                fileName,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isNotFound ? Colors.red : AppTheme.textPrimary,
+                  decoration: isNotFound ? TextDecoration.lineThrough : null,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                jobCard,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                uploadedBy,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                formattedDate,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(
+              width: 60,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isNotFound && document['downloadUrl'] != null)
+                    IconButton(
+                      icon: const Icon(Icons.download, size: 16),
+                      onPressed: () => _downloadFile(document),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    ),
+                  if (!isNotFound)
+                    IconButton(
+                      icon: const Icon(Icons.visibility, size: 16),
+                      onPressed: () => _viewDocument(document),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  IconData _getFileIcon(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      case 'xls':
+      case 'xlsx':
+        return Icons.table_chart;
+      case 'png':
+      case 'jpg':
+      case 'jpeg':
+      case 'gif':
+        return Icons.image;
+      case 'zip':
+      case 'rar':
+        return Icons.archive;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
+  Future<void> _downloadFile(Map<String, dynamic> document) async {
+    final downloadUrl = document['downloadUrl'];
+    if (downloadUrl != null) {
+      // TODO: Implement file download
+      Get.snackbar(
+        'Info',
+        'Download functionality coming soon',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.primaryOrange,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _viewDocument(Map<String, dynamic> document) async {
+    final cardId = document['cardId'];
+    if (cardId != null) {
+      // Navigate to job card detail to view document
+      Get.toNamed('/job-card-detail', arguments: {'cardId': cardId});
+    }
   }
 
   Widget _buildNoteTab() {
@@ -1719,7 +2550,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
 
 class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
-  _TabBarSliverDelegate(this.tabBar);
+  final int version; // simple int that changes when counts change
+  _TabBarSliverDelegate(this.tabBar, this.version);
 
   @override
   double get minExtent => tabBar.preferredSize.height;
@@ -1735,5 +2567,27 @@ class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+    if (oldDelegate is _TabBarSliverDelegate) {
+      return oldDelegate.version != version || oldDelegate.tabBar != tabBar;
+    }
+    return true;
+  }
+}
+
+extension _DateTimeFormatting on _CustomerDetailPageState {
+  String _formatThaiDateTime(DateTime dateTime) {
+    final thaiMonths = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+    
+    final day = dateTime.day;
+    final month = thaiMonths[dateTime.month - 1];
+    final year = dateTime.year + 543; // Convert to Buddhist Era
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    
+    return '$day $month $year เวลา $hour:$minute น.';
+  }
 }

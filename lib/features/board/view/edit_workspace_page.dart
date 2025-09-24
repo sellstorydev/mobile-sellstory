@@ -52,15 +52,15 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
 
   Future<void> _deleteWorkspace() async {
     if (!_canDeleteWorkspace) {
-      _showError("You don't have permission to delete this workspace");
+      _showError('no_permission_delete_workspace'.tr);
       return;
     }
 
     // Show confirmation dialog
     final shouldDelete = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      title: 'Delete Workspace',
-      content: 'Are you sure you want to delete "${widget.currentName}"? This action cannot be undone and will delete all boards, cards, and data in this workspace.',
+      title: 'delete_workspace'.tr,
+      content: 'delete_workspace_confirmation'.trParams({'name': widget.currentName}),
     );
 
     if (shouldDelete != true) return;
@@ -72,7 +72,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        _showError('User not authenticated');
+        _showError('user_not_authenticated'.tr);
         return;
       }
 
@@ -84,8 +84,8 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
 
       // Show success message
       Get.snackbar(
-        'Success',
-        'Workspace deleted successfully!',
+        'success'.tr,
+        'workspace_deleted_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -109,7 +109,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
         }
       });
     } catch (e) {
-      _showError('Failed to delete workspace: ${e.toString()}');
+      _showError('failed_to_delete_workspace'.tr + ': ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
@@ -119,17 +119,17 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
 
   Future<void> _updateWorkspace() async {
     if (!_canEditName) {
-      _showError("You don't have permission to update workspace settings");
+      _showError('no_permission_update_workspace'.tr);
       return;
     }
 
     if (_workspaceNameController.text.trim().isEmpty) {
-      _showError('Workspace name is required');
+      _showError('workspace_name_required'.tr);
       return;
     }
 
     if (_workspaceNameController.text.trim() == widget.currentName) {
-      _showError('No changes made');
+      _showError('no_changes_made'.tr);
       return;
     }
 
@@ -140,7 +140,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        _showError('User not authenticated');
+        _showError('user_not_authenticated'.tr);
         return;
       }
 
@@ -155,8 +155,8 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
 
       // Show success message
       Get.snackbar(
-        'Success',
-        'Workspace name updated successfully!',
+        'success'.tr,
+        'workspace_updated_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -180,7 +180,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
         }
       });
     } catch (e) {
-      _showError('Failed to update workspace: ${e.toString()}');
+      _showError('failed_to_update_workspace'.tr + ': ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
@@ -190,7 +190,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
 
   void _showError(String message) {
     Get.snackbar(
-      'Error',
+      'error'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
@@ -202,26 +202,27 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Workspace'),
+        title: Text('edit_workspace'.tr),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
           IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, color: Colors.black),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Title
-            const Text(
-              'Edit Workspace',
-              style: TextStyle(
+            Text(
+              'edit_workspace_title'.tr,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -240,10 +241,10 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                 ),
                 child: Text(
                   !_canEditName && !_canDeleteWorkspace
-                      ? 'You have read-only access to workspace settings.'
+                      ? 'read_only_workspace_access'.tr
                       : !_canEditName
-                          ? 'You can view but cannot edit the workspace name.'
-                          : 'You cannot delete this workspace.',
+                          ? 'cannot_edit_workspace_name'.tr
+                          : 'cannot_delete_workspace'.tr,
                   style: const TextStyle(fontSize: 12, color: Colors.black87),
                 ),
               ),
@@ -252,9 +253,9 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
             const SizedBox(height: 8),
             
             // Description
-            const Text(
-              'Update your workspace name. This will be reflected across all boards and team members.',
-              style: TextStyle(
+            Text(
+              'edit_workspace_description'.tr,
+              style: const TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
               ),
@@ -263,9 +264,9 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
             const SizedBox(height: 32),
             
             // Workspace Name Input
-            const Text(
-              'Workspace Name',
-              style: TextStyle(
+            Text(
+              'workspace_name'.tr,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
@@ -277,20 +278,21 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
             TextField(
               controller: _workspaceNameController,
               enabled: _canEditName,
-              decoration: const InputDecoration(
-                hintText: 'Enter workspace name...',
-                border: OutlineInputBorder(
+              decoration: InputDecoration(
+                hintText: 'enter_workspace_name_hint'.tr,
+                border: const OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
                 ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               autofocus: true,
             ),
             
-            const Spacer(),
+            // Add spacing to push content properly
+            SizedBox(height: MediaQuery.of(context).size.height * 0.15),
             
             // Danger Zone
             Container(
@@ -308,7 +310,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                       Icon(Icons.warning, color: Colors.red[600], size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        'Danger Zone',
+                        'danger_zone'.tr,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -319,7 +321,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Once you delete a workspace, there is no going back. Please be certain.',
+                    'workspace_delete_warning'.tr,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.red[700],
@@ -340,12 +342,12 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.delete, size: 16),
-                          SizedBox(width: 8),
+                        children: [
+                          const Icon(Icons.delete, size: 16),
+                          const SizedBox(width: 8),
                           Text(
-                            'Delete Workspace',
-                            style: TextStyle(
+                            'delete_workspace'.tr,
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -384,9 +386,9 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text(
-                            'Update',
-                            style: TextStyle(
+                        : Text(
+                            'update_btn'.tr,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -407,9 +409,9 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
+                    child: Text(
+                      'cancel'.tr,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -418,7 +420,11 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                 ),
               ],
             ),
-          ],
+            
+            // Bottom padding for keyboard space
+            const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );

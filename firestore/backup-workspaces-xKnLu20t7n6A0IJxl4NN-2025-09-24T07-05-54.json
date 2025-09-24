@@ -1605,7 +1605,6 @@
             "watchers": [],
             "status": "Pending",
             "createdBy": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
-            "notes": [],
             "description": "",
             "endDate": 1761843600000,
             "updatedByDisplayName": "BewLnwZa",
@@ -1623,7 +1622,31 @@
             "createdAt": 1758471860199,
             "id": "4arPPdq0J9D8VXVleu2a",
             "title": "Next month",
-            "updatedAt": 1758471869490
+            "additionalDiscount": null,
+            "badges": [],
+            "isVatEnabled": false,
+            "amount": 0,
+            "withholdingTaxPercentage": 0,
+            "dueDate": null,
+            "relatedDocuments": [],
+            "customerInterest": "เริ่มต้น",
+            "priority": null,
+            "hashtag": null,
+            "notes": [
+              {
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "timestamp": 1758562886532,
+                "mentions": [],
+                "userPhotoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1758300587166-image_picker_5C38B012-1C85-4D52-9D61-B18F12BB5E3C-58445-0000021FFB61F7C2.jpg?alt=media&token=822a4fe9-cf76-4a0e-8b3c-954bad17baef",
+                "cardId": "4arPPdq0J9D8VXVleu2a",
+                "cardTitle": "Next month",
+                "type": "text",
+                "userDisplayName": "BewLnwZa",
+                "id": "note-1758562886532",
+                "text": "<p>testtsss</p>"
+              }
+            ],
+            "updatedAt": 1758603893423
           },
           "7Wir0lS7ppREpkJtZwTF": {
             "additionalDiscount": null,
@@ -1863,7 +1886,6 @@
                 "url": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/workspaces%2FxKnLu20t7n6A0IJxl4NN%2Fcards%2FAhzmaDyKm4wwcMntM3hO%2F1756977563859-jpeg1.jpeg?alt=media&token=db6f932e-238b-4c2a-911e-8e2c70b3a5c2"
               }
             ],
-            "customerInterest": "เริ่มต้น",
             "laneId": "qesjwQS3saV9h3wzyYMz",
             "updatedByDisplayName": "BewLnwZa",
             "quotationTemplateId": "MwDjGmET9ECYTGveik98",
@@ -1884,22 +1906,6 @@
                 "productId": "34N6d2Az4sYF7ZHvyFHN",
                 "quantity": 1,
                 "unit": "จำนวน"
-              }
-            ],
-            "todos": [
-              {
-                "completed": false,
-                "dueDate": 1756918860000,
-                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975522376",
-                "mentions": [],
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em>fasdfasdf</em></strong></span></p>"
-              },
-              {
-                "completed": false,
-                "dueDate": 1756918860000,
-                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975523853",
-                "mentions": [],
-                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em><p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em><p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p></em></strong></span></p></em></strong></span></p>"
               }
             ],
             "relatedDocuments": [
@@ -2005,11 +2011,25 @@
               "xvdZZF0XGsWwR1yZtUdG8cQQgtU2"
             ],
             "startDate": 1758214800000,
-            "updatedAt": {
-              "_seconds": 1758518142,
-              "_nanoseconds": 175000000
-            },
             "order": 1,
+            "customerInterest": "มาก (High)",
+            "todos": [
+              {
+                "completed": false,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975522376",
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em>fasdfasdf</em></strong></span></p>",
+                "mentions": [],
+                "dueDate": 1756918860000
+              },
+              {
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em><p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em><p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p></em></strong></span></p></em></strong></span></p>",
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975523853"
+              }
+            ],
+            "updatedAt": 1758688979982,
             "subCollection": {
               "workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/expenses": {
                 "exp-1756975564459-34N6d2Az4sYF7ZHvyFHN": {
@@ -2390,7 +2410,6 @@
             "status": "Pending",
             "quotationTemplateId": "Fv9OBceNChku4n8jmx1P",
             "todos": [],
-            "notes": [],
             "hashtags": [],
             "customerId": "IhxyfTOYQ6k1UxmdMTT2",
             "title": "Today",
@@ -2401,7 +2420,21 @@
               "_seconds": 1758514244,
               "_nanoseconds": 812000000
             },
-            "order": 1
+            "order": 1,
+            "notes": [
+              {
+                "userId": "xvdZZF0XGsWwR1yZtUdG8cQQgtU2",
+                "mentions": [],
+                "cardId": "u5zNMm8WDp0SDNz6qODG",
+                "id": "note-1758656040890",
+                "text": "<p>daft</p>",
+                "cardTitle": "Today",
+                "type": "text",
+                "userPhotoURL": "https://firebasestorage.googleapis.com/v0/b/kanbanflow-iq93h.firebasestorage.app/o/users%2FxvdZZF0XGsWwR1yZtUdG8cQQgtU2%2F1758300587166-image_picker_5C38B012-1C85-4D52-9D61-B18F12BB5E3C-58445-0000021FFB61F7C2.jpg?alt=media&token=822a4fe9-cf76-4a0e-8b3c-954bad17baef",
+                "userDisplayName": "BewLnwZa",
+                "timestamp": 1758656040890
+              }
+            ]
           },
           "vGwF4aQH1WQFWR1rG1oA": {
             "company": {

@@ -25,7 +25,7 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
 
   Future<void> _createWorkspace() async {
     if (_workspaceNameController.text.trim().isEmpty) {
-      _showError('Workspace name is required');
+      _showError('workspace_name_required'.tr);
       return;
     }
 
@@ -36,7 +36,7 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        _showError('User not authenticated');
+        _showError('user_not_authenticated'.tr);
         return;
       }
 
@@ -52,8 +52,8 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
 
       // Show success message
       Get.snackbar(
-        'Success',
-        'Workspace "$workspaceName" created successfully!',
+        'success'.tr,
+        'workspace_created_successfully'.tr.replaceAll('{name}', workspaceName),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -77,7 +77,7 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
         }
       });
     } catch (e) {
-      _showError('Failed to create workspace: ${e.toString()}');
+      _showError('failed_to_create_workspace'.tr + ': ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
@@ -87,7 +87,7 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
 
   void _showError(String message) {
     Get.snackbar(
-      'Error',
+      'error'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
@@ -99,7 +99,7 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create New Workspace'),
+        title: Text('workspace_create_new'.tr),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -116,8 +116,8 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
-            const Text(
-              'Create New Workspace',
+            Text(
+              'workspace_create_new'.tr,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -128,8 +128,8 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
             const SizedBox(height: 8),
             
             // Description
-            const Text(
-              'A workspace contains its own boards, customers, products, and settings.',
+            Text(
+              'workspace_description'.tr,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
@@ -139,8 +139,8 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
             const SizedBox(height: 32),
             
             // Workspace Name Input
-            const Text(
-              'Workspace Name',
+            Text(
+              'workspace_name'.tr,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -152,8 +152,8 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
             
             TextField(
               controller: _workspaceNameController,
-              decoration: const InputDecoration(
-                hintText: 'e.g. My New Business',
+              decoration: InputDecoration(
+                hintText: 'workspace_name_hint'.tr,
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
                 ),
@@ -191,8 +191,8 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text(
-                            'Create',
+                        : Text(
+                            'create_btn'.tr,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -214,8 +214,8 @@ class _CreateWorkspacePageState extends State<CreateWorkspacePage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'Cancel',
+                    child: Text(
+                      'cancel'.tr,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,

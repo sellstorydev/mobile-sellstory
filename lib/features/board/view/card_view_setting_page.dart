@@ -16,25 +16,25 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
   final CardViewSettingsService _settingsService = CardViewSettingsService.to;
   bool get _canManageSettings => MobilePermissionsService.to.isOwner || MobilePermissionsService.to.can('settings:board:manage');
 
-  // Field mapping from service to display names
-  static const Map<String, String> _fieldDisplayNames = {
-    'jobId': 'Job ID',
-    'status': 'Status', 
-    'dateRange': 'Date Range',
-    'createdDate': 'Created Date',
-    'assignee': 'Assignee',
-    'customerInterest': 'Customer Interest', 
-    'collaborators': 'Collaborators',
-    'customer': 'Customer',
-    'company': 'Company',
-    'hashtags': 'Hashtags',
-    'grandTotal': 'Grand Total',
-    'netTotal': 'Net Total',
-    'totalBeforeDiscount': 'Total (before discount)',
-    'totalAfterDiscount': 'Total (after discount)',
-    'totalBeforeVAT': 'Total (before VAT)',
-    'description': 'Description',
-    'todoList': 'To-Do List',
+  // Field mapping from service to translation keys
+  static const Map<String, String> _fieldDisplayKeys = {
+    'jobId': 'field_job_id',
+    'status': 'field_status', 
+    'dateRange': 'field_date_range',
+    'createdDate': 'field_created_date',
+    'assignee': 'field_assignee',
+    'customerInterest': 'field_customer_interest', 
+    'collaborators': 'field_collaborators',
+    'customer': 'field_customer',
+    'company': 'field_company',
+    'hashtags': 'field_hashtags',
+    'grandTotal': 'field_grand_total',
+    'netTotal': 'field_net_total',
+    'totalBeforeDiscount': 'field_total_before_discount',
+    'totalAfterDiscount': 'field_total_after_discount',
+    'totalBeforeVAT': 'field_total_before_vat',
+    'description': 'field_description',
+    'todoList': 'field_todo_list',
   };
 
   late List<CardFieldSetting> _fields;
@@ -72,14 +72,14 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
       
       if (!mounted) return; 
       Get.back(result: true);
-      Get.snackbar('สำเร็จ', 'บันทึกการตั้งค่าการ์ดแล้ว', 
+      Get.snackbar('success'.tr, 'card_settings_saved_success'.tr, 
         snackPosition: SnackPosition.BOTTOM, 
         backgroundColor: Colors.green[100], 
         colorText: Colors.green[800]);
     } catch (e) {
       debugPrint('❌ Error saving settings: $e');
       if (mounted) {
-        Get.snackbar('ผิดพลาด', 'บันทึกไม่สำเร็จ: $e', 
+        Get.snackbar('error'.tr, 'card_settings_save_failed'.trParams({'error': e.toString()}), 
           snackPosition: SnackPosition.BOTTOM, 
           backgroundColor: Colors.red[100], 
           colorText: Colors.red[800]);
@@ -117,9 +117,9 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
           backgroundColor: Colors.white,
           elevation: 0,
           foregroundColor: Colors.black87,
-          title: const Text(
-            'Card View Settings',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          title: Text(
+            'card_view_settings'.tr,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           leading: IconButton(
             icon: const Icon(Icons.close),
@@ -132,9 +132,9 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
             children: [
               Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 12),
-              const Text('คุณไม่มีสิทธิ์เข้าถึงหน้านี้', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              Text('no_permission_card_settings'.tr, style: const TextStyle(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 8),
-              const Text('ต้องการสิทธิ์ settings:board:manage หรือเจ้าของ Workspace', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text('need_card_settings_permission'.tr, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Get.back(),
@@ -142,7 +142,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
                   backgroundColor: AppTheme.primaryOrange,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('ปิด'),
+                child: Text('close'.tr),
               ),
             ],
           ),
@@ -156,9 +156,9 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black87,
-        title: const Text(
-          'Card View Settings',
-          style: TextStyle(
+        title: Text(
+          'card_view_settings'.tr,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -174,9 +174,9 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            child: const Text(
-              'Visible Card Fields',
-              style: TextStyle(
+            child: Text(
+              'visible_card_fields'.tr,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -193,7 +193,8 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
                     onReorder: _reorderFields,
                     itemBuilder: (context, index) {
                   final field = _fields[index];
-                  final displayName = _fieldDisplayNames[field.id] ?? field.name;
+                  final displayKey = _fieldDisplayKeys[field.id];
+                  final displayName = displayKey != null ? displayKey.tr : field.name;
                   return Container(
                     key: ValueKey(field.id),
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -264,7 +265,7 @@ class _CardViewSettingPageState extends State<CardViewSettingPage> {
               ),
         child: _saving
           ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          : Text('save'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
