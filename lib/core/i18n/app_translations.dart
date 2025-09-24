@@ -462,18 +462,18 @@ class AppTranslations extends Translations {
           'Select seller from responsible list',
       'click_to_expand_close_section': 'Click to expand/close this section',
       'total': 'Total',
-    'subtotal': 'Subtotal',
-    'total_amount': 'Total Amount',
+      'subtotal': 'Subtotal',
+      'total_amount': 'Total Amount',
       'grand_total': 'Grand Total',
       'vat_exempt': 'VAT Exempt',
       'vat_7_percent': 'VAT 7%',
-    'net_payment': 'Net Payment',
+      'net_payment': 'Net Payment',
       'issue_date': 'Issue Date',
       'expiry_date': 'Expiry Date',
       'select_template': 'Select Template',
       'note': 'Note',
       'footer_note': 'Footer Note',
-    'baht': 'Baht',
+      'baht': 'Baht',
 
       // Orders Module
       'orders': 'Orders',
@@ -576,14 +576,14 @@ class AppTranslations extends Translations {
       'set_custom_date_range': 'Set Custom Date Range:',
       'select_start_date': 'Select Start Date',
       'select_end_date': 'Select End Date',
-      
+
       // Date Filter Types
       'start_date_type': 'Start Date',
       'end_date_type': 'End Date',
       'created_date_type': 'Created Date',
       'due_date_type': 'To-Do Date',
       'updated_at_type': 'Updated At',
-      
+
       'assignee': 'Assignee',
       'select_assignees_multiple': 'Select Assignees (Multiple Selection):',
       'no_assignees_in_system': 'No assignees in system',
@@ -864,7 +864,8 @@ class AppTranslations extends Translations {
       'delete_board': 'Delete Board',
       'board_deleted_successfully': 'Board deleted successfully',
       'failed_to_delete_board': 'Failed to delete board',
-      'no_permission_create_boards': 'You do not have permission to create boards',
+      'no_permission_create_boards':
+          'You do not have permission to create boards',
       'no_permission_manage_boards': 'คุณไม่มีสิทธิ์จัดการบอร์ด',
 
       // Create/Edit Board Pages
@@ -881,10 +882,11 @@ class AppTranslations extends Translations {
       'default_lanes_todo': 'Default lanes: To Do, In Progress, Done',
       'board_added_to_workspace': 'Board will be added to current workspace',
       'no_permission_create_board_msg': 'คุณไม่มีสิทธิ์สร้างบอร์ด',
-      'need_board_manage_permission': 'ต้องการสิทธิ์ settings:board:manage หรือเป็นเจ้าของ Workspace',
+      'need_board_manage_permission':
+          'ต้องการสิทธิ์ settings:board:manage หรือเป็นเจ้าของ Workspace',
       'close_btn': 'ปิด',
 
-      // Create/Edit Workspace Pages  
+      // Create/Edit Workspace Pages
       'workspace_create_new': 'Create New Workspace',
       'edit_workspace': 'Edit Workspace',
       'workspace_name_required': 'Workspace name is required',
@@ -895,14 +897,18 @@ class AppTranslations extends Translations {
       'failed_to_create_workspace': 'Failed to create workspace',
       'failed_to_update_workspace': 'Failed to update workspace',
       'failed_to_delete_workspace': 'Failed to delete workspace',
-      'workspace_description': 'A workspace contains its own boards, customers, products, and settings.',
+      'workspace_description':
+          'A workspace contains its own boards, customers, products, and settings.',
       'workspace_name': 'Workspace Name',
       'workspace_name_hint': 'e.g. My New Business',
       'create_btn': 'Create',
       'delete_workspace': 'Delete Workspace',
-      'delete_workspace_confirmation': 'Are you sure you want to delete "{name}"? This action cannot be undone and will delete all boards, cards, and data in this workspace.',
-      'no_permission_delete_workspace': "You don't have permission to delete this workspace",
-      'no_permission_update_workspace': "You don't have permission to update workspace settings",
+      'delete_workspace_confirmation':
+          'Are you sure you want to delete "{name}"? This action cannot be undone and will delete all boards, cards, and data in this workspace.',
+      'no_permission_delete_workspace':
+          "You don't have permission to delete this workspace",
+      'no_permission_update_workspace':
+          "You don't have permission to update workspace settings",
       'no_changes_made': 'No changes made',
 
       // Card View Pages
@@ -942,64 +948,66 @@ class AppTranslations extends Translations {
       'duplicate_lane': 'Duplicate Lane',
       'delete_lane': 'Delete Lane',
       'no_permission': 'Permission',
-      
+
       // Card and Job Status Keys
-      'status_pending': 'Pending', 
+      'status_pending': 'Pending',
       'status_done': 'Done',
       'status_cancelled': 'Cancelled',
-      
+
       // Card Creation/Edit Keys
       // Card creation form
-    'hashtags_hint': 'Select hashtags',
-    'assignee_hint': 'Select an assignee',
-    'card_title_required': 'Job Card Title is required',
-    'assignee_required': 'Assignee is required',
-    'customer_required': 'Customer is required',
-    'card_title_label': 'Job Card Title',
-    'description_unavailable': 'Description editor unavailable, card will be created without description. You can edit it later.',
-    'saving_progress': 'Saving...',
-    'save_card': 'Save Card',
-    'no_create_permission': 'You do not have permission to create cards',
-    'new_card': 'New Card',
-    'create_job_card': 'Create Job Card',
-    'auto_generated': 'Auto-generated',
-    'customer_interest_label': 'Customer Interest',
-    'expected_closing_date_label': 'Expected Closing Date',
-    'collaborators_label': 'Collaborators',
-    'watchers_label': 'Watchers',
-    'add_collaborator': 'Add Collaborator',
-    'add_watcher': 'Add Watcher',
-    'to_do_list': 'To-Do List',
-    'select_todo_template': 'Select Todo Template',
-    'no_board_or_workspace_selected': 'No board or workspace selected',
-    'no_todo_templates_for_board': 'No todo templates available for this board',
-    'todo_template_applied_success': 'Todo template applied successfully',
-    'failed_to_load_todo_templates': 'Failed to load todo templates: {error}',
-    'failed_to_create_card': 'Failed to create card: {error}',
-    'unknown_user': 'Unknown User',
-    'lane_label': 'Lane',
-    'select_lane': 'Select Lane',
-    'company_label_short': 'Company',
-    'none_option_short': 'None',
-    'not_available': 'N/A',
-    'set_todo_time': 'Set Todo Time',
-    'set_duration': 'Set Duration',
-    'set': 'Set',
-    'duration_label': 'Duration',
-    'due_date_time': 'Due Date & Time',
-    'duration': 'Duration',
-    'apply_template': 'Apply Template',
-    'img': 'Img',
-    'product_service': 'Product/Service',
-    'qty_unit': 'Qty/Unit',
-    'price_unit': 'Price/Unit',
-    'no_expense_items_yet': 'No expense items added yet',
-    'no_related_documents_yet': 'No related documents yet',
-    'file_name': 'File Name',
-    'uploaded_by': 'Uploaded By',
-    'uploaded_at': 'Uploaded At',
-    'actions': 'Actions',
-    'no_attachments_uploaded_yet': 'No attachments uploaded yet',
+      'hashtags_hint': 'Select hashtags',
+      'assignee_hint': 'Select an assignee',
+      'card_title_required': 'Job Card Title is required',
+      'assignee_required': 'Assignee is required',
+      'customer_required': 'Customer is required',
+      'card_title_label': 'Job Card Title',
+      'description_unavailable':
+          'Description editor unavailable, card will be created without description. You can edit it later.',
+      'saving_progress': 'Saving...',
+      'save_card': 'Save Card',
+      'no_create_permission': 'You do not have permission to create cards',
+      'new_card': 'New Card',
+      'create_job_card': 'Create Job Card',
+      'auto_generated': 'Auto-generated',
+      'customer_interest_label': 'Customer Interest',
+      'expected_closing_date_label': 'Expected Closing Date',
+      'collaborators_label': 'Collaborators',
+      'watchers_label': 'Watchers',
+      'add_collaborator': 'Add Collaborator',
+      'add_watcher': 'Add Watcher',
+      'to_do_list': 'To-Do List',
+      'select_todo_template': 'Select Todo Template',
+      'no_board_or_workspace_selected': 'No board or workspace selected',
+      'no_todo_templates_for_board':
+          'No todo templates available for this board',
+      'todo_template_applied_success': 'Todo template applied successfully',
+      'failed_to_load_todo_templates': 'Failed to load todo templates: {error}',
+      'failed_to_create_card': 'Failed to create card: {error}',
+      'unknown_user': 'Unknown User',
+      'lane_label': 'Lane',
+      'select_lane': 'Select Lane',
+      'company_label_short': 'Company',
+      'none_option_short': 'None',
+      'not_available': 'N/A',
+      'set_todo_time': 'Set Todo Time',
+      'set_duration': 'Set Duration',
+      'set': 'Set',
+      'duration_label': 'Duration',
+      'due_date_time': 'Due Date & Time',
+      'duration': 'Duration',
+      'apply_template': 'Apply Template',
+      'img': 'Img',
+      'product_service': 'Product/Service',
+      'qty_unit': 'Qty/Unit',
+      'price_unit': 'Price/Unit',
+      'no_expense_items_yet': 'No expense items added yet',
+      'no_related_documents_yet': 'No related documents yet',
+      'file_name': 'File Name',
+      'uploaded_by': 'Uploaded By',
+      'uploaded_at': 'Uploaded At',
+      'actions': 'Actions',
+      'no_attachments_uploaded_yet': 'No attachments uploaded yet',
       'hashtags_label': 'Hashtags',
       'customer_label': 'Customer',
       'assignee_label': 'Assignee',
@@ -1009,48 +1017,49 @@ class AppTranslations extends Translations {
       'add_item': 'Add Item',
       'duration_minutes': 'Duration (minutes)',
       'html_content': '(HTML content)',
-    // Create Card - Additional keys
-    'need_jobcard_create_permission': 'Requires permission jobcard:create or be workspace owner',
-    'unnamed_template': 'Unnamed template',
-    'available_to_add': 'Available to add',
-    'all_users_selected': 'All users are already selected',
-    'enter_description_hint': 'Enter description here...',
-    'no_todo_items_yet': 'No to-do items yet',
-    'current': 'Current',
-    'currently_set': 'Currently set',
-    'clear_all_times': 'Clear all times',
-    'end_time': 'End time',
-    'enter_duration_minutes': 'Enter duration in minutes',
-    'quick_select': 'Quick select',
-    'minutes_short': 'min',
-    'hour': 'hour',
-    'hours': 'hours',
-    'enter_todo_item_hint': 'Enter todo item...',
-      
+      // Create Card - Additional keys
+      'need_jobcard_create_permission':
+          'Requires permission jobcard:create or be workspace owner',
+      'unnamed_template': 'Unnamed template',
+      'available_to_add': 'Available to add',
+      'all_users_selected': 'All users are already selected',
+      'enter_description_hint': 'Enter description here...',
+      'no_todo_items_yet': 'No to-do items yet',
+      'current': 'Current',
+      'currently_set': 'Currently set',
+      'clear_all_times': 'Clear all times',
+      'end_time': 'End time',
+      'enter_duration_minutes': 'Enter duration in minutes',
+      'quick_select': 'Quick select',
+      'minutes_short': 'min',
+      'hour': 'hour',
+      'hours': 'hours',
+      'enter_todo_item_hint': 'Enter todo item...',
+
       // Priority Labels
       'priority_high_label': 'High',
-      'priority_medium_label': 'Medium', 
+      'priority_medium_label': 'Medium',
       'priority_low_label': 'Low',
-      
+
       // Customer Interest Options
       'interest_initial': 'Initial',
       'interest_low': 'Low',
       'interest_medium': 'Medium',
       'interest_high': 'High',
-      
+
       // Status Summary Cards
       'pending_status': 'Pending',
       'completed_status': 'Completed',
       'in_progress_status': 'In Progress',
       'cancelled_status': 'Cancelled',
-      
+
       // Field Display Labels
       'date_range_label': 'Date Range',
       'created_at_label': 'Created',
       'total_before_discount_label': 'Total (before discount)',
       'total_after_discount_label': 'Total (after discount)',
       'total_before_vat_label': 'Total (before VAT)',
-      
+
       // Edit Card Page Keys (English) - Only new keys that don't exist
       'edit_job_card': 'Edit Job Card',
       'archive_card': 'Archive Card',
@@ -1059,8 +1068,10 @@ class AppTranslations extends Translations {
       'move_card': 'Move Card',
       'copy_card': 'Copy Card',
       'move': 'Move',
-      'archive_confirm_message': 'Are you sure you want to archive "{title}"?\n\nArchived cards will be hidden from the board but can be restored later.',
-      'delete_confirm_message': 'Are you sure you want to permanently delete "{title}"?\n\nThis action cannot be undone.',
+      'archive_confirm_message':
+          'Are you sure you want to archive "{title}"?\n\nArchived cards will be hidden from the board but can be restored later.',
+      'delete_confirm_message':
+          'Are you sure you want to permanently delete "{title}"?\n\nThis action cannot be undone.',
       'card_archived_successfully': 'Card archived successfully',
       'failed_to_archive_card': 'Failed to archive card: {error}',
       'card_deleted_successfully': 'Card deleted successfully',
@@ -1069,8 +1080,10 @@ class AppTranslations extends Translations {
       'failed_to_move_card': 'Failed to move card: {error}',
       'copy_card_feature_coming_soon': 'Copy card feature coming soon',
       'no_permission_move_card': 'You do not have permission to move cards',
-      'no_permission_archive_card': 'You do not have permission to archive cards',
-      'no_permission_delete_card_action': 'You do not have permission to delete cards',
+      'no_permission_archive_card':
+          'You do not have permission to archive cards',
+      'no_permission_delete_card_action':
+          'You do not have permission to delete cards',
       'basic_information': 'Basic Information',
       'card_tasks': 'Tasks',
       'products_and_services': 'Products & Services',
@@ -1080,33 +1093,42 @@ class AppTranslations extends Translations {
       'history_tab': 'History',
       'comment_tab': 'Comment',
       'add_custom': 'Add Custom',
-    // Todo empty state (already exists minimal variant)
-    // 'no_todo_items_yet': 'No to-do items yet',
+      // Todo empty state (already exists minimal variant)
+      // 'no_todo_items_yet': 'No to-do items yet',
       'add_file': 'Add File',
       'delete_attachment': 'Delete Attachment',
-      'are_you_sure_delete_attachment': 'Are you sure you want to delete "{name}"?',
+      'are_you_sure_delete_attachment':
+          'Are you sure you want to delete "{name}"?',
       'attachment_deleted_successfully': 'Attachment deleted successfully',
       'failed_to_delete_attachment': 'Failed to delete attachment: {error}',
       'file_uploaded_successfully': 'File uploaded successfully',
       'failed_to_upload_file': 'Failed to upload file: {error}',
       'download_feature_coming_soon': 'Download feature coming soon',
-    'duplicate_feature_coming_soon': 'Duplicate feature coming soon',
-    'duplicate': 'Duplicate',
+      'duplicate_feature_coming_soon': 'Duplicate feature coming soon',
+      'duplicate': 'Duplicate',
       'delete_reference': 'Delete Reference',
       'download': 'Download',
-    'delete_permanently': 'Delete Permanently',
-    'document_status_updated_successfully': 'Document status updated successfully',
-    'failed_to_update_document_status': 'Failed to update document status: {error}',
-    'cannot_open_document_invalid_id': 'Cannot open document: Invalid document ID',
-    'document_reference_removed_successfully': 'Document reference removed successfully',
-    'document_deleted_successfully': 'Document deleted successfully',
-    'failed_to_delete_document': 'Failed to delete document: {error}',
-    'custom_product_row_added': 'Empty product row added. You can now edit the details.',
-    'delete_document': 'Delete Document',
-    'delete_reference_document': 'Delete Reference',
-    'confirm_delete_document_with_docno': 'Are you sure you want to delete document {docNo}?\n\nThis will permanently delete the document and cannot be undone.',
-    'confirm_delete_reference_with_docno': 'Are you sure you want to remove reference {docNo}?\n\nThis document is not found in the system. The reference will be removed from this card only.',
-      'delete_comment_confirm': 'Are you sure you want to delete this comment? This action cannot be undone.',
+      'delete_permanently': 'Delete Permanently',
+      'document_status_updated_successfully':
+          'Document status updated successfully',
+      'failed_to_update_document_status':
+          'Failed to update document status: {error}',
+      'cannot_open_document_invalid_id':
+          'Cannot open document: Invalid document ID',
+      'document_reference_removed_successfully':
+          'Document reference removed successfully',
+      'document_deleted_successfully': 'Document deleted successfully',
+      'failed_to_delete_document': 'Failed to delete document: {error}',
+      'custom_product_row_added':
+          'Empty product row added. You can now edit the details.',
+      'delete_document': 'Delete Document',
+      'delete_reference_document': 'Delete Reference',
+      'confirm_delete_document_with_docno':
+          'Are you sure you want to delete document {docNo}?\n\nThis will permanently delete the document and cannot be undone.',
+      'confirm_delete_reference_with_docno':
+          'Are you sure you want to remove reference {docNo}?\n\nThis document is not found in the system. The reference will be removed from this card only.',
+      'delete_comment_confirm':
+          'Are you sure you want to delete this comment? This action cannot be undone.',
       'comment_deleted_successfully': 'Comment deleted successfully',
       'failed_to_delete_comment': 'Failed to delete comment: {error}',
       'comment_added_successfully': 'Comment added successfully',
@@ -1134,14 +1156,16 @@ class AppTranslations extends Translations {
       'loading_lanes': 'Loading lanes...',
       'no_boards_available': 'No boards available',
       'no_lanes_available': 'No lanes available',
-      'are_you_sure_delete_product': 'Are you sure you want to delete this product?',
+      'are_you_sure_delete_product':
+          'Are you sure you want to delete this product?',
       'product_deleted_from_card': 'Product deleted from card successfully',
-      'failed_to_delete_product_from_card': 'Failed to delete product from card: {error}',
-      
+      'failed_to_delete_product_from_card':
+          'Failed to delete product from card: {error}',
+
       // Missing status and document translations
       'permission_denied': 'Permission denied',
       'archived_status': 'Archived',
-      'document_status_draft': 'Draft', 
+      'document_status_draft': 'Draft',
       'document_status_approved': 'Approved',
       'document_status_pending_approval': 'Pending Approval',
       'document_status_sent_for_approval': 'Sent for Approval',
@@ -1150,7 +1174,7 @@ class AppTranslations extends Translations {
       'document_status_invoiced': 'Invoiced',
       'document_status_fully_paid': 'Fully Paid',
       'document_status_completed': 'Completed',
-      
+
       // Time format translations
       'just_now': 'Just now',
       'day_ago_single': 'day ago',
@@ -1161,22 +1185,23 @@ class AppTranslations extends Translations {
       'minutes_ago_multiple': 'minutes ago',
       'second_ago_single': 'second ago',
       'seconds_ago_multiple': 'seconds ago',
-      
+
       // Permission message
-      'no_permission_action': "You don't have permission to perform this action",
-      
+      'no_permission_action':
+          "You don't have permission to perform this action",
+
       // Comment dialog titles - use existing reply_to_comment key
       'add_comment_title': 'Add Comment',
       'edit_comment_title': 'Edit Comment',
-      
+
       // Input placeholders for job cards
       'enter_job_id': 'Enter Job ID',
       'enter_job_title': 'Enter job title',
-      
+
       // Comment placeholders
       'type_your_reply': 'Type your reply...',
       'edit_comment_placeholder': 'Edit comment...',
-      
+
       // Feature placeholders
       'history_feature_coming_soon': 'History feature coming soon',
     },
@@ -1571,18 +1596,18 @@ class AppTranslations extends Translations {
           'เลือกผู้ขายจากรายชื่อผู้รับผิดชอบ',
       'click_to_expand_close_section': 'กดเพื่อขยายหรือย่อส่วนนี้',
       'total': 'รวม',
-    'subtotal': 'ยอดรวมย่อย',
-    'total_amount': 'ยอดรวม',
+      'subtotal': 'ยอดรวมย่อย',
+      'total_amount': 'ยอดรวม',
       'grand_total': 'ยอดรวม',
       'vat_exempt': 'ยกเว้น VAT',
       'vat_7_percent': 'VAT 7%',
-    'net_payment': 'ยอดชำระสุทธิ',
+      'net_payment': 'ยอดชำระสุทธิ',
       'issue_date': 'วันที่ออกเอกสาร',
       'expiry_date': 'วันที่หมดอายุ',
       'select_template': 'เลือกเทมเพลต',
       'note': 'หมายเหตุ',
       'footer_note': 'หมายเหตุท้ายเอกสาร',
-    'baht': 'บาท',
+      'baht': 'บาท',
 
       // Orders Module
       'orders': 'รายการคำสั่งซื้อ',
@@ -1870,13 +1895,15 @@ class AppTranslations extends Translations {
       'board_name': 'ชื่อบอร์ด',
       'what_will_be_created': 'สิ่งที่จะถูกสร้าง:',
       'new_board_with_name': 'บอร์ดใหม่พร้อมชื่อที่ระบุ',
-      'default_lanes_todo': 'เลนเริ่มต้น: รอดำเนินการ, กำลังดำเนินการ, เสร็จแล้ว',
+      'default_lanes_todo':
+          'เลนเริ่มต้น: รอดำเนินการ, กำลังดำเนินการ, เสร็จแล้ว',
       'board_added_to_workspace': 'บอร์ดจะถูกเพิ่มในเวิร์กสเปซปัจจุบัน',
       'no_permission_create_board_msg': 'คุณไม่มีสิทธิ์สร้างบอร์ด',
-      'need_board_manage_permission': 'ต้องการสิทธิ์ settings:board:manage หรือเป็นเจ้าของ Workspace',
+      'need_board_manage_permission':
+          'ต้องการสิทธิ์ settings:board:manage หรือเป็นเจ้าของ Workspace',
       'close_btn': 'ปิด',
 
-      // Create/Edit Workspace Pages  
+      // Create/Edit Workspace Pages
       'workspace_create_new': 'สร้างเวิร์กสเปซใหม่',
       'edit_workspace': 'แก้ไขเวิร์กสเปซ',
       'workspace_name_required': 'ต้องระบุชื่อเวิร์กสเปซ',
@@ -1887,14 +1914,17 @@ class AppTranslations extends Translations {
       'failed_to_create_workspace': 'สร้างเวิร์กสเปซไม่สำเร็จ',
       'failed_to_update_workspace': 'อัปเดตเวิร์กสเปซไม่สำเร็จ',
       'failed_to_delete_workspace': 'ลบเวิร์กสเปซไม่สำเร็จ',
-      'workspace_description': 'เวิร์กสเปซมีบอร์ด ลูกค้า สินค้า และการตั้งค่าของตัวเอง',
+      'workspace_description':
+          'เวิร์กสเปซมีบอร์ด ลูกค้า สินค้า และการตั้งค่าของตัวเอง',
       'workspace_name': 'ชื่อเวิร์กสเปซ',
       'workspace_name_hint': 'เช่น ธุรกิจใหม่ของฉัน',
       'create_btn': 'สร้าง',
       'delete_workspace': 'ลบเวิร์กสเปซ',
-      'delete_workspace_confirmation': 'คุณแน่ใจหรือไม่ที่จะลบ "{name}"? การดำเนินการนี้ไม่สามารถยกเลิกได้และจะลบบอร์ด การ์ด และข้อมูลทั้งหมดในเวิร์กสเปซนี้',
+      'delete_workspace_confirmation':
+          'คุณแน่ใจหรือไม่ที่จะลบ "{name}"? การดำเนินการนี้ไม่สามารถยกเลิกได้และจะลบบอร์ด การ์ด และข้อมูลทั้งหมดในเวิร์กสเปซนี้',
       'no_permission_delete_workspace': 'คุณไม่มีสิทธิ์ลบเวิร์กสเปซนี้',
-      'no_permission_update_workspace': 'คุณไม่มีสิทธิ์อัปเดตการตั้งค่าเวิร์กสเปซ',
+      'no_permission_update_workspace':
+          'คุณไม่มีสิทธิ์อัปเดตการตั้งค่าเวิร์กสเปซ',
       'no_changes_made': 'ไม่มีการเปลี่ยนแปลง',
 
       // Card View Pages
@@ -1958,14 +1988,15 @@ class AppTranslations extends Translations {
       'job_card_count': 'การ์ดงาน {count} ใบ',
       'workspace': 'เวิร์กสเปซ',
       'board': 'บอร์ด',
-      
+
       // Board Filter Page Keys (Thai)
       'select_date_type': 'เลือกประเภทวันที่:',
       'quick_options': 'ตัวเลือกด่วน:',
       'select_start_date': 'เลือกวันที่เริ่มต้น',
       'select_end_date': 'เลือกวันที่สิ้นสุด',
       'show_unselected_dates': 'แสดงวันที่ไม่ได้เลือก',
-      'show_tasks_without_date_in_selected_type': 'แสดงงานที่ไม่มีวันที่ในประเภทที่เลือก',
+      'show_tasks_without_date_in_selected_type':
+          'แสดงงานที่ไม่มีวันที่ในประเภทที่เลือก',
       'set_custom_date_range': 'กำหนดช่วงวันที่เอง:',
       'select_assignees_multiple': 'เลือกผู้รับผิดชอบ (เลือกหลายคน):',
       'no_assignees_in_system': 'ไม่มีผู้รับผิดชอบในระบบ',
@@ -1976,19 +2007,19 @@ class AppTranslations extends Translations {
       'select_interests_multiple': 'เลือกความสนใจ (เลือกหลายคน):',
       'no_interests_in_system': 'ไม่มีข้อมูลความสนใจในระบบ',
       'apply_filter': 'ใช้ตัวกรอง',
-      
+
       // Date Filter Types (Thai)
       'start_date_type': 'วันที่เริ่มต้น',
       'end_date_type': 'วันที่สิ้นสุด',
       'created_date_type': 'วันที่สร้าง',
       'due_date_type': 'วันที่ต้องทำ',
       'updated_at_type': 'วันที่อัปเดต',
-      
+
       // Card and Job Status Keys (Thai)
       'status_pending': 'รอดำเนินการ',
       'status_done': 'เสร็จแล้ว',
       'status_cancelled': 'ยกเลิก',
-      
+
       // Card Creation/Edit Keys (Thai)
       // Card creation form
       'hashtags_hint': 'เลือกแฮชแท็ก',
@@ -1997,102 +2028,104 @@ class AppTranslations extends Translations {
       'assignee_required': 'ต้องระบุผู้รับผิดชอบ',
       'customer_required': 'ต้องระบุลูกค้า',
       'card_title_label': 'ชื่อการ์ดงาน',
-      'description_unavailable': 'ไม่สามารถใช้เครื่องมือแก้ไขคำอธิบายได้ การ์ดจะถูกสร้างโดยไม่มีคำอธิบาย คุณสามารถแก้ไขได้ในภายหลัง',
+      'description_unavailable':
+          'ไม่สามารถใช้เครื่องมือแก้ไขคำอธิบายได้ การ์ดจะถูกสร้างโดยไม่มีคำอธิบาย คุณสามารถแก้ไขได้ในภายหลัง',
       'saving_progress': 'กำลังบันทึก...',
       'save_card': 'บันทึกการ์ด',
       'no_create_permission': 'คุณไม่มีสิทธิ์ในการสร้างการ์ด',
       'new_card': 'การ์ดใหม่',
-    'create_job_card': 'สร้างการ์ดงาน',
-    'auto_generated': 'สร้างอัตโนมัติ',
-    'expected_closing_date_label': 'วันที่คาดว่าจะปิดงาน',
-      
-    'watchers_label': 'ผู้ติดตาม',
-    'to_do_list': 'รายการต้องทำ',
-    'select_todo_template': 'เลือกแม่แบบ To-Do',
-    'no_board_or_workspace_selected': 'ยังไม่ได้เลือกบอร์ดหรือเวิร์กสเปซ',
-    'no_todo_templates_for_board': 'ไม่มีแม่แบบ To-Do สำหรับบอร์ดนี้',
-    'todo_template_applied_success': 'ใช้แม่แบบ To-Do เรียบร้อยแล้ว',
-    'failed_to_load_todo_templates': 'ไม่สามารถโหลดแม่แบบ To-Do: {error}',
-    'failed_to_create_card': 'ไม่สามารถสร้างการ์ด: {error}',
-    'unknown_user': 'ผู้ใช้ไม่ทราบชื่อ',
-    'lane_label': 'เลน',
-    'select_lane': 'เลือกเลน',
-    'company_label_short': 'บริษัท',
-    'none_option_short': 'ไม่มี',
-    'not_available': 'ไม่มี',
-    'set_todo_time': 'ตั้งเวลางานย่อย',
-    'set_duration': 'ตั้งระยะเวลา',
-    'set': 'ตั้งค่า',
-    'duration_label': 'ระยะเวลา',
-    'due_date_time': 'วันและเวลาที่ครบกำหนด',
-    'duration': 'ระยะเวลา',
-        'apply_template': 'ใช้แม่แบบ',
-        'img': 'รูป',
-        'product_service': 'สินค้า/บริการ',
-        'qty_unit': 'จำนวน/หน่วย',
-        'price_unit': 'ราคา/หน่วย',
-        'no_expense_items_yet': 'ยังไม่มีรายการค่าใช้จ่าย',
-        'no_related_documents_yet': 'ยังไม่มีเอกสารที่เกี่ยวข้อง',
-        'file_name': 'ชื่อไฟล์',
-        'uploaded_by': 'อัปโหลดโดย',
-        'uploaded_at': 'อัปโหลดเมื่อ',
-        'actions': 'การทำงาน',
-        'no_attachments_uploaded_yet': 'ยังไม่มีไฟล์แนบ',
+      'create_job_card': 'สร้างการ์ดงาน',
+      'auto_generated': 'สร้างอัตโนมัติ',
+      'expected_closing_date_label': 'วันที่คาดว่าจะปิดงาน',
+
+      'watchers_label': 'ผู้ติดตาม',
+      'to_do_list': 'รายการต้องทำ',
+      'select_todo_template': 'เลือกแม่แบบ To-Do',
+      'no_board_or_workspace_selected': 'ยังไม่ได้เลือกบอร์ดหรือเวิร์กสเปซ',
+      'no_todo_templates_for_board': 'ไม่มีแม่แบบ To-Do สำหรับบอร์ดนี้',
+      'todo_template_applied_success': 'ใช้แม่แบบ To-Do เรียบร้อยแล้ว',
+      'failed_to_load_todo_templates': 'ไม่สามารถโหลดแม่แบบ To-Do: {error}',
+      'failed_to_create_card': 'ไม่สามารถสร้างการ์ด: {error}',
+      'unknown_user': 'ผู้ใช้ไม่ทราบชื่อ',
+      'lane_label': 'เลน',
+      'select_lane': 'เลือกเลน',
+      'company_label_short': 'บริษัท',
+      'none_option_short': 'ไม่มี',
+      'not_available': 'ไม่มี',
+      'set_todo_time': 'ตั้งเวลางานย่อย',
+      'set_duration': 'ตั้งระยะเวลา',
+      'set': 'ตั้งค่า',
+      'duration_label': 'ระยะเวลา',
+      'due_date_time': 'วันและเวลาที่ครบกำหนด',
+      'duration': 'ระยะเวลา',
+      'apply_template': 'ใช้แม่แบบ',
+      'img': 'รูป',
+      'product_service': 'สินค้า/บริการ',
+      'qty_unit': 'จำนวน/หน่วย',
+      'price_unit': 'ราคา/หน่วย',
+      'no_expense_items_yet': 'ยังไม่มีรายการค่าใช้จ่าย',
+      'no_related_documents_yet': 'ยังไม่มีเอกสารที่เกี่ยวข้อง',
+      'file_name': 'ชื่อไฟล์',
+      'uploaded_by': 'อัปโหลดโดย',
+      'uploaded_at': 'อัปโหลดเมื่อ',
+      'actions': 'การทำงาน',
+      'no_attachments_uploaded_yet': 'ยังไม่มีไฟล์แนบ',
       'hashtags_label': 'แฮชแท็ก',
       'customer_label': 'ลูกค้า',
       'customer_interest_label': 'ความสนใจของลูกค้า',
       'assignee_label': 'ผู้รับผิดชอบ',
-    'collaborators_label': 'ผู้ร่วมงาน',
-    'add_collaborator': 'เพิ่มผู้ร่วมงาน',
-    'add_watcher': 'เพิ่มผู้ติดตาม',
+      'collaborators_label': 'ผู้ร่วมงาน',
+      'add_collaborator': 'เพิ่มผู้ร่วมงาน',
+      'add_watcher': 'เพิ่มผู้ติดตาม',
       'company_label': 'บริษัท',
       'description_label': 'คำอธิบาย',
       'to_do_label': 'สิ่งที่ต้องทำ',
       'add_item': 'เพิ่มรายการ',
       'duration_minutes': 'ระยะเวลา (นาที)',
       'html_content': '(เนื้อหา HTML)',
-    // Create Card - Additional keys (Thai)
-    'need_jobcard_create_permission': 'ต้องการสิทธิ์ jobcard:create หรือเป็นเจ้าของ Workspace',
-    'unnamed_template': 'เทมเพลตไม่มีชื่อ',
-    'available_to_add': 'พร้อมให้เพิ่ม',
-    'all_users_selected': 'เลือกผู้ใช้ครบทั้งหมดแล้ว',
-    'enter_description_hint': 'พิมพ์คำอธิบายที่นี่...',
-    'no_todo_items_yet': 'ยังไม่มีรายการ To-Do',
-    'current': 'ปัจจุบัน',
-    'currently_set': 'ตั้งค่าแล้ว',
-    'clear_all_times': 'ล้างเวลาทั้งหมด',
-    'end_time': 'เวลาสิ้นสุด',
-    'enter_duration_minutes': 'กรุณาระยะเวลาเป็นนาที',
-    'quick_select': 'เลือกด่วน',
-    'minutes_short': 'นาที',
-    'hour': 'ชั่วโมง',
-    'hours': 'ชั่วโมง',
-    'enter_todo_item_hint': 'พิมพ์สิ่งที่ต้องทำ...',
-      
+      // Create Card - Additional keys (Thai)
+      'need_jobcard_create_permission':
+          'ต้องการสิทธิ์ jobcard:create หรือเป็นเจ้าของ Workspace',
+      'unnamed_template': 'เทมเพลตไม่มีชื่อ',
+      'available_to_add': 'พร้อมให้เพิ่ม',
+      'all_users_selected': 'เลือกผู้ใช้ครบทั้งหมดแล้ว',
+      'enter_description_hint': 'พิมพ์คำอธิบายที่นี่...',
+      'no_todo_items_yet': 'ยังไม่มีรายการ To-Do',
+      'current': 'ปัจจุบัน',
+      'currently_set': 'ตั้งค่าแล้ว',
+      'clear_all_times': 'ล้างเวลาทั้งหมด',
+      'end_time': 'เวลาสิ้นสุด',
+      'enter_duration_minutes': 'กรุณาระยะเวลาเป็นนาที',
+      'quick_select': 'เลือกด่วน',
+      'minutes_short': 'นาที',
+      'hour': 'ชั่วโมง',
+      'hours': 'ชั่วโมง',
+      'enter_todo_item_hint': 'พิมพ์สิ่งที่ต้องทำ...',
+
       // Priority Labels (Thai)
       'priority_high_label': 'สูง',
       'priority_medium_label': 'ปานกลาง',
       'priority_low_label': 'ต่ำ',
-      
+
       // Customer Interest Options (Thai)
       'interest_initial': 'เริ่มต้น',
       'interest_low': 'น้อย',
       'interest_medium': 'กลาง',
       'interest_high': 'มาก',
-      
+
       // Status Summary Cards (Thai)
       'pending_status': 'รอดำเนินการ',
       'completed_status': 'เสร็จแล้ว',
       'in_progress_status': 'กำลังดำเนินการ',
       'cancelled_status': 'ยกเลิก',
-      
+
       // Field Display Labels (Thai)
       'date_range_label': 'ช่วงวันที่',
       'created_at_label': 'สร้างเมื่อ',
       'total_before_discount_label': 'ยอดรวม (ก่อนส่วนลด)',
       'total_after_discount_label': 'ยอดรวม (หลังส่วนลด)',
       'total_before_vat_label': 'ยอดรวม (ก่อน VAT)',
-      
+
       // Edit Card Page Keys (Thai) - Only new keys that don't exist
       'edit_job_card': 'แก้ไขการ์ดงาน',
       'archive_card': 'เก็บการ์ด',
@@ -2101,8 +2134,10 @@ class AppTranslations extends Translations {
       'move_card': 'ย้ายการ์ด',
       'copy_card': 'คัดลอกการ์ด',
       'move': 'ย้าย',
-      'archive_confirm_message': 'คุณแน่ใจหรือไม่ที่จะเก็บ "{title}"?\n\nการ์ดที่เก็บจะถูกซ่อนจากบอร์ดแต่สามารถกู้คืนได้ในภายหลัง',
-      'delete_confirm_message': 'คุณแน่ใจหรือไม่ที่จะลบ "{title}" อย่างถาวร?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้',
+      'archive_confirm_message':
+          'คุณแน่ใจหรือไม่ที่จะเก็บ "{title}"?\n\nการ์ดที่เก็บจะถูกซ่อนจากบอร์ดแต่สามารถกู้คืนได้ในภายหลัง',
+      'delete_confirm_message':
+          'คุณแน่ใจหรือไม่ที่จะลบ "{title}" อย่างถาวร?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้',
       'card_archived_successfully': 'เก็บการ์ดเรียบร้อยแล้ว',
       'failed_to_archive_card': 'ไม่สามารถเก็บการ์ด: {error}',
       'card_deleted_successfully': 'ลบการ์ดเรียบร้อยแล้ว',
@@ -2130,23 +2165,29 @@ class AppTranslations extends Translations {
       'file_uploaded_successfully': 'อัปโหลดไฟล์เรียบร้อยแล้ว',
       'failed_to_upload_file': 'ไม่สามารถอัปโหลดไฟล์: {error}',
       'download_feature_coming_soon': 'คุณลักษณะดาวน์โหลดจะมาเร็ว ๆ นี้',
-    'duplicate_feature_coming_soon': 'ฟีเจอร์ทำซ้ำจะพร้อมใช้งานเร็ว ๆ นี้',
-    'duplicate': 'ทำซ้ำ',
+      'duplicate_feature_coming_soon': 'ฟีเจอร์ทำซ้ำจะพร้อมใช้งานเร็ว ๆ นี้',
+      'duplicate': 'ทำซ้ำ',
       'delete_reference': 'ลบอ้างอิง',
       'download': 'ดาวน์โหลด',
-    'delete_permanently': 'ลบถาวร',
-    'document_status_updated_successfully': 'อัปเดตสถานะเอกสารเรียบร้อยแล้ว',
-    'failed_to_update_document_status': 'อัปเดตสถานะเอกสารไม่สำเร็จ: {error}',
-    'cannot_open_document_invalid_id': 'ไม่สามารถเปิดเอกสารได้: รหัสเอกสารไม่ถูกต้อง',
-    'document_reference_removed_successfully': 'ลบการอ้างอิงเอกสารเรียบร้อยแล้ว',
-    'document_deleted_successfully': 'ลบเอกสารเรียบร้อยแล้ว',
-    'failed_to_delete_document': 'ลบเอกสารไม่สำเร็จ: {error}',
-    'custom_product_row_added': 'เพิ่มแถวสินค้าว่างแล้ว คุณสามารถแก้ไขรายละเอียดได้เลย',
-    'delete_document': 'ลบเอกสาร',
-    'delete_reference_document': 'ลบอ้างอิงเอกสาร',
-    'confirm_delete_document_with_docno': 'คุณแน่ใจหรือไม่ว่าจะลบเอกสาร {docNo}?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้',
-    'confirm_delete_reference_with_docno': 'คุณแน่ใจหรือไม่ว่าจะลบอ้างอิงเอกสาร {docNo}?\n\nเอกสารนี้ไม่พบในระบบแล้ว จะลบเฉพาะอ้างอิงออกจากการ์ดนี้',
-      'delete_comment_confirm': 'คุณแน่ใจหรือไม่ที่จะลบความคิดเห็นนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้',
+      'delete_permanently': 'ลบถาวร',
+      'document_status_updated_successfully': 'อัปเดตสถานะเอกสารเรียบร้อยแล้ว',
+      'failed_to_update_document_status': 'อัปเดตสถานะเอกสารไม่สำเร็จ: {error}',
+      'cannot_open_document_invalid_id':
+          'ไม่สามารถเปิดเอกสารได้: รหัสเอกสารไม่ถูกต้อง',
+      'document_reference_removed_successfully':
+          'ลบการอ้างอิงเอกสารเรียบร้อยแล้ว',
+      'document_deleted_successfully': 'ลบเอกสารเรียบร้อยแล้ว',
+      'failed_to_delete_document': 'ลบเอกสารไม่สำเร็จ: {error}',
+      'custom_product_row_added':
+          'เพิ่มแถวสินค้าว่างแล้ว คุณสามารถแก้ไขรายละเอียดได้เลย',
+      'delete_document': 'ลบเอกสาร',
+      'delete_reference_document': 'ลบอ้างอิงเอกสาร',
+      'confirm_delete_document_with_docno':
+          'คุณแน่ใจหรือไม่ว่าจะลบเอกสาร {docNo}?\n\nการลบนี้จะลบเอกสารออกจากระบบอย่างถาวร และไม่สามารถย้อนกลับได้',
+      'confirm_delete_reference_with_docno':
+          'คุณแน่ใจหรือไม่ว่าจะลบอ้างอิงเอกสาร {docNo}?\n\nเอกสารนี้ไม่พบในระบบแล้ว จะลบเฉพาะอ้างอิงออกจากการ์ดนี้',
+      'delete_comment_confirm':
+          'คุณแน่ใจหรือไม่ที่จะลบความคิดเห็นนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้',
       'comment_deleted_successfully': 'ลบความคิดเห็นเรียบร้อยแล้ว',
       'failed_to_delete_comment': 'ไม่สามารถลบความคิดเห็น: {error}',
       'comment_added_successfully': 'เพิ่มความคิดเห็นเรียบร้อยแล้ว',
@@ -2176,8 +2217,9 @@ class AppTranslations extends Translations {
       'no_lanes_available': 'ไม่มีเลนที่พร้อมใช้งาน',
       'are_you_sure_delete_product': 'คุณแน่ใจหรือไม่ที่จะลบสินค้านี้?',
       'product_deleted_from_card': 'ลบสินค้าจากการ์ดเรียบร้อยแล้ว',
-      'failed_to_delete_product_from_card': 'ไม่สามารถลบสินค้าจากการ์ด: {error}',
-      
+      'failed_to_delete_product_from_card':
+          'ไม่สามารถลบสินค้าจากการ์ด: {error}',
+
       // Missing status and document translations
       'permission_denied': 'ไม่อนุญาต',
       'archived_status': 'เก็บเข้าคลัง',
@@ -2190,7 +2232,7 @@ class AppTranslations extends Translations {
       'document_status_invoiced': 'ออกใบแจ้งหนี้แล้ว',
       'document_status_fully_paid': 'ชำระครบแล้ว',
       'document_status_completed': 'เสร็จสิ้น',
-      
+
       // Time format translations
       'just_now': 'เมื่อสักครู่',
       'day_ago_single': 'วันที่แล้ว',
@@ -2201,22 +2243,22 @@ class AppTranslations extends Translations {
       'minutes_ago_multiple': 'นาทีที่แล้ว',
       'second_ago_single': 'วินาทีที่แล้ว',
       'seconds_ago_multiple': 'วินาทีที่แล้ว',
-      
+
       // Permission message
       'no_permission_action': 'คุณไม่มีสิทธิ์ในการดำเนินการนี้',
-      
+
       // Comment dialog titles - use existing reply_to_comment key
       'add_comment_title': 'เพิ่มความคิดเห็น',
       'edit_comment_title': 'แก้ไขความคิดเห็น',
-      
+
       // Input placeholders for job cards
       'enter_job_id': 'ป้อนรหัสงาน',
       'enter_job_title': 'ป้อนชื่องาน',
-      
+
       // Comment placeholders
       'type_your_reply': 'พิมพ์การตอบกลับของคุณ...',
       'edit_comment_placeholder': 'แก้ไขความคิดเห็น...',
-      
+
       // Feature placeholders
       'history_feature_coming_soon': 'ฟีเจอร์ประวัติจะมาเร็วๆ นี้',
     },

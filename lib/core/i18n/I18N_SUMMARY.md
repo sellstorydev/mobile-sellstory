@@ -41,6 +41,7 @@ Follow-up (2025-09-24 screenshot audit):
    - Dropdown hint → select_template.tr
    - Comments → Reply link uses reply.tr, Post button uses add_comment.tr
    - Ensured no const Text remains where .tr is used
+   - Assignee & Customer labels localized → assignee_label.tr / customer_label.tr (replaced hardcoded "Assignee *" & "Customer")
 
 ### Create Card Page Keys (2025-09-23)
 Files: `lib/features/board/view/create_card_page.dart`, `lib/core/i18n/app_translations.dart`
