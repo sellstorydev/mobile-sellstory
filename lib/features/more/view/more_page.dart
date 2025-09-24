@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
@@ -5,6 +6,7 @@ import '../controller/more_controller.dart';
 import '../../board/controller/board_controller.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../../translation/widgets/language_switcher_widget.dart';
+import '../../../app/routes.dart';
 
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
@@ -128,6 +130,16 @@ class MorePage extends StatelessWidget {
                       },
                     ),
                     _buildDivider(),
+                    if (Platform.isIOS) ...[
+                      _buildMenuItem(
+                        icon: Icons.star_outline,
+                        title: 'iap_menu'.tr,
+                        onTap: () {
+                          Get.toNamed(AppRoutes.iap);
+                        },
+                      ),
+                      _buildDivider(),
+                    ],
                     // PermissionGuard(
                     //   anyOf: const ['settings:board:manage'],
                     //   child: _buildMenuItem(

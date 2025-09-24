@@ -23,6 +23,7 @@ import '../features/companies/view/company_center_page.dart';
 import '../features/login/view/forgot_password_email_page.dart' as fpe;
 import '../features/login/view/forgot_password_otp_page.dart' as fpo;
 import '../features/login/view/forgot_password_reset_page.dart' as fpr;
+import '../features/iap/view/iap_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -46,6 +47,7 @@ class AppRoutes {
   static const String archive = '/archive';
   static const String customers = '/customers';
   static const String companies = '/companies';
+  static const String iap = '/iap';
 
   // Forgot password flow
   static const String forgotPasswordEmail = '/forgot-password-email';
@@ -161,6 +163,10 @@ class AppRoutes {
     GetPage(
       name: companies,
       page: () => const CompanyCenterPage(),
+    ),
+    GetPage(
+      name: iap,
+      page: () => const IapPage(),
     ),
     // Forgot password pages
     GetPage(

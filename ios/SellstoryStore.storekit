@@ -1,0 +1,122 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "97D184F2",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6751932451",
+    "_developerTeamID" : "AXUD88U2VA",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 780421455.11630297,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21789174",
+      "localizations" : [
+
+      ],
+      "name" : "365day",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "499.0",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6752956180",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "สมัครต่ออายุการใช้งาน 1 ปี",
+              "displayName" : "1 ปี",
+              "locale" : "th"
+            },
+            {
+              "description" : "Apply Premium Upgrade VIP 1 Years",
+              "displayName" : "1 Years",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "365day",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "1 Years",
+          "subscriptionGroupID" : "21789174",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

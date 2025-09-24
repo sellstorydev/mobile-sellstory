@@ -135,6 +135,9 @@ dependencies:
   # Color picker
   flutter_colorpicker: ^1.0.3
 
+  # In-app purchases (iOS only for now)
+  in_app_purchase: ^3.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
