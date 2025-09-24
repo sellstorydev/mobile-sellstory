@@ -1586,6 +1586,15 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     }
   }
 
+  bool _canAny(List<String> perms) {
+    final svc = MobilePermissionsService.to;
+    if (svc.isOwner) return true;
+    for (final p in perms) {
+      if (svc.can(p)) return true;
+    }
+    return false;
+  }
+
   Widget _buildLinkedJobCards() {
     // If no customer is linked, do not show Job Cards section
     if ((_currentCustomerId ?? '').isEmpty) {
@@ -1762,49 +1771,47 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                 ),
                 const SizedBox(height: 8),
                 if (_isHashtagDirty)
-                  ((_currentCustomerId ?? '').isNotEmpty)
-                      ? PermissionGuard(
-                          anyOf: const ['customer:edit:all', 'customer:edit:assigned'],
-                          child: Row(
-                            children: [
-                              OutlinedButton(
-                                onPressed: () {
-                                  setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
-                                },
-                                child: Text('cancel'.tr),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () => _persistCustomerHashtags(_pendingHashtagIds),
-                                  child: Text('confirm'.tr),
+                  Builder(
+                    builder: (ctx) {
+                      final hasCustomer = (_currentCustomerId ?? '').isNotEmpty;
+                      final canSave = hasCustomer
+                          ? _canAny([
+                              'customer:edit:all',
+                              'customer:edit:assigned',
+                            ])
+                          : _canAny([
+                              'chat:manage',
+                              'chat:assign',
+                              'chat:send',
+                            ]);
+                      if (!canSave) return const SizedBox.shrink();
+                      return Row(
+                        children: [
+                          OutlinedButton(
+                            onPressed: () {
+                              setState(
+                                () => _pendingHashtagIds = List<String>.from(
+                                  _selectedHashtagIds,
                                 ),
-                              ),
-                            ],
+                              );
+                            },
+                            child: Text('cancel'.tr),
                           ),
-                          fallback: const SizedBox.shrink(),
-                        )
-                      : PermissionGuard(
-                          anyOf: const ['chat:manage', 'chat:assign', 'chat:send'],
-                          child: Row(
-                            children: [
-                              OutlinedButton(
-                                onPressed: () {
-                                  setState(() => _pendingHashtagIds = List<String>.from(_selectedHashtagIds));
-                                },
-                                child: Text('cancel'.tr),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () => _persistChatroomHashtags(_pendingHashtagIds),
-                                  child: Text('confirm'.tr),
-                                ),
-                              ),
-                            ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => hasCustomer
+                                  ? _persistCustomerHashtags(_pendingHashtagIds)
+                                  : _persistChatroomHashtags(
+                                      _pendingHashtagIds,
+                                    ),
+                              child: Text('confirm'.tr),
+                            ),
                           ),
-                          fallback: const SizedBox.shrink(),
-                        ),
+                        ],
+                      );
+                    },
+                  ),
                 const SizedBox(height: 8),
 
                 // Always allow adding a new hashtag, even if no customer is selected
@@ -1976,19 +1983,26 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
               closeOnTap: false,
             ),
 
-            ChatMenuTile(
-              icon: Icons.supervised_user_circle_outlined,
-              text: 'select_customer'.tr,
-              onTap: () {
-                final svc = MobilePermissionsService.to;
-                if (svc.isOwner || svc.can('customer:view:all') || svc.can('customer:view:assigned')) {
-                  _openCustomerPicker();
-                } else {
-                  _showTopSnack('no_permission_view_customers'.tr, isError: true);
-                }
-              },
-              closeOnTap: false,
-            ),
+            // Show "select customer" action only when no customer currently linked
+            if ((_currentCustomerId ?? '').isEmpty)
+              ChatMenuTile(
+                icon: Icons.supervised_user_circle_outlined,
+                text: 'select_customer'.tr,
+                onTap: () {
+                  if (_canAny([
+                    'customer:view:all',
+                    'customer:view:assigned',
+                  ])) {
+                    _openCustomerPicker();
+                  } else {
+                    _showTopSnack(
+                      'no_permission_view_customers'.tr,
+                      isError: true,
+                    );
+                  }
+                },
+                closeOnTap: false,
+              ),
             if ((_currentCustomerId ?? '').isNotEmpty) ...[
 
               Padding(
@@ -2126,8 +2140,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
                   text: 'unlink_customer'.tr,
                   danger: true,
                   onTap: () {
-                    final svc = MobilePermissionsService.to;
-                    if (svc.isOwner || svc.can('chat:assign')) {
+                    if (_canAny(['chat:assign'])) {
                       _unlinkCustomer();
                     } else {
                       _showTopSnack('no_permission_unlink_customer'.tr, isError: true);
@@ -2138,19 +2151,6 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
             ],
             // Always show hashtags picker (customer-linked or not)
             _buildHashtagsSection(),
-            ChatMenuTile(
-              icon: Icons.card_travel_outlined,
-              text: 'link_job_card'.tr,
-              onTap: () {
-                final svc = MobilePermissionsService.to;
-                if (svc.isOwner || svc.can('jobcard:create')) {
-                  _openJobCardPicker();
-                } else {
-                  _showTopSnack('no_permission_link_jobcard'.tr, isError: true);
-                }
-              },
-              closeOnTap: false,
-            ),
             _buildLinkedJobCards(),
             ChatMenuTile(
               icon: Icons.badge_outlined,
