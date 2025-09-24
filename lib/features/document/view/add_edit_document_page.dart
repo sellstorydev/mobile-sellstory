@@ -723,33 +723,14 @@ class _AddEditDocumentPageState extends State<AddEditDocumentPage> {
               selectedCustomerIds: controller.selectedCustomerId != null 
                   ? [controller.selectedCustomerId!] 
                   : [],
-              availableCustomers: controller.customers.map((customer) {
-                return Customer(
-                  id: customer.id,
-                  name: customer.name,
-                  customId: customer.customId,
-                  emails: customer.emails,
-                  phones: customer.phones,
-                  companyNames: customer.companyNames,
-                  customFields: [], // CustomersInputField Customer doesn't match entity Customer
-                  workspaceId: customer.workspaceId,
-                  createdAt: customer.createdAt,
-                  updatedAt: customer.updatedAt,
-                  createdBy: customer.createdBy,
-                  updatedBy: customer.updatedBy,
-                );
-              }).toList(),
               onCustomersChanged: (selectedIds) {
                 final selectedId = selectedIds.isNotEmpty ? selectedIds.first : null;
                 controller.onCustomerChanged(selectedId);
               },
               label: 'select_customer_required'.tr,
               hintText: 'select_customer_hint'.tr,
-              isLoading: controller.isLoadingCustomers,
               allowMultipleSelection: false,
               showBorder: false,
-              workspaceId: controller.workspaceId,
-              enableAlgoliaSearch: true,
             ),
           ],
           const SizedBox(height: 16),

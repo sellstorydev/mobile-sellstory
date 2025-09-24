@@ -7,7 +7,7 @@ import '../controller/board_controller.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../data/services/firestore_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
-import '../../customers/view/add_edit_customer_page.dart';
+
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/widgets/customers_input_field.dart' as cif;
@@ -78,7 +78,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   // Available options
 
   List<Map<String, dynamic>> _availableLanes = [];
-  List<cif.Customer> _availableCustomers = [];
+  // Customer data is now managed by CustomersController
   List<Map<String, dynamic>> _availableCompanies = [];
   List<Map<String, dynamic>> _availableUsers = [];
 
@@ -139,12 +139,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
     // If initialCustomerId provided, preselect it (after customers are loaded)
     final initCid = widget.initialCustomerId;
     if (initCid != null && initCid.isNotEmpty) {
-      final exists = _availableCustomers.any((c) => c.id == initCid);
-      if (exists) {
-        _selectedCustomerIds = [initCid];
-        // Also load companies for this customer
-        await _loadCompaniesForCustomer(initCid);
-      }
+      // Customer existence is now handled by the controller
+      _selectedCustomerIds = [initCid];
+      // Also load companies for this customer
+      await _loadCompaniesForCustomer(initCid);
     }
 
     // Set default lane if provided
@@ -220,52 +218,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     // Load users from current workspace
     await _loadWorkspaceUsers();
 
-    // Load customers from Firestore
-    try {
-      print('🔄 Loading customers from Firestore...');
-      final customers = await _controller.getCustomers();
-
-      // Convert domain Customer to cif.Customer objects
-      _availableCustomers = customers
-          .map(
-            (customer) => cif.Customer(
-              id: customer.id,
-              name: customer.name,
-              customId: customer.customId,
-              emails: customer.emails,
-              phones: customer.phones,
-              companyNames: customer.companyNames,
-              customFields: [], // Convert if needed
-              workspaceId: customer.workspaceId,
-              createdAt: customer.createdAt,
-              updatedAt: customer.updatedAt,
-              createdBy: customer.createdBy,
-              updatedBy: customer.updatedBy,
-            ),
-          )
-          .toList();
-
-      // Clear invalid customer if current customer is not in available customers
-      if (_selectedCustomerIds.isNotEmpty) {
-        final validIds = _selectedCustomerIds
-            .where(
-              (id) => _availableCustomers.any((customer) => customer.id == id),
-            )
-            .toList();
-        if (validIds.length != _selectedCustomerIds.length) {
-          _selectedCustomerIds = validIds;
-          _selectedCompany = 'none';
-        }
-      }
-
-      print('✅ Customers loaded: ${_availableCustomers.length} customers');
-    } catch (e) {
-      print('❌ Failed to load customers: $e');
-      _availableCustomers = [];
-      // Clear customer and company on error
-      _selectedCustomerIds.clear();
-      _selectedCompany = 'none';
-    }
+    // Customer data is now managed by CustomersController
+    print('🔄 Customer data will be loaded by CustomersController...');
 
     // Companies will be loaded when customer is selected
     _availableCompanies = [
@@ -429,21 +383,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return _assigneeController.text;
   }
 
-  String? _getValidCustomerValue() {
-    if (_selectedCustomerIds.isEmpty) return null;
 
-    // Check if the first selected customer exists in available customers
-    final firstCustomerId = _selectedCustomerIds.first;
-    final isValidCustomer = _availableCustomers.any(
-      (customer) => customer.id == firstCustomerId,
-    );
-    if (!isValidCustomer) {
-      // Clear invalid customer
-      _selectedCustomerIds.clear();
-      return null;
-    }
-    return firstCustomerId;
-  }
 
   String? _getValidCompanyValue() {
     if (_selectedCompany.isEmpty) return null;
@@ -672,9 +612,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
       // Get customer name if selected
       String customerName = '';
       if (_selectedCustomerIds.isNotEmpty) {
-        final selectedCustomer = _availableCustomers.firstWhereOrNull(
-          (c) => c.id == _selectedCustomerIds.first,
-        );
+        // Customer lookup is now handled by the controller
+        final selectedCustomer = null; // Controller handles customer data
         customerName = selectedCustomer?.displayName ?? '';
       }
 
@@ -1372,7 +1311,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
         const SizedBox(height: 8),
         cif.CustomersInputField(
           selectedCustomerIds: _selectedCustomerIds,
-          availableCustomers: _availableCustomers,
           onCustomersChanged: (List<String> selectedIds) {
             setState(() {
               _selectedCustomerIds = selectedIds;
@@ -1387,8 +1325,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
           hintText: 'Select a customer',
           allowMultipleSelection: false,
           showBorder: false,
-          workspaceId: widget.workspaceId,
-          enableAlgoliaSearch: true,
         ),
       ],
     );

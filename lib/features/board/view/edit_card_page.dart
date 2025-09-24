@@ -18,7 +18,7 @@ import '../../document/view/add_edit_document_page.dart';
 import '../../../core/services/notifications_service.dart';
 import '../../../core/services/algolia_document_sync_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
-import '../../customers/view/add_edit_customer_page.dart';
+
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/widgets/customers_input_field.dart' as cif;
@@ -298,9 +298,9 @@ class _EditCardPageState extends State<EditCardPage> {
   // Available options
   List<Map<String, dynamic>> _availableLanes = [];
   List<Map<String, dynamic>> _availableAssignees = [];
-  List<cif.Customer> _availableCustomers = [];
+  // Customer data is now managed by CustomersController
   List<Map<String, dynamic>> _availableCompanies = [];
-  List<Map<String, dynamic>> _availableUsers = [];
+  // User data is managed by controller
 
   // Status options
   final List<Map<String, dynamic>> _statusOptions = [
@@ -673,39 +673,13 @@ class _EditCardPageState extends State<EditCardPage> {
           };
         }
       }
-      // Convert domain Customer to cif.Customer objects
-      _availableCustomers = customers.map((customer) => cif.Customer(
-        id: customer.id,
-        name: customer.name,
-        customId: customer.customId,
-        emails: customer.emails,
-        phones: customer.phones,
-        companyNames: customer.companyNames,
-        customFields: [], // Convert if needed
-        workspaceId: customer.workspaceId,
-        createdAt: customer.createdAt,
-        updatedAt: customer.updatedAt,
-        createdBy: customer.createdBy,
-        updatedBy: customer.updatedBy,
-      )).toList();
+      // Customer data is now managed by CustomersController
+      print('✅ Customers loaded via controller');
 
-      print('✅ Customers loaded: ${_availableCustomers.length} customers');
-
-      // Validate selected customer exists in available customers
-      if (_selectedCustomerIds.isNotEmpty) {
-        final customerExists = _availableCustomers.any(
-          (customer) => customer.id == _selectedCustomerIds.first,
-        );
-        if (!customerExists) {
-          print(
-            '⚠️ Selected customer ${_selectedCustomerIds.first} not found in available customers, resetting',
-          );
-          _selectedCustomerIds.clear();
-        }
-      }
+      // Customer validation is now handled by the controller
     } catch (e) {
       print('❌ Failed to load customers: $e');
-      _availableCustomers = [];
+      // Customers handled by controller
       _selectedCustomerIds.clear();
     }
 
@@ -3988,10 +3962,8 @@ class _EditCardPageState extends State<EditCardPage> {
       // Get customer name if selected
       String customerName = '';
       if (_selectedCustomerIds.isNotEmpty) {
-        final selectedCustomer = _availableCustomers.firstWhereOrNull(
-          (c) => c.id == _selectedCustomerIds.first,
-        );
-        customerName = selectedCustomer?.displayName ?? '';
+        // Customer lookup is now handled by the controller
+        customerName = _selectedCustomerIds.first; // Use ID as fallback
       }
 
       // Prepare todos data in correct format
@@ -4627,7 +4599,6 @@ class _EditCardPageState extends State<EditCardPage> {
         const SizedBox(height: 8),
         cif.CustomersInputField(
           selectedCustomerIds: _selectedCustomerIds,
-          availableCustomers: _availableCustomers,
           onCustomersChanged: (List<String> selectedIds) {
             setState(() {
               _selectedCustomerIds = selectedIds;
@@ -4649,8 +4620,6 @@ class _EditCardPageState extends State<EditCardPage> {
           hintText: 'Select a customer',
           allowMultipleSelection: false,
           showBorder: false,
-          workspaceId: widget.card.workspaceId,
-          enableAlgoliaSearch: true,
         ),
         const SizedBox(height: 20),
         // Company Section
@@ -6544,17 +6513,7 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  Future<void> _openAddCustomerPage() async {
-    final result = await Get.to(
-      () => const AddEditCustomerPage(customerSources: []),
-    );
 
-    if (result == true) {
-      // Refresh customer list after adding new customer
-      await _loadAvailableOptions();
-      setState(() {});
-    }
-  }
 
   // Product management methods
   void _addProduct() {
