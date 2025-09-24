@@ -533,6 +533,16 @@ class AppTranslations extends Translations {
       'customer': 'Customer',
       'customer_detail': 'Customer Detail',
       'customer_id': 'Customer ID',
+      'code_label': 'Code',
+      'tax_id_label': 'Tax ID',
+      'customers_label': 'Customers',
+      'no_contact_info': 'No contact information',
+      'edit_company': 'Edit Company',
+      'add_company': 'Add Company',
+      'save_company': 'Save',
+      'add_company_button': 'Add',
+      'main_label': 'Main',
+      'thailand': 'Thailand',
       'customer_info': 'Customer Information',
       'contact_info': 'Contact Information',
       'company_info': 'Company Information',
@@ -759,6 +769,30 @@ class AppTranslations extends Translations {
       'no_boards_in_workspace': 'No boards in this workspace',
       'single_workspace_message': 'You currently have only one workspace',
       'card_settings': 'Card Settings',
+      'card_view_settings': 'Card View Settings',
+      'visible_card_fields': 'Visible Card Fields',
+      'no_permission_card_settings': 'You do not have permission to access this page',
+      'need_card_settings_permission': 'Requires settings:board:manage permission or Workspace owner',
+      'card_settings_saved_success': 'Card settings saved successfully',
+      'card_settings_save_failed': 'Failed to save settings: {error}',
+      // Card field display names
+      'field_job_id': 'Job ID',
+      'field_status': 'Status',
+      'field_date_range': 'Date Range',
+      'field_created_date': 'Created Date',
+      'field_assignee': 'Assignee',
+      'field_customer_interest': 'Customer Interest',
+      'field_collaborators': 'Collaborators',
+      'field_customer': 'Customer',
+      'field_company': 'Company',
+      'field_hashtags': 'Hashtags',
+      'field_grand_total': 'Grand Total',
+      'field_net_total': 'Net Total',
+      'field_total_before_discount': 'Total (before discount)',
+      'field_total_after_discount': 'Total (after discount)',
+      'field_total_before_vat': 'Total (before VAT)',
+      'field_description': 'Description',
+      'field_todo_list': 'To-Do List',
       'create_new_workspace': 'Create New Workspace',
       'job_card_count': '{count} Job Cards',
       'workspace': 'Workspace',
@@ -907,6 +941,15 @@ class AppTranslations extends Translations {
       'delete_workspace': 'Delete Workspace',
       'delete_workspace_confirmation':
           'Are you sure you want to delete "{name}"? This action cannot be undone and will delete all boards, cards, and data in this workspace.',
+      'edit_workspace_title': 'Edit Workspace',
+      'edit_workspace_description': 'Update your workspace name. This will be reflected across all boards and team members.',
+      'enter_workspace_name_hint': 'Enter workspace name...',
+      'read_only_workspace_access': 'You have read-only access to workspace settings.',
+      'cannot_edit_workspace_name': 'You can view but cannot edit the workspace name.',
+      'cannot_delete_workspace': 'You cannot delete this workspace.',
+      'danger_zone': 'Danger Zone',
+      'workspace_delete_warning': 'Once you delete a workspace, there is no going back. Please be certain.',
+      'update_btn': 'Update',
       'no_permission_delete_workspace':
           "You don't have permission to delete this workspace",
       'no_permission_update_workspace':
@@ -1063,6 +1106,7 @@ class AppTranslations extends Translations {
       'total_before_vat_label': 'Total (before VAT)',
 
       // Edit Card Page Keys (English) - Only new keys that don't exist
+      'job_card': 'Job Card',
       'edit_job_card': 'Edit Job Card',
       'archive_card': 'Archive Card',
       'archive_card_title': 'Archive Card',
@@ -1206,6 +1250,51 @@ class AppTranslations extends Translations {
 
       // Feature placeholders
       'history_feature_coming_soon': 'History feature coming soon',
+
+      // Board Page Filter Messages (English)
+      'no_jobs_all_filters': 'No jobs found for all selected filters',
+      'no_jobs_assignee_customer': 'No jobs found for selected assignee and customer',
+      'no_jobs_assignee_hashtag': 'No jobs found for selected assignee and hashtag',
+      'no_jobs_assignee_date': 'No jobs found for selected assignee and date range',
+      'no_jobs_customer_hashtag': 'No jobs found for selected customer and hashtag',
+      'no_jobs_customer_date': 'No jobs found for selected customer and date range',
+      'no_jobs_hashtag_date': 'No jobs found for selected hashtag and date range',
+      'no_jobs_assignee': 'No jobs found for selected assignee',
+      'no_jobs_customer': 'No jobs found for selected customer',
+      'no_jobs_hashtag': 'No jobs found for selected hashtag',
+      'no_jobs_status': 'No jobs found for selected status',
+      'no_jobs_date_range': 'No jobs found in selected date range',
+
+      // Board Page Dialog and Button Text (English)
+      'search_jobs_title': 'Search Jobs',
+      'add_new_lane': 'Add New Lane',
+      'add_new_item': 'Add New Item',
+
+      // Board Page No Data Messages (English)
+      'no_search_results': 'No search results found',
+      'try_different_keywords': 'Try using different keywords',
+      'create_first_workspace': 'Create your first workspace',
+      'welcome_to_sellstory': 'Welcome to SellStory',
+      'start_by_creating_workspace': 'Get started by creating a workspace to manage your jobs and customers',
+      'create_workspace': 'Create Workspace',
+      
+      // Board Page Additional Messages (English)
+      'retry': 'Retry',
+      'initializing_board': 'Initializing board...',
+      'no_lanes_found': 'No lanes found',
+      'create_first_lane': 'Create your first lane to get started',
+      'delete_lane_title': 'Delete Lane',
+      'delete_lane_confirmation': 'Are you sure you want to delete "{title}"?',
+      'you_can_also_use_plus_button': 'You can also use the + button in the top right corner',
+      
+      // Lane Management Actions (English)
+      'cards_to_be_deleted': 'Cards to be deleted: {count}',
+      'edit_lane': 'Edit Lane',
+      'move_lane': 'Move Lane',
+      'archive_lane': 'Archive Lane',
+      'lane_name_required': 'Lane name is required',
+      'create_new_card': 'Create New Card',
+      'create_new_card_subtitle': 'Create a new card with full details',
     },
     'th': {
       'calendar': 'ปฏิทิน',
@@ -1658,6 +1747,16 @@ class AppTranslations extends Translations {
 
       // Customer Detail Page
       'customer_id': 'รหัสลูกค้า',
+      'code_label': 'รหัส',
+      'tax_id_label': 'เลขประจำตัวผู้เสียภาษี',
+      'customers_label': 'ลูกค้า',
+      'no_contact_info': 'ไม่มีข้อมูลติดต่อ',
+      'edit_company': 'แก้ไขบริษัท',
+      'add_company': 'เพิ่มบริษัท',
+      'save_company': 'บันทึก',
+      'add_company_button': 'เพิ่ม',
+      'main_label': 'หลัก',
+      'thailand': 'ไทย',
       'customer_details': 'รายละเอียดลูกค้า',
       'customer_info': 'ข้อมูลลูกค้า',
       'name': 'ชื่อ',
@@ -1926,6 +2025,15 @@ class AppTranslations extends Translations {
       'delete_workspace': 'ลบเวิร์กสเปซ',
       'delete_workspace_confirmation':
           'คุณแน่ใจหรือไม่ที่จะลบ "{name}"? การดำเนินการนี้ไม่สามารถยกเลิกได้และจะลบบอร์ด การ์ด และข้อมูลทั้งหมดในเวิร์กสเปซนี้',
+      'edit_workspace_title': 'แก้ไขเวิร์กสเปซ',
+      'edit_workspace_description': 'อัปเดตชื่อเวิร์กสเปซของคุณ การเปลี่ยนแปลงจะปรากฏในบอร์ดและสมาชิกทีมทั้งหมด',
+      'enter_workspace_name_hint': 'กรอกชื่อเวิร์กสเปซ...',
+      'read_only_workspace_access': 'คุณมีสิทธิ์อ่านการตั้งค่าเวิร์กสเปซเท่านั้น',
+      'cannot_edit_workspace_name': 'คุณสามารถดูได้แต่ไม่สามารถแก้ไขชื่อเวิร์กสเปซ',
+      'cannot_delete_workspace': 'คุณไม่สามารถลบเวิร์กสเปซนี้',
+      'danger_zone': 'โซนอันตราย',
+      'workspace_delete_warning': 'เมื่อคุณลบเวิร์กสเปซแล้ว จะไม่สามารถกู้คืนได้ กรุณาพิจารณาอย่างรอบคอบ',
+      'update_btn': 'อัปเดต',
       'no_permission_delete_workspace': 'คุณไม่มีสิทธิ์ลบเวิร์กสเปซนี้',
       'no_permission_update_workspace':
           'คุณไม่มีสิทธิ์อัปเดตการตั้งค่าเวิร์กสเปซ',
@@ -1988,6 +2096,30 @@ class AppTranslations extends Translations {
       'no_boards_in_workspace': 'ไม่มีบอร์ดในเวิร์กสเปซนี้',
       'single_workspace_message': 'คุณมีเพียงหนึ่งเวิร์กสเปซในขณะนี้',
       'card_settings': 'ตั้งค่าการ์ด',
+      'card_view_settings': 'ตั้งค่าการแสดงการ์ด',
+      'visible_card_fields': 'ฟิลด์การ์ดที่แสดง',
+      'no_permission_card_settings': 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
+      'need_card_settings_permission': 'ต้องการสิทธิ์ settings:board:manage หรือเจ้าของ Workspace',
+      'card_settings_saved_success': 'บันทึกการตั้งค่าการ์ดแล้ว',
+      'card_settings_save_failed': 'บันทึกไม่สำเร็จ: {error}',
+      // Card field display names (Thai)
+      'field_job_id': 'รหัสงาน',
+      'field_status': 'สถานะ',
+      'field_date_range': 'ช่วงวันที่',
+      'field_created_date': 'วันที่สร้าง',
+      'field_assignee': 'ผู้รับผิดชอบ',
+      'field_customer_interest': 'ความสนใจลูกค้า',
+      'field_collaborators': 'ผู้ร่วมงาน',
+      'field_customer': 'ลูกค้า',
+      'field_company': 'บริษัท',
+      'field_hashtags': 'แฮชแท็ก',
+      'field_grand_total': 'ยอดรวมทั้งสิ้น',
+      'field_net_total': 'ยอดสุทธิ',
+      'field_total_before_discount': 'ยอดรวม (ก่อนส่วนลด)',
+      'field_total_after_discount': 'ยอดรวม (หลังส่วนลด)',
+      'field_total_before_vat': 'ยอดรวม (ก่อน VAT)',
+      'field_description': 'รายละเอียด',
+      'field_todo_list': 'รายการสิ่งที่ต้องทำ',
       'create_new_workspace': 'สร้างเวิร์กสเปซใหม่',
       'job_card_count': 'การ์ดงาน {count} ใบ',
       'workspace': 'เวิร์กสเปซ',
@@ -2131,6 +2263,7 @@ class AppTranslations extends Translations {
       'total_before_vat_label': 'ยอดรวม (ก่อน VAT)',
 
       // Edit Card Page Keys (Thai) - Only new keys that don't exist
+      'job_card': 'การ์ดงาน',
       'edit_job_card': 'แก้ไขการ์ดงาน',
       'archive_card': 'เก็บการ์ด',
       'archive_card_title': 'เก็บการ์ด',
@@ -2265,6 +2398,51 @@ class AppTranslations extends Translations {
 
       // Feature placeholders
       'history_feature_coming_soon': 'ฟีเจอร์ประวัติจะมาเร็วๆ นี้',
+
+      // Board Page Filter Messages (Thai)
+      'no_jobs_all_filters': 'ไม่พบงานสำหรับเงื่อนไขที่เลือกทั้งหมด',
+      'no_jobs_assignee_customer': 'ไม่พบงานสำหรับผู้รับผิดชอบและลูกค้าที่เลือก',
+      'no_jobs_assignee_hashtag': 'ไม่พบงานสำหรับผู้รับผิดชอบและแฮชแท็กที่เลือก',
+      'no_jobs_assignee_date': 'ไม่พบงานสำหรับผู้รับผิดชอบและช่วงวันที่ที่เลือก',
+      'no_jobs_customer_hashtag': 'ไม่พบงานสำหรับลูกค้าและแฮชแท็กที่เลือก',
+      'no_jobs_customer_date': 'ไม่พบงานสำหรับลูกค้าและช่วงวันที่ที่เลือก',
+      'no_jobs_hashtag_date': 'ไม่พบงานสำหรับแฮชแท็กและช่วงวันที่ที่เลือก',
+      'no_jobs_assignee': 'ไม่พบงานสำหรับผู้รับผิดชอบที่เลือก',
+      'no_jobs_customer': 'ไม่พบงานสำหรับลูกค้าที่เลือก',
+      'no_jobs_hashtag': 'ไม่พบงานสำหรับแฮชแท็กที่เลือก',
+      'no_jobs_status': 'ไม่พบงานสำหรับสถานะที่เลือก',
+      'no_jobs_date_range': 'ไม่พบงานในช่วงวันที่ที่เลือก',
+
+      // Board Page Dialog and Button Text (Thai)
+      'search_jobs_title': 'ค้นหางาน',
+      'add_new_lane': 'เพิ่มเลนใหม่',
+      'add_new_item': 'เพิ่มรายการใหม่',
+
+      // Board Page No Data Messages (Thai) 
+      'no_search_results': 'ไม่พบผลลัพธ์การค้นหา',
+      'try_different_keywords': 'ลองใช้คำค้นหาอื่น',
+      'create_first_workspace': 'สร้าง Workspace แรกของคุณ',
+      'welcome_to_sellstory': 'ยินดีต้อนรับสู่ SellStory',
+      'start_by_creating_workspace': 'เริ่มต้นด้วยการสร้าง workspace เพื่อจัดการงานและลูกค้า',
+      'create_workspace': 'สร้าง Workspace',
+      
+      // Board Page Additional Messages (Thai)
+      'retry': 'ลองใหม่',
+      'initializing_board': 'กำลังเริ่มต้นบอร์ด...',
+      'no_lanes_found': 'ไม่พบเลน',
+      'create_first_lane': 'สร้างเลนแรกของคุณเพื่อเริ่มต้น',
+      'delete_lane_title': 'ลบเลน',
+      'delete_lane_confirmation': 'คุณแน่ใจหรือไม่ที่จะลบ "{title}"?',
+      'you_can_also_use_plus_button': 'คุณยังสามารถใช้ปุ่ม + ที่มุมขวาบนได้',
+      
+      // Lane Management Actions (Thai)
+      'cards_to_be_deleted': 'การ์ดที่จะถูกลบ: {count}',
+      'edit_lane': 'แก้ไข Lane',
+      'move_lane': 'ย้าย Lane',
+      'archive_lane': 'เก็บ Lane เข้าคลัง',
+      'lane_name_required': 'ต้องระบุชื่อ Lane',
+      'create_new_card': 'สร้างการ์ดใหม่',
+      'create_new_card_subtitle': 'สร้างการ์ดใหม่พร้อมรายละเอียดครบถ้วน',
     },
   };
 }

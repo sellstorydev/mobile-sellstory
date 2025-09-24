@@ -512,7 +512,7 @@ class _BoardPageState extends State<BoardPage> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => _controller.load(),
-                child: const Text('Retry'),
+                child: Text('retry'.tr),
               ),
             ],
           ),
@@ -533,7 +533,7 @@ class _BoardPageState extends State<BoardPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Welcome to KanbanFlow',
+                  'welcome_to_sellstory'.tr,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -542,7 +542,7 @@ class _BoardPageState extends State<BoardPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Create a workspace to get started and organize your workflow.',
+                  'start_by_creating_workspace'.tr,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey[600],
@@ -562,9 +562,9 @@ class _BoardPageState extends State<BoardPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'Create Workspace',
-                      style: TextStyle(
+                    child: Text(
+                      'create_workspace'.tr,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -573,7 +573,7 @@ class _BoardPageState extends State<BoardPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'You can also use the + button in the top right corner',
+                  'you_can_also_use_plus_button'.tr,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[500],
@@ -587,13 +587,13 @@ class _BoardPageState extends State<BoardPage> {
       }
 
       if (!_controller.isInitialized.value) {
-        return const Center(
+        return  Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Initializing board...'),
+              Text('initializing_board'.tr),
             ],
           ),
         );
@@ -623,29 +623,29 @@ class _BoardPageState extends State<BoardPage> {
           final filterCount = [hasAssignee, hasCustomer, hasHashtag, hasStatus, hasDate].where((x) => x).length;
           
           if (filterCount >= 3) {
-            filterMessage = 'ไม่พบงานสำหรับเงื่อนไขที่เลือกทั้งหมด';
+            filterMessage = 'no_jobs_all_filters'.tr;
           } else if (hasAssignee && hasCustomer) {
-            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและลูกค้าที่เลือก';
+            filterMessage = 'no_jobs_assignee_customer'.tr;
           } else if (hasAssignee && hasHashtag) {
-            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและแฮชแท็กที่เลือก';
+            filterMessage = 'no_jobs_assignee_hashtag'.tr;
           } else if (hasAssignee && hasDate) {
-            filterMessage = 'ไม่พบงานสำหรับผู้รับผิดชอบและช่วงวันที่ที่เลือก';
+            filterMessage = 'no_jobs_assignee_date'.tr;
           } else if (hasCustomer && hasHashtag) {
-            filterMessage = 'ไม่พบงานสำหรับลูกค้าและแฮชแท็กที่เลือก';
+            filterMessage = 'no_jobs_customer_hashtag'.tr;
           } else if (hasCustomer && hasDate) {
-            filterMessage = 'ไม่พบงานสำหรับลูกค้าและช่วงวันที่ที่เลือก';
+            filterMessage = 'no_jobs_customer_date'.tr;
           } else if (hasHashtag && hasDate) {
-            filterMessage = 'ไม่พบงานสำหรับแฮชแท็กและช่วงวันที่ที่เลือก';
+            filterMessage = 'no_jobs_hashtag_date'.tr;
           } else if (hasAssignee) {
-            filterMessage = 'ไม่พบงานสำหรับผู้รั��ผิดชอบที่เลือก';
+            filterMessage = 'no_jobs_assignee'.tr;
           } else if (hasCustomer) {
-            filterMessage = 'ไม่พบงานสำหรับลูกค้าที่เลือก';
+            filterMessage = 'no_jobs_customer'.tr;
           } else if (hasHashtag) {
-            filterMessage = 'ไม่พบงานสำหรับแฮชแท็กที่เลือก';
+            filterMessage = 'no_jobs_hashtag'.tr;
           } else if (hasStatus) {
-            filterMessage = 'ไม่พบงานสำหรับสถานะที่เลือก';
-            filterMessage = 'ไม่พบงานสำหรับลูกค้าและแฮชท็กที่เลือก';
-            filterMessage = 'ไม่พบงานในช่วงวันที่ที่เลือก';
+            filterMessage = 'no_jobs_status'.tr;
+          } else if (hasDate) {
+            filterMessage = 'no_jobs_date_range'.tr;
           }
           
           return Center(
@@ -667,7 +667,7 @@ class _BoardPageState extends State<BoardPage> {
                 ElevatedButton.icon(
                   onPressed: () => _controller.clearFilter(),
                   icon: const Icon(Icons.clear),
-                  label: const Text('ล้างการกรอง'),
+                  label: Text('clear_filter'.tr),
                 ),
               ],
             ),
@@ -680,20 +680,20 @@ class _BoardPageState extends State<BoardPage> {
               children: [
                 Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
-                const Text(
-                  'ไม่พบผลการค้นหา',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                Text(
+                  'no_search_results'.tr,
+                  style: const TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'ลองค้นหาด้วยคำอื่น หรือ',
+                  'try_different_keywords'.tr,
                   style: TextStyle(color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () => _controller.clearSearch(),
                   icon: const Icon(Icons.clear),
-                  label: const Text('ล้างการค้นหา'),
+                  label: Text('clear_search'.tr),
                 ),
               ],
             ),
@@ -706,14 +706,14 @@ class _BoardPageState extends State<BoardPage> {
               children: [
                 Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
-                const Text(
-                  'No lanes found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                Text(
+                  'no_lanes_found'.tr,
+                  style: const TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Create your first lane to get started',
-                  style: TextStyle(color: Colors.grey),
+                Text(
+                  'create_first_lane'.tr,
+                  style: const TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 16),
                 if (MobilePermissionsService.to.isOwner ||
@@ -721,7 +721,7 @@ class _BoardPageState extends State<BoardPage> {
                   ElevatedButton.icon(
                     onPressed: () => _showAddLaneDialog(),
                     icon: const Icon(Icons.add),
-                    label: const Text('Add Lane'),
+                    label: Text('add_lane'.tr),
                   ),
               ],
             ),
@@ -927,12 +927,12 @@ class _BoardPageState extends State<BoardPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete Lane'),
+          title: Text('delete_lane_title'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Are you sure you want to delete "${lane.title}"?'),
+              Text('delete_lane_confirmation'.trParams({'title': lane.title})),
               const SizedBox(height: 8),
               if (lane.cards.isNotEmpty) ...[
                 const Text(
@@ -942,19 +942,19 @@ class _BoardPageState extends State<BoardPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                Text('Cards to be deleted: ${lane.cards.length}'),
+                Text('cards_to_be_deleted'.trParams({'count': lane.cards.length.toString()})),
               ],
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text('cancel'.tr),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
+              child: Text('delete'.tr),
             ),
           ],
         );
@@ -998,7 +998,7 @@ class _BoardPageState extends State<BoardPage> {
                 MobilePermissionsService.to.can('settings:board:manage')) ...[
               ListTile(
                 leading: const Icon(Icons.edit),
-                title: const Text('แก้ไข Lane'),
+                title: Text('edit_lane'.tr),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showEditLaneDialog(lane);
@@ -1006,7 +1006,7 @@ class _BoardPageState extends State<BoardPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.copy),
-                title: const Text('คัดลอก Lane'),
+                title: Text('duplicate_lane'.tr),
                 onTap: () {
                   Navigator.of(context).pop();
                   // TODO: Implement copy lane functionality
@@ -1019,7 +1019,7 @@ class _BoardPageState extends State<BoardPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.open_with),
-                title: const Text('Move Lane'),
+                title: Text('move_lane'.tr),
                 onTap: () {
                   Navigator.of(context).pop();
                   // TODO: Implement move lane functionality
@@ -1032,7 +1032,7 @@ class _BoardPageState extends State<BoardPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.archive),
-                title: const Text('Archive Lane'),
+                title: Text('archive_lane'.tr),
                 onTap: () {
                   Navigator.of(context).pop();
                   // TODO: Implement archive lane functionality
@@ -1045,7 +1045,7 @@ class _BoardPageState extends State<BoardPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.delete),
-                title: const Text('ลบ Lane'),
+                title: Text('delete_lane'.tr),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showDeleteLaneConfirmation(lane);
@@ -1150,7 +1150,7 @@ class _BoardPageState extends State<BoardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add New Lane'),
+        title: Text('add_new_lane'.tr),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1223,14 +1223,14 @@ class _BoardPageState extends State<BoardPage> {
               } else {
                 // Show error for required fields
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Lane name is required'),
+                  SnackBar(
+                    content: Text('lane_name_required'.tr),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
             },
-            child: const Text('Add Lane'),
+            child: Text('add_lane'.tr),
           ),
         ],
       ),
@@ -1241,7 +1241,7 @@ class _BoardPageState extends State<BoardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add New Item'),
+        title: Text('add_new_item'.tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1249,7 +1249,7 @@ class _BoardPageState extends State<BoardPage> {
                 MobilePermissionsService.to.can('settings:board:manage'))
               ListTile(
                 leading: const Icon(Icons.view_column),
-                title: const Text('Add New Lane'),
+                title: Text('add_new_lane'.tr),
                 subtitle: const Text('Create a new column in the board'),
                 onTap: () {
                   Navigator.of(context).pop();
@@ -1261,8 +1261,8 @@ class _BoardPageState extends State<BoardPage> {
                 MobilePermissionsService.to.can('jobcard:create'))
               ListTile(
                 leading: const Icon(Icons.note_add),
-                title: const Text('Create New Card'),
-                subtitle: const Text('Create a new card with full details'),
+                title: Text('create_new_card'.tr),
+                subtitle: Text('create_new_card_subtitle'.tr),
                 onTap: () {
                   Navigator.of(context).pop();
                   _navigateToCreateCard();
@@ -1283,7 +1283,7 @@ class _BoardPageState extends State<BoardPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr),
           ),
         ],
       ),
@@ -1445,7 +1445,7 @@ class _BoardPageState extends State<BoardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ค้นหางาน'),
+        title: Text('search_jobs_title'.tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

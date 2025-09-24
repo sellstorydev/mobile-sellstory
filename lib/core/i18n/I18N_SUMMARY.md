@@ -742,6 +742,266 @@ Update (2025-09-23 final touch):
 - ✅ Permission and error messages properly translated
 - ✅ Company selection options properly translated
 
+### Board Page Translation (2025-09-24)
+**File**: `lib/features/board/view/board_page.dart`
+
+#### Analysis:
+- Found multiple hardcoded Thai text strings in filter messages, dialog titles, and no-data states
+- Missing translation keys for board management functionality and user messages
+
+#### Changes Made:
+1. **Filter Result Messages**: Replaced 12 hardcoded Thai filter messages with translation keys:
+   - 'ไม่พบงานสำหรับเงื่อนไขที่เลือกทั้งหมด' → 'no_jobs_all_filters'.tr
+   - 'ไม่พบงานสำหรับผู้รับผิดชอบและลูกค้าที่เลือก' → 'no_jobs_assignee_customer'.tr
+   - And 10 other similar filter combination messages
+
+2. **Dialog Titles**: Replaced hardcoded dialog titles:
+   - 'ค้นหางาน' → 'search_jobs_title'.tr  
+   - 'Add New Lane' → 'add_new_lane'.tr
+   - 'Add New Item' → 'add_new_item'.tr
+
+3. **No Data States**: Replaced welcome and search result messages:
+   - 'Welcome to KanbanFlow' → 'welcome_to_sellstory'.tr
+   - 'Create a workspace to get started...' → 'start_by_creating_workspace'.tr
+   - 'Create Workspace' → 'create_workspace'.tr
+   - 'ไม่พบผลการค้นหา' → 'no_search_results'.tr
+   - 'ลองค้นหาด้วยคำอื่น หรือ' → 'try_different_keywords'.tr
+   - 'ล้างการค้นหา' → 'clear_search'.tr (reused existing key)
+
+#### Added Translation Keys (21 new keys):
+```dart
+// English Keys
+'no_jobs_all_filters': 'No jobs found for all selected filters',
+'no_jobs_assignee_customer': 'No jobs found for selected assignee and customer',
+'no_jobs_assignee_hashtag': 'No jobs found for selected assignee and hashtag',
+'no_jobs_assignee_date': 'No jobs found for selected assignee and date range',
+'no_jobs_customer_hashtag': 'No jobs found for selected customer and hashtag',
+'no_jobs_customer_date': 'No jobs found for selected customer and date range',
+'no_jobs_hashtag_date': 'No jobs found for selected hashtag and date range',
+'no_jobs_assignee': 'No jobs found for selected assignee',
+'no_jobs_customer': 'No jobs found for selected customer',
+'no_jobs_hashtag': 'No jobs found for selected hashtag',
+'no_jobs_status': 'No jobs found for selected status',
+'no_jobs_date_range': 'No jobs found in selected date range',
+'search_jobs_title': 'Search Jobs',
+'add_new_lane': 'Add New Lane',
+'add_new_item': 'Add New Item',
+'no_search_results': 'No search results found',
+'try_different_keywords': 'Try using different keywords',
+'welcome_to_sellstory': 'Welcome to SellStory',
+'start_by_creating_workspace': 'Get started by creating a workspace to manage your jobs and customers',
+'create_workspace': 'Create Workspace',
+
+// Thai Keys - corresponding translations for all above English keys
+```
+
+#### Status:
+- ✅ All hardcoded Thai text in board_page.dart filter messages is properly translated using .tr keys
+- ✅ All dialog titles now use translation keys for consistent localization
+- ✅ Welcome screen and no-data states properly translated
+- ✅ Search functionality messages localized
+- ✅ All translation keys exist in both English and Thai
+- ✅ Used consistent i18n pattern with GetX
+- ✅ Board page now fully supports Thai-English language switching for user-facing messages
+
+### Card View Settings Page Translation (2025-09-24)
+**File**: `lib/features/board/view/card_view_setting_page.dart`
+
+#### Analysis:
+- Found hardcoded English and Thai text strings throughout the card view settings page
+- Missing translation keys for card field display names and settings functionality
+- Mixed hardcoded strings in AppBar titles, permission messages, field names, and snackbar messages
+
+#### Changes Made:
+1. **AppBar Title**: Replaced hardcoded title:
+   - 'Card View Settings' → 'card_view_settings'.tr
+
+2. **Permission Messages**: Replaced hardcoded permission denied texts:
+   - 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้' → 'no_permission_card_settings'.tr
+   - 'ต้องการสิทธิ์ settings:board:manage หรือเจ้าของ Workspace' → 'need_card_settings_permission'.tr
+   - 'ปิด' → 'close'.tr (reused existing key)
+
+3. **Section Headers**: Replaced hardcoded section headers:
+   - 'Visible Card Fields' → 'visible_card_fields'.tr
+
+4. **Action Buttons**: Replaced hardcoded button text:
+   - 'Save' → 'save'.tr (reused existing key)
+
+5. **Snackbar Messages**: Replaced hardcoded success and error messages:
+   - 'สำเร็จ' → 'success'.tr (reused existing key)
+   - 'บันทึกการตั้งค่าการ์ดแล้ว' → 'card_settings_saved_success'.tr
+   - 'ผิดพลาด' → 'error'.tr (reused existing key)
+   - 'บันทึกไม่สำเร็จ: $e' → 'card_settings_save_failed'.trParams({'error': e.toString()})
+
+6. **Field Display Names**: Updated field display names mapping to use translation keys:
+   - Converted static Map<String, String> to use translation keys with .tr
+   - All 17 card field types now properly localized
+
+#### Added Translation Keys (23 new keys):
+```dart
+// English Keys
+'card_view_settings': 'Card View Settings',
+'visible_card_fields': 'Visible Card Fields',
+'no_permission_card_settings': 'You do not have permission to access this page',
+'need_card_settings_permission': 'Requires settings:board:manage permission or Workspace owner',
+'card_settings_saved_success': 'Card settings saved successfully',
+'card_settings_save_failed': 'Failed to save settings: {error}',
+
+// Card field display names (English)
+'field_job_id': 'Job ID',
+'field_status': 'Status',
+'field_date_range': 'Date Range',
+'field_created_date': 'Created Date',
+'field_assignee': 'Assignee',
+'field_customer_interest': 'Customer Interest',
+'field_collaborators': 'Collaborators',
+'field_customer': 'Customer',
+'field_company': 'Company',
+'field_hashtags': 'Hashtags',
+'field_grand_total': 'Grand Total',
+'field_net_total': 'Net Total',
+'field_total_before_discount': 'Total (before discount)',
+'field_total_after_discount': 'Total (after discount)',
+'field_total_before_vat': 'Total (before VAT)',
+'field_description': 'Description',
+'field_todo_list': 'To-Do List',
+
+// Thai Keys - corresponding translations for all above English keys
+'card_view_settings': 'ตั้งค่าการแสดงการ์ด',
+'visible_card_fields': 'ฟิลด์การ์ดที่แสดง',
+'no_permission_card_settings': 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
+'need_card_settings_permission': 'ต้องการสิทธิ์ settings:board:manage หรือเจ้าของ Workspace',
+'card_settings_saved_success': 'บันทึกการตั้งค่าการ์ดแล้ว',
+'card_settings_save_failed': 'บันทึกไม่สำเร็จ: {error}',
+
+// Card field display names (Thai)
+'field_job_id': 'รหัสงาน',
+'field_status': 'สถานะ',
+'field_date_range': 'ช่วงวันที่',
+'field_created_date': 'วันที่สร้าง',
+'field_assignee': 'ผู้รับผิดชอบ',
+'field_customer_interest': 'ความสนใจลูกค้า',
+'field_collaborators': 'ผู้ร่วมงาน',
+'field_customer': 'ลูกค้า',
+'field_company': 'บริษัท',
+'field_hashtags': 'แฮชแท็ก',
+'field_grand_total': 'ยอดรวมทั้งสิ้น',
+'field_net_total': 'ยอดสุทธิ',
+'field_total_before_discount': 'ยอดรวม (ก่อนส่วนลด)',
+'field_total_after_discount': 'ยอดรวม (หลังส่วนลด)',
+'field_total_before_vat': 'ยอดรวม (ก่อน VAT)',
+'field_description': 'รายละเอียด',
+'field_todo_list': 'รายการสิ่งที่ต้องทำ',
+```
+
+#### Status:
+- ✅ All hardcoded text in card_view_setting_page.dart is properly translated using .tr keys
+- ✅ All translation keys exist in both English and Thai
+- ✅ Used consistent i18n pattern with GetX
+- ✅ Card view settings functionality fully localized including permission messages, field names, and status messages
+- ✅ Field display names properly localized for better user experience
+- ✅ Snackbar messages use .trParams() for dynamic error content
+- ✅ Permission denied screen properly translated
+- ✅ Card view settings page now fully supports Thai-English language switching
+
+### Edit Workspace Page Translation (2025-09-24)
+**File**: `lib/features/board/view/edit_workspace_page.dart`
+
+#### Analysis:
+- Found extensive hardcoded English text throughout the edit workspace page
+- Missing translation keys for workspace editing functionality including titles, descriptions, permission messages, and UI elements
+- Mixed hardcoded strings in AppBar, error messages, confirmation dialogs, form fields, and action buttons
+
+#### Changes Made:
+1. **AppBar Title**: Replaced hardcoded title:
+   - 'Edit Workspace' → 'edit_workspace'.tr
+
+2. **Page Title and Description**: Replaced hardcoded page content:
+   - 'Edit Workspace' → 'edit_workspace_title'.tr
+   - 'Update your workspace name. This will be reflected across all boards and team members.' → 'edit_workspace_description'.tr
+
+3. **Permission Messages**: Replaced hardcoded permission texts:
+   - 'You have read-only access to workspace settings.' → 'read_only_workspace_access'.tr
+   - 'You can view but cannot edit the workspace name.' → 'cannot_edit_workspace_name'.tr
+   - 'You cannot delete this workspace.' → 'cannot_delete_workspace'.tr
+
+4. **Form Fields and Labels**: Replaced hardcoded form elements:
+   - 'Workspace Name' → 'workspace_name'.tr (reused existing key)
+   - 'Enter workspace name...' → 'enter_workspace_name_hint'.tr
+
+5. **Danger Zone Section**: Replaced hardcoded danger zone content:
+   - 'Danger Zone' → 'danger_zone'.tr
+   - 'Once you delete a workspace, there is no going back. Please be certain.' → 'workspace_delete_warning'.tr
+   - 'Delete Workspace' → 'delete_workspace'.tr (reused existing key)
+
+6. **Action Buttons**: Replaced hardcoded button text:
+   - 'Update' → 'update_btn'.tr
+   - 'Cancel' → 'cancel'.tr (reused existing key)
+
+7. **Error and Success Messages**: Replaced hardcoded messages:
+   - Permission errors → 'no_permission_delete_workspace'.tr, 'no_permission_update_workspace'.tr
+   - Validation errors → 'workspace_name_required'.tr, 'no_changes_made'.tr, 'user_not_authenticated'.tr
+   - Success messages → 'workspace_deleted_successfully'.tr, 'workspace_updated_successfully'.tr
+   - Error messages → 'failed_to_delete_workspace'.tr, 'failed_to_update_workspace'.tr
+   - Snackbar titles → 'success'.tr, 'error'.tr (reused existing keys)
+
+8. **Confirmation Dialog**: Updated delete confirmation dialog:
+   - Title → 'delete_workspace'.tr
+   - Content → 'delete_workspace_confirmation'.trParams({'name': widget.currentName})
+
+#### Added Translation Keys (9 new keys):
+```dart
+// English Keys
+'edit_workspace_title': 'Edit Workspace',
+'edit_workspace_description': 'Update your workspace name. This will be reflected across all boards and team members.',
+'enter_workspace_name_hint': 'Enter workspace name...',
+'read_only_workspace_access': 'You have read-only access to workspace settings.',
+'cannot_edit_workspace_name': 'You can view but cannot edit the workspace name.',
+'cannot_delete_workspace': 'You cannot delete this workspace.',
+'danger_zone': 'Danger Zone',
+'workspace_delete_warning': 'Once you delete a workspace, there is no going back. Please be certain.',
+'update_btn': 'Update',
+
+// Thai Keys
+'edit_workspace_title': 'แก้ไขเวิร์กสเปซ',
+'edit_workspace_description': 'อัปเดตชื่อเวิร์กสเปซของคุณ การเปลี่ยนแปลงจะปรากฏในบอร์ดและสมาชิกทีมทั้งหมด',
+'enter_workspace_name_hint': 'กรอกชื่อเวิร์กสเปซ...',
+'read_only_workspace_access': 'คุณมีสิทธิ์อ่านการตั้งค่าเวิร์กสเปซเท่านั้น',
+'cannot_edit_workspace_name': 'คุณสามารถดูได้แต่ไม่สามารถแก้ไขชื่อเวิร์กสเปซ',
+'cannot_delete_workspace': 'คุณไม่สามารถลบเวิร์กสเปซนี้',
+'danger_zone': 'โซนอันตราย',
+'workspace_delete_warning': 'เมื่อคุณลบเวิร์กสเปซแล้ว จะไม่สามารถกู้คืนได้ กรุณาพิจารณาอย่างรอบคอบ',
+'update_btn': 'อัปเดต',
+```
+
+#### Reused Existing Keys:
+- 'edit_workspace': Already existed for the basic workspace editing functionality
+- 'workspace_name': Already existed for workspace name labels
+- 'delete_workspace': Already existed for delete workspace actions
+- 'delete_workspace_confirmation': Already existed with parameter support
+- 'workspace_name_required': Already existed for validation
+- 'user_not_authenticated': Already existed for authentication errors
+- 'workspace_updated_successfully': Already existed for success messages
+- 'workspace_deleted_successfully': Already existed for success messages
+- 'failed_to_update_workspace': Already existed for error messages
+- 'failed_to_delete_workspace': Already existed for error messages
+- 'no_permission_delete_workspace': Already existed for permission errors
+- 'no_permission_update_workspace': Already existed for permission errors
+- 'no_changes_made': Already existed for validation messages
+- 'success': Already existed for snackbar titles
+- 'error': Already existed for snackbar titles
+- 'cancel': Already existed for cancel buttons
+
+#### Status:
+- ✅ All hardcoded text in edit_workspace_page.dart is properly translated using .tr keys
+- ✅ All translation keys exist in both English and Thai
+- ✅ Used consistent i18n pattern with GetX
+- ✅ Workspace editing functionality fully localized including permission messages, validation, and status messages
+- ✅ Confirmation dialogs use .trParams() for dynamic workspace names
+- ✅ Permission-based UI messages properly localized
+- ✅ Danger zone section properly translated
+- ✅ Edit workspace page now fully supports Thai-English language switching
+
 ## Notes
 - Fixed duplicate translation key issues during implementation
 - All hardcoded Thai text in login and forgot password pages has been replaced with proper translation keys
@@ -752,3 +1012,75 @@ Update (2025-09-23 final touch):
 - Error messages are now localized and user-friendly
 - Removed const keywords from Text widgets when using .tr extensions to avoid compilation errors
 - Edit card page now fully supports Thai-English language switching across all UI elements
+- Board page filter messages and dialogs now properly support Thai-English switching
+
+### Additional Translation Work (2025-01-15) - CONTINUATION
+**Files Enhanced**: 
+- `lib/features/board/view/edit_card_page.dart`
+- `lib/features/companies/widgets/company_tile.dart`  
+- `lib/features/companies/view/add_edit_company_page.dart`
+
+#### Code Cleanup and Translation Enhancements:
+1. **Edit Card Page Cleanup**:
+   - Removed unused imports (`add_edit_customer_page.dart`)
+   - Removed unused variables and unreferenced methods (`_availableUsers`, `_buildStatusSection`, `_buildExpenseItemsSection`)
+   - Fixed compilation errors for cleaner codebase
+
+2. **Additional String Translations in Edit Card Page**:
+   - 'Job Card' → 'job_card'.tr  
+   - 'Set Duration' → 'set_duration'.tr
+   - 'Currently set' → 'currently_set'.tr
+   - 'Unnamed Template' → 'unnamed_template'.tr
+
+3. **Companies Module Translation**:
+   - **Company Tile Widget**: Translated hardcoded Thai strings:
+     - 'รหัส:' → 'code_label'.tr + ':'
+     - 'เลขประจำตัวผู้เสียภาษี:' → 'tax_id_label'.tr + ':'
+     - 'ลูกค้า' → 'customers_label'.tr
+     - 'ไม่มีข้อมูลติดต่อ' → 'no_contact_info'.tr
+
+   - **Add/Edit Company Page**: Translated form elements:
+     - 'หลัก' → 'main_label'.tr (for email/phone labels)
+     - 'ไทย' → 'thailand'.tr (default country)
+     - 'แก้ไขบริษัท'/'เพิ่มบริษัท' → 'edit_company'.tr/'add_company'.tr
+     - 'บันทึก'/'เพิ่ม' → 'save_company'.tr/'add_company_button'.tr
+
+#### New Translation Keys Added (10 new keys):
+```dart
+// English Keys
+'job_card': 'Job Card',
+'code_label': 'Code', 
+'tax_id_label': 'Tax ID',
+'customers_label': 'Customers',
+'no_contact_info': 'No contact information',
+'edit_company': 'Edit Company',
+'add_company': 'Add Company', 
+'save_company': 'Save',
+'add_company_button': 'Add',
+'main_label': 'Main',
+'thailand': 'Thailand',
+
+// Thai Keys  
+'job_card': 'การ์ดงาน',
+'code_label': 'รหัส',
+'tax_id_label': 'เลขประจำตัวผู้เสียภาษี', 
+'customers_label': 'ลูกค้า',
+'no_contact_info': 'ไม่มีข้อมูลติดต่อ',
+'edit_company': 'แก้ไขบริษัท',
+'add_company': 'เพิ่มบริษัท',
+'save_company': 'บันทึก', 
+'add_company_button': 'เพิ่ม',
+'main_label': 'หลัก',
+'thailand': 'ไทย',
+```
+
+#### Status:
+- ✅ Edit card page compilation errors resolved
+- ✅ Additional user-facing strings in edit card page translated using existing keys
+- ✅ Company management module fully localized with proper Thai-English support
+- ✅ Company tile widget translated for consistent UI
+- ✅ Company form interface properly localized
+- ✅ All new translation keys exist in both English and Thai
+- ✅ Used consistent i18n pattern with GetX throughout
+
+````
