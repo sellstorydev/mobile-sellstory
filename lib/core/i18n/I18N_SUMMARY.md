@@ -46,6 +46,7 @@ Follow-up (2025-09-24 screenshot audit):
    - Hashtags section header localized → hashtags_label.tr (replaced hardcoded "Hashtags")
    - Description section card uses description_label.tr instead of description.tr for consistency
    - Product table empty-state localized (no_products_added_yet, add_product_hint); discount & vat columns already using existing keys
+   - Additional discount toggle label localized → discount.tr (replaced hardcoded 'Discount')
 
 ### Create Card Page Keys (2025-09-23)
 Files: `lib/features/board/view/create_card_page.dart`, `lib/core/i18n/app_translations.dart`

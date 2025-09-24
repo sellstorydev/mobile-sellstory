@@ -1329,7 +1329,9 @@ class _EditCardPageState extends State<EditCardPage> {
         headerWidget = Expanded(
           flex: flex,
           child: Text(
-            column['label'] ?? '',
+            column['label'] is String
+                ? _translateHeaderLabel(column['label'] as String)
+                : '',
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 12,
@@ -1344,6 +1346,23 @@ class _EditCardPageState extends State<EditCardPage> {
     }
 
     return headers;
+  }
+
+  String _translateHeaderLabel(String label) {
+    // Known translation keys
+    const knownKeys = {
+      'img',
+      'product_service',
+      'qty_unit',
+      'price_unit',
+      'discount',
+      'total',
+      'description_label',
+    };
+    if (knownKeys.contains(label)) {
+      return label.tr;
+    }
+    return label;
   }
 
   Future<void> _selectStartDate(BuildContext context) async {
@@ -6211,9 +6230,9 @@ class _EditCardPageState extends State<EditCardPage> {
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Discount',
-                      style: TextStyle(
+                    Text(
+                      'discount'.tr,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
