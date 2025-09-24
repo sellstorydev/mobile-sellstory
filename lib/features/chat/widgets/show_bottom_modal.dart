@@ -1,5 +1,8 @@
 // show_bottom_modal.dart
 import 'package:flutter/material.dart';
+import '../../../domain/entities/customer.dart';
+import '../../customers/view/customer_detail_page.dart';
+import '../../customers/controller/customers_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'dart:async';
@@ -19,6 +22,7 @@ import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/widgets/dialog_utils.dart';
 import '../../../core/widgets/permission_guard.dart';
 import '../../../data/services/mobile_permissions_service.dart';
+
 
 
 const _accent = Color(0xFFFF7A00); // Orange tone as shown in the image
@@ -732,71 +736,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
     }
   }
 
-  Future<void> _confirmPersistJobCards() async {
-    try {
-      final svc = MobilePermissionsService.to;
-      if (!(svc.isOwner || svc.can('chat:assign'))) {
-        _showTopSnack('no_permission_link_jobcard'.tr, isError: true);
-        return;
-      }
-      final ids = List<String>.from(_pendingJobCardIds);
-      final titles = List<String>.from(_pendingJobCardTitles);
-      final nos = List<String>.from(_pendingJobCardDocNos);
-      // Build linkedJobCards array per spec
-      final links = <Map<String, dynamic>>[];
-      for (int i = 0; i < ids.length; i++) {
-        final id = ids[i];
-        final docNo = (i < nos.length && nos[i].isNotEmpty) ? nos[i] : (i < titles.length ? titles[i] : id);
-        links.add({'id': id, 'docNo': docNo, 'type': 'JC'});
-      }
-
-      await _chatroomDoc.set({
-        'linkedJobCards': links,
-        // Legacy fields for backward compatibility
-        'jobCardIds': ids,
-        'jobCardTitles': nos.isNotEmpty ? nos : titles,
-        if (ids.isNotEmpty) 'jobCardId': ids.first else 'jobCardId': FieldValue.delete(),
-        if ((nos.isNotEmpty ? nos : titles).isNotEmpty) 'jobCardTitle': (nos.isNotEmpty ? nos : titles).first else 'jobCardTitle': FieldValue.delete(),
-      }, SetOptions(merge: true));
-
-      // If chatroom has no customer linked, try to link from the first selected card
-      if ((_currentCustomerId ?? '').isEmpty && ids.isNotEmpty) {
-        try {
-          final firstId = ids.first;
-          final snap = await FirebaseFirestore.instance
-              .collection('workspaces')
-              .doc(widget.workspaceId)
-              .collection('cards')
-              .doc(firstId)
-              .get();
-          final m = snap.data() ?? {};
-          final cid = (m['customerId'] ?? m['customer']?['id'])?.toString();
-          final cname = (m['customer'] is Map) ? (m['customer']['name']?.toString() ?? '') : (m['customerName']?.toString() ?? '');
-          if (cid != null && cid.isNotEmpty) {
-            await _chatroomDoc.set({'customerId': cid, if (cname.isNotEmpty) 'customerName': cname}, SetOptions(merge: true));
-            if (mounted) {
-              await _migrateNotesToCustomer(cid);
-              await _migrateHashtagsFromChatroomToCustomer(cid);
-              setState(() { _currentCustomerId = cid; _currentCustomerName = cname.isNotEmpty ? cname : _currentCustomerName; });
-              _loadAssignees();
-              _loadCustomerHashtags(cid);
-            }
-          }
-        } catch (_) {}
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _jobCardIds = List<String>.from(ids);
-        _jobCardTitles = List<String>.from(titles);
-        _jobCardDocNos = List<String>.from(nos);
-      });
-      _showTopSnack('jobcard_linked_latest'.tr);
-    } catch (e) {
-      if (!mounted) return;
-      _showTopSnack('jobcard_open_failed'.trParams({'error': '$e'}), isError: true);
-    }
-  }
+  // Removed unused _confirmPersistJobCards method (was not referenced after recent refactors)
 
   Future<void> _migrateNotesToCustomer(String customerId) async {
     try {
@@ -1402,8 +1342,7 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
       if (!mounted) return;
       // Migrate any existing chat-level notes into the newly linked customer, then refresh
       await _migrateNotesToCustomer(pickedCustomerId);
-      // Migrate chat-level hashtags into the newly linked customer
-      await _migrateHashtagsFromChatroomToCustomer(pickedCustomerId);
+      // Removed unused _confirmPersistJobCards method (was not referenced after refactors)
       setState(() {
         _currentCustomerId = pickedCustomerId;
         _currentCustomerName = name.isNotEmpty ? name : null;
@@ -1992,52 +1931,129 @@ class _ChatMoreSheetState extends State<_ChatMoreSheet> {
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Card(
-                  color: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE5E7EB))),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: const Color(0xFFE9ECEF),
-                          child: Text(
-                            (_currentCustomerName?.isNotEmpty == true ? _currentCustomerName![0] : '?').toUpperCase(),
-                            style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black87),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () async {
+                    // Navigate to customer detail page when tapping the customer card
+                    final cid = _currentCustomerId;
+                    if (cid == null || cid.isEmpty) return;
+                    try {
+                      // Permissions: require view permission similar to picker open logic
+                      final svc = MobilePermissionsService.to;
+                      final canView =
+                          svc.isOwner ||
+                          svc.can('customer:view:all') ||
+                          svc.can('customer:view:assigned');
+                      if (!canView) {
+                        _showTopSnack(
+                          'no_permission_view_customers'.tr,
+                          isError: true,
+                        );
+                        return;
+                      }
+                      Customer? customer;
+                      // Try cache first via CustomersController (already loaded list for workspace)
+                      if (Get.isRegistered<CustomersController>()) {
+                        final cc = Get.find<CustomersController>();
+                        customer = cc.customers.firstWhereOrNull(
+                          (c) => c.id == cid,
+                        );
+                      }
+                      if (customer == null) {
+                        // Fallback: fetch from correct nested path workspaces/{workspaceId}/customers/{cid}
+                        final snap = await FirebaseFirestore.instance
+                            .collection('workspaces')
+                            .doc(widget.workspaceId)
+                            .collection('customers')
+                            .doc(cid)
+                            .get();
+                        if (!snap.exists) {
+                          _showTopSnack('customer_not_found'.tr, isError: true);
+                          return;
+                        }
+                        final data = snap.data() as Map<String, dynamic>;
+                        customer = Customer.fromMap(data, cid);
+                      }
+                      if (mounted) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CustomerDetailPage(customer: customer!),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                (_currentCustomerName?.isNotEmpty == true)
-                                    ? _currentCustomerName!
-                                    : 'search_placeholder_customers'.tr,
-                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                                overflow: TextOverflow.ellipsis,
+                        );
+                      }
+                    } catch (e) {
+                      _showTopSnack('error_generic'.tr + ': $e', isError: true);
+                    }
+                  },
+                  child: Card(
+                    color: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: const Color(0xFFE9ECEF),
+                            child: Text(
+                              (_currentCustomerName?.isNotEmpty == true
+                                      ? _currentCustomerName![0]
+                                      : '?')
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'chat_rename'.tr,
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  (_currentCustomerName?.isNotEmpty == true)
+                                      ? _currentCustomerName!
+                                      : 'search_placeholder_customers'.tr,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'chat_rename'.tr,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _openCustomerPicker,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
                               ),
-                            ],
+                              minimumSize: const Size(0, 36),
+                            ),
+                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            label: Text(
+                              'change'.tr,
+                              style: const TextStyle(fontSize: 13),
+                            ),
                           ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _openCustomerPicker,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            minimumSize: const Size(0, 36),
-                          ),
-                          icon: const Icon(Icons.swap_horiz, size: 16),
-                          label: Text('change'.tr, style: const TextStyle(fontSize: 13)),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

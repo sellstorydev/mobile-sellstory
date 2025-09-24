@@ -11,6 +11,7 @@ import '../../../data/services/mobile_permissions_service.dart';
 import '../../../core/network/mobile_api.dart';
 import '../../chat/view/chat_screen.dart';
 
+
 class NotificationsPage extends StatefulWidget {
   final String workspaceId;
   const NotificationsPage({super.key, required this.workspaceId});
@@ -22,11 +23,17 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   static const int _pageSize = 20;
-  int _limit = _pageSize;
   final ScrollController _scrollController = ScrollController();
-  DateTime _lastLoadMoreAt = DateTime.fromMillisecondsSinceEpoch(0);
-  List<DocumentSnapshot<Map<String, dynamic>>> _cachedDocs = [];
+  final bool _debug = false; // set true for verbose logging
+
+  // Pagination state
+  final List<DocumentSnapshot<Map<String, dynamic>>> _docs = [];
+  DocumentSnapshot<Map<String, dynamic>>? _lastDoc;
+  bool _hasMore = true;
+  bool _isLoadingInitial = true;
   bool _isLoadingMore = false;
+  bool _disposed = false;
+  DateTime _lastLoadMoreAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
@@ -34,50 +41,88 @@ class _NotificationsPageState extends State<NotificationsPage> {
     // Initialize Thai locale data for Intl formatting (safe to call multiple times)
     initializeDateFormatting('th_TH');
     _scrollController.addListener(_onScroll);
+    _fetchInitial();
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients || _isLoadingMore) return;
+    if (!_scrollController.hasClients || _isLoadingMore || !_hasMore) return;
     final pos = _scrollController.position;
     if (pos.pixels >= pos.maxScrollExtent - 200) {
       final now = DateTime.now();
-      if (now.difference(_lastLoadMoreAt).inMilliseconds > 1000) {
-        print('🔄 PAGINATION: Loading more notifications. Current limit: $_limit -> ${_limit + _pageSize}');
-        _isLoadingMore = true;
+      if (now.difference(_lastLoadMoreAt).inMilliseconds > 800) {
         _lastLoadMoreAt = now;
-        
-        // Use cached docs approach instead of setState
-        _loadMoreNotifications();
+        _loadMore();
       }
     }
   }
 
-  void _loadMoreNotifications() async {
+  Future<void> _fetchInitial() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
+    if (user == null) {
+      if (mounted) setState(() => _isLoadingInitial = false);
+      return;
+    }
     try {
-      final query = _baseQuery(user.uid).limit(_limit + _pageSize);
-      final snapshot = await query.get();
-      
+      if (_debug) debugPrint('🔄 INIT: Fetching first page');
+      final snap = await _baseQuery(user.uid).limit(_pageSize).get();
+      if (_disposed) return;
       setState(() {
-        _cachedDocs = snapshot.docs;
-        _limit += _pageSize;
+        _docs.clear();
+        _docs.addAll(snap.docs);
+        _lastDoc = snap.docs.isNotEmpty ? snap.docs.last : null;
+        _hasMore = snap.docs.length == _pageSize;
+        _isLoadingInitial = false;
+      });
+      if (_debug)
+        debugPrint('✅ INIT: Loaded ${snap.docs.length} docs hasMore=$_hasMore');
+    } catch (e) {
+      if (_debug) debugPrint('❌ INIT ERROR: $e');
+      if (mounted) setState(() => _isLoadingInitial = false);
+    }
+  }
+
+  Future<void> _loadMore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+    try {
+      Query<Map<String, dynamic>> q = _baseQuery(user.uid).limit(_pageSize);
+      if (_lastDoc != null) {
+        q = q.startAfterDocument(_lastDoc!);
+      }
+      final snap = await q.get();
+      if (_disposed) return;
+      setState(() {
+        _docs.addAll(snap.docs);
+        if (snap.docs.isNotEmpty) {
+          _lastDoc = snap.docs.last;
+        }
+        if (snap.docs.length < _pageSize) _hasMore = false;
         _isLoadingMore = false;
       });
-      
-      print('📋 CACHED: Updated cache with ${_cachedDocs.length} items');
+      if (_debug)
+        debugPrint(
+          '➕ PAGE: +${snap.docs.length} total=${_docs.length} hasMore=$_hasMore',
+        );
     } catch (e) {
-      print('❌ LOAD MORE ERROR: $e');
-      setState(() => _isLoadingMore = false);
+      if (_debug) debugPrint('❌ LOAD MORE ERROR: $e');
+      if (mounted) setState(() => _isLoadingMore = false);
     }
+  }
+
+  Future<void> _refresh() async {
+    _hasMore = true;
+    _lastDoc = null;
+    _isLoadingInitial = true;
+    await _fetchInitial();
   }
 
   Query<Map<String, dynamic>> _baseQuery(String uid) {
@@ -370,53 +415,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
       );
     }
 
-    // Use cached docs if available, otherwise use stream for initial load
-    final docs = _cachedDocs.isNotEmpty ? _cachedDocs : null;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
       ),
-      body: docs != null 
-        ? _buildNotificationsList(docs)
-        : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: _baseQuery(user.uid).limit(_limit).snapshots(),
-            builder: (context, snap) {
-              print('🔄 STREAM: Connection state: ${snap.connectionState}');
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snap.hasError) {
-                print('❌ STREAM ERROR: ${snap.error}');
-                return Center(child: Text('Error: ${snap.error}'));
-              }
-              final streamDocs = snap.data?.docs ?? const [];
-              print('📋 NOTIFICATIONS: Loaded ${streamDocs.length} items (limit: $_limit)');
-              
-              // Cache the initial docs
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (_cachedDocs.isEmpty) {
-                  setState(() => _cachedDocs = streamDocs);
-                }
-              });
-              
-              return _buildNotificationsList(streamDocs);
-            },
-          ),
+      body: _isLoadingInitial
+          ? const Center(child: CircularProgressIndicator())
+          : _buildNotificationsList(_docs),
     );
   }
 
   Widget _buildNotificationsList(List<DocumentSnapshot<Map<String, dynamic>>> docs) {
     return RefreshIndicator(
-      onRefresh: () async {
-        print('🔄 REFRESH: Resetting cache and limit');
-        setState(() {
-          _cachedDocs.clear();
-          _limit = _pageSize;
-          _isLoadingMore = false;
-        });
-        await Future.delayed(const Duration(milliseconds: 200));
-      },
+      onRefresh: _refresh,
       child: ListView.separated(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
@@ -427,23 +438,31 @@ class _NotificationsPageState extends State<NotificationsPage> {
         itemBuilder: (context, index) {
           if (docs.isEmpty) {
             return const Padding(
-              padding: EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(48.0),
               child: Center(child: Text('No notifications')),
             );
           }
 
           if (index == docs.length) {
-            return _isLoadingMore 
-              ? const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : const SizedBox(height: 24);
+            if (_isLoadingMore) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (!_hasMore) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24.0),
+                child: Center(
+                  child: Text('— End —', style: TextStyle(color: Colors.grey)),
+                ),
+              );
+            }
+            return const SizedBox(height: 24);
           }
 
           final doc = docs[index];
           final data = doc.data();
-          print('📄 ITEM $index: ${doc.id} - ${data?['title'] ?? 'No title'}');
           final title = (data?['title'] ?? 'Notification').toString();
           final message = (data?['message'] ?? '').toString();
           final read = (data?['read'] ?? false) == true;

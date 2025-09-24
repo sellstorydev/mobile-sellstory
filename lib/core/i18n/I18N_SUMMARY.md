@@ -5,6 +5,40 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Customer Detail Page Localization (2025-09-24)
+Files:
+- `lib/features/customers/view/customer_detail_page.dart`
+- `lib/core/i18n/app_translations.dart`
+
+Summary:
+- Replaced hardcoded Thai literals (delete dialog, phone/company/hashtag/assignees labels, permission messages, job card empty states, to-do status, due date, coming soon placeholders, address not specified) with GetX translation keys.
+- Added consolidated customer detail keys to `app_translations.dart` (ensuring no duplicate map entries) and removed deprecated earlier variants.
+
+New / Consolidated Keys (EN/TH) Added:
+- `customer_detail_title`
+- `confirm_delete_customer`
+- `confirm_delete_customer_message` (param `{name}`)
+- `no_permission_view_jobcards_customer`
+- `no_jobcards_for_customer`
+- `todo_due_date_with_value` (param `{date}`)
+- `customer_tab_history_coming_soon`
+- `customer_tab_document_library_coming_soon`
+- `customer_tab_notes_coming_soon`
+- `customer_tab_sales_documents_coming_soon`
+
+Reused Existing Keys:
+- `phone_number`, `company`, `hashtags`, `responsible_sales`, `none_option`, `not_specified`, `cancel`, `confirm`, `edit`, `delete`, `no_permission_view_customers`, `no_permission_view_card`, `todo_completed`, `todo_not_completed`
+
+Cleanup:
+- Removed duplicate occurrences of `customer_detail_title` that caused map duplicate errors.
+- Deprecated legacy `customer_delete_title`, `customer_delete_message`, `customer_delete_confirm`, `customer_delete_cancel` in favor of new confirm delete keys.
+
+Status:
+- ✅ `customer_detail_page.dart` now uses i18n keys for targeted strings.
+- ✅ Keys exist in both locales.
+- ✅ Build passes with no duplicate translation map keys.
+
+
 ### Customer Gender Keys Added (2025-09-24)
 Files:
 - `lib/core/i18n/app_translations.dart`

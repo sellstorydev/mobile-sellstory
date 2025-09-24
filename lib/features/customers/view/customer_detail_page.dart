@@ -128,16 +128,18 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบลูกค้า'),
-        content: Text('คุณแน่ใจหรือไม่ว่าต้องการลบลูกค้า "${customer.name}"?'),
+        title: Text('confirm_delete_customer'.tr),
+        content: Text(
+          'confirm_delete_customer_message'.trParams({'name': customer.name}),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('ยกเลิก'),
+            child: Text('cancel'.tr),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('ยืนยัน'),
+            child: Text('confirm'.tr),
           ),
         ],
       ),
@@ -419,15 +421,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildPhonesDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidPhones()) {
-      return _buildInfoRow('เบอร์โทร', 'ไม่ระบุ');
+      return _buildInfoRow('phone_number'.tr, 'not_specified'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'เบอร์โทร',
-          style: TextStyle(
+        Text(
+          'phone_number'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -458,15 +460,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildCompanyNamesDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidCompanies()) {
-      return _buildInfoRow('บริษัท', 'ไม่ระบุ');
+      return _buildInfoRow('company'.tr, 'not_specified'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'บริษัท',
-          style: TextStyle(
+        Text(
+          'company'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -506,15 +508,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildHashtagDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidHashtags()) {
-      return _buildInfoRow('แฮชแท็ก', 'ไม่มี');
+      return _buildInfoRow('hashtags'.tr, 'none_option'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'แฮชแท็ก',
-          style: TextStyle(
+        Text(
+          'hashtags'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -555,15 +557,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildAssigneesDisplay() {
     final customer = _currentCustomer ?? widget.customer;
     if (!_hasValidAssignees()) {
-      return _buildInfoRow('ผู้รับผิดชอบ', 'ไม่มี');
+      return _buildInfoRow('responsible_sales'.tr, 'none_option'.tr);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'ผู้รับผิดชอบ',
-          style: TextStyle(
+        Text(
+          'responsible_sales'.tr,
+          style: const TextStyle(
             fontSize: 14,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -915,13 +917,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       appBar: AppBar(
         elevation: 0,
         title: Text(
-          customer.name.isNotEmpty ? customer.name : 'รายละเอียดลูกค้า',
+          customer.name.isNotEmpty ? customer.name : 'customer_detail_title'.tr,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
           if (_canEditCustomer())
             IconButton(
-              tooltip: 'แก้ไข',
+              tooltip: 'edit'.tr,
               icon: const Icon(Icons.edit, color: AppTheme.primaryOrange),
               onPressed: () async {
                 final result = await Navigator.push(
@@ -946,7 +948,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
             ),
           if (_canDeleteCustomer())
             IconButton(
-              tooltip: 'ลบ',
+              tooltip: 'delete'.tr,
               icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
               onPressed: _handleDeleteCustomer,
             ),
@@ -964,12 +966,18 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.lock_outline, size: 56, color: Colors.grey),
-                    SizedBox(height: 12),
-                    Text('คุณไม่มีสิทธิ์ดูรายละเอียดลูกค้ารายนี้',
+                  children: [
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 56,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'no_permission_view_customers'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey)),
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
                   ],
                 ),
               ),
@@ -1091,12 +1099,14 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.lock_outline, size: 48, color: Colors.grey),
-              SizedBox(height: 12),
-              Text('คุณไม่มีสิทธิ์ดู Job Card ของลูกค้ารายนี้',
+            children: [
+              const Icon(Icons.lock_outline, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
+              Text(
+                'no_permission_view_jobcards_customer'.tr,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey)),
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -1118,7 +1128,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
             ),
             const SizedBox(height: 16),
             Text(
-              'ยังไม่มี Job Card สำหรับลูกค้านี้',
+              'no_jobcards_for_customer'.tr,
               style: TextStyle(
                 fontSize: 16,
                 color: AppTheme.textSecondary,
@@ -1156,7 +1166,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           Get.toNamed(AppRoutes.editCard, arguments: jobCard);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('คุณไม่มีสิทธิ์เข้าถึง Job Card นี้')),
+            SnackBar(content: Text('no_permission_view_card'.tr)),
           );
         }
       },
@@ -1535,7 +1545,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isCompleted ? 'เสร็จแล้ว' : 'ยังไม่เสร็จ',
+                  isCompleted ? 'todo_completed'.tr : 'todo_not_completed'.tr,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
@@ -1572,7 +1582,9 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'กำหนดส่ง: ${_formatDate(todoDate)}',
+                  'todo_due_date_with_value'.trParams({
+                    'date': _formatDate(todoDate),
+                  }),
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.textSecondary,
@@ -1591,7 +1603,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       color: AppTheme.backgroundGrey,
       child: Center(
         child: Text(
-          'ประวัติ\n(Coming Soon)',
+          'customer_tab_history_coming_soon'.tr,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -1607,7 +1619,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       color: AppTheme.backgroundGrey,
       child: Center(
         child: Text(
-          'คลังเอกสาร\n(Coming Soon)',
+          'customer_tab_document_library_coming_soon'.tr,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -1623,7 +1635,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       color: AppTheme.backgroundGrey,
       child: Center(
         child: Text(
-          'โน๊ต\n(Coming Soon)',
+          'customer_tab_notes_coming_soon'.tr,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -1639,7 +1651,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       color: AppTheme.backgroundGrey,
       child: Center(
         child: Text(
-          'เอกสารการขาย\n(Coming Soon)',
+          'customer_tab_sales_documents_coming_soon'.tr,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -1671,7 +1683,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
 
     if (line1.isEmpty && line2.isEmpty) {
       return Text(
-        'ไม่ระบุ',
+        'not_specified'.tr,
         style: const TextStyle(
           fontSize: 14,
           color: AppTheme.textPrimary,

@@ -7,6 +7,9 @@ import '../../../core/services/logger_service.dart';
 import '../../../core/services/user_cache_service.dart';
 import '../../board/controller/board_controller.dart'; // Add this import
 import '../../../data/services/mobile_permissions_service.dart';
+import 'package:dio/dio.dart';
+import '../../../core/network/mobile_api.dart';
+import '../../../data/services/firebase_auth_service.dart';
 
 class ChatController extends GetxController {
   final FirestoreService _firestoreService = Get.find<FirestoreService>();
@@ -19,6 +22,18 @@ class ChatController extends GetxController {
       <Map<String, dynamic>>[].obs;
   final RxString searchQuery = ''.obs;
   final RxString activeFilter = 'all'.obs;
+
+  // ===== Visible Chatrooms API pagination state =====
+  final RxBool useVisibleApi =
+      true.obs; // toggle to use server visibility endpoint
+  final RxBool isApiLoading = false.obs; // loading (initial or refreshing)
+  final RxBool isApiLoadingMore = false.obs; // loading next page
+  String? _nextCursor; // pagination cursor
+  bool _apiHasMore = true; // whether more pages available
+  DateTime _lastLoadMoreAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  // Keep last applied workspace for API mode to detect switching
+  String? _apiWorkspaceBound;
 
   // NEW: Loading flag while resolving assignees for permission-based filtering on first entry
   final RxBool isAssigneeLoading = false.obs;
@@ -68,22 +83,33 @@ class ChatController extends GetxController {
       ..addAll(values.map((e) => e.toLowerCase()));
     conversations.refresh();
   }
+  
 
-  void getUsersFromChatroom() async {
-    var userData = await FirebaseFirestore.instance
-        .collection('workspaces')
-        .doc(_currentWorkspaceId)
-        .get();
 
-    if (userData.exists) {
-      var data = userData.data();
-      if (data != null) {
-        print('Workspace Data: $data');
-      } else {
-        print('No data found in the workspace document.');
+  void getUsersFromChatroom(_currentWorkspaceId) async {
+    try {
+      final wsDoc = await _firestoreService.workspacesCollection
+          .doc(_currentWorkspaceId)
+          .get();
+      if (!wsDoc.exists) {
+        _logger.warning(
+          'getUsersFromChatroom: workspace $_currentWorkspaceId does not exist',
+        );
+        _logger.methodExit(
+          'ChatController.getUsersFromChatroom',
+          'early:return:workspace-not-found',
+        );
+        return;
       }
-    } else {
-      print('Workspace document does not exist.');
+
+      // workspace data not needed here currently
+    } catch (e, st) {
+      _logger.failure(
+        'getUsersFromChatroom: failed to fetch workspace/users',
+        e,
+        st,
+      );
+      _logger.methodExit('ChatController.getUsersFromChatroom', 'error');
     }
   }
 
@@ -106,6 +132,7 @@ class ChatController extends GetxController {
     customerIdFilter.value = (cid ?? '').trim();
   }
 
+
   void clearAllFilters() {
     platformFilters.clear();
     statusFilter.value = '';
@@ -122,7 +149,7 @@ class ChatController extends GetxController {
   void onInit() {
     super.onInit();
 
-    getUsersFromChatroom();
+   
     _logger.info('ChatController initialized');
     // React to workspace changes from BoardController
     if (Get.isRegistered<BoardController>()) {
@@ -138,10 +165,17 @@ class ChatController extends GetxController {
         // Reset assignee initial settle flags for new workspace
         _assigneeInitialSettled = false;
         isAssigneeLoading.value = false;
-        await stopRealtime();
-        // Soft debounce to avoid rapid restarts while switching
-        await Future.delayed(const Duration(milliseconds: 50));
-        await startRealtime();
+        if (useVisibleApi.value) {
+          // Reset API pagination state on workspace change
+          _resetApiPagination();
+          // Soft debounce
+          await Future.delayed(const Duration(milliseconds: 50));
+          await fetchVisibleChatrooms(initial: true, force: true);
+        } else {
+          await stopRealtime();
+          await Future.delayed(const Duration(milliseconds: 50));
+          await startRealtime();
+        }
       });
     }
   }
@@ -199,6 +233,7 @@ class ChatController extends GetxController {
             _logger.info(
               'Got workspace ID from first workspace (index 0): $_currentWorkspaceId',
             );
+            getUsersFromChatroom(_currentWorkspaceId);
             return;
           }
         }
@@ -598,6 +633,10 @@ class ChatController extends GetxController {
 
   // Start realtime listener for chatrooms in current workspace
   Future<void> startRealtime() async {
+    if (useVisibleApi.value) {
+      // In API mode we don't start Firestore realtime stream
+      return;
+    }
     if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
       await _getCurrentWorkspaceId();
       if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
@@ -809,8 +848,11 @@ class ChatController extends GetxController {
   }
 
   Future<void> loadConversations() async {
-    // Preserve for compatibility: switch to realtime
-    await startRealtime();
+    if (useVisibleApi.value) {
+      await fetchVisibleChatrooms(initial: true);
+    } else {
+      await startRealtime();
+    }
   }
 
   void updateSearchQuery(String query) {
@@ -823,9 +865,13 @@ class ChatController extends GetxController {
   }
 
   void refresh() {
-    // Avoid restarting stream to prevent UI flicker
-    _logger.info('ChatController.refresh: soft refresh (no restart)');
-    conversations.refresh();
+    if (useVisibleApi.value) {
+      fetchVisibleChatrooms(initial: true, force: true);
+    } else {
+      // Avoid restarting stream to prevent UI flicker
+      _logger.info('ChatController.refresh: soft refresh (no restart)');
+      conversations.refresh();
+    }
   }
 
   List<Map<String, dynamic>> get filteredConversations {
@@ -1134,6 +1180,226 @@ class ChatController extends GetxController {
     _wsListener?.dispose();
     stopRealtime();
     super.onClose();
+  }
+
+  // ===== Visible Chatrooms API integration =====
+  Dio _dio = Dio();
+
+  void _resetApiPagination() {
+    _nextCursor = null;
+    _apiHasMore = true;
+    _apiWorkspaceBound = _currentWorkspaceId;
+  }
+
+  Future<void> fetchVisibleChatrooms({
+    bool initial = false,
+    bool force = false,
+    int limit = 1000,
+  }) async {
+    if (!useVisibleApi.value) return;
+    if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
+      await _getCurrentWorkspaceId();
+      if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
+        error.value = 'No workspace selected';
+        return;
+      }
+    }
+
+    // Workspace changed externally without listener (safety)
+    if (_apiWorkspaceBound != _currentWorkspaceId) {
+      _resetApiPagination();
+    }
+
+    if (initial) {
+      if (isApiLoading.value) return; // prevent double initial
+      isApiLoading.value = true;
+      error.value = '';
+      // When forcing refresh, reset pagination
+      if (force) {
+        _resetApiPagination();
+      }
+    } else {
+      // Load more path
+      if (!_apiHasMore) return; // nothing more
+      if (isApiLoadingMore.value) return; // already loading
+      final now = DateTime.now();
+      if (now.difference(_lastLoadMoreAt).inMilliseconds < 600)
+        return; // debounce
+      _lastLoadMoreAt = now;
+      isApiLoadingMore.value = true;
+    }
+
+    try {
+      final auth = Get.find<FirebaseAuthService>();
+      final token = await MobileApiAuth.getIdTokenOrThrow(auth);
+      final params = {
+        'workspaceId': _currentWorkspaceId,
+        'limit': limit.toString(),
+        if (_nextCursor != null && _nextCursor!.isNotEmpty)
+          'after': _nextCursor,
+      };
+      // Apply status filter if set (mapping to API spec: NEW, INPROGRESS, DONE)
+      final sf = statusFilter.value;
+      if (sf.isNotEmpty) {
+        // Convert internal IN_PROGRESS to INPROGRESS per API spec
+        if (sf == 'IN_PROGRESS') {
+          params['status'] = 'INPROGRESS';
+        } else {
+          params['status'] = sf;
+        }
+      }
+
+      final resp = await _dio.get(
+        '${MobileApiConfig.baseUrl}/api/mobile/chatrooms/visible',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        queryParameters: params,
+      );
+
+      final data = resp.data is Map<String, dynamic>
+          ? resp.data as Map<String, dynamic>
+          : (resp.data is Map
+                ? Map<String, dynamic>.from(resp.data as Map)
+                : <String, dynamic>{});
+      final success = data['success'] == true;
+      if (!success) {
+        throw Exception(data['message'] ?? 'Unknown API error');
+      }
+      final List roomsRaw = (data['rooms'] as List?) ?? const [];
+      final nextCursor = data['nextCursor']?.toString();
+
+      // Transform rooms to match internal shape used by UI (reuse logic similar to realtime path)
+      List<Map<String, dynamic>> transformed = roomsRaw.map((r) {
+        final m = r is Map ? Map<String, dynamic>.from(r) : <String, dynamic>{};
+        // Ensure id present
+        m['id'] = m['id'] ?? m['chatroomId'] ?? m['chat_id'] ?? m['cid'];
+        final lastInfo =
+            (m['last_message_info'] as Map?)?.cast<String, dynamic>() ?? {};
+        m['name'] =
+            m['name'] ?? m['customerName'] ?? lastInfo['who_name'] ?? 'Unknown';
+        m['type'] = (m['dialog_type']?.toString().toUpperCase() == 'GROUP')
+            ? 'group'
+            : 'direct';
+        m['lastMessage'] = lastInfo['message'] ?? m['message'] ?? '';
+        m['avatarUrl'] = m['avatarUrl'] ?? m['avatar'];
+        m['status'] = m['chatroom_status'] ?? m['status'] ?? 'active';
+        m['unreadCount'] =
+            int.tryParse(m['count']?.toString() ?? '0') ??
+            (m['unread'] is int ? m['unread'] as int : 0);
+        m['isOnline'] = (m['bot_status'] == 'Y');
+        m['sourceType'] = m['source_type'] ?? m['sourceType'] ?? 'unknown';
+        m['isPinned'] = m['chat_pin'] == 'Y' || m['isPinned'] == true;
+        m['isNew'] = m['is_new'] == 'Y' || m['isNew'] == true;
+
+        DateTime? parseDate(dynamic v) {
+          if (v == null) return null;
+          if (v is Timestamp) return v.toDate();
+          if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
+          if (v is String) {
+            try {
+              return DateTime.parse(v);
+            } catch (_) {}
+          }
+          return null;
+        }
+
+        m['lastMessageAt'] = parseDate(
+          lastInfo['msg_timestamp'] ?? lastInfo['last_upd'],
+        );
+        m['createdAt'] = parseDate(m['created']);
+
+        // Permission gating already enforced by API: treat as known
+        try {
+          final aIds = ((m['assignees'] as List?) ?? [])
+              .map((e) => e.toString())
+              .toList();
+          if (aIds.isNotEmpty) {
+            m['assigneeIds'] = aIds;
+            m['assigneesKnown'] = true;
+          } else {
+            m['assigneesKnown'] =
+                true; // even if empty, it's authoritative result
+            m['assigneeIds'] = const <String>[];
+          }
+        } catch (_) {
+          m['assigneeIds'] = const <String>[];
+          m['assigneesKnown'] = true;
+        }
+
+        // Build hashtag meta
+        try {
+          m['hashtagMeta'] = _buildHashtagMeta(m);
+        } catch (_) {}
+
+        // Attempt provider attach for icons
+        try {
+          _attachProviderInfo(m);
+        } catch (_) {}
+
+        return m;
+      }).toList();
+
+      if (initial) {
+        conversations.assignAll(transformed);
+      } else {
+        // Append avoiding duplicates
+        final existingIds = conversations
+            .map((e) => (e['id'] ?? '').toString())
+            .toSet();
+        for (final m in transformed) {
+          final id = (m['id'] ?? '').toString();
+          if (id.isEmpty) continue;
+          if (existingIds.contains(id)) {
+            // update existing (merge some fields)
+            final idx = conversations.indexWhere(
+              (c) => (c['id'] ?? '').toString() == id,
+            );
+            if (idx >= 0) {
+              conversations[idx].addAll(m);
+            }
+          } else {
+            conversations.add(m);
+          }
+        }
+      }
+
+      _nextCursor = nextCursor;
+      _apiHasMore = nextCursor != null && nextCursor.isNotEmpty;
+      if (initial) {
+        isApiLoading.value = false;
+      } else {
+        isApiLoadingMore.value = false;
+      }
+
+      // Enrich assignees / hashtags asynchronously (non-blocking)
+      // ignore: unawaited_futures
+      _augmentAssignees(conversations);
+      // ignore: unawaited_futures
+      _augmentCustomerHashtags(conversations);
+    } catch (e) {
+      if (initial) {
+        isApiLoading.value = false;
+      } else {
+        isApiLoadingMore.value = false;
+      }
+      error.value = 'Failed to load chatrooms: $e';
+    }
+  }
+
+  bool get canLoadMoreVisible =>
+      useVisibleApi.value &&
+      _apiHasMore &&
+      !isApiLoadingMore.value &&
+      !isApiLoading.value;
+
+  Future<void> loadMoreVisible() async {
+    if (!canLoadMoreVisible) return;
+    await fetchVisibleChatrooms(initial: false);
+  }
+
+  // Provide public API to force refresh
+  Future<void> refreshVisible() async {
+    if (!useVisibleApi.value) return;
+    await fetchVisibleChatrooms(initial: true, force: true);
   }
 
   Future<void> _augmentAssignees(List<Map<String, dynamic>> items) async {

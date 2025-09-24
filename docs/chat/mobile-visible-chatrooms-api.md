@@ -33,26 +33,47 @@ Notes:
 
 ## Visibility Rules
 
-- Role-based permissions (from the user role in `companyProfile.roles`):
-  - `chat:view:all` — See all chatrooms (subject to channel access below)
-  - `chat:view:assigned` — See only rooms assigned to the current user
-  - `chat:view:unassigned` — See rooms with no assignees
-  - Owner (`roleId = owner`) has `*` (all permissions)
-- Per-connection channel access (`companyProfile.connections.*[].allowedUserIds`):
-  - If `allowedUserIds` is empty or missing → visible to all workspace members
-  - If present and non-empty → visible only to those user IDs
-  - Owner bypasses this restriction (sees all connections)
+### 1. Channel / Connection Gating
+Each provider connection may optionally restrict visibility by `allowedUserIds`:
+- Empty / missing list → visible to all workspace members
+- Non-empty list → visible only to those users (or owner)
 
-Provider ID mapping per source_type:
-- LINE → `botId`
-- Facebook → `pageId` (also fetches legacy `messenger`)
-- Instagram → `igUserId`
-- WhatsApp → connection `id`
-- Lazada → `sellerId`
+If a non-owner user ends up with zero allowed connections across all providers, the API returns an empty list early.
 
-Assignee detection:
-- Uses `chat.assignees` (array) when available
-- Fallback to legacy `salespersonId` when `assignees` is missing
+### 2. Permission Precedence (Strict)
+Applied in this order (first match wins):
+1. `owner` or `chat:view:all` → All channel-allowed chatrooms
+2. `chat:view:assigned` (WITHOUT `chat:view:all`) → Only chatrooms assigned to the user (strict mode; unassigned chats are NOT included even if role has `chat:view:unassigned`)
+3. `chat:view:unassigned` only → Only strictly unassigned chatrooms
+4. Otherwise → No chatrooms
+
+### 3. Assigned Resolution
+A chatroom counts as assigned to the current user if ANY is true:
+- User UID in `chat.assignees`
+- User UID equals legacy `chat.salespersonId`
+- Linked customer exists AND user UID in `customer.assignees`
+
+### 4. Strict Unassigned Definition
+Used only under precedence rule #3:
+- No `chat.assignees`
+- No legacy `salespersonId`
+- If a customer is linked, `customer.assignees` is empty or missing
+
+### 5. Hidden Chats
+`is_hidden === true` excluded unless `includeHidden=true`.
+
+### 6. Provider ID Mapping (`source_type` → provider id field)
+- line → `botId`
+- facebook / messenger → `pageId` (both queried)
+- instagram → `igUserId`
+- whatsapp → connection `id`
+- lazada → `sellerId`
+
+### 7. Legacy Normalization
+`messenger` is normalized internally to `facebook` for downstream logic.
+
+### 8. Rationale
+Strict assigned mode prevents information leakage of unassigned or other users' chatrooms and mirrors the web `live-chat` implementation for consistency.
 
 ## Sorting and Pagination
 
@@ -132,3 +153,4 @@ curl -G \
 ## Changelog
 
 - 2025-09-23 — Initial version
+- 2025-09-24 — Added strict assigned-only precedence, customer assignee enrichment, refined unassigned definition, clarified channel gating.
