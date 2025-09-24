@@ -329,6 +329,77 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     }
   }
 
+  Future<void> _updateTodoCompletion(String jobCardId, String todoId, bool completed) async {
+    if (jobCardId.isEmpty || todoId.isEmpty) return;
+
+    try {
+      final workspaceId = _controller.currentWorkspaceId.value.isNotEmpty
+          ? _controller.currentWorkspaceId.value
+          : widget.customer.workspaceId;
+
+      // Try cards collection first (new structure)
+      DocumentReference docRef = FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(workspaceId)
+          .collection('cards')
+          .doc(jobCardId);
+      
+      DocumentSnapshot docSnapshot = await docRef.get();
+      
+      // If not found in cards, try jobCards collection (old structure)
+      if (!docSnapshot.exists) {
+        docRef = FirebaseFirestore.instance
+            .collection('workspaces')
+            .doc(workspaceId)
+            .collection('jobCards')
+            .doc(jobCardId);
+        
+        docSnapshot = await docRef.get();
+        
+        if (!docSnapshot.exists) {
+          throw Exception('Job card not found in both cards and jobCards collections');
+        }
+      }
+
+      // Get current todos from Firestore document
+      final docData = docSnapshot.data() as Map<String, dynamic>?;
+      final currentTodos = List<Map<String, dynamic>>.from(docData?['todos'] ?? []);
+      
+      // Find and update the specific todo
+      final todoIndex = currentTodos.indexWhere((todo) => todo['id'] == todoId);
+      if (todoIndex == -1) {
+        throw Exception('Todo item not found');
+      }
+
+      // Update the todo completion status
+      currentTodos[todoIndex]['completed'] = completed;
+
+      // Update the entire todos array
+      await docRef.update({'todos': currentTodos});
+
+      // Show success feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(completed ? 'ทำเครื่องหมายเสร็จแล้ว' : 'ยกเลิกการทำเครื่องหมาย'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('ไม่สามารถอัปเดตสถานะ To-Do ได้: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _customerUpdateListener?.dispose();
@@ -1562,6 +1633,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     final dueDate = todo['dueDate'];
     final jobCardTitle = todo['jobCardTitle'] as String? ?? '';
     final jobCardCustomId = todo['jobCardCustomId'] as String? ?? '';
+    final jobCardId = todo['jobCardId'] as String? ?? '';
+    final todoId = todo['id'] as String? ?? '';
     
     // Parse HTML title to plain text
     String plainTitle = todoTitle;
@@ -1607,24 +1680,27 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
           Row(
             children: [
               // Completion checkbox
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: isCompleted ? Colors.green : Colors.transparent,
-                  border: Border.all(
-                    color: isCompleted ? Colors.green : AppTheme.textSecondary,
-                    width: 2,
+              GestureDetector(
+                onTap: () => _updateTodoCompletion(jobCardId, todoId, !isCompleted),
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: isCompleted ? Colors.green : Colors.transparent,
+                    border: Border.all(
+                      color: isCompleted ? Colors.green : AppTheme.textSecondary,
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  borderRadius: BorderRadius.circular(4),
+                  child: isCompleted
+                      ? const Icon(
+                          Icons.check,
+                          size: 14,
+                          color: Colors.white,
+                        )
+                      : null,
                 ),
-                child: isCompleted
-                    ? const Icon(
-                        Icons.check,
-                        size: 14,
-                        color: Colors.white,
-                      )
-                    : null,
               ),
               
               const SizedBox(width: 12),

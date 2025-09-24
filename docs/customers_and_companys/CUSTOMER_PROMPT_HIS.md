@@ -6,6 +6,38 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
 
+
+Topic: Customer detail page in tab 'todo' or 'สิ่งที่ต้องทำ'
+Detail: fetch checkbox of to-do list from firestore and show in tab 'todo' or 'สิ่งที่ต้องทำ'.
+when press checkbox it will update to firestore.โดยเมื่อทำการกด checkbox จะทำการอัพเดทสถานะใน firestore ทันทีที่ path: `/workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/todos/todos[].completed`
+
+example data in firestore:
+```
+            "todos": [
+              {
+                "completed": false,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975522376",
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em>fasdfasdf</em></strong></span></p>",
+                "mentions": [],
+                "dueDate": 1756918860000
+              },
+              {
+                "mentions": [],
+                "title": "<p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em><p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em><p><span style=\"color: rgb(2, 8, 23); font-size: 24px;\"><strong><em></em></strong></span></p></em></strong></span></p></em></strong></span></p>",
+                "completed": false,
+                "dueDate": 1756918860000,
+                "id": "todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-todo-1756975523853"
+              }
+              
+              ]
+```
+
+
+
+Topic: Customer detail page in tab 'todo' or 'สิ่งที่ต้องทำ'
+Detail: fetch checkbox of to-do list from firestore and show in tab 'todo' or 'สิ่งที่ต้องทำ'.
+when press checkbox it will update to firestore.
+
 Topic: Customer detail page in tab job card
 Detail: /fix error In tab 'Job card'.When pressed job card in tab i got error
 ``` 

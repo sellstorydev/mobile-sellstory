@@ -106,6 +106,20 @@
 - Enhanced customer interest initialization with proper existence checking before setting selected value
 - Fixed line 6605 error in `_buildCustomerInterestSection()` method
 
+## 2025-09-24 — Customer detail page Todo tab interactive checkbox (Complete)
+
+- Enhanced Todo tab in customer detail page to make checkboxes interactive with Firestore updates
+- Replaced static Container checkbox with GestureDetector for tap handling in `_buildTodoItem()` 
+- Added `_updateTodoCompletion()` method to update todo completion status in Firestore
+- Implemented robust Firestore update pattern: check document existence, find todo by ID, update in-place
+- Added jobCardId and todoId extraction from todo data to identify specific todo items for updates
+- Added comprehensive error handling with SnackBar notification for both success and failure cases
+- Fixed "Job card not found" error by checking both 'cards' and 'jobCards' collections in Firestore
+- Enhanced fallback mechanism to handle different Firestore collection structures (cards vs jobCards)
+- Enhanced user feedback with success messages when todos are marked complete/incomplete
+- Users can now tap checkboxes to mark todos as completed/incomplete and changes persist to database
+- Fixed path issue by updating to correct Firestore path structure: `/workspaces/{workspaceId}/cards/{cardId}/todos`
+
 
 
 ```
