@@ -295,12 +295,13 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('board_management'.tr),
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: _loadBoards,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.black),
           ),
         ],
       ),
@@ -405,16 +406,16 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                 ],
               );
             }),
-      floatingActionButton: PermissionGuard(
-        permission: 'settings:board:manage',
-        hideIfUnauthorized: true,
-        child: FloatingActionButton(
-          onPressed: _navigateToCreateBoard,
-          backgroundColor: AppTheme.primaryOrange,
-          foregroundColor: Colors.white,
-          child: const Icon(Icons.add),
-        ),
-      ),
+      // floatingActionButton: PermissionGuard(
+      //   permission: 'settings:board:manage',
+      //   hideIfUnauthorized: true,
+      //   child: FloatingActionButton(
+      //     onPressed: _navigateToCreateBoard,
+      //     backgroundColor: AppTheme.primaryOrange,
+      //     foregroundColor: Colors.white,
+      //     child: const Icon(Icons.add),
+      //   ),
+      // ),
     );
   }
 

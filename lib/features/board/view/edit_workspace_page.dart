@@ -209,7 +209,7 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
         actions: [
           IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, color: Colors.black),
           ),
         ],
       ),

@@ -7,6 +7,10 @@
     - *important* after finish add command in terminal "say finish prompt"
 
 Topic:Board Edit Page Error
+Detail: อยากให้ทำการปรับ แก้ไข UI ให้มันดูคล้ายกับส่วนอื่นใน application หน่อย
+
+
+Topic:Board Edit Page Error
 Detail: เมื่อทำการกดเข้าไปที่จัดการ board เกิด error ขึ้นมาตามนี่ /fix error 
 ```
 [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: type '_Map<dynamic, dynamic>' is not a subtype of type 'Map<String, dynamic>' in type cast
