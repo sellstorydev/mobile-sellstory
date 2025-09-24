@@ -18,7 +18,7 @@ class CustomersPage extends StatefulWidget {
   State<CustomersPage> createState() => _CustomersPageState();
 }
 
-class _CustomersPageState extends State<CustomersPage> {
+class _CustomersPageState extends State<CustomersPage> with WidgetsBindingObserver, RouteAware {
   late CustomersController _controller;
   final FocusNode _searchFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -31,6 +31,18 @@ class _CustomersPageState extends State<CustomersPage> {
       Get.put<CustomersController>(CustomersController(Get.find()));
     }
     _controller = Get.find<CustomersController>();
+    
+    // Add lifecycle observers
+    WidgetsBinding.instance.addObserver(this);
+    
+    // Refresh customer data when entering customers page
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final workspaceId = _controller.currentWorkspaceId.value;
+      if (workspaceId.isNotEmpty) {
+        print('[CustomersPage] Refreshing customer data on page load...');
+        _controller.refreshCustomers();
+      }
+    });
 
     _scrollController.addListener(() {
       if (!_controller.hasMore.value || _controller.isPageLoading.value) return;
@@ -45,9 +57,49 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes
+    final route = ModalRoute.of(context);
+    if (route is PageRoute && Get.isRegistered<RouteObserver>()) {
+      Get.find<RouteObserver>().subscribe(this, route);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      print('[CustomersPage] App resumed, refreshing customer data...');
+      final workspaceId = _controller.currentWorkspaceId.value;
+      if (workspaceId.isNotEmpty) {
+        _controller.refreshCustomers();
+      }
+    }
+  }
+
+  @override
+  void didPopNext() {
+    super.didPopNext();
+    // Called when returning to this page
+    print('[CustomersPage] Returned to customers page, refreshing data...');
+    final workspaceId = _controller.currentWorkspaceId.value;
+    if (workspaceId.isNotEmpty) {
+      _controller.refreshCustomers();
+    }
+  }
+
+  @override
   void dispose() {
     _searchFocus.dispose();
     _scrollController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    
+    // Unsubscribe from route observer
+    if (Get.isRegistered<RouteObserver>()) {
+      Get.find<RouteObserver>().unsubscribe(this);
+    }
+    
     super.dispose();
   }
 

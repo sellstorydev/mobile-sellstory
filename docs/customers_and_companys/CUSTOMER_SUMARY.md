@@ -61,6 +61,51 @@
 - All CRUD operations now update the local list immediately for instant UI feedback, while still maintaining database sync
 - Solves the issue where customer list didn't update after add/edit/delete operations
 
+## 2025-09-24 — Customer data auto-refresh implementation
+
+- Enhanced `customer_detail_page.dart` to auto-refresh customer data on page entry and app lifecycle changes
+- Added `_refreshCustomerData()` method that calls `controller.refreshCustomers()` and updates current customer state
+- Implemented `WidgetsBindingObserver` and `RouteAware` mixins for lifecycle monitoring
+- Added `didChangeAppLifecycleState()` to refresh when app resumes from background
+- Added `didPopNext()` to refresh when returning from other pages
+- Enhanced `customers_page.dart` with similar auto-refresh capabilities on page load and navigation
+- Added proper cleanup in dispose methods for observers and route subscriptions
+- Implemented history tab in customer detail page showing Firestore activities
+- Added StreamBuilder for `/workspaces/{workspaceId}/activities/` collection filtered by `type='card-create'`
+- Added Thai date formatting with Buddhist calendar year (+543)
+- Shows user actions, card titles, lane names, and formatted timestamps
+- Solves the issue where customer data was not refreshing when navigating between pages
+
+## 2025-09-24 — History tab timestamp type error fix (Complete)
+
+- Fixed TypeError in history tab where timestamp field could be either Timestamp or int type
+- Enhanced timestamp handling in both activities sorting AND itemBuilder to check data type before casting
+- Added safe conversion from int to Timestamp using `Timestamp.fromMillisecondsSinceEpoch()` in both locations
+- Prevents crash when Firestore activities contain timestamp as int rather than Timestamp object
+- History tab now properly sorts and displays activities regardless of timestamp data type stored in Firestore
+- Fixed line 1746 error by replacing unsafe cast with proper type checking in ListView itemBuilder
+
+## 2025-09-24 — History tab pull-to-refresh implementation (Complete)
+
+- Converted History tab from real-time StreamBuilder to pull-to-refresh pattern to eliminate UI flickering
+- Replaced StreamBuilder with RefreshIndicator and manual data management using state variables
+- Added `_historyActivities`, `_historyLoading`, and `_historyCount` state variables for manual history data control
+- Created `_loadHistoryData()` method for fetching activities data with proper timestamp type handling
+- Implemented pull-to-refresh functionality allowing users to manually update history when needed
+- Added loading states and empty state with "ดึงลงเพื่ออัปเดต" (pull down to update) instruction
+- Enhanced UX by removing unwanted continuous real-time updates that caused flickering
+- History data now loads on page initialization and refreshes only when user pulls down
+- Maintains all existing functionality including timestamp type safety, sorting, and Thai date formatting
+
+## 2025-09-24 — EditCardPage customer interest dropdown fix (Complete)
+
+- Fixed DropdownButtonFormField error "There should be exactly one item with [DropdownButton]'s value: มาก (High)"
+- Added validation in `initState()` to check if card's customerInterest exists in `_customerInterestOptions` list
+- If card interest value doesn't match any dropdown option, defaults to 'interest_initial'.tr instead of crashing
+- Prevents assertion error when Firestore contains interest values not present in dropdown options
+- Enhanced customer interest initialization with proper existence checking before setting selected value
+- Fixed line 6605 error in `_buildCustomerInterestSection()` method
+
 
 
 ```

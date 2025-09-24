@@ -415,10 +415,15 @@ class _EditCardPageState extends State<EditCardPage> {
         : []; // ใช้ customerId แทน customer
     _selectedCompany =
         widget.card.company?['id'] ?? 'none'; // Initialize company from JobCard
-    _selectedCustomerInterest =
-        (widget.card.customerInterest?.isNotEmpty ?? false)
-        ? widget.card.customerInterest!
-        : 'interest_initial'.tr;
+    // Initialize customer interest with validation
+    final cardInterest = widget.card.customerInterest;
+    if (cardInterest?.isNotEmpty ?? false) {
+      // Check if the card's interest value exists in our options
+      final optionExists = _customerInterestOptions.any((option) => option == cardInterest);
+      _selectedCustomerInterest = optionExists ? cardInterest! : 'interest_initial'.tr;
+    } else {
+      _selectedCustomerInterest = 'interest_initial'.tr;
+    }
     _selectedStatus = widget.card.status;
     _startDate = widget.card.startDate;
     _endDate = widget.card.endDate;

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/workspace_members_service.dart';
@@ -25,7 +26,7 @@ class CustomerDetailPage extends StatefulWidget {
   State<CustomerDetailPage> createState() => _CustomerDetailPageState();
 }
 
-class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTickerProviderStateMixin {
+class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
   final WorkspaceMembersService _workspaceMembersService = WorkspaceMembersService();
   final CustomersController _controller = Get.find<CustomersController>();
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
@@ -39,14 +40,43 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   
   // Tab controller
   late TabController _tabController;
+
+  Future<void> _refreshCustomerData() async {
+    print('[CustomerDetail] Refreshing customer data...');
+    
+    // Refresh customers list to get latest data
+    try {
+      await _controller.refreshCustomers();
+      
+      // Find updated customer data
+      final updatedCustomer = _controller.customers
+          .firstWhereOrNull((c) => c.id == widget.customer.id);
+      
+      if (updatedCustomer != null) {
+        setState(() {
+          _currentCustomer = updatedCustomer;
+        });
+        print('[CustomerDetail] ✅ Customer data refreshed');
+      } else {
+        print('[CustomerDetail] ⚠️ Customer not found in refreshed list');
+      }
+    } catch (e) {
+      print('[CustomerDetail] ❌ Failed to refresh customer data: $e');
+    }
+  }
   
   // Job cards data
   Stream<List<JobCard>>? _jobCardsStream;
   int _jobCardCount = 0;
   int _todoCount = 0;
+  int _historyCount = 0;
   List<JobCard> _jobCards = [];
   bool _jobCardsLoading = true;
   StreamSubscription<List<JobCard>>? _jobCardsSub;
+
+  // History data  
+  List<QueryDocumentSnapshot> _historyActivities = [];
+  bool _historyLoading = false;
 
   // Helper methods to check for valid data
   bool _hasValidEmails() {
@@ -98,6 +128,41 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     _loadWorkspaceMembers();
     _listenToCustomerUpdates();
     _initJobCardsStream();
+    _loadHistoryData(); // Load history data on page load
+    
+    // Add observer for app lifecycle changes
+    WidgetsBinding.instance.addObserver(this);
+    
+    // Refresh customer data when entering the page
+    _refreshCustomerData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes only after dependencies are ready
+    final route = ModalRoute.of(context);
+    if (route is PageRoute && Get.isRegistered<RouteObserver>()) {
+      Get.find<RouteObserver>().subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    super.didPopNext();
+    // Called when returning to this page from another page
+    print('[CustomerDetail] Returned from another page, refreshing customer data...');
+    _refreshCustomerData();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh data when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      print('[CustomerDetail] App resumed, refreshing customer data...');
+      _refreshCustomerData();
+    }
   }
 
   bool _isCurrentUserAssigned() {
@@ -200,11 +265,82 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     });
   }
 
+  Future<void> _loadHistoryData() async {
+    if (_historyLoading) return;
+    
+    setState(() {
+      _historyLoading = true;
+    });
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('workspaces')
+          .doc(widget.customer.workspaceId)
+          .collection('activities')
+          .where('type', isEqualTo: 'card-create')
+          .get();
+
+      final activities = snapshot.docs;
+      
+      // Sort activities by timestamp in descending order (client-side)
+      activities.sort((a, b) {
+        final aData = a.data();
+        final bData = b.data();
+        
+        // Handle timestamp that can be either Timestamp or int
+        Timestamp? aTimestamp;
+        Timestamp? bTimestamp;
+        
+        final aTimestampRaw = aData['timestamp'];
+        final bTimestampRaw = bData['timestamp'];
+        
+        if (aTimestampRaw is Timestamp) {
+          aTimestamp = aTimestampRaw;
+        } else if (aTimestampRaw is int) {
+          aTimestamp = Timestamp.fromMillisecondsSinceEpoch(aTimestampRaw);
+        }
+        
+        if (bTimestampRaw is Timestamp) {
+          bTimestamp = bTimestampRaw;
+        } else if (bTimestampRaw is int) {
+          bTimestamp = Timestamp.fromMillisecondsSinceEpoch(bTimestampRaw);
+        }
+        
+        if (aTimestamp == null && bTimestamp == null) return 0;
+        if (aTimestamp == null) return 1;
+        if (bTimestamp == null) return -1;
+        
+        return bTimestamp.compareTo(aTimestamp); // Descending order
+      });
+
+      if (mounted) {
+        setState(() {
+          _historyActivities = activities;
+          _historyCount = activities.length;
+          _historyLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _historyLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _customerUpdateListener?.dispose();
     _jobCardsSub?.cancel();
     _tabController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    
+    // Unsubscribe from route observer
+    if (Get.isRegistered<RouteObserver>()) {
+      Get.find<RouteObserver>().unsubscribe(this);
+    }
+    
     super.dispose();
   }
 
@@ -1048,7 +1184,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                       tabs: [
                         Tab(text: 'Job card (' '$_jobCardCount' ')'),
                         Tab(text: 'สิ่งที่ต้องทำ (' '$_todoCount' ')'),
-                        const Tab(text: 'ประวัติ (0)'),
+                        Tab(text: 'ประวัติ ($_historyCount)'),
                         const Tab(text: 'คลังเอกสาร (0)'),
                         const Tab(text: 'โน๊ต (0)'),
                         const Tab(text: 'เอกสารการขาย (0)'),
@@ -1584,15 +1720,136 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildHistoryTab() {
     return Container(
       color: AppTheme.backgroundGrey,
-      child: Center(
-        child: Text(
-          'ประวัติ\n(Coming Soon)',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.textSecondary,
-          ),
-        ),
+      child: RefreshIndicator(
+        onRefresh: _loadHistoryData,
+        child: _historyLoading && _historyActivities.isEmpty
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : _historyActivities.isEmpty
+                ? CustomScrollView(
+                    slivers: [
+                      SliverFillRemaining(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.history,
+                                size: 64,
+                                color: AppTheme.textSecondary.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'ยังไม่มีประวัติการสร้างการ์ด',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'ดึงลงเพื่ออัปเดต',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textSecondary.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _historyActivities.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final activity = _historyActivities[index].data() as Map<String, dynamic>;
+                      
+                      // Handle timestamp that can be either Timestamp or int
+                      Timestamp? timestamp;
+                      final timestampRaw = activity['timestamp'];
+                      if (timestampRaw is Timestamp) {
+                        timestamp = timestampRaw;
+                      } else if (timestampRaw is int) {
+                        timestamp = Timestamp.fromMillisecondsSinceEpoch(timestampRaw);
+                      }
+                      
+                      final details = activity['details'] as Map<String, dynamic>?;
+                      final userDisplayName = activity['userDisplayName'] as String? ?? 'ไม่ระบุชื่อ';
+                      final cardTitle = details?['cardTitle'] as String? ?? 'ไม่มีชื่อการ์ด';
+                      final laneName = details?['laneName'] as String? ?? 'ไม่ระบุโซน';
+
+                      return Card(
+                        margin: EdgeInsets.zero,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+                                    child: Icon(
+                                      Icons.add_card,
+                                      size: 16,
+                                      color: AppTheme.primaryOrange,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '$userDisplayName สร้างการ์ดใหม่',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'การ์ด: $cardTitle',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                        Text(
+                                          'โซน: $laneName',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (timestamp != null)
+                                    Text(
+                                      _formatThaiDateTime(timestamp.toDate()),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
       ),
     );
   }
@@ -1719,4 +1976,21 @@ class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
+}
+
+extension _DateTimeFormatting on _CustomerDetailPageState {
+  String _formatThaiDateTime(DateTime dateTime) {
+    final thaiMonths = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+    
+    final day = dateTime.day;
+    final month = thaiMonths[dateTime.month - 1];
+    final year = dateTime.year + 543; // Convert to Buddhist Era
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    
+    return '$day $month $year เวลา $hour:$minute น.';
+  }
 }
