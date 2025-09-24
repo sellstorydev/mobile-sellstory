@@ -20,6 +20,7 @@ class InAppPurchaseService extends GetxService {
   final processingPurchaseIds = <String>{}.obs;
   final notFoundIds = <String>[].obs; // product IDs not returned by store
   final _simulatedOwned = <String>{}.obs; // simulator-only owned set
+  final forceMock = false.obs; // manual toggle (debug / QA)
 
   bool get isSimulator {
     // iOS simulator check: device model identifier contains 'x86_64' or 'i386' historically, but
@@ -33,7 +34,7 @@ class InAppPurchaseService extends GetxService {
     }
   }
 
-  late final StreamSubscription<List<PurchaseDetails>> _sub;
+  StreamSubscription<List<PurchaseDetails>>? _sub;
 
   // Configure your product identifiers here (must match App Store Connect)
   // Example: remove ads, subscription tiers, coins, etc.
@@ -41,6 +42,18 @@ class InAppPurchaseService extends GetxService {
   static const Set<String> _kProductIds = <String>{
     '365day',
   };
+
+  Set<String> get productIds => _kProductIds; // expose for debug UI
+
+  void toggleForceMock() {
+    forceMock.value = !forceMock.value;
+    if (forceMock.value) {
+      errorMessage.value = 'iap_force_mock_enabled'.tr;
+    } else {
+      errorMessage.value = '';
+      refreshProducts();
+    }
+  }
 
   Future<InAppPurchaseService> init() async {
     if (!Platform.isIOS) {
@@ -76,6 +89,13 @@ class InAppPurchaseService extends GetxService {
   Future<void> _loadProducts() async {
     try {
       isLoading.value = true;
+      if (forceMock.value) {
+        products.clear();
+        notFoundIds.clear();
+        errorMessage.value = 'iap_force_mock_enabled'.tr;
+        return;
+      }
+
       final response = await _iap.queryProductDetails(_kProductIds);
       if (response.error != null) {
         errorMessage.value = 'iap_query_products_failed'.trParams({'error': response.error!.message});
@@ -84,6 +104,10 @@ class InAppPurchaseService extends GetxService {
       products.assignAll(response.productDetails);
       if (response.productDetails.isEmpty && response.notFoundIDs.isNotEmpty) {
         errorMessage.value = 'iap_products_not_found'.trParams({'ids': response.notFoundIDs.join(', ')});
+      } else if (response.productDetails.isEmpty &&
+          response.notFoundIDs.isEmpty) {
+        // ambiguous empty result – likely propagation / approval issue
+        errorMessage.value = 'iap_products_empty_hint'.tr;
       }
     } catch (e) {
       errorMessage.value = 'iap_query_products_failed'.trParams({'error': '$e'});
@@ -97,7 +121,7 @@ class InAppPurchaseService extends GetxService {
 
   Future<void> buy(ProductDetails product) async {
     if (!isAvailable.value) return;
-    if (isSimulator) {
+    if (isSimulator || forceMock.value) {
       // Simulate immediate successful purchase
       processingPurchaseIds.add(product.id);
       await Future.delayed(const Duration(milliseconds: 350));
@@ -121,6 +145,7 @@ class InAppPurchaseService extends GetxService {
 
   Future<void> restore() async {
     if (!isAvailable.value) return;
+    if (forceMock.value || isSimulator) return; // nothing to restore in mock
     await _iap.restorePurchases();
   }
 
@@ -153,7 +178,7 @@ class InAppPurchaseService extends GetxService {
   }
 
   bool hasActivePurchase(String productId) {
-    if (isSimulator) {
+    if (isSimulator || forceMock.value) {
       return _simulatedOwned.contains(productId);
     }
     return purchases.any((p) => p.productID == productId && p.status == PurchaseStatus.purchased);
@@ -161,9 +186,7 @@ class InAppPurchaseService extends GetxService {
 
   @override
   void onClose() {
-    if (Platform.isIOS) {
-      _sub.cancel();
-    }
+    _sub?.cancel();
     super.onClose();
   }
 }

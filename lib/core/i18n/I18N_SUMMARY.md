@@ -4,6 +4,9 @@ Added keys: iap_menu, iap_title, iap_ios_only, iap_not_available, iap_no_product
 ### IAP Simulator Keys (2025-09-24)
 Added keys: iap_simulator_mode, iap_simulator_mock_product, iap_simulator_notice
 
+### Customers Page Searching Key (2025-09-25)
+Added key: searching_customers (EN: "Searching customers..." / TH: "กำลังค้นหาลูกค้า...") and replaced hardcoded Thai literal in `customers_page.dart`.
+
 ### English Customer Keys Addition (2025-09-24)
 Added missing English translations for existing Thai-only keys:
 * edit_customer_title -> Edit Customer

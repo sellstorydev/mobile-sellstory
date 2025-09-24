@@ -130,7 +130,9 @@ class MorePage extends StatelessWidget {
                       },
                     ),
                     _buildDivider(),
-                    if (Platform.isIOS) ...[
+                    // Show IAP menu on iOS OR when user locale is not Thai (non-TH market rollout)
+                    if (Platform.isIOS ||
+                        (Get.locale?.languageCode != 'th')) ...[
                       _buildMenuItem(
                         icon: Icons.star_outline,
                         title: 'iap_menu'.tr,

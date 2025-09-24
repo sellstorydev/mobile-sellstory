@@ -427,15 +427,18 @@ class _CustomersPageState extends State<CustomersPage>
 
       // Show searching state when Algolia search is in progress
       if (_controller.isSearching.value) {
-        return const Center(
+        return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: AppTheme.primaryOrange),
-              SizedBox(height: 16),
+              const CircularProgressIndicator(color: AppTheme.primaryOrange),
+              const SizedBox(height: 16),
               Text(
-                'กำลังค้นหาลูกค้า...',
-                style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
+                'searching_customers'.tr,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppTheme.textSecondary,
+                ),
               ),
             ],
           ),
@@ -444,15 +447,18 @@ class _CustomersPageState extends State<CustomersPage>
 
       // Show searching state when Algolia search is in progress
       if (_controller.isSearching.value) {
-        return const Center(
+        return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: AppTheme.primaryOrange),
-              SizedBox(height: 16),
+              const CircularProgressIndicator(color: AppTheme.primaryOrange),
+              const SizedBox(height: 16),
               Text(
-                'กำลังค้นหาลูกค้า...',
-                style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
+                'searching_customers'.tr,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppTheme.textSecondary,
+                ),
               ),
             ],
           ),
