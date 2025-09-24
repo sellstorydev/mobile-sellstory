@@ -213,11 +213,12 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Title
             Text(
               'edit_workspace_title'.tr,
@@ -290,7 +291,8 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
               autofocus: true,
             ),
             
-            const Spacer(),
+            // Add spacing to push content properly
+            SizedBox(height: MediaQuery.of(context).size.height * 0.15),
             
             // Danger Zone
             Container(
@@ -418,7 +420,11 @@ class _EditWorkspacePageState extends State<EditWorkspacePage> {
                 ),
               ],
             ),
-          ],
+            
+            // Bottom padding for keyboard space
+            const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
