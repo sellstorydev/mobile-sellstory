@@ -18,7 +18,7 @@ import '../../document/view/add_edit_document_page.dart';
 import '../../../core/services/notifications_service.dart';
 import '../../../core/services/algolia_document_sync_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
-import '../../customers/view/add_edit_customer_page.dart';
+
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/widgets/customers_input_field.dart' as cif;
@@ -301,7 +301,7 @@ class _EditCardPageState extends State<EditCardPage> {
   List<Map<String, dynamic>> _availableAssignees = [];
   List<cif.Customer> _availableCustomers = [];
   List<Map<String, dynamic>> _availableCompanies = [];
-  List<Map<String, dynamic>> _availableUsers = [];
+
 
   // Status options
   final List<Map<String, dynamic>> _statusOptions = [
@@ -901,7 +901,7 @@ class _EditCardPageState extends State<EditCardPage> {
 
         templates.add({
           'id': doc.id,
-          'name': data['name'] ?? 'Unnamed Template',
+          'name': data['name'] ?? 'unnamed_template'.tr,
           'columns': tableComponent?['columns'] ?? _getDefaultColumns(),
           'data': data,
         });
@@ -1826,169 +1826,9 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-  Widget _buildStatusSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Status',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryOrange,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              children: _statusOptions.map((status) {
-                final isSelected = _selectedStatus == status['value'];
-                return ChoiceChip(
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        status['icon'],
-                        size: 16,
-                        color: isSelected ? Colors.white : Colors.grey,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(status['label']),
-                    ],
-                  ),
-                  selected: isSelected,
-                  selectedColor: AppTheme.primaryOrange,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() {
-                        _selectedStatus = status['value'];
-                      });
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildExpenseItemsSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Expense Items',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryOrange,
-                  ),
-                ),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.add),
-                      label: Text('add_product'.tr),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryOrange,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.add),
-                      label: Text('add_custom'.tr),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
 
-            // Table Header
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'img'.tr,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      'product_service'.tr,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'qty_unit'.tr,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'price_unit'.tr,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'discount'.tr,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'total'.tr,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'no_expense_items_yet'.tr,
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildRelatedDocumentsSection() {
     return Column(
@@ -2108,7 +1948,7 @@ class _EditCardPageState extends State<EditCardPage> {
                       Expanded(
                         flex: 3,
                         child: Text(
-                          'Job Card',
+                          'job_card'.tr,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
@@ -3944,14 +3784,6 @@ class _EditCardPageState extends State<EditCardPage> {
 
     try {
       // Determine original vs new values for notifications
-      final originalAssignee = widget.card.assignedTo;
-      final originalStatus = widget.card.status;
-      final originalLaneId = widget.card.laneId;
-      final originalLaneName =
-          _availableLanes.firstWhereOrNull(
-            (l) => l['id'] == originalLaneId,
-          )?['name'] ??
-          originalLaneId;
 
       // Get assignee details for updatedByDisplayName
       String assigneeDisplayName = '';
@@ -5111,7 +4943,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
               subtitle: _todoItems[index]['dueDate'] != null
                   ? Text(
-                      'Currently set',
+                      'currently_set'.tr,
                       style: TextStyle(color: Colors.green[700]),
                     )
                   : null,
@@ -5125,7 +4957,7 @@ class _EditCardPageState extends State<EditCardPage> {
                     : Colors.green,
               ),
               title: Text(
-                'Set Duration',
+                'set_duration'.tr,
                 style: TextStyle(
                   fontWeight: _todoItems[index]['endTime'] != null
                       ? FontWeight.w600
@@ -5134,7 +4966,7 @@ class _EditCardPageState extends State<EditCardPage> {
               ),
               subtitle: _todoItems[index]['endTime'] != null
                   ? Text(
-                      'Currently set',
+                      'currently_set'.tr,
                       style: TextStyle(color: Colors.green[700]),
                     )
                   : null,
@@ -5220,7 +5052,7 @@ class _EditCardPageState extends State<EditCardPage> {
     final int? duration = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Set Duration'),
+        title: Text('set_duration'.tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -5399,7 +5231,7 @@ class _EditCardPageState extends State<EditCardPage> {
               itemBuilder: (context, index) {
                 final template = todoTemplates[index];
                 return ListTile(
-                  title: Text(template['name'] ?? 'Unnamed Template'),
+                  title: Text(template['name'] ?? 'unnamed_template'.tr),
                   onTap: () => Navigator.of(context).pop(template),
                 );
               },

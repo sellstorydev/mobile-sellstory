@@ -93,12 +93,13 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
       return Scaffold(
         appBar: AppBar(
           title: Text('create_board'.tr),
-          backgroundColor: AppTheme.primaryOrange,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
           actions: [
             IconButton(
               onPressed: () => Get.back(),
-              icon: const Icon(Icons.close),
+              icon: const Icon(Icons.close, color: Colors.black),
             ),
           ],
         ),
@@ -130,12 +131,13 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('create_board'.tr),
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, color: Colors.black),
           ),
         ],
       ),
