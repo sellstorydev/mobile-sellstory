@@ -145,8 +145,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
       await _controller.getBoards();
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to load boards: ${e.toString()}',
+        'error'.tr,
+        '${'failed_to_load_boards'.tr}: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -187,9 +187,9 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
             children: [
               Row(
                 children: [
-                  const Text(
-                    'Total: ',
-                    style: TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+                  Text(
+                    '${'total'.tr}: ',
+                    style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
                   ),
                   Text(
                     '$totalBoards',
@@ -199,9 +199,9 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                       color: AppTheme.primaryOrange,
                     ),
                   ),
-                  const Text(
-                    ' boards',
-                    style: TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+                  Text(
+                    ' ${'boards_label'.tr}',
+                    style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
                   ),
                 ],
               ),
@@ -216,8 +216,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
                   const SizedBox(width: 4),
                   Text(
                     isUnlimited
-                        ? 'Usage: $_boardsUsed / ∞'
-                        : 'Usage: $_boardsUsed / $_boardsLimit',
+                        ? '${'usage_label'.tr}: $_boardsUsed / ∞'
+                        : '${'usage_label'.tr}: $_boardsUsed / $_boardsLimit',
                     style: TextStyle(
                       fontSize: 12,
                       color: isOver ? Colors.red : AppTheme.textSecondary,
@@ -251,7 +251,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
               ),
               onPressed: _navigateToCreateBoard,
               icon: const Icon(Icons.add),
-              label: Text(_isBoardsQuotaFull ? 'Quota full' : 'Create Board'),
+              label: Text(_isBoardsQuotaFull ? 'quota_full'.tr : 'create_board'.tr),
             ),
           ),
         ],
@@ -270,7 +270,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text('Edit Board'),
+              title: Text('edit_board'.tr),
               onTap: () {
                 Navigator.of(context).pop();
                 _navigateToEditBoard(board);
@@ -278,9 +278,9 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text(
-                'Delete Board',
-                style: TextStyle(color: Colors.red),
+              title: Text(
+                'delete_board'.tr,
+                style: const TextStyle(color: Colors.red),
               ),
               onTap: () {
                 Navigator.of(context).pop();
@@ -292,7 +292,7 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text('cancel'.tr),
               ),
             ),
           ],
@@ -305,9 +305,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
     if (!_canManageBoards) return _denySnack();
     final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      title: 'Delete Board',
-      content:
-          'Are you sure you want to delete "${board.name}"?\n\nThis will also delete all lanes and cards in this board. This action cannot be undone.',
+      title: 'delete_board'.tr,
+      content: 'delete_board_confirmation'.tr.replaceAll('{name}', board.name),
     );
 
     if (confirmed == true) {
@@ -320,8 +319,8 @@ class _BoardManagementPageState extends State<BoardManagementPage> {
     try {
       await _controller.deleteBoard(board.id);
       Get.snackbar(
-        'Success',
-        'Board deleted successfully',
+        'success'.tr,
+        'board_deleted_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,

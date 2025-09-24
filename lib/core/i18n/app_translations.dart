@@ -899,6 +899,10 @@ class AppTranslations extends Translations {
       'duplicate_board': 'Duplicate Board',
       'delete_board': 'Delete Board',
       'board_deleted_successfully': 'Board deleted successfully',
+      'boards_label': 'boards',
+      'usage_label': 'Usage:',
+      'quota_full': 'Quota full',
+      'failed_to_load_boards': 'Failed to load boards',
       'failed_to_delete_board': 'Failed to delete board',
       'no_permission_create_boards':
           'You do not have permission to create boards',
@@ -955,6 +959,15 @@ class AppTranslations extends Translations {
       'no_permission_update_workspace':
           "You don't have permission to update workspace settings",
       'no_changes_made': 'No changes made',
+
+      // Edit Board Page
+      'no_permission_edit_board_msg': 'You do not have permission to edit this board',
+      'no_permission_edit_board': 'You do not have permission to edit this board',
+      'no_permission_delete_board': 'You do not have permission to delete this board',
+      'board_information': 'Board Information',
+      'update_board': 'Update Board',
+      'updated_at_label': 'Updated',
+      'delete_board_confirmation': 'Are you sure you want to delete "{name}"?\n\nThis will also delete all lanes and cards in this board. This action cannot be undone.',
 
       // Card View Pages
       'job_card_details': 'Job Card Details',
@@ -1983,6 +1996,10 @@ class AppTranslations extends Translations {
       'duplicate_board': 'ทำสำเนาบอร์ด',
       'delete_board': 'ลบบอร์ด',
       'board_deleted_successfully': 'ลบบอร์ดเรียบร้อยแล้ว',
+      'boards_label': 'บอร์ด',
+      'usage_label': 'การใช้งาน:',
+      'quota_full': 'โควต้าเต็ม',
+      'failed_to_load_boards': 'โหลดบอร์ดไม่สำเร็จ',
       'failed_to_delete_board': 'ลบบอร์ดไม่สำเร็จ',
       'no_permission_create_boards': 'คุณไม่มีสิทธิ์สร้างบอร์ด',
       'no_permission_manage_boards': 'คุณไม่มีสิทธิ์จัดการบอร์ด',
@@ -2038,6 +2055,15 @@ class AppTranslations extends Translations {
       'no_permission_update_workspace':
           'คุณไม่มีสิทธิ์อัปเดตการตั้งค่าเวิร์กสเปซ',
       'no_changes_made': 'ไม่มีการเปลี่ยนแปลง',
+
+      // Edit Board Page
+      'no_permission_edit_board_msg': 'คุณไม่มีสิทธิ์แก้ไขบอร์ดนี้',
+      'no_permission_edit_board': 'คุณไม่มีสิทธิ์แก้ไขบอร์ดนี้',  
+      'no_permission_delete_board': 'คุณไม่มีสิทธิ์ลบบอร์ดนี้',
+      'board_information': 'ข้อมูลบอร์ด',
+      'update_board': 'อัปเดตบอร์ด',
+      'updated_at_label': 'อัปเดตเมื่อ',
+      'delete_board_confirmation': 'คุณแน่ใจหรือไม่ที่จะลบ "{name}"?\n\nการดำเนินการนี้จะลบเลนและการ์ดทั้งหมดในบอร์ดนี้ด้วย และไม่สามารถยกเลิกได้',
 
       // Card View Pages
       'job_card_details': 'รายละเอียดการ์ดงาน',
