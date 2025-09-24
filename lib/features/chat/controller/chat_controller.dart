@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import '../../../data/services/firestore_service.dart';
 import '../../../core/services/logger_service.dart';
@@ -14,7 +15,8 @@ class ChatController extends GetxController {
   // Observable states
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
-  final RxList<Map<String, dynamic>> conversations = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> conversations =
+      <Map<String, dynamic>>[].obs;
   final RxString searchQuery = ''.obs;
   final RxString activeFilter = 'all'.obs;
 
@@ -31,7 +33,6 @@ class ChatController extends GetxController {
 
   // Workspace change listener (GetX Worker)
   Worker? _wsListener;
-
 
   // Cached workspace info
   Map<String, dynamic>? _workspaceData;
@@ -52,9 +53,11 @@ class ChatController extends GetxController {
   final Map<String, List<Map<String, String>>> _customerHashtagMetaCache = {};
 
   // Filters (reactive)
-  final RxSet<String> platformFilters = <String>{}.obs; // 'facebook','instagram','line'
+  final RxSet<String> platformFilters =
+      <String>{}.obs; // 'facebook','instagram','line'
   final RxString statusFilter = ''.obs; // '', 'NEW','IN_PROGRESS','DONE'
-  final RxList<String> hashtagIdFilters = <String>[].obs; // selected hashtag IDs
+  final RxList<String> hashtagIdFilters =
+      <String>[].obs; // selected hashtag IDs
   final RxString salesIdFilter = ''.obs; // single sales/user id
   final RxString customerIdFilter = ''.obs; // single customer id
 
@@ -64,6 +67,24 @@ class ChatController extends GetxController {
       ..clear()
       ..addAll(values.map((e) => e.toLowerCase()));
     conversations.refresh();
+  }
+
+  void getUsersFromChatroom() async {
+    var userData = await FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(_currentWorkspaceId)
+        .get();
+
+    if (userData.exists) {
+      var data = userData.data();
+      if (data != null) {
+        print('Workspace Data: $data');
+      } else {
+        print('No data found in the workspace document.');
+      }
+    } else {
+      print('Workspace document does not exist.');
+    }
   }
 
   void setStatusFilter(String value) {
@@ -97,10 +118,11 @@ class ChatController extends GetxController {
 
   bool get _isListening => _chatroomsSub != null;
 
-
   @override
   void onInit() {
     super.onInit();
+
+    getUsersFromChatroom();
     _logger.info('ChatController initialized');
     // React to workspace changes from BoardController
     if (Get.isRegistered<BoardController>()) {
@@ -111,6 +133,7 @@ class ChatController extends GetxController {
         if (newId == (_currentWorkspaceId ?? '')) return;
         _logger.info('Workspace changed to $newId -> restart chat realtime');
         _currentWorkspaceId = newId;
+
         _workspaceData = null; // reset caches bound to workspace
         // Reset assignee initial settle flags for new workspace
         _assigneeInitialSettled = false;
@@ -135,23 +158,29 @@ class ChatController extends GetxController {
     try {
       // First try to get workspace ID from user's lastActiveWorkspaceId
       final userData = await _firestoreService.getDocument(
-          _firestoreService.usersCollection.doc(_currentUserId!)
+        _firestoreService.usersCollection.doc(_currentUserId!),
       );
 
-      if (userData != null && userData['lastActiveWorkspaceId'] != null && userData['lastActiveWorkspaceId'].toString().isNotEmpty) {
-        final lastActiveWorkspaceId = userData['lastActiveWorkspaceId'] as String;
-        
+      if (userData != null &&
+          userData['lastActiveWorkspaceId'] != null &&
+          userData['lastActiveWorkspaceId'].toString().isNotEmpty) {
+        final lastActiveWorkspaceId =
+            userData['lastActiveWorkspaceId'] as String;
+
         // Check if the last active workspace still exists in user's workspaces
         if (userData['workspaces'] != null) {
           final workspaces = userData['workspaces'] as List<dynamic>?;
           if (workspaces != null) {
-            final workspaceExists = workspaces.any((ws) => 
-              (ws as Map<String, dynamic>)['id'] == lastActiveWorkspaceId
+            final workspaceExists = workspaces.any(
+              (ws) =>
+                  (ws as Map<String, dynamic>)['id'] == lastActiveWorkspaceId,
             );
-            
+
             if (workspaceExists) {
               _currentWorkspaceId = lastActiveWorkspaceId;
-              _logger.info('Got workspace ID from user document: $_currentWorkspaceId');
+              _logger.info(
+                'Got workspace ID from user document: $_currentWorkspaceId',
+              );
               return;
             }
           }
@@ -163,9 +192,13 @@ class ChatController extends GetxController {
         final workspaces = userData['workspaces'] as List<dynamic>?;
         if (workspaces != null && workspaces.isNotEmpty) {
           final firstWorkspace = workspaces[0] as Map<String, dynamic>;
-          _currentWorkspaceId = firstWorkspace['id'] as String? ?? firstWorkspace['workspaceId'] as String?;
+          _currentWorkspaceId =
+              firstWorkspace['id'] as String? ??
+              firstWorkspace['workspaceId'] as String?;
           if (_currentWorkspaceId != null) {
-            _logger.info('Got workspace ID from first workspace (index 0): $_currentWorkspaceId');
+            _logger.info(
+              'Got workspace ID from first workspace (index 0): $_currentWorkspaceId',
+            );
             return;
           }
         }
@@ -175,9 +208,13 @@ class ChatController extends GetxController {
       if (Get.isRegistered<BoardController>()) {
         final boardController = Get.find<BoardController>();
         _currentWorkspaceId = boardController.currentWorkspaceId.value;
-        _logger.info('Got workspace ID from BoardController: $_currentWorkspaceId');
+        _logger.info(
+          'Got workspace ID from BoardController: $_currentWorkspaceId',
+        );
       } else {
-        _logger.warning('BoardController not registered and no workspace found');
+        _logger.warning(
+          'BoardController not registered and no workspace found',
+        );
       }
     } catch (e) {
       _logger.failure('Failed to get workspace ID', e);
@@ -187,7 +224,9 @@ class ChatController extends GetxController {
         if (Get.isRegistered<BoardController>()) {
           final boardController = Get.find<BoardController>();
           _currentWorkspaceId = boardController.currentWorkspaceId.value;
-          _logger.info('Fallback: Got workspace ID from BoardController: $_currentWorkspaceId');
+          _logger.info(
+            'Fallback: Got workspace ID from BoardController: $_currentWorkspaceId',
+          );
         }
       } catch (e2) {
         _logger.failure('All methods to get workspace ID failed', e2);
@@ -201,9 +240,13 @@ class ChatController extends GetxController {
     if (_workspaceData != null) return; // already loaded
 
     try {
-      _workspaceData = await _firestoreService.getWorkspace(_currentWorkspaceId!);
+      _workspaceData = await _firestoreService.getWorkspace(
+        _currentWorkspaceId!,
+      );
       final ws = _workspaceData ?? {};
-      final connections = (ws['connections'] ?? ws['companyProfile']?['connections']) as Map<String, dynamic>?;
+      final connections =
+          (ws['connections'] ?? ws['companyProfile']?['connections'])
+              as Map<String, dynamic>?;
 
       List<Map<String, dynamic>> asList(dynamic v) {
         if (v is List) return v.cast<Map<String, dynamic>>();
@@ -215,7 +258,9 @@ class ChatController extends GetxController {
       _wsLine = asList(connections?['line']);
 
       // Load hashtag settings (master list)
-      final hs = (ws['hashtagSettings'] ?? ws['companyProfile']?['hashtagSettings']) as Map<String, dynamic>?;
+      final hs =
+          (ws['hashtagSettings'] ?? ws['companyProfile']?['hashtagSettings'])
+              as Map<String, dynamic>?;
       final master = asList(hs?['masterList']);
       _hashtagById.clear();
       _hashtagByNameLower.clear();
@@ -226,7 +271,9 @@ class ChatController extends GetxController {
         if (name.isNotEmpty) _hashtagByNameLower[name.toLowerCase()] = item;
       }
 
-      _logger.info('Loaded workspace connections: fb=${_wsFacebook.length}, ig=${_wsInstagram.length}, line=${_wsLine.length}; hashtags=${master.length}');
+      _logger.info(
+        'Loaded workspace connections: fb=${_wsFacebook.length}, ig=${_wsInstagram.length}, line=${_wsLine.length}; hashtags=${master.length}',
+      );
     } catch (e) {
       _logger.warning('Failed to load workspace connections: $e');
     }
@@ -234,8 +281,12 @@ class ChatController extends GetxController {
 
   List<Map<String, String>> _buildHashtagMeta(Map<String, dynamic> chatData) {
     // Prefer hashtagIds for exact match; fallback to names
-    final List ids = (chatData['hashtagIds'] is List) ? (chatData['hashtagIds'] as List) : const [];
-    final List namesRaw = (chatData['hashtags'] is List) ? (chatData['hashtags'] as List) : const [];
+    final List ids = (chatData['hashtagIds'] is List)
+        ? (chatData['hashtagIds'] as List)
+        : const [];
+    final List namesRaw = (chatData['hashtags'] is List)
+        ? (chatData['hashtags'] as List)
+        : const [];
 
     final List<Map<String, String>> out = [];
 
@@ -247,7 +298,10 @@ class ChatController extends GetxController {
           final name = (item['name'] ?? id).toString();
           final color = (item['color'] ?? '').toString();
           if (name.isNotEmpty) {
-            out.add({'name': name.startsWith('#') ? name : '#$name', 'color': color});
+            out.add({
+              'name': name.startsWith('#') ? name : '#$name',
+              'color': color,
+            });
           }
         }
       }
@@ -259,7 +313,9 @@ class ChatController extends GetxController {
       if (raw.isEmpty) continue;
       // Avoid duplicates by normalized name (strip leading #)
       final norm = raw.startsWith('#') ? raw.substring(1) : raw;
-      final already = out.any((m) => (m['name'] ?? '').replaceFirst('#', '') == norm);
+      final already = out.any(
+        (m) => (m['name'] ?? '').replaceFirst('#', '') == norm,
+      );
       if (already) continue;
       final item = _hashtagByNameLower[norm.toLowerCase()];
       if (item != null) {
@@ -275,9 +331,14 @@ class ChatController extends GetxController {
   }
 
   Map<String, dynamic> _attachProviderInfo(Map<String, dynamic> data) {
-    String platform = (data['source_type'] ?? data['sourceType'] ?? '').toString().toLowerCase();
+    String platform = (data['source_type'] ?? data['sourceType'] ?? '')
+        .toString()
+        .toLowerCase();
 
-    Map<String, dynamic>? firstWhereOrNull(List<Map<String, dynamic>> list, bool Function(Map<String, dynamic>) test) {
+    Map<String, dynamic>? firstWhereOrNull(
+      List<Map<String, dynamic>> list,
+      bool Function(Map<String, dynamic>) test,
+    ) {
       for (final e in list) {
         if (test(e)) return e;
       }
@@ -286,8 +347,11 @@ class ChatController extends GetxController {
 
     Map<String, dynamic>? matched;
 
-    final docConnections = (data['connections'] ?? data['companyProfile']?['connections']) as Map<String, dynamic>?;
-    List<Map<String, dynamic>> asList(dynamic v) => (v is List) ? v.cast<Map<String, dynamic>>() : const [];
+    final docConnections =
+        (data['connections'] ?? data['companyProfile']?['connections'])
+            as Map<String, dynamic>?;
+    List<Map<String, dynamic>> asList(dynamic v) =>
+        (v is List) ? v.cast<Map<String, dynamic>>() : const [];
 
     final docFacebook = asList(docConnections?['facebook']);
     final docInstagram = asList(docConnections?['instagram']);
@@ -301,7 +365,10 @@ class ChatController extends GetxController {
     if (isUnknown) {
       final hasPageId = (data['pageId']?.toString().isNotEmpty ?? false);
       final hasIgUserId = (data['igUserId']?.toString().isNotEmpty ?? false);
-      final hasLineIds = (data['channelId']?.toString().isNotEmpty ?? false) || (data['botId']?.toString().isNotEmpty ?? false) || (data['lineUserId']?.toString().isNotEmpty ?? false);
+      final hasLineIds =
+          (data['channelId']?.toString().isNotEmpty ?? false) ||
+          (data['botId']?.toString().isNotEmpty ?? false) ||
+          (data['lineUserId']?.toString().isNotEmpty ?? false);
 
       if (hasPageId) {
         platform = 'facebook';
@@ -327,49 +394,81 @@ class ChatController extends GetxController {
     }
 
     if (platform.contains('facebook')) {
-      final pageId = (data['pageId'] ?? data['connection']?['pageId'])?.toString();
+      final pageId = (data['pageId'] ?? data['connection']?['pageId'])
+          ?.toString();
       if (pageId != null && pageId.isNotEmpty) {
-        matched = firstWhereOrNull(fbCandidates, (e) => (e['pageId']?.toString() ?? '') == pageId);
+        matched = firstWhereOrNull(
+          fbCandidates,
+          (e) => (e['pageId']?.toString() ?? '') == pageId,
+        );
       }
-      matched ??= fbCandidates.length == 1 ? (fbCandidates.isNotEmpty ? fbCandidates.first : null) : null;
+      matched ??= fbCandidates.length == 1
+          ? (fbCandidates.isNotEmpty ? fbCandidates.first : null)
+          : null;
       matched ??= fbCandidates.isNotEmpty ? fbCandidates.first : null;
     } else if (platform.contains('instagram') || platform == 'ig') {
-      final igUserId = (data['igUserId'] ?? data['connection']?['igUserId'])?.toString();
-      final pageId = (data['pageId'] ?? data['connection']?['pageId'])?.toString();
+      final igUserId = (data['igUserId'] ?? data['connection']?['igUserId'])
+          ?.toString();
+      final pageId = (data['pageId'] ?? data['connection']?['pageId'])
+          ?.toString();
       if (igUserId != null && igUserId.isNotEmpty) {
-        matched = firstWhereOrNull(igCandidates, (e) => (e['igUserId']?.toString() ?? '') == igUserId);
+        matched = firstWhereOrNull(
+          igCandidates,
+          (e) => (e['igUserId']?.toString() ?? '') == igUserId,
+        );
       }
       if (matched == null && pageId != null && pageId.isNotEmpty) {
-        matched = firstWhereOrNull(igCandidates, (e) => (e['pageId']?.toString() ?? '') == pageId);
+        matched = firstWhereOrNull(
+          igCandidates,
+          (e) => (e['pageId']?.toString() ?? '') == pageId,
+        );
       }
-      matched ??= igCandidates.length == 1 ? (igCandidates.isNotEmpty ? igCandidates.first : null) : null;
+      matched ??= igCandidates.length == 1
+          ? (igCandidates.isNotEmpty ? igCandidates.first : null)
+          : null;
       matched ??= igCandidates.isNotEmpty ? igCandidates.first : null;
     } else if (platform.contains('line')) {
-      final channelId = (data['channelId'] ?? data['connection']?['channelId'])?.toString();
+      final channelId = (data['channelId'] ?? data['connection']?['channelId'])
+          ?.toString();
       final botId = (data['botId'] ?? data['connection']?['botId'])?.toString();
-      final userId = (data['lineUserId'] ?? data['connection']?['userId'])?.toString();
+      final userId = (data['lineUserId'] ?? data['connection']?['userId'])
+          ?.toString();
 
       if (channelId != null && channelId.isNotEmpty) {
-        matched = firstWhereOrNull(lineCandidates, (e) => (e['channelId']?.toString() ?? '') == channelId);
+        matched = firstWhereOrNull(
+          lineCandidates,
+          (e) => (e['channelId']?.toString() ?? '') == channelId,
+        );
       }
       matched ??= (botId != null && botId.isNotEmpty)
-          ? firstWhereOrNull(lineCandidates, (e) => (e['botId']?.toString() ?? '') == botId)
+          ? firstWhereOrNull(
+              lineCandidates,
+              (e) => (e['botId']?.toString() ?? '') == botId,
+            )
           : null;
       matched ??= (userId != null && userId.isNotEmpty)
-          ? firstWhereOrNull(lineCandidates, (e) => (e['userId']?.toString() ?? '') == userId)
+          ? firstWhereOrNull(
+              lineCandidates,
+              (e) => (e['userId']?.toString() ?? '') == userId,
+            )
           : null;
 
       if (matched == null && lineCandidates.isNotEmpty) {
-        final title = (data['name'] ?? data['customerName'] ?? data['who_name'] ?? '').toString();
+        final title =
+            (data['name'] ?? data['customerName'] ?? data['who_name'] ?? '')
+                .toString();
         if (title.isNotEmpty) {
           matched = firstWhereOrNull(lineCandidates, (e) {
-            final dn = (e['displayName'] ?? e['statusMessage'] ?? '').toString();
+            final dn = (e['displayName'] ?? e['statusMessage'] ?? '')
+                .toString();
             return dn.isNotEmpty && title.contains(dn);
           });
         }
       }
 
-      matched ??= lineCandidates.length == 1 ? (lineCandidates.isNotEmpty ? lineCandidates.first : null) : null;
+      matched ??= lineCandidates.length == 1
+          ? (lineCandidates.isNotEmpty ? lineCandidates.first : null)
+          : null;
       matched ??= lineCandidates.isNotEmpty ? lineCandidates.first : null;
     } else {
       final all = <Map<String, dynamic>>[]
@@ -378,7 +477,19 @@ class ChatController extends GetxController {
         ..addAll(lineCandidates);
       if (all.length == 1) {
         matched = all.first;
-        final p = (docFacebook.isNotEmpty ? 'facebook' : docInstagram.isNotEmpty ? 'instagram' : docLine.isNotEmpty ? 'line' : (_wsFacebook.isNotEmpty ? 'facebook' : _wsInstagram.isNotEmpty ? 'instagram' : _wsLine.isNotEmpty ? 'line' : 'unknown'));
+        final p = (docFacebook.isNotEmpty
+            ? 'facebook'
+            : docInstagram.isNotEmpty
+            ? 'instagram'
+            : docLine.isNotEmpty
+            ? 'line'
+            : (_wsFacebook.isNotEmpty
+                  ? 'facebook'
+                  : _wsInstagram.isNotEmpty
+                  ? 'instagram'
+                  : _wsLine.isNotEmpty
+                  ? 'line'
+                  : 'unknown'));
         if (p != 'unknown') {
           data['source_type'] = data['source_type'] ?? p;
           data['sourceType'] = data['sourceType'] ?? p;
@@ -403,18 +514,27 @@ class ChatController extends GetxController {
     }
 
     if (matched != null) {
-      final effectivePlatform = (data['source_type'] ?? platform).toString().toLowerCase();
+      final effectivePlatform = (data['source_type'] ?? platform)
+          .toString()
+          .toLowerCase();
       final platformLabel = effectivePlatform.contains('facebook')
           ? 'facebook'
-          : effectivePlatform.contains('instagram') || effectivePlatform == 'ig' ? 'instagram' : effectivePlatform.contains('line') ? 'line' : 'unknown';
+          : effectivePlatform.contains('instagram') || effectivePlatform == 'ig'
+          ? 'instagram'
+          : effectivePlatform.contains('line')
+          ? 'line'
+          : 'unknown';
 
-      data['connection'] = {
-        ...matched,
-        'platform': platformLabel,
-      };
+      data['connection'] = {...matched, 'platform': platformLabel};
 
       final existingPageName = (data['pageName'] ?? '').toString().trim();
-      final matchedPageName = (matched['pageName'] ?? matched['displayName'] ?? matched['igUsername'] ?? '').toString().trim();
+      final matchedPageName =
+          (matched['pageName'] ??
+                  matched['displayName'] ??
+                  matched['igUsername'] ??
+                  '')
+              .toString()
+              .trim();
       if (existingPageName.isEmpty && matchedPageName.isNotEmpty) {
         data['pageName'] = matchedPageName;
       }
@@ -424,35 +544,52 @@ class ChatController extends GetxController {
       data['channelId'] = data['channelId'] ?? matched['channelId'];
       data['botId'] = data['botId'] ?? matched['botId'];
 
-      data['avatarUrl'] = data['avatarUrl'] ?? data['avatar'] ??
-          matched['pageImageUrl'] ?? matched['profilePictureUrl'] ?? matched['pictureUrl'];
+      data['avatarUrl'] =
+          data['avatarUrl'] ??
+          data['avatar'] ??
+          matched['pageImageUrl'] ??
+          matched['profilePictureUrl'] ??
+          matched['pictureUrl'];
 
-      _logger.info('Provider matched for chatroom ${data['id']}: ${data['pageName']} ($platformLabel)');
+      _logger.info(
+        'Provider matched for chatroom ${data['id']}: ${data['pageName']} ($platformLabel)',
+      );
     } else {
       String candidateName = '';
       Map<String, dynamic>? candidate;
       if (platform.contains('facebook') && fbCandidates.isNotEmpty) {
         candidate = fbCandidates.first;
         candidateName = (candidate['pageName'] ?? '').toString();
-      } else if ((platform.contains('instagram') || platform == 'ig') && igCandidates.isNotEmpty) {
+      } else if ((platform.contains('instagram') || platform == 'ig') &&
+          igCandidates.isNotEmpty) {
         candidate = igCandidates.first;
-        candidateName = (candidate['pageName'] ?? candidate['igUsername'] ?? '').toString();
+        candidateName = (candidate['pageName'] ?? candidate['igUsername'] ?? '')
+            .toString();
       } else if (platform.contains('line') && lineCandidates.isNotEmpty) {
         candidate = lineCandidates.first;
         candidateName = (candidate['displayName'] ?? '').toString();
       }
 
-      if ((data['pageName'] ?? '').toString().isEmpty && candidateName.isNotEmpty) {
+      if ((data['pageName'] ?? '').toString().isEmpty &&
+          candidateName.isNotEmpty) {
         data['pageName'] = candidateName;
         data['connection'] = {
           ...?candidate,
           'platform': platform.isEmpty ? 'unknown' : platform,
         };
-        data['avatarUrl'] = data['avatarUrl'] ?? data['avatar'] ??
-            candidate?['pageImageUrl'] ?? candidate?['profilePictureUrl'] ?? candidate?['pictureUrl'];
-        _logger.info('Provider fallback set for chatroom ${data['id']}: ${data['pageName']} ($platform)');
+        data['avatarUrl'] =
+            data['avatarUrl'] ??
+            data['avatar'] ??
+            candidate?['pageImageUrl'] ??
+            candidate?['profilePictureUrl'] ??
+            candidate?['pictureUrl'];
+        _logger.info(
+          'Provider fallback set for chatroom ${data['id']}: ${data['pageName']} ($platform)',
+        );
       } else {
-        _logger.warning('No provider matched for chatroom ${data['id']} (platform: ${platform.isEmpty ? 'unknown' : platform})');
+        _logger.warning(
+          'No provider matched for chatroom ${data['id']} (platform: ${platform.isEmpty ? 'unknown' : platform})',
+        );
       }
     }
 
@@ -485,149 +622,180 @@ class ChatController extends GetxController {
     error.value = '';
 
     try {
-      final col = _firestoreService.getChatroomsCollection(_currentWorkspaceId!);
-      _chatroomsSub = _firestoreService.getDocumentsStream(
-        col,
-        queryBuilder: (q) => q
-            .where('is_deleted', isEqualTo: 'N')
-            .orderBy('last_message_info.last_upd', descending: true),
-      ).listen((qs) async {
-        // Determine if permission-based filtering depends on assignee resolution
-        final perms = MobilePermissionsService.to;
-        final bool requiresAssigneeForFilter = !(perms.isOwner || perms.can('chat:view:all'))
-            && (perms.can('chat:view:assigned') || perms.can('chat:view:unassigned'));
+      final col = _firestoreService.getChatroomsCollection(
+        _currentWorkspaceId!,
+      );
+      _chatroomsSub = _firestoreService
+          .getDocumentsStream(
+            col,
+            queryBuilder: (q) => q
+                .where('is_deleted', isEqualTo: 'N')
+                .orderBy('last_message_info.last_upd', descending: true),
+          )
+          .listen(
+            (qs) async {
+              // Determine if permission-based filtering depends on assignee resolution
+              final perms = MobilePermissionsService.to;
+              final bool requiresAssigneeForFilter =
+                  !(perms.isOwner || perms.can('chat:view:all')) &&
+                  (perms.can('chat:view:assigned') ||
+                      perms.can('chat:view:unassigned'));
 
-        // Preserve previous assignee info to avoid flicker on permission filters
-        final Map<String, Map<String, dynamic>> prevById = {
-          for (final c in conversations) (c['id']?.toString() ?? ''): c,
-        }..removeWhere((k, v) => k.isEmpty);
+              // Preserve previous assignee info to avoid flicker on permission filters
+              final Map<String, Map<String, dynamic>> prevById = {
+                for (final c in conversations) (c['id']?.toString() ?? ''): c,
+              }..removeWhere((k, v) => k.isEmpty);
 
-        final items = qs.docs.map((doc) {
-          final data = Map<String, dynamic>.from(doc.data());
-          data['id'] = doc.id;
+              final items = qs.docs.map((doc) {
+                final data = Map<String, dynamic>.from(doc.data());
+                data['id'] = doc.id;
 
-          final lastMessageInfo = data['last_message_info'] as Map<String, dynamic>? ?? {};
+                final lastMessageInfo =
+                    data['last_message_info'] as Map<String, dynamic>? ?? {};
 
-          data['name'] = data['name'] ?? data['customerName'] ?? lastMessageInfo['who_name'] ?? 'Unknown';
-          data['type'] = (data['dialog_type']?.toString().toUpperCase() == 'GROUP') ? 'group' : 'direct';
-          data['lastMessage'] = lastMessageInfo['message'] ?? data['message'] ?? '';
-          data['avatarUrl'] = data['avatar'];
-          data['status'] = data['chatroom_status'] ?? 'active';
-          data['unreadCount'] = int.tryParse(data['count']?.toString() ?? '0') ?? 0;
-          data['isOnline'] = (data['bot_status'] == 'Y');
-          data['sourceType'] = data['source_type'] ?? 'unknown';
-          data['isPinned'] = data['chat_pin'] == 'Y';
-          data['isNew'] = data['is_new'] == 'Y';
+                data['name'] =
+                    data['name'] ??
+                    data['customerName'] ??
+                    lastMessageInfo['who_name'] ??
+                    'Unknown';
+                data['type'] =
+                    (data['dialog_type']?.toString().toUpperCase() == 'GROUP')
+                    ? 'group'
+                    : 'direct';
+                data['lastMessage'] =
+                    lastMessageInfo['message'] ?? data['message'] ?? '';
+                data['avatarUrl'] = data['avatar'];
+                data['status'] = data['chatroom_status'] ?? 'active';
+                data['unreadCount'] =
+                    int.tryParse(data['count']?.toString() ?? '0') ?? 0;
+                data['isOnline'] = (data['bot_status'] == 'Y');
+                data['sourceType'] = data['source_type'] ?? 'unknown';
+                data['isPinned'] = data['chat_pin'] == 'Y';
+                data['isNew'] = data['is_new'] == 'Y';
 
-          DateTime? parseDate(dynamic v) {
-            if (v == null) return null;
-            if (v is Timestamp) return v.toDate();
-            if (v is String) {
-              try { return DateTime.parse(v); } catch (_) {}
-            }
-            return null;
-          }
-
-          data['lastMessageAt'] = parseDate(lastMessageInfo['last_upd']);
-          data['createdAt'] = parseDate(data['created']);
-
-          // Attach provider info if possible
-          final enriched = _attachProviderInfo(data);
-
-          // Carry chatroom-level assignees (when no customer linked)
-          try {
-            final ids = ((enriched['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
-            if (ids.isNotEmpty) {
-              enriched['assigneeIds'] = ids;
-              enriched['assigneesKnown'] = true;
-            } else {
-              enriched['assigneesKnown'] = false;
-            }
-          } catch (_) {
-            enriched['assigneesKnown'] = false;
-          }
-
-
-
-          // Preserve previous assignee info if we don't have fresh info yet
-          try {
-            final prev = prevById[enriched['id']?.toString() ?? ''];
-            if (prev != null) {
-              // Only overwrite if new info is available; otherwise keep previous
-              if (!(enriched['assigneesKnown'] == true)) {
-                if (prev['assigneeIds'] is List && (prev['assigneeIds'] as List).isNotEmpty) {
-                  enriched['assigneeIds'] = (prev['assigneeIds'] as List).map((e) => e.toString()).toList();
+                DateTime? parseDate(dynamic v) {
+                  if (v == null) return null;
+                  if (v is Timestamp) return v.toDate();
+                  if (v is String) {
+                    try {
+                      return DateTime.parse(v);
+                    } catch (_) {}
+                  }
+                  return null;
                 }
-                if (prev['assigneeNames'] is List && (prev['assigneeNames'] as List).isNotEmpty) {
-                  enriched['assigneeNames'] = (prev['assigneeNames'] as List).map((e) => e.toString()).toList();
+
+                data['lastMessageAt'] = parseDate(lastMessageInfo['last_upd']);
+                data['createdAt'] = parseDate(data['created']);
+
+                // Attach provider info if possible
+                final enriched = _attachProviderInfo(data);
+
+                // Carry chatroom-level assignees (when no customer linked)
+                try {
+                  final ids = ((enriched['assignees'] as List?) ?? [])
+                      .map((e) => e.toString())
+                      .toList();
+                  if (ids.isNotEmpty) {
+                    enriched['assigneeIds'] = ids;
+                    enriched['assigneesKnown'] = true;
+                  } else {
+                    enriched['assigneesKnown'] = false;
+                  }
+                } catch (_) {
+                  enriched['assigneesKnown'] = false;
                 }
-                if (prev['assigneesKnown'] == true) {
-                  enriched['assigneesKnown'] = true;
+
+                // Preserve previous assignee info if we don't have fresh info yet
+                try {
+                  final prev = prevById[enriched['id']?.toString() ?? ''];
+                  if (prev != null) {
+                    // Only overwrite if new info is available; otherwise keep previous
+                    if (!(enriched['assigneesKnown'] == true)) {
+                      if (prev['assigneeIds'] is List &&
+                          (prev['assigneeIds'] as List).isNotEmpty) {
+                        enriched['assigneeIds'] = (prev['assigneeIds'] as List)
+                            .map((e) => e.toString())
+                            .toList();
+                      }
+                      if (prev['assigneeNames'] is List &&
+                          (prev['assigneeNames'] as List).isNotEmpty) {
+                        enriched['assigneeNames'] =
+                            (prev['assigneeNames'] as List)
+                                .map((e) => e.toString())
+                                .toList();
+                      }
+                      if (prev['assigneesKnown'] == true) {
+                        enriched['assigneesKnown'] = true;
+                      }
+                    }
+                  }
+                } catch (_) {}
+
+                // Attach hashtag meta (name + color from master list)
+                try {
+                  enriched['hashtagMeta'] = _buildHashtagMeta(enriched);
+                } catch (_) {}
+                return enriched;
+              }).toList();
+
+              // Hide items marked as hidden unless they have unread > 0 (new messages)
+              final filtered = <Map<String, dynamic>>[];
+              for (final it in items) {
+                final hiddenRaw = it['is_hidden'];
+                final hidden = hiddenRaw == true || hiddenRaw == 'Y';
+                final unread = (it['unreadCount'] as int?) ?? 0;
+                if (!hidden || unread > 0) {
+                  filtered.add(it);
+                }
+                // Auto-unhide when a hidden chat gets new messages
+                if (hidden && unread > 0) {
+                  try {
+                    final id = it['id']?.toString();
+                    if (id != null &&
+                        id.isNotEmpty &&
+                        _currentWorkspaceId != null) {
+                      _firestoreService
+                          .getChatroomsCollection(_currentWorkspaceId!)
+                          .doc(id)
+                          .set({'is_hidden': false}, SetOptions(merge: true));
+                    }
+                  } catch (_) {}
                 }
               }
-            }
-          } catch (_) {}
 
-          // Attach hashtag meta (name + color from master list)
-          try {
-            enriched['hashtagMeta'] = _buildHashtagMeta(enriched);
-          } catch (_) {}
-          return enriched;
-        }).toList();
+              // Preserve list identity to reduce widget rebuild/flicker
+              conversations.assignAll(filtered);
+              isLoading.value = false;
+              error.value = '';
 
-        // Hide items marked as hidden unless they have unread > 0 (new messages)
-        final filtered = <Map<String, dynamic>>[];
-        for (final it in items) {
-          final hiddenRaw = it['is_hidden'];
-          final hidden = hiddenRaw == true || hiddenRaw == 'Y';
-          final unread = (it['unreadCount'] as int?) ?? 0;
-          if (!hidden || unread > 0) {
-            filtered.add(it);
-          }
-          // Auto-unhide when a hidden chat gets new messages
-          if (hidden && unread > 0) {
-            try {
-              final id = it['id']?.toString();
-              if (id != null && id.isNotEmpty && _currentWorkspaceId != null) {
-                _firestoreService.getChatroomsCollection(_currentWorkspaceId!)
-                    .doc(id)
-                    .set({'is_hidden': false}, SetOptions(merge: true));
+              // If first entry depends on assignee filtering, show loading until we resolve assignees once
+              if (requiresAssigneeForFilter && !_assigneeInitialSettled) {
+                isAssigneeLoading.value = true;
+                try {
+                  await _augmentAssignees(filtered);
+                } finally {
+                  _assigneeInitialSettled = true;
+                  isAssigneeLoading.value = false;
+                }
+                // Also kick off customer hashtags after assignees
+                // (non-blocking for UI)
+                // ignore: unawaited_futures
+                _augmentCustomerHashtags(filtered);
+              } else {
+                // Asynchronously enrich with assignee display names
+                // ignore: unawaited_futures
+                _augmentAssignees(filtered);
+                // Asynchronously enrich with customer hashtags (merge with chatroom hashtags)
+                // ignore: unawaited_futures
+                _augmentCustomerHashtags(filtered);
               }
-            } catch (_) {}
-          }
-        }
-
-        // Preserve list identity to reduce widget rebuild/flicker
-        conversations.assignAll(filtered);
-        isLoading.value = false;
-        error.value = '';
-
-        // If first entry depends on assignee filtering, show loading until we resolve assignees once
-        if (requiresAssigneeForFilter && !_assigneeInitialSettled) {
-          isAssigneeLoading.value = true;
-          try {
-            await _augmentAssignees(filtered);
-          } finally {
-            _assigneeInitialSettled = true;
-            isAssigneeLoading.value = false;
-          }
-          // Also kick off customer hashtags after assignees
-          // (non-blocking for UI)
-          // ignore: unawaited_futures
-          _augmentCustomerHashtags(filtered);
-        } else {
-          // Asynchronously enrich with assignee display names
-          // ignore: unawaited_futures
-          _augmentAssignees(filtered);
-          // Asynchronously enrich with customer hashtags (merge with chatroom hashtags)
-          // ignore: unawaited_futures
-          _augmentCustomerHashtags(filtered);
-        }
-      }, onError: (e) {
-        isLoading.value = false;
-        error.value = 'Failed to get realtime chatrooms: $e';
-        isAssigneeLoading.value = false;
-      });
+            },
+            onError: (e) {
+              isLoading.value = false;
+              error.value = 'Failed to get realtime chatrooms: $e';
+              isAssigneeLoading.value = false;
+            },
+          );
     } catch (e) {
       isLoading.value = false;
       error.value = 'Failed to start realtime: $e';
@@ -645,7 +813,6 @@ class ChatController extends GetxController {
     await startRealtime();
   }
 
-
   void updateSearchQuery(String query) {
     searchQuery.value = query;
   }
@@ -654,7 +821,6 @@ class ChatController extends GetxController {
     activeFilter.value = filter;
     // No server reload; filter is applied client-side on conversations stream
   }
-
 
   void refresh() {
     // Avoid restarting stream to prevent UI flicker
@@ -672,10 +838,15 @@ class ChatController extends GetxController {
     var filtered = conversations.where((conv) {
       try {
         final hiddenRaw = conv['is_hidden'];
-        final hidden = hiddenRaw == true || hiddenRaw == 'Y' ||
+        final hidden =
+            hiddenRaw == true ||
+            hiddenRaw == 'Y' ||
             (hiddenRaw is String && hiddenRaw.toLowerCase() == 'true') ||
             hiddenRaw == 1;
-        final unread = (conv['unreadCount'] as int?) ?? int.tryParse(conv['count']?.toString() ?? '0') ?? 0;
+        final unread =
+            (conv['unreadCount'] as int?) ??
+            int.tryParse(conv['count']?.toString() ?? '0') ??
+            0;
         if (hidden && unread <= 0) return false;
       } catch (_) {}
 
@@ -694,7 +865,8 @@ class ChatController extends GetxController {
             return false;
           }
         }
-        final bool assignedToMe = canAssigned && uid.isNotEmpty && ids.contains(uid);
+        final bool assignedToMe =
+            canAssigned && uid.isNotEmpty && ids.contains(uid);
         final bool unassigned = canUnassigned && ids.isEmpty;
         if (!(assignedToMe || unassigned)) return false;
       }
@@ -716,7 +888,8 @@ class ChatController extends GetxController {
         final queryNoHash = normHash(rawQ);
 
         bool contains(String? s) => (s ?? '').toLowerCase().contains(query);
-        bool containsNoHash(String? s) => normHash(s ?? '').contains(queryNoHash);
+        bool containsNoHash(String? s) =>
+            normHash(s ?? '').contains(queryNoHash);
 
         final fields = <String?>[
           conv['name']?.toString(),
@@ -765,18 +938,27 @@ class ChatController extends GetxController {
         String platform = '';
         try {
           final conn = conv['connection'];
-          if (conn is Map && (conn['platform']?.toString().isNotEmpty ?? false)) {
+          if (conn is Map &&
+              (conn['platform']?.toString().isNotEmpty ?? false)) {
             platform = conn['platform'].toString().toLowerCase();
           } else {
-            platform = (conv['source_type'] ?? conv['sourceType'] ?? '').toString().toLowerCase();
+            platform = (conv['source_type'] ?? conv['sourceType'] ?? '')
+                .toString()
+                .toLowerCase();
           }
         } catch (_) {}
-        if (platform.isEmpty && (conv['pageId']?.toString().isNotEmpty ?? false)) platform = 'facebook';
-        if (platform.isEmpty && (conv['igUserId']?.toString().isNotEmpty ?? false)) platform = 'instagram';
-        if (platform.isEmpty && ((conv['channelId'] ?? conv['botId'])?.toString().isNotEmpty ?? false)) platform = 'line';
+        if (platform.isEmpty &&
+            (conv['pageId']?.toString().isNotEmpty ?? false))
+          platform = 'facebook';
+        if (platform.isEmpty &&
+            (conv['igUserId']?.toString().isNotEmpty ?? false))
+          platform = 'instagram';
+        if (platform.isEmpty &&
+            ((conv['channelId'] ?? conv['botId'])?.toString().isNotEmpty ??
+                false))
+          platform = 'line';
         if (!platformFilters.contains(platform)) return false;
       }
-
 
       // Status filter
       final sf = statusFilter.value;
@@ -802,13 +984,20 @@ class ChatController extends GetxController {
 
       // Hashtag filter (IDs)
       if (hashtagIdFilters.isNotEmpty) {
-        final ids = (conv['hashtagIds'] is List) ? (conv['hashtagIds'] as List).map((e) => e.toString()).toSet() : <String>{};
+        final ids = (conv['hashtagIds'] is List)
+            ? (conv['hashtagIds'] as List).map((e) => e.toString()).toSet()
+            : <String>{};
         bool ok = ids.intersection(hashtagIdFilters.toSet()).isNotEmpty;
         // Fallback: match by names via hashtagMeta if no ids present
         if (!ok && (conv['hashtagMeta'] is List)) {
           final meta = (conv['hashtagMeta'] as List)
               .whereType<Map>()
-              .map((m) => (m['name'] ?? '').toString().replaceFirst('#', '').toLowerCase())
+              .map(
+                (m) => (m['name'] ?? '')
+                    .toString()
+                    .replaceFirst('#', '')
+                    .toLowerCase(),
+              )
               .toSet();
           final selectedNames = hashtagIdFilters
               .map((id) => _hashtagById[id]?['name']?.toString().toLowerCase())
@@ -824,26 +1013,35 @@ class ChatController extends GetxController {
       // Sales filter (single uid)
       final sid = salesIdFilter.value;
       if (sid.isNotEmpty) {
-        final assigneeIds = (conv['assigneeIds'] is List) ? (conv['assigneeIds'] as List).map((e) => e.toString()).toSet() : <String>{};
+        final assigneeIds = (conv['assigneeIds'] is List)
+            ? (conv['assigneeIds'] as List).map((e) => e.toString()).toSet()
+            : <String>{};
         if (!assigneeIds.contains(sid)) return false;
       }
 
       // Customer filter
       final cidFilter = customerIdFilter.value;
       if (cidFilter.isNotEmpty) {
-        final cid = (conv['customerId'] ?? conv['customer_id'] ?? conv['customer']?['id'])?.toString() ?? '';
+        final cid =
+            (conv['customerId'] ??
+                    conv['customer_id'] ??
+                    conv['customer']?['id'])
+                ?.toString() ??
+            '';
         if (cid != cidFilter) return false;
       }
 
       // Legacy activeFilter: keep any additional filters if used
       switch (activeFilter.value) {
         case 'unread':
-          final unreadCount = int.tryParse(conv['count']?.toString() ?? '0') ?? 0;
+          final unreadCount =
+              int.tryParse(conv['count']?.toString() ?? '0') ?? 0;
           return unreadCount > 0;
         case 'assigned':
           return conv['chatroom_status'] == 'assigned';
         case 'inProgress':
-          return conv['chatroom_status'] == 'in_progress' || conv['chatroom_status'] == 'active';
+          return conv['chatroom_status'] == 'in_progress' ||
+              conv['chatroom_status'] == 'active';
         case 'groupOnly':
           return conv['is_group'] == 'Y';
         case 'new':
@@ -858,8 +1056,12 @@ class ChatController extends GetxController {
     }).toList();
     filtered.sort((a, b) {
       // Pinned first
-      final aPinned = (a['isPinned'] == true) || ((a['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
-      final bPinned = (b['isPinned'] == true) || ((b['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
+      final aPinned =
+          (a['isPinned'] == true) ||
+          ((a['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
+      final bPinned =
+          (b['isPinned'] == true) ||
+          ((b['chat_pin'] ?? '').toString().toUpperCase() == 'Y');
       if (aPinned != bPinned) {
         return bPinned ? 1 : -1; // true first
       }
@@ -875,8 +1077,16 @@ class ChatController extends GetxController {
         return DateTime.fromMillisecondsSinceEpoch(0);
       }
 
-      final aTime = _asDt(a['lastMessageAt'] ?? a['last_message_info']?['last_upd'] ?? a['updatedAt']);
-      final bTime = _asDt(b['lastMessageAt'] ?? b['last_message_info']?['last_upd'] ?? b['updatedAt']);
+      final aTime = _asDt(
+        a['lastMessageAt'] ??
+            a['last_message_info']?['last_upd'] ??
+            a['updatedAt'],
+      );
+      final bTime = _asDt(
+        b['lastMessageAt'] ??
+            b['last_message_info']?['last_upd'] ??
+            b['updatedAt'],
+      );
       final timeCmp = bTime.compareTo(aTime);
       if (timeCmp != 0) return timeCmp;
 
@@ -893,10 +1103,15 @@ class ChatController extends GetxController {
     if (_currentUserId == null) return;
 
     try {
-      await _firestoreService.markConversationAsRead(conversationId, _currentUserId!);
+      await _firestoreService.markConversationAsRead(
+        conversationId,
+        _currentUserId!,
+      );
 
       // Update local state
-      final index = conversations.indexWhere((conv) => conv['id'] == conversationId);
+      final index = conversations.indexWhere(
+        (conv) => conv['id'] == conversationId,
+      );
       if (index >= 0) {
         conversations[index]['unreadCount'] = 0;
         conversations.refresh();
@@ -921,14 +1136,15 @@ class ChatController extends GetxController {
     super.onClose();
   }
 
-
   Future<void> _augmentAssignees(List<Map<String, dynamic>> items) async {
     final wsId = _currentWorkspaceId;
     if (wsId == null || wsId.isEmpty) return;
 
     for (final item in items) {
       // Resolve customerId from various fields
-      final cid = (item['customerId'] ?? item['customer_id'] ?? item['customer']?['id'])?.toString();
+      final cid =
+          (item['customerId'] ?? item['customer_id'] ?? item['customer']?['id'])
+              ?.toString();
 
       if (cid != null && cid.isNotEmpty) {
         List<String>? names = _assigneesCache[cid];
@@ -940,7 +1156,9 @@ class ChatController extends GetxController {
                 .doc(cid)
                 .get();
             final cData = cSnap.data() ?? {};
-            uids = ((cData['assignees'] as List?) ?? []).map((e) => e.toString()).toList();
+            uids = ((cData['assignees'] as List?) ?? [])
+                .map((e) => e.toString())
+                .toList();
             if (uids.isEmpty) {
               names = const [];
             } else {
@@ -955,22 +1173,29 @@ class ChatController extends GetxController {
           }
         } else {
           // Use cached UIDs if available; fallback to existing item/conversation IDs to avoid wiping
-          uids = _assigneeUidsCache[cid] ?? () {
-            try {
-              final existing = conversations.firstWhere(
-                  (c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''),
-                  orElse: () => const {} as Map<String, dynamic>);
-              final raw = existing['assigneeIds'];
-              if (raw is List) {
-                return raw.map((e) => e.toString()).toList();
-              }
-            } catch (_) {}
-            return const <String>[];
-          }();
+          uids =
+              _assigneeUidsCache[cid] ??
+              () {
+                try {
+                  final existing = conversations.firstWhere(
+                    (c) =>
+                        (c['id']?.toString() ?? '') ==
+                        (item['id']?.toString() ?? ''),
+                    orElse: () => const {} as Map<String, dynamic>,
+                  );
+                  final raw = existing['assigneeIds'];
+                  if (raw is List) {
+                    return raw.map((e) => e.toString()).toList();
+                  }
+                } catch (_) {}
+                return const <String>[];
+              }();
         }
 
         // Update the item in conversations list
-        final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
+        final idx = conversations.indexWhere(
+          (c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''),
+        );
         if (idx >= 0) {
           conversations[idx]['assigneeNames'] = names;
           // Always set ids (can be empty) and known flag
@@ -984,7 +1209,10 @@ class ChatController extends GetxController {
           List<String> uids = const [];
           final raw = item['assigneeIds'];
           if (raw is List) {
-            uids = raw.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+            uids = raw
+                .map((e) => e.toString())
+                .where((s) => s.trim().isNotEmpty)
+                .toList();
           } else {
             // Fallback: read from chatroom doc
             final id = (item['id'] ?? '').toString();
@@ -1000,7 +1228,10 @@ class ChatController extends GetxController {
                     .where((e) => uids.contains(e.key))
                     .map((e) => e.value)
                     .toList();
-          final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''));
+          final idx = conversations.indexWhere(
+            (c) =>
+                (c['id']?.toString() ?? '') == (item['id']?.toString() ?? ''),
+          );
           if (idx >= 0) {
             conversations[idx]['assigneeNames'] = names;
             conversations[idx]['assigneeIds'] = uids;
@@ -1015,14 +1246,18 @@ class ChatController extends GetxController {
   }
 
   // Fetch and merge customer-level hashtags into conversations (two-way view)
-  Future<void> _augmentCustomerHashtags(List<Map<String, dynamic>> items) async {
+  Future<void> _augmentCustomerHashtags(
+    List<Map<String, dynamic>> items,
+  ) async {
     final wsId = _currentWorkspaceId;
     if (wsId == null || wsId.isEmpty) return;
 
     for (final item in items) {
       final chatId = (item['id'] ?? '').toString();
       if (chatId.isEmpty) continue;
-      final cid = (item['customerId'] ?? item['customer_id'] ?? item['customer']?['id'])?.toString();
+      final cid =
+          (item['customerId'] ?? item['customer_id'] ?? item['customer']?['id'])
+              ?.toString();
       if (cid == null || cid.isEmpty) continue;
 
       List<String>? ids = _customerHashtagIdsCache[cid];
@@ -1046,14 +1281,20 @@ class ChatController extends GetxController {
               final master = _hashtagById[id];
               final name = ((master?['name'] ?? id).toString());
               final color = (master?['color'] ?? '').toString();
-              tmpMeta.add({'name': name.startsWith('#') ? name : '#$name', if (color.isNotEmpty) 'color': color});
+              tmpMeta.add({
+                'name': name.startsWith('#') ? name : '#$name',
+                if (color.isNotEmpty) 'color': color,
+              });
             } else if (it is Map) {
               final id = (it['id'] ?? it['text'] ?? '').toString().trim();
               if (id.isEmpty) continue;
               tmpIds.add(id);
               final rawName = (it['text'] ?? it['name'] ?? id).toString();
               final color = (it['color'] ?? '').toString();
-              tmpMeta.add({'name': rawName.startsWith('#') ? rawName : '#$rawName', if (color.isNotEmpty) 'color': color});
+              tmpMeta.add({
+                'name': rawName.startsWith('#') ? rawName : '#$rawName',
+                if (color.isNotEmpty) 'color': color,
+              });
             }
           }
           ids = tmpIds;
@@ -1068,22 +1309,32 @@ class ChatController extends GetxController {
 
       // Merge into conversation: union ids and union meta by normalized name
       try {
-        final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+        final idx = conversations.indexWhere(
+          (c) => (c['id']?.toString() ?? '') == chatId,
+        );
         if (idx < 0) continue;
         final currentIds = (conversations[idx]['hashtagIds'] is List)
-            ? (conversations[idx]['hashtagIds'] as List).map((e) => e.toString()).toSet()
+            ? (conversations[idx]['hashtagIds'] as List)
+                  .map((e) => e.toString())
+                  .toSet()
             : <String>{};
         final List<String> idsToAdd = ids;
-        final mergedIds = <String>{}..addAll(currentIds)..addAll(idsToAdd);
+        final mergedIds = <String>{}
+          ..addAll(currentIds)
+          ..addAll(idsToAdd);
         conversations[idx]['hashtagIds'] = mergedIds.toList();
         List<Map<String, String>> currentMeta = const [];
         try {
-          currentMeta = (conversations[idx]['hashtagMeta'] as List?)
+          currentMeta =
+              (conversations[idx]['hashtagMeta'] as List?)
                   ?.whereType<Map>()
-                  .map((m) => {
-                        'name': (m['name'] ?? m['title'] ?? '').toString(),
-                        if ((m['color']?.toString().isNotEmpty ?? false)) 'color': m['color'].toString(),
-                      })
+                  .map(
+                    (m) => {
+                      'name': (m['name'] ?? m['title'] ?? '').toString(),
+                      if ((m['color']?.toString().isNotEmpty ?? false))
+                        'color': m['color'].toString(),
+                    },
+                  )
                   .toList() ??
               const [];
         } catch (_) {}
@@ -1103,16 +1354,21 @@ class ChatController extends GetxController {
     }
   }
 
-
   // Optimistically add an assignee to a conversation and refresh UI
   void addAssigneeLocal(String chatId, String uid, String displayName) {
-    final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+    final idx = conversations.indexWhere(
+      (c) => (c['id']?.toString() ?? '') == chatId,
+    );
     if (idx < 0) return;
     final existingIds = (conversations[idx]['assigneeIds'] is List)
-        ? (conversations[idx]['assigneeIds'] as List).map((e) => e.toString()).toSet()
+        ? (conversations[idx]['assigneeIds'] as List)
+              .map((e) => e.toString())
+              .toSet()
         : <String>{};
     final existingNames = (conversations[idx]['assigneeNames'] is List)
-        ? (conversations[idx]['assigneeNames'] as List).map((e) => e.toString()).toSet()
+        ? (conversations[idx]['assigneeNames'] as List)
+              .map((e) => e.toString())
+              .toSet()
         : <String>{};
     existingIds.add(uid);
     if (displayName.trim().isNotEmpty) existingNames.add(displayName.trim());
@@ -1122,8 +1378,14 @@ class ChatController extends GetxController {
   }
 
   // Optimistically update hashtags of a conversation and refresh UI
-  void updateHashtagsLocal(String chatId, List<String> ids, List<String> names) {
-    final idx = conversations.indexWhere((c) => (c['id']?.toString() ?? '') == chatId);
+  void updateHashtagsLocal(
+    String chatId,
+    List<String> ids,
+    List<String> names,
+  ) {
+    final idx = conversations.indexWhere(
+      (c) => (c['id']?.toString() ?? '') == chatId,
+    );
     if (idx < 0) return;
     // Normalize names to include '#'
     final normNames = names
@@ -1136,14 +1398,15 @@ class ChatController extends GetxController {
     conversations[idx]['hashtags'] = normNames.toList();
 
     // Rebuild meta using master list when possible
-    final temp = {
-      'hashtagIds': ids,
-      'hashtags': normNames,
-    };
+    final temp = {'hashtagIds': ids, 'hashtags': normNames};
     final meta = _buildHashtagMeta(temp);
 
     // If customer-level meta cached exists, merge it too
-    final cid = (conversations[idx]['customerId'] ?? conversations[idx]['customer_id'] ?? conversations[idx]['customer']?['id'])?.toString();
+    final cid =
+        (conversations[idx]['customerId'] ??
+                conversations[idx]['customer_id'] ??
+                conversations[idx]['customer']?['id'])
+            ?.toString();
     List<Map<String, String>> mergedMeta = meta;
     if (cid != null && cid.isNotEmpty) {
       final cMeta = _customerHashtagMetaCache[cid];

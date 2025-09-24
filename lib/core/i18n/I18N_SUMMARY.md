@@ -5,6 +5,23 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Customer Gender Keys Added (2025-09-24)
+Files:
+- `lib/core/i18n/app_translations.dart`
+- Referenced by `lib/features/customers/view/add_edit_customer_page.dart`
+
+Changes:
+- Added missing gender option translation keys to eliminate hardcoded strings in customer add/edit page.
+   - EN: `female` = "Female", `male` = "Male", `other_gender` = "Other"
+   - TH: `female` = "หญิง", `male` = "ชาย", `other_gender` = "อื่น ๆ"
+- Note: Chose key `other_gender` (instead of just `other`) to avoid collision with existing keys like `others` / navigation labels.
+
+Status:
+- ✅ Keys present in both locales
+- ✅ Ready for UI refactor to replace raw strings with `.tr`
+- 🔄 Pending follow-up: Replace literal strings 'Female', 'Male', 'Other' in `add_edit_customer_page.dart` with new keys in future commit.
+
+
 ### Document Controllers i18n (2025-09-23)
 Files:
 - `lib/features/document/controller/add_edit_document_controller.dart`

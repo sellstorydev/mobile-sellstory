@@ -413,6 +413,10 @@ class AppTranslations extends Translations {
           'customer_gender_field': 'Gender',
           'customer_age_field': 'Age',
           'customer_type_field': 'Type',
+      // Gender options (added 2025-09-24)
+      'female': 'Female',
+      'male': 'Male',
+      'other_gender': 'Other',
           'customer_national_id': 'National ID',
           'customer_address_field': 'Address',
           'customer_phone_field': 'Phone',
@@ -1052,6 +1056,10 @@ class AppTranslations extends Translations {
           'receipt': 'ใบเสร็จรับเงิน',
           'document': 'เอกสาร',
           'lead': 'ลีด',
+      // Gender options (added 2025-09-24)
+      'female': 'หญิง',
+      'male': 'ชาย',
+      'other_gender': 'อื่น ๆ',
           'enter_hashtag': 'กรุณากรอก Hashtag',
           'next': 'ถัดไป',
           'type': 'ประเภท',
