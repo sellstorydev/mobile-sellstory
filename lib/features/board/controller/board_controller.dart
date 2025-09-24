@@ -71,6 +71,10 @@ class BoardController extends GetxController implements BoardView {
   final RxList<String> availableCustomers = <String>[].obs;
   final RxList<String> availableHashtags = <String>[].obs;
 
+  // User display name cache for search mapping
+  final Map<String, String> _userDisplayNameCache = {};
+  bool _isHydratingUserNames = false;
+
   // Computed property to get current hashtags
   List<String> get currentAvailableHashtags {
     final Set<String> hashtags = {};
@@ -922,6 +926,9 @@ class BoardController extends GetxController implements BoardView {
     _updateAvailableHashtags();
     _updateAvailableInterests();
 
+    // Hydrate user display names (fire & forget)
+    _hydrateUserDisplayNames();
+
     // Apply current search and filter if exists
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
@@ -1067,14 +1074,31 @@ class BoardController extends GetxController implements BoardView {
       return text.toLowerCase().contains(search);
     }
 
+    // Get display name for assignedTo user
+    final assignedToDisplayName = _userDisplayNameCache[card.assignedTo]?.toLowerCase() ?? '';
+    
+    // Get display names for watchers and collaborators
+    final watchersDisplayNames = card.watchers
+        .map((id) => _userDisplayNameCache[id]?.toLowerCase() ?? '')
+        .where((name) => name.isNotEmpty)
+        .join(' ');
+    
+    final collaboratorsDisplayNames = card.collaborators
+        .map((id) => _userDisplayNameCache[id]?.toLowerCase() ?? '')
+        .where((name) => name.isNotEmpty)
+        .join(' ');
+
     return safeContains(card.title, searchLower) ||
         safeContains(card.description, searchLower) ||
         safeContains(card.customId, searchLower) ||
         safeContains(card.customer, searchLower) ||
-        safeContains(card.assignedTo, searchLower) ||
+        safeContains(card.assignedTo, searchLower) ||              // Raw user ID
+        assignedToDisplayName.contains(searchLower) ||             // Display name
         safeContains(card.status, searchLower) ||
         safeContains(card.updatedByDisplayName, searchLower) ||
         safeContains(card.company?['value'], searchLower) ||
+        watchersDisplayNames.contains(searchLower) ||              // Watchers names
+        collaboratorsDisplayNames.contains(searchLower) ||         // Collaborators names
         _cardHashtagsContain(card, searchLower);
   }
 
@@ -1672,6 +1696,71 @@ class BoardController extends GetxController implements BoardView {
     } catch (e) {
       print('❌ Failed to load workspace hashtags: $e');
       return [];
+    }
+  }
+
+  // Hydrate user display names for search mapping
+  Future<void> _hydrateUserDisplayNames() async {
+    if (_isHydratingUserNames) return;
+    _isHydratingUserNames = true;
+    
+    try {
+      final Set<String> userIds = {};
+
+      // Collect all user IDs from cards
+      for (final lane in _originalLanes) {
+        for (final card in lane.cards) {
+          if (card.assignedTo.isNotEmpty) {
+            userIds.add(card.assignedTo);
+          }
+          if (card.updatedBy.isNotEmpty) {
+            userIds.add(card.updatedBy);
+          }
+          if (card.createdBy.isNotEmpty) {
+            userIds.add(card.createdBy);
+          }
+          // Add watchers if they exist
+          for (final watcher in card.watchers) {
+            if (watcher.isNotEmpty) {
+              userIds.add(watcher);
+            }
+          }
+          // Add collaborators if they exist  
+          for (final collaborator in card.collaborators) {
+            if (collaborator.isNotEmpty) {
+              userIds.add(collaborator);
+            }
+          }
+        }
+      }
+
+      // Only fetch users that are not already cached
+      final List<String> usersToFetch = userIds
+          .where((id) => !_userDisplayNameCache.containsKey(id))
+          .toList();
+
+      if (usersToFetch.isEmpty) return;
+
+      // Fetch user data in parallel
+      await Future.wait(usersToFetch.map((userId) async {
+        try {
+          final userData = await _repository.getUserById(userId);
+          final displayName = userData?['displayName']?.toString() ?? 
+                             userData?['name']?.toString() ?? 
+                             userData?['fullName']?.toString() ?? 
+                             '';
+          _userDisplayNameCache[userId] = displayName;
+        } catch (_) {
+          _userDisplayNameCache[userId] = '';
+        }
+      }));
+
+      // Re-run search if user is currently searching to include newly resolved names
+      if (isSearching.value && searchQuery.value.isNotEmpty) {
+        _performSearch(searchQuery.value);
+      }
+    } finally {
+      _isHydratingUserNames = false;
     }
   }
 

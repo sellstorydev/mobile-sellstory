@@ -6,6 +6,13 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
 
+
+Topic:
+Detail: จากข้อนี่ถ้าจะปรับการ search  ของ assignedTo ที่เป็น id จาก path `/workspaces/{workspace id}/cards/{card id}/assignedTo` ให้เป็น displayName โดยใช้การ mapping id กับ path `/users/{user id}/displayName` ตัวอย่าง assignedTo= {user id} ต้องทำยังไงน่ะ
+
+
+assignedTo
+
 Topic:Board Edit Page Error
 Detail: อยากให้ทำการปรับ แก้ไข UI ให้มันดูคล้ายกับส่วนอื่นใน application หน่อย
 
@@ -1736,5 +1743,44 @@ Step
 
 1. add lib html editor in section content and details and pubspec.yaml.
 2. change textfield to html editor.
+
+## 2025-09-24 — AssignedTo Search Display Name Mapping Implementation
+
+### Board Page Search Enhancement - User Display Name Mapping
+
+**Issue**: Search function only matched raw user IDs from assignedTo field, making it hard for users to search by actual person names.
+
+**Solution Implemented**:
+1. Added `_userDisplayNameCache` (Map<String, String>) to BoardController for caching user ID -> display name mappings
+2. Added `_isHydratingUserNames` flag to prevent concurrent hydration
+3. Implemented `_hydrateUserDisplayNames()` method that:
+   - Collects all user IDs from cards (assignedTo, updatedBy, createdBy, watchers, collaborators)
+   - Fetches display names from `/users/{userId}` via `FirestoreRepository.getUserById()`
+   - Caches results to minimize Firestore calls
+   - Runs in parallel for performance
+   - Auto re-runs search if user is currently searching
+4. Enhanced `_cardMatchesSearch()` to search both:
+   - Raw user IDs (original behavior preserved)
+   - Display names from cache
+   - Watchers and collaborators display names
+5. Added hydration trigger in `render()` method after lane data is loaded
+
+**Search now matches**:
+- assignedTo raw ID: `user123`
+- assignedTo display name: `John Doe` 
+- watchers display names: `Jane Smith, Bob Wilson`
+- collaborators display names: `Alice Brown`
+
+**Performance considerations**:
+- Uses existing `getUserById()` method with proper error handling
+- Parallel fetching with Promise.all pattern
+- In-memory caching to avoid repeated Firestore calls
+- Fire-and-forget hydration doesn't block UI
+
+**Files modified**:
+- `lib/features/board/controller/board_controller.dart`: Added display name caching and search logic
+- `docs/board/BOARD_PROMPT_HIS.md`: Documentation update
+
+**Usage**: Users can now search cards by typing assignee names (e.g., "John") instead of remembering user IDs.
 3. map value from card data in path "/workspaces/{workspaces uid}/cards/{card uid}/description" to html editor.
 4. when save button pressed, map value from html editor to card data in path "/workspaces/{workspaces uid}/cards/{card uid}/description".
