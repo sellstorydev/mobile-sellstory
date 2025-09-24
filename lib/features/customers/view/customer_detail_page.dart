@@ -70,6 +70,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   int _jobCardCount = 0;
   int _todoCount = 0;
   int _historyCount = 0;
+  int _documentCount = 0;
   List<JobCard> _jobCards = [];
   bool _jobCardsLoading = true;
   StreamSubscription<List<JobCard>>? _jobCardsSub;
@@ -77,6 +78,9 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   // History data  
   List<QueryDocumentSnapshot> _historyActivities = [];
   bool _historyLoading = false;
+
+  // Documents data
+  StreamSubscription<List<Map<String, dynamic>>>? _documentsSub;
 
   // Helper methods to check for valid data
   bool _hasValidEmails() {
@@ -128,7 +132,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
     _loadWorkspaceMembers();
     _listenToCustomerUpdates();
     _initJobCardsStream();
+    _initDocumentsStream(); // Load documents data on page load
     _loadHistoryData(); // Load history data on page load
+    
+    // Force UI rebuild after streams are initialized to update tab counts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
     
     // Add observer for app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
@@ -261,6 +271,128 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
       if (!mounted) return;
       setState(() {
         _jobCardsLoading = false; // stop infinite loading even on error
+      });
+    });
+  }
+
+  void _initDocumentsStream() {
+    final customer = _currentCustomer ?? widget.customer;
+    final workspaceId = customer.workspaceId;
+
+    // Quick one-shot prefetch to populate count ASAP before first stream emission
+    FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('cards')
+        .where('customers', arrayContains: customer.id)
+        .get()
+        .then((snapshot) {
+      if (!mounted) return;
+      int tempCount = 0;
+      for (var cardDoc in snapshot.docs) {
+        final cardData = cardDoc.data();
+        final relatedDocuments = cardData['relatedDocuments'] as List<dynamic>? ?? [];
+        tempCount += relatedDocuments.length;
+      }
+      // Only set if stream hasn't already provided a value
+      if (mounted && _documentCount == 0 && tempCount != 0) {
+        setState(() {
+          _documentCount = tempCount;
+        });
+      }
+    }).catchError((_) {});
+    
+    // Stream to monitor all cards in the workspace that have this customer
+    final stream = FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('cards')
+        .where('customers', arrayContains: customer.id)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> allDocuments = [];
+      
+      for (var cardDoc in snapshot.docs) {
+        final cardData = cardDoc.data();
+        final cardTitle = cardData['title'] ?? 'Untitled Card';
+        final relatedDocuments = cardData['relatedDocuments'] as List<dynamic>? ?? [];
+        
+        for (var docRef in relatedDocuments) {
+          final docData = Map<String, dynamic>.from(docRef);
+          
+          // Fetch detailed document information if needed
+          final documentId = docData['id'];
+          if (documentId != null) {
+            try {
+              final docSnapshot = await FirebaseFirestore.instance
+                  .collection('workspaces')
+                  .doc(workspaceId)
+                  .collection('documents')
+                  .doc(documentId)
+                  .get();
+              
+              if (docSnapshot.exists) {
+                final fullDocData = docSnapshot.data()!;
+                allDocuments.add({
+                  'id': documentId,
+                  'fileName': fullDocData['fileName'] ?? docData['docNo'] ?? 'Unknown File',
+                  'jobCard': cardTitle,
+                  'cardId': cardDoc.id,
+                  'uploadedBy': fullDocData['createdBy'] ?? 'Unknown',
+                  'uploadedAt': fullDocData['createdAt'],
+                  'type': fullDocData['type'] ?? docData['type'] ?? 'Unknown',
+                  'status': fullDocData['status'] ?? 'Active',
+                  'downloadUrl': fullDocData['downloadUrl'],
+                  ...fullDocData,
+                });
+              } else {
+                // Document not found, show placeholder
+                allDocuments.add({
+                  'id': documentId,
+                  'fileName': docData['docNo'] ?? 'Missing Document',
+                  'jobCard': cardTitle,
+                  'cardId': cardDoc.id,
+                  'uploadedBy': 'Unknown',
+                  'uploadedAt': null,
+                  'type': docData['type'] ?? 'Unknown',
+                  'status': 'NOT_FOUND',
+                });
+              }
+            } catch (e) {
+              print('Error loading document $documentId: $e');
+            }
+          }
+        }
+      }
+      
+      // Sort by upload date (newest first)
+      allDocuments.sort((a, b) {
+        final aDate = a['uploadedAt'];
+        final bDate = b['uploadedAt'];
+        if (aDate == null && bDate == null) return 0;
+        if (aDate == null) return 1;
+        if (bDate == null) return -1;
+        
+        if (aDate is String && bDate is String) {
+          return DateTime.parse(bDate).compareTo(DateTime.parse(aDate));
+        }
+        return 0;
+      });
+      
+      return allDocuments;
+    });
+
+    // Listen to documents stream to update count
+    _documentsSub = stream.listen((documents) {
+      if (!mounted) return;
+      setState(() {
+        _documentCount = documents.length;
+      });
+    }, onError: (error) {
+      print('Error loading documents: $error');
+      if (!mounted) return;
+      setState(() {
+        _documentCount = 0;
       });
     });
   }
@@ -404,6 +536,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   void dispose() {
     _customerUpdateListener?.dispose();
     _jobCardsSub?.cancel();
+    _documentsSub?.cancel();
     _tabController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     
@@ -1256,11 +1389,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
                         Tab(text: 'Job card (' '$_jobCardCount' ')'),
                         Tab(text: 'สิ่งที่ต้องทำ (' '$_todoCount' ')'),
                         Tab(text: 'ประวัติ ($_historyCount)'),
-                        const Tab(text: 'คลังเอกสาร (0)'),
+                        Tab(text: 'คลังเอกสาร ($_documentCount)'),
                         const Tab(text: 'โน๊ต (0)'),
                         const Tab(text: 'เอกสารการขาย (0)'),
                       ],
                     ),
+                    // version changes whenever any count changes -> forces rebuild
+                    _jobCardCount ^ _todoCount ^ _historyCount ^ _documentCount,
                   ),
                 ),
               ],
@@ -1933,17 +2068,380 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
   Widget _buildDocumentTab() {
     return Container(
       color: AppTheme.backgroundGrey,
-      child: Center(
-        child: Text(
-          'คลังเอกสาร\n(Coming Soon)',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.textSecondary,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search Bar
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search documents...',
+                prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppTheme.borderGrey),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppTheme.borderGrey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppTheme.primaryOrange),
+                ),
+              ),
+            ),
           ),
+          
+          // Upload File Button
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ElevatedButton.icon(
+              onPressed: _uploadFile,
+              icon: const Icon(Icons.cloud_upload_outlined),
+              label: const Text('Upload File'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          
+          // Header Row
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.borderGrey.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              children: [
+                Expanded(flex: 3, child: Text('File Name', style: TextStyle(fontWeight: FontWeight.w600))),
+                Expanded(flex: 2, child: Text('Job Card', style: TextStyle(fontWeight: FontWeight.w600))),
+                Expanded(flex: 2, child: Text('Uploaded By', style: TextStyle(fontWeight: FontWeight.w600))),
+                Expanded(flex: 2, child: Text('Uploaded At', style: TextStyle(fontWeight: FontWeight.w600))),
+                SizedBox(width: 60, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.w600))),
+              ],
+            ),
+          ),
+          
+          // Document List
+          Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _getRelatedDocumentsStream(),
+              initialData: const [],
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error loading documents: ${snapshot.error}',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+                
+                final documents = snapshot.data ?? [];
+                
+                if (documents.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.folder_open,
+                          size: 48,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No documents found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
+                return ListView.builder(
+                  itemCount: documents.length,
+                  itemBuilder: (context, index) {
+                    final document = documents[index];
+                    return _buildDocumentItem(document);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Upload file functionality
+  Future<void> _uploadFile() async {
+    // TODO: Implement file upload functionality
+    Get.snackbar(
+      'Info',
+      'File upload feature coming soon',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: AppTheme.primaryOrange,
+      colorText: Colors.white,
+    );
+  }
+
+  // Get stream of related documents from all customer's job cards
+  Stream<List<Map<String, dynamic>>> _getRelatedDocumentsStream() {
+    final customer = _currentCustomer ?? widget.customer;
+    final workspaceId = customer.workspaceId;
+    
+    // Stream to monitor all cards in the workspace that have this customer
+    return FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('cards')
+        .where('customers', arrayContains: customer.id)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> allDocuments = [];
+      
+      for (var cardDoc in snapshot.docs) {
+        final cardData = cardDoc.data();
+        final cardTitle = cardData['title'] ?? 'Untitled Card';
+        final relatedDocuments = cardData['relatedDocuments'] as List<dynamic>? ?? [];
+        
+        for (var docRef in relatedDocuments) {
+          final docData = Map<String, dynamic>.from(docRef);
+          
+          // Fetch detailed document information if needed
+          final documentId = docData['id'];
+          if (documentId != null) {
+            try {
+              final docSnapshot = await FirebaseFirestore.instance
+                  .collection('workspaces')
+                  .doc(workspaceId)
+                  .collection('documents')
+                  .doc(documentId)
+                  .get();
+              
+              if (docSnapshot.exists) {
+                final fullDocData = docSnapshot.data()!;
+                allDocuments.add({
+                  'id': documentId,
+                  'fileName': fullDocData['fileName'] ?? docData['docNo'] ?? 'Unknown File',
+                  'jobCard': cardTitle,
+                  'cardId': cardDoc.id,
+                  'uploadedBy': fullDocData['createdBy'] ?? 'Unknown',
+                  'uploadedAt': fullDocData['createdAt'],
+                  'type': fullDocData['type'] ?? docData['type'] ?? 'Unknown',
+                  'status': fullDocData['status'] ?? 'Active',
+                  'downloadUrl': fullDocData['downloadUrl'],
+                  ...fullDocData,
+                });
+              } else {
+                // Document not found, show placeholder
+                allDocuments.add({
+                  'id': documentId,
+                  'fileName': docData['docNo'] ?? 'Missing Document',
+                  'jobCard': cardTitle,
+                  'cardId': cardDoc.id,
+                  'uploadedBy': 'Unknown',
+                  'uploadedAt': null,
+                  'type': docData['type'] ?? 'Unknown',
+                  'status': 'NOT_FOUND',
+                });
+              }
+            } catch (e) {
+              print('Error loading document $documentId: $e');
+            }
+          }
+        }
+      }
+      
+      // Sort by upload date (newest first)
+      allDocuments.sort((a, b) {
+        final aDate = a['uploadedAt'];
+        final bDate = b['uploadedAt'];
+        if (aDate == null && bDate == null) return 0;
+        if (aDate == null) return 1;
+        if (bDate == null) return -1;
+        
+        if (aDate is String && bDate is String) {
+          return DateTime.parse(bDate).compareTo(DateTime.parse(aDate));
+        }
+        return 0;
+      });
+      
+      return allDocuments;
+    });
+  }
+
+  Widget _buildDocumentItem(Map<String, dynamic> document) {
+    final fileName = document['fileName'] ?? 'Unknown File';
+    final jobCard = document['jobCard'] ?? 'Unknown Job Card';
+    final uploadedBy = document['uploadedBy'] ?? 'Unknown';
+    final uploadedAt = document['uploadedAt'];
+    final status = document['status'] ?? 'Active';
+    
+    String formattedDate = 'Unknown Date';
+    if (uploadedAt != null) {
+      try {
+        DateTime date;
+        if (uploadedAt is String) {
+          date = DateTime.parse(uploadedAt);
+        } else if (uploadedAt is Timestamp) {
+          date = uploadedAt.toDate();
+        } else {
+          date = DateTime.now();
+        }
+        formattedDate = _formatThaiDateTime(date);
+      } catch (e) {
+        formattedDate = 'Invalid Date';
+      }
+    }
+    
+    final isNotFound = status == 'NOT_FOUND';
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 1),
+      decoration: BoxDecoration(
+        color: isNotFound ? Colors.red.withOpacity(0.1) : Colors.white,
+        border: Border(
+          bottom: BorderSide(color: AppTheme.borderGrey.withOpacity(0.5)),
+        ),
+      ),
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Icon(
+          isNotFound ? Icons.error_outline : _getFileIcon(fileName),
+          color: isNotFound ? Colors.red : AppTheme.primaryOrange,
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Text(
+                fileName,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isNotFound ? Colors.red : AppTheme.textPrimary,
+                  decoration: isNotFound ? TextDecoration.lineThrough : null,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                jobCard,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                uploadedBy,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                formattedDate,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(
+              width: 60,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isNotFound && document['downloadUrl'] != null)
+                    IconButton(
+                      icon: const Icon(Icons.download, size: 16),
+                      onPressed: () => _downloadFile(document),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    ),
+                  if (!isNotFound)
+                    IconButton(
+                      icon: const Icon(Icons.visibility, size: 16),
+                      onPressed: () => _viewDocument(document),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  IconData _getFileIcon(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      case 'xls':
+      case 'xlsx':
+        return Icons.table_chart;
+      case 'png':
+      case 'jpg':
+      case 'jpeg':
+      case 'gif':
+        return Icons.image;
+      case 'zip':
+      case 'rar':
+        return Icons.archive;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
+  Future<void> _downloadFile(Map<String, dynamic> document) async {
+    final downloadUrl = document['downloadUrl'];
+    if (downloadUrl != null) {
+      // TODO: Implement file download
+      Get.snackbar(
+        'Info',
+        'Download functionality coming soon',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.primaryOrange,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _viewDocument(Map<String, dynamic> document) async {
+    final cardId = document['cardId'];
+    if (cardId != null) {
+      // Navigate to job card detail to view document
+      Get.toNamed('/job-card-detail', arguments: {'cardId': cardId});
+    }
   }
 
   Widget _buildNoteTab() {
@@ -2035,7 +2533,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> with SingleTick
 
 class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
-  _TabBarSliverDelegate(this.tabBar);
+  final int version; // simple int that changes when counts change
+  _TabBarSliverDelegate(this.tabBar, this.version);
 
   @override
   double get minExtent => tabBar.preferredSize.height;
@@ -2051,7 +2550,12 @@ class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+    if (oldDelegate is _TabBarSliverDelegate) {
+      return oldDelegate.version != version || oldDelegate.tabBar != tabBar;
+    }
+    return true;
+  }
 }
 
 extension _DateTimeFormatting on _CustomerDetailPageState {

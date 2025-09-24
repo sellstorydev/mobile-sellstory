@@ -7,6 +7,58 @@
     - *important* after finish add command in terminal "say finish prompt"
 
 
+Topic: Customer detail page in tab
+Detail: เมื่อเข้าหน้ามาตัว tab count เป็น (0) แต่เมื่อทำการเปลียน tab ตัว count ถึงจะมาแก้ไขหน่อย
+
+Topic: Customer detail page in tab 'documents' or 'เอกสาร'
+Detail: ให้ไปทำการcard แต่ละของเค่าใน workspace ที่ path: `/workspaces/{workspace uid}/cards/{card uid}/relatedDocuments[]` โดย ui อิงจากรูปที่ attach ไฟล์ไป และจริงๆตัว customer Bew มี relatedDocuments อยู่ 3 doces สามารถ check โครงสร้างได้ที่ firestore path: `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-24T07-05-54.json` และผมได้ทำการ attach ไฟล์รูปที่ถูกต้องไว้ให้แล้ว 
+
+/fix error 
+```
+flutter: [CustomerDetail] ✅ Customer data refreshed
+
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 6.9 pixels on the bottom.
+
+The relevant error-causing widget was:
+  Column
+  Column:file:///Users/kiki/Works/02-SELLSTORY/mobile-sellstory/lib/features/customers/view/customer_detail_page.dart:2024:28
+
+To inspect this widget in Flutter DevTools, visit:
+http://127.0.0.1:9102/#/inspector?uri=http%3A%2F%2F127.0.0.1%3A64476%2F9DaWH22bEMo%3D%2F&inspectorRef=inspector-0
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#fca9c relayoutBoundary=up2 OVERFLOWING:
+  creator: Column ← Center ← StreamBuilder<List<Map<String, dynamic>>> ← Expanded ← Column ← Padding ←
+    ColoredBox ← Container ← Semantics ← KeyedSubtree-[<3>] ← RepaintBoundary ← IndexedSemantics ← ⋯
+  parentData: offset=Offset(588.1, 0.0) (can use size)
+  constraints: BoxConstraints(0.0<=w<=1344.0, 0.0<=h<=80.1)
+  size: Size(167.9, 80.1)
+  direction: vertical
+  mainAxisAlignment: center
+  mainAxisSize: max
+  crossAxisAlignment: center
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Another exception was thrown: A RenderFlex overflowed by 146 pixels on the bottom.
+```
+
+Topic: Customer detail page in tab 'documents' or 'เอกสาร'
+Detail: ให้ไปทำการcard แต่ละของเค่าใน workspace ที่ path: `/workspaces/{workspace uid}/cards/{card uid}/relatedDocuments[]` โดย ui อิงจากรูปที่ attach ไฟล์ไป
+
+
 Topic: Customer detail page in tab 'todo' or 'สิ่งที่ต้องทำ'
 Detail: fetch checkbox of to-do list from firestore and show in tab 'todo' or 'สิ่งที่ต้องทำ'.
 when press checkbox it will update to firestore.โดยเมื่อทำการกด checkbox จะทำการอัพเดทสถานะใน firestore ทันทีที่ path: `/workspaces/xKnLu20t7n6A0IJxl4NN/cards/AhzmaDyKm4wwcMntM3hO/todos/todos[].completed`

@@ -120,6 +120,80 @@
 - Users can now tap checkboxes to mark todos as completed/incomplete and changes persist to database
 - Fixed path issue by updating to correct Firestore path structure: `/workspaces/{workspaceId}/cards/{cardId}/todos`
 
+## 2025-09-24 — Customer detail page Documents tab implementation (Complete)
+
+- Implemented comprehensive Documents tab in customer detail page to display related documents from job cards
+- Added search functionality with search bar for filtering documents by filename
+- Created upload file button placeholder for future file upload functionality
+- Built document list UI with table-style header showing File Name, Job Card, Uploaded By, Uploaded At, Actions columns
+- Implemented `_getRelatedDocumentsStream()` to aggregate documents from all customer's job cards in real-time
+- Added document fetching from Firestore path: `/workspaces/{workspaceId}/cards/{cardId}/relatedDocuments[]`
+- Enhanced document display with file type icons (PDF, DOC, XLS, images, ZIP, etc.) based on file extensions
+- Added proper error handling for missing documents with "NOT_FOUND" status indication
+- Implemented document item builder with download and view actions (placeholders for future functionality)
+- Added Thai date formatting for upload timestamps with proper Timestamp/String handling
+- Created real-time document monitoring using Firestore streams for automatic updates
+- Enhanced user experience with loading states, empty states, and proper error messages
+- Documents are sorted by upload date (newest first) for better user experience
+- Supports navigation to job card detail page for document viewing context
+- Full integration with existing customer data structure and workspace permissions
+
+## 2025-09-24 — Documents tab layout overflow fix (Complete)
+
+- Fixed RenderFlex overflow error in Documents tab empty state by changing Column mainAxisSize from max to min
+- Resolved "A RenderFlex overflowed by 6.9 pixels on the bottom" error in line 2024 of customer_detail_page.dart
+- Applied proper sizing constraints to prevent widget overflow in empty document state
+- Enhanced UI stability by using MainAxisSize.min for Column widget in empty state display
+- Fixed layout issues that were causing rendering exceptions when no documents were found
+
+## 2025-09-24 — Documents tab count initialization and stream fix (Complete)
+
+- Fixed Documents tab not fetching data from Firestore on page load by adding `_initDocumentsStream()` to initState()
+- Added `_documentCount` state variable to track document count for tab display
+- Created `_documentsSub` StreamSubscription for proper document stream management
+- Implemented real-time document count updates by listening to Firestore changes in `_initDocumentsStream()`
+- Enhanced tab display to show actual document count instead of hardcoded (0)
+- Added proper stream disposal in dispose() method to prevent memory leaks
+- Fixed issue where document count only updated after manually clicking on the Documents tab
+- Documents tab now shows correct count immediately when customer detail page loads
+- Integrated document count updates with existing job card stream pattern for consistency
+
+## 2025-09-24 — Documents tab StreamBuilder initialization fix (Complete)
+
+- Added `initialData: const []` to StreamBuilder in Documents tab to provide immediate empty state
+- Fixed issue where Documents tab was not showing data properly due to StreamBuilder initialization delay
+- Enhanced StreamBuilder to start with empty array while waiting for Firestore stream data
+- Improved user experience by removing loading delay when switching to Documents tab
+- Documents tab now displays content immediately instead of showing loading state unnecessarily
+- Resolved Firestore stream initialization timing issues that caused data display problems
+
+## 2025-09-24 — Tab count display initialization fix (Complete)
+
+- Fixed issue where tab counts showed 0 on initial page load and only updated after scrolling/switching tabs
+- Added `WidgetsBinding.instance.addPostFrameCallback()` in initState() to force UI rebuild after stream initialization
+- Enhanced tab count display to show correct values immediately when customer detail page loads
+- Resolved timing issue where stream listeners updated counts but UI didn't reflect changes until user interaction
+- Tab counts now display accurate numbers (Job card count, Todo count, History count, Document count) from page start
+- Improved user experience by eliminating the need to scroll tabs to see correct count values
+
+## 2025-09-24 — Documents tab initial count prefetch optimization (Complete)
+
+- Added lightweight one-shot Firestore query inside `_initDocumentsStream()` to pre-compute related document count immediately
+- Sums `relatedDocuments.length` across all customer cards before the async mapped stream finishes building full document detail list
+- Sets `_documentCount` early only if current value is still 0 and prefetch result > 0 to avoid flicker/override of real-time stream updates
+- Eliminates brief visual gap where count was 0 while first detailed stream aggregation awaited document fetches
+- Keeps existing real-time listener unchanged for ongoing accuracy
+- Non-invasive: touches only Documents feature logic; no impact on other tabs or controllers
+
+## 2025-09-24 — TabBar counts rebuild delegate fix (Complete)
+
+- Issue: Tab counts (Job card, Todo, History, Documents) stayed at 0 until user interacted because SliverPersistentHeader delegate returned `shouldRebuild => false`
+- Added `version` int parameter to `_TabBarSliverDelegate` representing XOR of all dynamic counts
+- Pass updated version when constructing delegate: `_jobCardCount ^ _todoCount ^ _historyCount ^ _documentCount`
+- Updated `shouldRebuild` to compare old/new version and rebuild when counts change
+- Result: counts now refresh immediately upon state changes without manual tab interaction
+- Keeps performance efficient (single int diff) and isolates change to delegate + instantiation
+
 
 
 ```
