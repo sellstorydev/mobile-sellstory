@@ -131,17 +131,17 @@ class MorePage extends StatelessWidget {
                     ),
                     _buildDivider(),
                     // Show IAP menu on iOS OR when user locale is not Thai (non-TH market rollout)
-                    if (Platform.isIOS ||
-                        (Get.locale?.languageCode != 'th')) ...[
-                      _buildMenuItem(
-                        icon: Icons.star_outline,
-                        title: 'iap_menu'.tr,
-                        onTap: () {
-                          Get.toNamed(AppRoutes.iap);
-                        },
-                      ),
-                      _buildDivider(),
-                    ],
+                    // if (Platform.isIOS ||
+                    //     (Get.locale?.languageCode != 'th')) ...[
+                    //   _buildMenuItem(
+                    //     icon: Icons.star_outline,
+                    //     title: 'iap_menu'.tr,
+                    //     onTap: () {
+                    //       Get.toNamed(AppRoutes.iap);
+                    //     },
+                    //   ),
+                    //   _buildDivider(),
+                    // ],
                     // PermissionGuard(
                     //   anyOf: const ['settings:board:manage'],
                     //   child: _buildMenuItem(
@@ -251,30 +251,30 @@ class MorePage extends StatelessWidget {
                     //     },
                     //   ),
                     // ),
-                    _buildDivider(),
-                    PermissionGuard(
-                      anyOf: const ['settings:board:manage'],
-                      child: _buildMenuItem(
-                        icon: Icons.dashboard_outlined,
-                        title: 'board_settings'.tr,
-                        onTap: () {
-                          final workspaceId =
-                              boardController.currentWorkspaceId.value;
-                          if (workspaceId.isNotEmpty) {
-                            controller.openBoardSettings(workspaceId);
-                          } else {
-                            Get.snackbar(
-                              'Error',
-                              '',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Get.theme.colorScheme.error
-                                  .withValues(alpha: 0.1),
-                              colorText: Get.theme.colorScheme.error,
-                            );
-                          }
-                        },
-                      ),
-                    ),
+                    // _buildDivider(),
+                    // PermissionGuard(
+                    //   anyOf: const ['settings:board:manage'],
+                    //   child: _buildMenuItem(
+                    //     icon: Icons.dashboard_outlined,
+                    //     title: 'board_settings'.tr,
+                    //     onTap: () {
+                    //       final workspaceId =
+                    //           boardController.currentWorkspaceId.value;
+                    //       if (workspaceId.isNotEmpty) {
+                    //         controller.openBoardSettings(workspaceId);
+                    //       } else {
+                    //         Get.snackbar(
+                    //           'Error',
+                    //           '',
+                    //           snackPosition: SnackPosition.BOTTOM,
+                    //           backgroundColor: Get.theme.colorScheme.error
+                    //               .withValues(alpha: 0.1),
+                    //           colorText: Get.theme.colorScheme.error,
+                    //         );
+                    //       }
+                    //     },
+                    //   ),
+                    // ),
                     // _buildDivider(),
                     // _buildMenuItem(
                     //   icon: Icons.notifications_outlined,

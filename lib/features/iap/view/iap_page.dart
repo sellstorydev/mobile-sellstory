@@ -78,93 +78,95 @@ class _ProductsList extends StatelessWidget {
   const _ProductsList({required this.service});
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: service.products.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final p = service.products[index];
-        final processing = service.processingPurchaseIds.contains(p.id);
-        final owned = service.hasActivePurchase(p.id);
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.backgroundWhite,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                p.title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                p.description,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(
-                    p.price,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryOrange,
-                    ),
+    return Obx(() {
+      return ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: service.products.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final p = service.products[index];
+          final processing = service.processingPurchaseIds.contains(p.id);
+          final owned = service.hasActivePurchase(p.id);
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundWhite,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  p.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const Spacer(),
-                  if (owned)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  p.description,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                      p.price,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryOrange,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'iap_owned'.tr,
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    )
-                  else
-                    ElevatedButton(
-                      onPressed: processing ? null : () => service.buy(p),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryOrange,
-                      ),
-                      child: processing
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text('iap_buy'.tr),
                     ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
+                    const Spacer(),
+                    if (owned)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'iap_owned'.tr,
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: processing ? null : () => service.buy(p),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryOrange,
+                        ),
+                        child: processing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text('iap_buy'.tr),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    });
   }
 }
 
@@ -175,106 +177,108 @@ class _SimulatorMockBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const mockId = '365days';
-    final owned = service.hasActivePurchase(mockId);
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(
-          'iap_simulator_mode'.tr,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'iap_simulator_notice'.tr,
-          style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.backgroundWhite,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
+    return Obx(() {
+      final owned = service.hasActivePurchase(mockId);
+      return ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Text(
+            'iap_simulator_mode'.tr,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'iap_simulator_mock_product'.trParams({'id': mockId}),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'iap_no_products'.tr,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Text(
-                    '—',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryOrange,
-                    ),
+          const SizedBox(height: 12),
+          Text(
+            'iap_simulator_notice'.tr,
+            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundWhite,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'iap_simulator_mock_product'.trParams({'id': mockId}),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const Spacer(),
-                  owned
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'iap_owned'.tr,
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'iap_no_products'.tr,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text(
+                      '—',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryOrange,
+                      ),
+                    ),
+                    const Spacer(),
+                    owned
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
                             ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'iap_owned'.tr,
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          )
+                        : ElevatedButton(
+                            onPressed: () => service.simulatePurchase(mockId),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryOrange,
+                            ),
+                            child: Text('iap_buy'.tr),
                           ),
-                        )
-                      : ElevatedButton(
-                          onPressed: () => service.simulatePurchase(mockId),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryOrange,
-                          ),
-                          child: Text('iap_buy'.tr),
-                        ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 32),
-        ElevatedButton.icon(
-          onPressed: () {
-            try {
-              service.refreshProducts();
-            } catch (_) {
-              service.reloadProducts();
-            }
-          },
-          label: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text('iap_refresh'.tr),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () {
+              try {
+                service.refreshProducts();
+              } catch (_) {
+                service.reloadProducts();
+              }
+            },
+            label: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text('iap_refresh'.tr),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryOrange,
+            ),
           ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryOrange,
-          ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 }
 

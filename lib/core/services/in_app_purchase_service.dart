@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Simple In-App Purchase Service (iOS only for now)
 /// Responsibilities:
@@ -21,6 +23,7 @@ class InAppPurchaseService extends GetxService {
   final notFoundIds = <String>[].obs; // product IDs not returned by store
   final _simulatedOwned = <String>{}.obs; // simulator-only owned set
   final forceMock = false.obs; // manual toggle (debug / QA)
+  final isSubscribed = false.obs; // persisted subscription flag
 
   bool get isSimulator {
     // iOS simulator check: device model identifier contains 'x86_64' or 'i386' historically, but
@@ -57,6 +60,9 @@ class InAppPurchaseService extends GetxService {
   }
 
   Future<InAppPurchaseService> init() async {
+    // Load persisted subscription status regardless of platform
+    await _loadSubscriptionStatus();
+
     if (!Platform.isIOS) {
       isLoading.value = false;
       return this; // Do nothing on non-iOS platforms for now
@@ -122,17 +128,39 @@ class InAppPurchaseService extends GetxService {
 
   Future<void> buy(ProductDetails product) async {
     if (!isAvailable.value) return;
+    if (isSubscribed.value) return; // already subscribed, block re-purchase
+
     if (isSimulator || forceMock.value) {
       // Simulate immediate successful purchase
       processingPurchaseIds.add(product.id);
       await Future.delayed(const Duration(milliseconds: 350));
       _simulatedOwned.add(product.id);
       processingPurchaseIds.remove(product.id);
+      // Persist subscription for simulator/mock too
+      await _markUserSubscribed(product.id, source: 'simulator');
       return;
     }
     final purchaseParam = PurchaseParam(productDetails: product);
-    processingPurchaseIds.add(product.id);
-    await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+    final productId = product.id;
+
+    processingPurchaseIds.add(productId);
+    try {
+      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+
+      // Failsafe: if no purchase update arrives within a reasonable time,
+      // clear the processing flag to avoid indefinite spinner.
+      // This does not cancel the real purchase; it only unlocks the UI.
+      Future.delayed(const Duration(minutes: 1), () {
+        if (processingPurchaseIds.contains(productId)) {
+          errorMessage.value = 'iap_purchase_timeout'.trParams({'id': productId});
+          processingPurchaseIds.remove(productId);
+        }
+      });
+    } catch (e) {
+      // If launching the purchase flow throws synchronously, make sure we clear the flag.
+      processingPurchaseIds.remove(productId);
+      errorMessage.value = 'iap_purchase_launch_failed'.trParams({'error': '$e'});
+    }
   }
 
   Future<void> simulatePurchase(String productId) async {
@@ -142,6 +170,7 @@ class InAppPurchaseService extends GetxService {
     await Future.delayed(const Duration(milliseconds: 400));
     _simulatedOwned.add(productId);
     processingPurchaseIds.remove(productId);
+    await _markUserSubscribed(productId, source: 'simulator');
   }
 
   Future<void> restore() async {
@@ -160,6 +189,13 @@ class InAppPurchaseService extends GetxService {
         case PurchaseStatus.restored:
           // TODO: verify receipt with backend for security
           processingPurchaseIds.remove(purchase.productID);
+          try {
+            await _markUserSubscribed(
+              purchase.productID,
+              source: purchase.status == PurchaseStatus.restored ? 'restore' : 'purchase',
+              purchaseId: purchase.purchaseID,
+            );
+          } catch (_) {}
           if (purchase.pendingCompletePurchase) {
             await _iap.completePurchase(purchase);
           }
@@ -179,10 +215,58 @@ class InAppPurchaseService extends GetxService {
   }
 
   bool hasActivePurchase(String productId) {
+    if (isSubscribed.value) return true; // globally gate
     if (isSimulator || forceMock.value) {
       return _simulatedOwned.contains(productId);
     }
     return purchases.any((p) => p.productID == productId && p.status == PurchaseStatus.purchased);
+  }
+
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        isSubscribed.value = false;
+        return;
+      }
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        final iap = (data['iap'] as Map<String, dynamic>?) ?? const {};
+        final subscribed = iap['subscribed'] == true || data['isSubscribed'] == true; // support legacy
+        isSubscribed.value = subscribed;
+      } else {
+        isSubscribed.value = false;
+      }
+    } catch (_) {
+      // Keep local default if fails
+    }
+  }
+
+  Future<void> _markUserSubscribed(
+    String productId, {
+    String? source,
+    String? purchaseId,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return; // cannot persist without auth
+      final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      await ref.set({
+        'iap': {
+          'subscribed': true,
+          'productId': productId,
+          if (purchaseId != null) 'purchaseId': purchaseId,
+          'platform': Platform.isIOS ? 'ios' : (Platform.isAndroid ? 'android' : 'unknown'),
+          if (source != null) 'source': source,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }
+      }, SetOptions(merge: true));
+      isSubscribed.value = true;
+    } catch (e) {
+      // Surface a soft error but do not block UI
+      errorMessage.value = 'iap_persist_failed'.trParams({'error': '$e'});
+    }
   }
 
   @override

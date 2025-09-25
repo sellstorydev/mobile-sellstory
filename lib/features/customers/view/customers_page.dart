@@ -23,16 +23,24 @@ class _CustomersPageState extends State<CustomersPage>
   late CustomersController _controller;
   final FocusNode _searchFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchControllerLocal = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     // Ensure CustomersController exists
     if (!Get.isRegistered<CustomersController>()) {
-      Get.put<CustomersController>(CustomersController(Get.find()));
+      Get.put<CustomersController>(CustomersController(Get.find()), permanent: true);
     }
     _controller = Get.find<CustomersController>();
     
+    // Keep local text in sync when controller clears search programmatically
+    ever<String>(_controller.searchQuery, (q) {
+      if (_searchControllerLocal.text != q) {
+        _searchControllerLocal.text = q;
+      }
+    });
+
     // Add lifecycle observers
     WidgetsBinding.instance.addObserver(this);
 
@@ -94,6 +102,7 @@ class _CustomersPageState extends State<CustomersPage>
   void dispose() {
     _searchFocus.dispose();
     _scrollController.dispose();
+    _searchControllerLocal.dispose();
     WidgetsBinding.instance.removeObserver(this);
 
     // Unsubscribe from route observer
@@ -117,6 +126,7 @@ class _CustomersPageState extends State<CustomersPage>
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppTheme.backgroundGrey,
       appBar: WorkspaceAppBar(
         controller: boardCtrl,
@@ -185,20 +195,22 @@ class _CustomersPageState extends State<CustomersPage>
         },
       ),
 
-      body: PermissionGuard(
-        anyOf: const ['customer:view:all', 'customer:view:assigned'],
-        fallback: Center(
-          child: Text(
-            'no_permission_view_customers'.tr,
-            style: TextStyle(color: AppTheme.textSecondary),
+      body: SafeArea(
+        child: PermissionGuard(
+          anyOf: const ['customer:view:all', 'customer:view:assigned'],
+          fallback: Center(
+            child: Text(
+              'no_permission_view_customers'.tr,
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            _buildSearchBar(context),
-            _buildHeaderSection(context),
-            Expanded(child: _buildCustomerList()),
-          ],
+          child: Column(
+            children: [
+              _buildSearchBar(context),
+              _buildHeaderSection(context),
+              Expanded(child: _buildCustomerList()),
+            ],
+          ),
         ),
       ),
     );
@@ -219,11 +231,10 @@ class _CustomersPageState extends State<CustomersPage>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: TextField(
-                controller: _controller.searchController,
+                controller: _searchControllerLocal,
                 focusNode: _searchFocus,
                 onChanged: _controller.onSearchChanged,
-                onSubmitted: (_) =>
-                    _triggerSearch(), // Trigger search when Enter is pressed
+                onSubmitted: (_) => _triggerSearch(),
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
                   hintText: 'search_placeholder_customers'.tr,
@@ -231,7 +242,7 @@ class _CustomersPageState extends State<CustomersPage>
                   border: InputBorder.none,
                   prefixIcon: Obx(
                     () => _controller.isSearching.value
-                        ? Padding(
+                        ? const Padding(
                             padding: EdgeInsets.all(12),
                             child: SizedBox(
                               width: 16,
@@ -259,10 +270,10 @@ class _CustomersPageState extends State<CustomersPage>
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () => _triggerSearch(),
-              child: Container(
+              child: SizedBox(
                 height: 44,
                 width: 44,
-                child: Icon(Icons.search, color: Colors.white),
+                child: const Icon(Icons.search, color: Colors.white),
               ),
             ),
           ),
@@ -297,7 +308,7 @@ class _CustomersPageState extends State<CustomersPage>
                       color: AppTheme.textPrimary,
                     ),
                     children: [
-                      TextSpan(text: '${'total_count'.tr} '),
+                      TextSpan(text: '${'total'.tr} '),
                       TextSpan(
                         text: '$count',
                         style: const TextStyle(
@@ -309,27 +320,27 @@ class _CustomersPageState extends State<CustomersPage>
                     ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.storage_rounded,
-                      size: 14,
-                      color: AppTheme.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isUnlimited
-                          ? '${'usage'.tr}: $count / ∞'
-                          : '${'usage'.tr}: $count / $limit',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isOver ? Colors.red : AppTheme.textSecondary,
-                        fontWeight: isOver ? FontWeight.w600 : FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
+                // const SizedBox(height: 2),
+                // Row(
+                //   children: [
+                //     Icon(
+                //       Icons.storage_rounded,
+                //       size: 14,
+                //       color: AppTheme.textSecondary,
+                //     ),
+                //     const SizedBox(width: 4),
+                //     Text(
+                //       isUnlimited
+                //           ? '${'usage'.tr}: $count / ∞'
+                //           : '${'usage'.tr}: $count / $limit',
+                //       style: TextStyle(
+                //         fontSize: 12,
+                //         color: isOver ? Colors.red : AppTheme.textSecondary,
+                //         fontWeight: isOver ? FontWeight.w600 : FontWeight.w400,
+                //       ),
+                //     ),
+                //   ],
+                // ),
               ],
             );
           }),
@@ -541,6 +552,7 @@ class _CustomersPageState extends State<CustomersPage>
     });
   }
 
+  // === Widgets: สถานะว่าง/ผิดพลาด แบบกะทัดรัด ===
   Widget _buildSearchAndClearSuffixIcons() {
     return Obx(() {
       final hasSearchText = _controller.searchQuery.value.isNotEmpty;
@@ -553,7 +565,7 @@ class _CustomersPageState extends State<CustomersPage>
         tooltip: 'clear_search'.tr,
         icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
         onPressed: () {
-          _controller.searchController.clear();
+          _searchControllerLocal.clear();
           _controller.clearSearch();
           _searchFocus.requestFocus();
         },
@@ -562,7 +574,7 @@ class _CustomersPageState extends State<CustomersPage>
   }
 
   void _triggerSearch() {
-    final query = _controller.searchController.text.trim();
+    final query = _searchControllerLocal.text.trim();
     // Always trigger Algolia search when button is clicked, even if empty
     _controller.triggerAlgoliaSearch(query);
     _searchFocus.unfocus();
