@@ -60,6 +60,14 @@ class _ChatInputState extends State<ChatInput> {
     super.dispose();
   }
 
+  void _unfocusInput() {
+    // Dismiss keyboard when user starts picking media/files
+    if (_focusNode.hasFocus) {
+      _focusNode.unfocus();
+    }
+    FocusScope.of(context).unfocus();
+  }
+
   void _handleSubmitted(String text) {
     if (text.trim().isEmpty || !widget.enabled) return;
 
@@ -85,6 +93,7 @@ class _ChatInputState extends State<ChatInput> {
   }
 
   Future<void> _openAttachmentModal() async {
+    _unfocusInput();
     if (!mounted) return;
     await showModalBottomSheet(
       context: context,
@@ -151,6 +160,7 @@ class _ChatInputState extends State<ChatInput> {
 
   // New helper for selecting multiple images from gallery
   Future<void> _pickImages() async {
+    _unfocusInput();
     try {
       if (mounted) setState(() => _isPicking = true);
       final ImagePicker picker = ImagePicker();
@@ -230,7 +240,9 @@ class _ChatInputState extends State<ChatInput> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _pickImage() async { // legacy single-image picker kept for compatibility (camera uses separate method)
+    _unfocusInput();
     try {
       if (mounted) setState(() => _isPicking = true);
       final ImagePicker picker = ImagePicker();
@@ -254,6 +266,7 @@ class _ChatInputState extends State<ChatInput> {
   }
 
   Future<void> _pickCamera() async {
+    _unfocusInput();
     try {
       if (mounted) setState(() => _isPicking = true);
       final ImagePicker picker = ImagePicker();
@@ -276,6 +289,7 @@ class _ChatInputState extends State<ChatInput> {
   }
 
   Future<void> _pickFile() async {
+    _unfocusInput();
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -371,6 +385,7 @@ class _ChatInputState extends State<ChatInput> {
   }
 
   Future<void> _pickVideo() async {
+    _unfocusInput();
     try {
       if (mounted) setState(() => _isPicking = true);
       final ImagePicker picker = ImagePicker();
@@ -542,16 +557,23 @@ class _ChatInputState extends State<ChatInput> {
                       _RoundIcon(
                         icon: Icons.grid_view_rounded,
                         onTap: () async {
+                          _unfocusInput();
                           await _openAttachmentModal();
                         },
                       ),
                       _RoundIcon(
                         icon: Icons.photo_camera_outlined,
-                        onTap: () async => await _pickCamera(),
+                        onTap: () async {
+                          _unfocusInput();
+                          await _pickCamera();
+                        },
                       ),
                       _RoundIcon(
                         icon: Icons.image_outlined,
-                        onTap: () async => await _pickImages(), // updated to multi-image picker
+                        onTap: () async {
+                          _unfocusInput();
+                          await _pickImages();
+                        }, // updated to multi-image picker
                       ),
 
 

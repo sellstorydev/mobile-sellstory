@@ -174,7 +174,7 @@ class _SimulatorMockBody extends StatelessWidget {
   const _SimulatorMockBody({required this.service});
   @override
   Widget build(BuildContext context) {
-    const mockId = '365day';
+    const mockId = '365days';
     final owned = service.hasActivePurchase(mockId);
     return ListView(
       padding: const EdgeInsets.all(24),

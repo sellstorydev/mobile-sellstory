@@ -21,12 +21,15 @@ class ChatScreen extends StatefulWidget {
   final String conversationId;
   final Map<String, dynamic> conversationData;
   final String workspaceId;
+  // Optional: if provided, the in-chat search UI will open and search for this term on load
+  final String? initialSearchTerm;
 
   const ChatScreen({
     Key? key,
     required this.conversationId,
     required this.conversationData,
     required this.workspaceId,
+    this.initialSearchTerm,
   }) : super(key: key);
 
   @override
@@ -51,6 +54,8 @@ class _ChatScreenState extends State<ChatScreen> {
   List<String> _matchedIds = [];
   int _focusedMatchIndex = 0;
   String _lastFocusedQuery = '';
+  // Cache last rendered match count to avoid redundant refreshes
+  int _lastRenderedMatchCount = -1;
   // Visual index tracking for alignment logic
   final Map<String, int> _listIndexById = {}; // docId -> list index
   final Map<String, int> _altIdIndex = {}; // alternative internal ids -> list index
@@ -128,6 +133,8 @@ class _ChatScreenState extends State<ChatScreen> {
       'avatar': avatar,
     };
   }
+
+  
 
 
   Future<void> _openAddSales() async {
@@ -215,6 +222,16 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    // If a search term was provided (from chat list message search), open search and apply it
+    final term = widget.initialSearchTerm?.trim();
+    if (term != null && term.isNotEmpty) {
+      _showSearch = true;
+      _searchQuery = term;
+      _searchController.text = term;
+      setState(() {});
+      // Reset focus tracker so first recompute will focus the first match
+      _lastFocusedQuery = '';
+    }
     _markAsRead();
     _loadAssigneesIfNeeded();
     _ensureCurrentUserProfile();
@@ -248,6 +265,15 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       }
     });
+
+    // If initial term exists and messages are already present, recompute now
+    if ((term != null && term.isNotEmpty) && _currentMessages.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _recomputeMatches(_currentMessages);
+        if (!mounted) return;
+        setState(() {});
+      });
+    }
   }
 
   void _maybeLoadMoreOlder() {
@@ -463,6 +489,7 @@ class _ChatScreenState extends State<ChatScreen> {
     finally { if (mounted) setState(() => _isLoading = false); }
   }
 
+  // ignore: unused_element
   Future<void> _sendStickerMessage(String stickerId, String stickerPackageId) async {
     if (_sourceType.toLowerCase() != 'line') { _showErrorSnackBar('sticker_line_only'.tr); return; }
     if (mounted) setState(() { _isLoading = true; _error = null; });
@@ -911,6 +938,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     _matchedIds = [];
                     _focusedMatchIndex = 0;
                     _lastFocusedQuery = '';
+                    setState(() {});
                   }
                 });
               },
@@ -1119,6 +1147,18 @@ class _ChatScreenState extends State<ChatScreen> {
                     _currentMessages = messages;
                     // Recompute matches when data changes
                     _recomputeMatches(messages);
+                    // If match count changed, refresh UI so summary row above updates
+                    if (_searchQuery.isNotEmpty) {
+                      final count = _matchedIds.length;
+                      if (count != _lastRenderedMatchCount) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) return;
+                          setState(() {
+                            _lastRenderedMatchCount = count;
+                          });
+                        });
+                      }
+                    }
 
                     // determine if we should autoscroll (only when new messages arrive and not searching)
                     final prevCount = _prevMessageCount;
@@ -1445,6 +1485,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return isBot || senderId == _currentUserId;
   }
 
+  // ignore: unused_element
   void _showChatInfo() {
     showModalBottomSheet(
       context: context,

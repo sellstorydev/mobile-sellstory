@@ -41,6 +41,7 @@ class InAppPurchaseService extends GetxService {
   // These should eventually come from remote config / Firestore if dynamic.
   static const Set<String> _kProductIds = <String>{
     '365day',
+    '365days',
   };
 
   Set<String> get productIds => _kProductIds; // expose for debug UI

@@ -576,6 +576,11 @@ class _ChatCenterPageState extends State<ChatCenterPage> {
           conversationId: conversationId,
           conversationData: conversation,
           workspaceId: workspaceId ?? _currentUserId ?? '',
+          // Pass current list search term (if any) to continue searching inside the room
+          initialSearchTerm: (() {
+            final term = _controller.currentSearchTerm().trim();
+            return term.isNotEmpty ? term : null;
+          })(),
         ),
       ),
     );

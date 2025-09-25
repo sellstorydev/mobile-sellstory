@@ -215,6 +215,81 @@ class FirestoreService extends GetxService {
           .doc(chatroomId)
           .collection('messages');
 
+  // Lightweight mirror collection for full-text chat search per workspace
+  // Schema: /workspaces/{workspaceId}/chatMessages/{docId}
+  // Fields used: chatroomId, textLower (string), searchTrigrams (array<string>), createdAt (for recency)
+  CollectionReference<Map<String, dynamic>> getWorkspaceChatMessagesCollection(
+    String workspaceId,
+  ) => _firestore
+      .collection('workspaces')
+      .doc(workspaceId)
+      .collection('chatMessages');
+
+  // Search chat messages using prefix (textLower startsWith) and trigram containment.
+  // Returns list of unique chatroomIds, limited.
+  Future<Set<String>> searchChatMessages({
+    required String workspaceId,
+    required String query,
+    int limit = 50,
+  }) async {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return <String>{};
+
+    final msgs = getWorkspaceChatMessagesCollection(workspaceId);
+    final Set<String> roomIds = {};
+
+    try {
+      // Primary: prefix search on textLower via range (q <= textLower < q + \uf8ff)
+      final end = '$q\uf8ff';
+      final prefixSnap = await msgs
+          .where('textLower', isGreaterThanOrEqualTo: q)
+          .where('textLower', isLessThanOrEqualTo: end)
+          .orderBy('textLower')
+          .limit(limit)
+          .get();
+
+      for (final d in prefixSnap.docs) {
+        final m = d.data();
+        final rid = (m['chatroomId'] ?? m['chat_id'] ?? m['roomId'])
+            ?.toString();
+        if (rid != null && rid.isNotEmpty) roomIds.add(rid);
+        if (roomIds.length >= limit) return roomIds;
+      }
+
+      // Secondary: trigram match for substring search
+      // We only pick up to 3 trigrams from the query to control index fanout
+      List<String> _trigrams(String s) {
+        final out = <String>[];
+        if (s.length < 3) return out;
+        for (int i = 0; i <= s.length - 3; i++) {
+          out.add(s.substring(i, i + 3));
+          if (out.length >= 10) break; // cap
+        }
+        return out;
+      }
+
+      final grams = _trigrams(q);
+      if (grams.isNotEmpty) {
+        final gramsUse = grams.take(3).toList();
+        final trigramSnap = await msgs
+            .where('searchTrigrams', arrayContainsAny: gramsUse)
+            .orderBy('createdAt', descending: true)
+            .limit(limit)
+            .get();
+        for (final d in trigramSnap.docs) {
+          final m = d.data();
+          final rid = (m['chatroomId'] ?? m['chat_id'] ?? m['roomId'])
+              ?.toString();
+          if (rid != null && rid.isNotEmpty) roomIds.add(rid);
+          if (roomIds.length >= limit) return roomIds;
+        }
+      }
+    } catch (e) {
+      // Swallow and return what we have
+    }
+    return roomIds;
+  }
+
   // ===== Queries =====
 
 

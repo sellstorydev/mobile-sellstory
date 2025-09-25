@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import '../../../data/services/firestore_service.dart';
 import '../../../core/services/logger_service.dart';
@@ -21,6 +20,9 @@ class ChatController extends GetxController {
   final RxList<Map<String, dynamic>> conversations =
       <Map<String, dynamic>>[].obs;
   final RxString searchQuery = ''.obs;
+  // Room IDs matched by message full-text search (mirror collection)
+  final RxSet<String> _messageSearchRoomIds = <String>{}.obs;
+  Worker? _searchDebounce;
   final RxString activeFilter = 'all'.obs;
 
   // ===== Visible Chatrooms API pagination state =====
@@ -83,6 +85,17 @@ class ChatController extends GetxController {
       ..addAll(values.map((e) => e.toLowerCase()));
     conversations.refresh();
   }
+
+  // Public helpers for UI integration
+  bool isMessageSearchHit(String roomId) {
+    try {
+      return _messageSearchRoomIds.contains(roomId);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String currentSearchTerm() => searchQuery.value;
   
 
 
@@ -160,6 +173,8 @@ class ChatController extends GetxController {
         if (newId == (_currentWorkspaceId ?? '')) return;
         _logger.info('Workspace changed to $newId -> restart chat realtime');
         _currentWorkspaceId = newId;
+        // Clear message search matches on workspace change
+        _messageSearchRoomIds.clear();
 
         _workspaceData = null; // reset caches bound to workspace
         // Reset assignee initial settle flags for new workspace
@@ -178,6 +193,13 @@ class ChatController extends GetxController {
         }
       });
     }
+
+    // Debounce search to query mirror collection for message contents
+    _searchDebounce = debounce<String>(searchQuery, (q) async {
+      await _runMessageSearch(q);
+      // Just refresh the list; filteredConversations will use _messageSearchRoomIds
+      conversations.refresh();
+    }, time: const Duration(milliseconds: 250));
   }
 
   void setCurrentUser(String userId) {
@@ -926,7 +948,7 @@ class ChatController extends GetxController {
         }
       } catch (_) {}
 
-      // Search filter
+      // Search filter (room meta fields + message mirror match)
       if (searchQuery.value.isNotEmpty) {
         final rawQ = searchQuery.value.trim();
         final query = rawQ.toLowerCase();
@@ -975,7 +997,14 @@ class ChatController extends GetxController {
             fields.add(a.toString());
           }
         }
-        final matched = fields.any((s) => contains(s) || containsNoHash(s));
+        bool matched = fields.any((s) => contains(s) || containsNoHash(s));
+        if (!matched) {
+          final rid = (conv['id'] ?? conv['chatroomId'] ?? conv['chat_id'])
+              ?.toString();
+          if (rid != null && rid.isNotEmpty) {
+            matched = _messageSearchRoomIds.contains(rid);
+          }
+        }
         if (!matched) return false;
       }
 
@@ -1145,6 +1174,33 @@ class ChatController extends GetxController {
     return filtered;
   }
 
+  // Run search against mirror collection to find room ids that contain the text
+  Future<void> _runMessageSearch(String q) async {
+    final query = q.trim();
+    if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
+      await _getCurrentWorkspaceId();
+    }
+    if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) return;
+    if (query.isEmpty) {
+      _messageSearchRoomIds.clear();
+      return;
+    }
+    try {
+      final svc = _firestoreService;
+      final ids = await svc.searchChatMessages(
+        workspaceId: _currentWorkspaceId!,
+        query: query,
+        limit: 50,
+      );
+      _messageSearchRoomIds
+        ..clear()
+        ..addAll(ids);
+    } catch (e) {
+      // ignore errors, keep previous set
+      _logger.warning('message search failed: $e');
+    }
+  }
+
   Future<void> markAsRead(String conversationId) async {
     if (_currentUserId == null) return;
 
@@ -1178,6 +1234,7 @@ class ChatController extends GetxController {
   void onClose() {
     _logger.info('ChatController disposed');
     _wsListener?.dispose();
+    _searchDebounce?.dispose();
     stopRealtime();
     super.onClose();
   }

@@ -107,7 +107,7 @@ class ChatFilterChips extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 16),
+              Icon(icon, size: 14),
               const SizedBox(width: 4),
             ],
             Text(label),
@@ -123,6 +123,7 @@ class ChatFilterChips extends StatelessWidget {
         backgroundColor: Colors.grey.shade100,
         labelStyle: TextStyle(
           color: isSelected ? Colors.blue.shade800 : Colors.grey.shade700,
+          fontSize: 14,
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
