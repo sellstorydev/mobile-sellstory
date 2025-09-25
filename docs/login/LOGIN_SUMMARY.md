@@ -64,6 +64,83 @@ Obx(() {
 - **Reduced Confusion**: Users see validation only after they start confirming password
 - **Maintained Validation**: All password matching logic preserved
 
+### Password Field Visibility Toggle Enhancement (September 25, 2025)
+
+**Issue:** The password reset form lacked visibility toggles for password fields, making it difficult for users to verify their password input, especially for complex passwords.
+
+**Solution Applied:**
+1. **Added State Variables**: Created reactive variables for password visibility state in the controller
+2. **Toggle Methods**: Added methods to toggle visibility for both new password and confirm password fields
+3. **Updated UI**: Wrapped TextFormField widgets with Obx for reactive updates and added eye icon suffixIcon
+4. **Consistent UX**: Applied standard Material Design eye icon pattern for password visibility
+
+**Technical Changes:**
+
+**Controller Updates:**
+```dart
+// Added state variables:
+final isNewPasswordVisible = false.obs;
+final isConfirmPasswordVisible = false.obs;
+
+// Added toggle methods:
+void toggleNewPasswordVisibility() {
+  isNewPasswordVisible.value = !isNewPasswordVisible.value;
+}
+
+void toggleConfirmPasswordVisibility() {
+  isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value;
+}
+```
+
+**UI Updates:**
+```dart
+// Before (both password fields):
+TextFormField(
+  obscureText: true,
+  // ... other properties
+)
+
+// After:
+Obx(() => TextFormField(
+  obscureText: !controller.isNewPasswordVisible.value,
+  decoration: InputDecoration(
+    // ... existing properties
+    suffixIcon: IconButton(
+      icon: Icon(
+        controller.isNewPasswordVisible.value 
+            ? Icons.visibility_off 
+            : Icons.visibility,
+        color: Colors.grey[600],
+      ),
+      onPressed: controller.toggleNewPasswordVisibility,
+    ),
+  ),
+))
+```
+
+**Features:**
+- **Toggle Functionality**: Users can click eye icon to show/hide password text
+- **Reactive Updates**: Eye icon changes between visibility/visibility_off based on current state
+- **Individual Control**: Each password field has its own visibility toggle
+- **Visual Feedback**: Consistent grey color for eye icons matching form design
+
+**Files Modified:**
+- `lib/features/login/controller/forgot_password_controller.dart`
+  - Added `isNewPasswordVisible` and `isConfirmPasswordVisible` reactive variables
+  - Added `toggleNewPasswordVisibility()` and `toggleConfirmPasswordVisibility()` methods
+
+- `lib/features/login/view/forgot_password_reset_page.dart`
+  - Wrapped both password TextFormField widgets with Obx for reactivity
+  - Updated obscureText property to use reactive visibility state
+  - Added suffixIcon with IconButton for visibility toggle
+  - Applied consistent styling with grey[600] color for icons
+
+**Benefits:**
+- **Improved Usability**: Users can verify password input accuracy
+- **Better Accessibility**: Easier for users with complex passwords
+- **Standard UX**: Follows Material Design patterns for password fields
+- **Independent Control**: Separate toggles for new password and confirm password fields
+
 ### Password Reset OTP Display Fix (September 25, 2025)
 
 **Issue:** User reported that in the OTP page, placeholder text was showing literal "{last4}" and "{secound}" instead of actual phone number digits in the display text.

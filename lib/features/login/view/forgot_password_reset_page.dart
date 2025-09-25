@@ -30,9 +30,8 @@ class ForgotPasswordResetPage extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
-                  // No Obx needed here; we only update Rx on change
-                  TextFormField(
-                    obscureText: true,
+                  Obx(() => TextFormField(
+                    obscureText: !controller.isNewPasswordVisible.value,
                     onChanged: (v) => controller.newPassword.value = v,
                     style: const TextStyle(color: Colors.black),
                     decoration: InputDecoration(
@@ -52,17 +51,25 @@ class ForgotPasswordResetPage extends StatelessWidget {
                         borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          controller.isNewPasswordVisible.value 
+                              ? Icons.visibility_off 
+                              : Icons.visibility,
+                          color: Colors.grey[600],
+                        ),
+                        onPressed: controller.toggleNewPasswordVisibility,
+                      ),
                     ),
-                  ),
+                  )),
                   const SizedBox(height: 16),
                   Text(
                     'confirm_new_password'.tr,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
-                  // No Obx needed here; we only update Rx on change
-                  TextFormField(
-                    obscureText: true,
+                  Obx(() => TextFormField(
+                    obscureText: !controller.isConfirmPasswordVisible.value,
                     onChanged: (v) => controller.confirmPassword.value = v,
                     style: const TextStyle(color: Colors.black),
                     decoration: InputDecoration(
@@ -82,8 +89,17 @@ class ForgotPasswordResetPage extends StatelessWidget {
                         borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          controller.isConfirmPasswordVisible.value 
+                              ? Icons.visibility_off 
+                              : Icons.visibility,
+                          color: Colors.grey[600],
+                        ),
+                        onPressed: controller.toggleConfirmPasswordVisibility,
+                      ),
                     ),
-                  ),
+                  )),
                   const SizedBox(height: 12),
                   Obx(() {
                     if (controller.confirmPassword.value.isEmpty) {

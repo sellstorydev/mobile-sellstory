@@ -17,6 +17,10 @@ class ForgotPasswordController extends GetxController {
   final newPassword = ''.obs;
   final confirmPassword = ''.obs;
 
+  // Password visibility state
+  final isNewPasswordVisible = false.obs;
+  final isConfirmPasswordVisible = false.obs;
+
   // UI State
   final isLoading = false.obs;
   final resendCooldown = 0.obs; // seconds
@@ -144,6 +148,15 @@ class ForgotPasswordController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  // Password visibility toggle methods
+  void toggleNewPasswordVisibility() {
+    isNewPasswordVisible.value = !isNewPasswordVisible.value;
+  }
+
+  void toggleConfirmPasswordVisibility() {
+    isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value;
   }
 
   void _startCooldown({required int seconds}) {
