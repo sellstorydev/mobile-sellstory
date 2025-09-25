@@ -3,6 +3,82 @@
 
 ## Recent Changes
 
+### Password Reset OTP Display Fix (September 25, 2025)
+
+**Issue:** User reported that in the OTP page, placeholder text was showing literal "{last4}" and "{secound}" instead of actual phone number digits in the display text.
+
+**Root Cause Analysis:**
+- The image shows the OTP page displaying "Please enter the 6-digit code sent to •••{last4}" 
+- The {last4} parameter was not being replaced properly due to GetX .trParams() parameter handling
+- The .trParams() method uses {} brackets but the system was expecting ${} for string interpolation
+- The issue was both the parameter syntax and the placeholder hint text
+
+**Solution Applied:**
+1. **Fixed Parameter Syntax**: Changed from {last4} to ${last4} in translation strings
+2. **Updated Parameter Handling**: Replaced .trParams() with direct string .replaceAll() method
+3. **Translation Key Added**: Created `otp_hint_placeholder` key for the OTP input placeholder
+4. **Updated OTP Input**: Replaced hardcoded "123456" with `'otp_hint_placeholder'.tr`
+
+**Technical Changes:**
+
+**Translation String Fix:**
+```dart
+// Before:
+'Please enter the 6-digit code sent to ••••{last4}'
+
+// After: 
+'Please enter the 6-digit code sent to ••••${last4}'
+```
+
+**Parameter Replacement Fix:**
+```dart
+// Phone Number Display - Before:
+'enter_6_digit_code_with_phone'.trParams({'last4': controller.phoneLast4.value})
+
+// Phone Number Display - After:
+'enter_6_digit_code_with_phone'.tr.replaceAll('${last4}', controller.phoneLast4.value)
+
+// Resend Countdown - Before:
+'resend_in_seconds'.trParams({'seconds': controller.resendCooldown.value.toString()})
+
+// Resend Countdown - After:
+'resend_in_seconds'.tr.replaceAll('${seconds}', controller.resendCooldown.value.toString())
+```
+
+**Input Field Fix:**
+```dart
+// Before:
+hintText: '123456',
+
+// After:
+hintText: 'otp_hint_placeholder'.tr,
+```
+
+**Translation Key Added:**
+```dart
+// English (en_US)
+'otp_hint_placeholder': '123456',
+
+// Thai (th)
+'otp_hint_placeholder': '123456',
+```
+
+**Files Modified:**
+- `lib/core/i18n/app_translations.dart`
+  - Added `otp_hint_placeholder` translation key for both English and Thai
+- `lib/features/login/view/forgot_password_otp_page.dart`
+  - Updated OTP input field to use translation key for placeholder
+
+**Parameter Verification:**
+- The {last4} parameter in instruction text is working correctly via .trParams({'last4': controller.phoneLast4.value})
+- The {seconds} parameter in resend countdown was fixed to use ${seconds} with .replaceAll() method
+
+**Benefits:**
+- **Complete I18N**: All text elements in OTP page now use translation keys
+- **Consistent Pattern**: Matches established translation approach throughout the codebase
+- **Proper Parameter Display**: Fixed ${last4} and ${seconds} parameters to display actual values instead of literal text
+- **Maintainability**: All text can be updated through translation files
+
 ### Password Reset Error Message Translation (September 25, 2025)
 
 **Issue:** The `requestOtp()` function in password reset flow was showing hardcoded Thai text "เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory" instead of using proper translation keys.

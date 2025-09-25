@@ -7,6 +7,9 @@
     - *important* after finish add command or type in terminal `say "For sell story"`
 
 Topic: Flow password reset
+Detail: I attach image is show text like '{last4}' and '{secound}', it should be last 4 digit and second digit.Fix it.
+
+Topic: Flow password reset
 Detail: Change alert text in requestOtp function when request fail to "เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory"
 
 ```
