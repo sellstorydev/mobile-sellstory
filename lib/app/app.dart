@@ -20,28 +20,27 @@ class SellStoryApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final themeController = Get.find<ThemeController>();
-      final translationController = Get.find<TranslationController>();
-      
-      return GetMaterialApp(
-        title: 'SellStory',
-        theme: AppTheme.lightTheme,
-        // darkTheme: AppTheme.darkTheme,
-        themeMode: themeController.mode.value,
-        translations: AppTranslations(),
-        locale: translationController.currentLocale.value,
-        fallbackLocale: const Locale('en', 'US'),
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        supportedLocales: const [
-          Locale('en', 'US'),
-          Locale('th', 'TH'),
-        ],
-        initialRoute: AppRoutes.splash,
-        getPages: AppRoutes.routes,
-        debugShowCheckedModeBanner: false,
-      );
-    });
+    final themeController = Get.find<ThemeController>();
+    final translationController = Get.find<TranslationController>();
+
+    // Note: Do not wrap GetMaterialApp with Obx; use Get.updateLocale/Get.changeThemeMode instead
+    return GetMaterialApp(
+      title: 'SellStory',
+      theme: AppTheme.lightTheme,
+      // darkTheme: AppTheme.darkTheme,
+      themeMode: themeController.mode.value,
+      translations: AppTranslations(),
+      locale: translationController.currentLocale.value,
+      fallbackLocale: const Locale('en', 'US'),
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      supportedLocales: const [
+        Locale('en', 'US'),
+        Locale('th', 'TH'),
+      ],
+      initialRoute: AppRoutes.splash,
+      getPages: AppRoutes.routes,
+      debugShowCheckedModeBanner: false,
+    );
   }
 
   static void setupDependencies() {

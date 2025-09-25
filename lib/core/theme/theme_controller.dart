@@ -21,6 +21,8 @@ class ThemeController extends GetxController {
   void setMode(ThemeMode m) {
     mode.value = m;
     box.write(_k, m.name);
+    // Update Get's theme mode to reflect immediately without rebuilding root
+    Get.changeThemeMode(m);
   }
 
   void toggle() {
