@@ -71,6 +71,10 @@ class BoardController extends GetxController implements BoardView {
   final RxList<String> availableCustomers = <String>[].obs;
   final RxList<String> availableHashtags = <String>[].obs;
 
+  // User display name cache for search mapping
+  final Map<String, String> _userDisplayNameCache = {};
+  bool _isHydratingUserNames = false;
+
   // Computed property to get current hashtags
   List<String> get currentAvailableHashtags {
     final Set<String> hashtags = {};
@@ -121,6 +125,15 @@ class BoardController extends GetxController implements BoardView {
     }
 
     return result;
+  }
+
+  // Computed property to get total card count
+  int get totalCardCount {
+    int total = 0;
+    for (final lane in lanes) {
+      total += lane.cards.length;
+    }
+    return total;
   }
 
   final RxList<String> availableInterests = <String>[].obs;
@@ -913,6 +926,9 @@ class BoardController extends GetxController implements BoardView {
     _updateAvailableHashtags();
     _updateAvailableInterests();
 
+    // Hydrate user display names (fire & forget)
+    _hydrateUserDisplayNames();
+
     // Apply current search and filter if exists
     final hasAssigneeFilter = selectedAssignees.isNotEmpty;
     final hasCustomerFilter = selectedCustomers.isNotEmpty;
@@ -1058,14 +1074,30 @@ class BoardController extends GetxController implements BoardView {
       return text.toLowerCase().contains(search);
     }
 
+    // Get display name for assignedTo user
+    final assignedToDisplayName = _userDisplayNameCache[card.assignedTo]?.toLowerCase() ?? '';
+    
+    // Get display names for watchers and collaborators
+    final watchersDisplayNames = card.watchers
+        .map((id) => _userDisplayNameCache[id]?.toLowerCase() ?? '')
+        .where((name) => name.isNotEmpty)
+        .join(' ');
+    
+    final collaboratorsDisplayNames = card.collaborators
+        .map((id) => _userDisplayNameCache[id]?.toLowerCase() ?? '')
+        .where((name) => name.isNotEmpty)
+        .join(' ');
+
     return safeContains(card.title, searchLower) ||
         safeContains(card.description, searchLower) ||
         safeContains(card.customId, searchLower) ||
         safeContains(card.customer, searchLower) ||
-        safeContains(card.assignedTo, searchLower) ||
+        safeContains(card.assignedTo, searchLower) ||              // Raw user ID
+        assignedToDisplayName.contains(searchLower) ||             // Display name
         safeContains(card.status, searchLower) ||
-        safeContains(card.updatedByDisplayName, searchLower) ||
         safeContains(card.company?['value'], searchLower) ||
+        watchersDisplayNames.contains(searchLower) ||              // Watchers names
+        collaboratorsDisplayNames.contains(searchLower) ||         // Collaborators names
         _cardHashtagsContain(card, searchLower);
   }
 
@@ -1186,78 +1218,82 @@ class BoardController extends GetxController implements BoardView {
   void setQuickDateFilter(String type) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-
+    
+    // Based on the requirement: Today is 21/sep/2025, start week is sunday
+    // Current date is September 22, 2025
+    final currentDay = now.weekday; // Monday = 1, Sunday = 7
+    final lastSunday = today.subtract(Duration(days: currentDay == 7 ? 0 : currentDay)); // Last Sunday
+    
     switch (type) {
       case 'today':
-        // วันนี้ 00:00:00 ถึง วันนี้ 23:59:59
+        // Today (Start date is 21/sep/2025 00:00 - End date is 21/sep/2025 23:59)
         selectedStartDate.value = today;
-        selectedEndDate.value = today.add(
-          const Duration(milliseconds: 86399999),
-        );
+        selectedEndDate.value = DateTime(today.year, today.month, today.day, 23, 59, 59);
         break;
       case 'thisWeek':
-        // วันนี้ 00:00:00 ถึง +7 วัน 23:59:59
-        selectedStartDate.value = today;
-        selectedEndDate.value = today
-            .add(const Duration(days: 7))
-            .add(const Duration(milliseconds: 86399999));
+        // This week (Start date is Sunday 00:00 - End date is next Saturday 23:59)
+        // Week starts on Sunday according to requirements
+        final weekStart = lastSunday;
+        final weekEnd = weekStart.add(const Duration(days: 6)); // Saturday
+        selectedStartDate.value = weekStart;
+        selectedEndDate.value = DateTime(weekEnd.year, weekEnd.month, weekEnd.day, 23, 59, 59);
         break;
       case 'thisMonth':
-        // วันนี้ 00:00:00 ถึง +30 วัน 23:59:59
-        selectedStartDate.value = today;
-        selectedEndDate.value = today
-            .add(const Duration(days: 30))
-            .add(const Duration(milliseconds: 86399999));
+        // This month (Start date is 01/sep/2025 00:00 - End date is 30/sep/2025 23:59)
+        final monthStart = DateTime(today.year, today.month, 1);
+        final monthEnd = DateTime(today.year, today.month + 1, 0); // Last day of current month
+        selectedStartDate.value = monthStart;
+        selectedEndDate.value = DateTime(monthEnd.year, monthEnd.month, monthEnd.day, 23, 59, 59);
         break;
-      case 'lastMonth':
-        // เดือนก่อน 00:00:00 ถึง วันนี้ 23:59:59
-        final lastMonth = DateTime(today.year, today.month - 1, today.day);
-        selectedStartDate.value = lastMonth;
-        selectedEndDate.value = today.add(
-          const Duration(milliseconds: 86399999),
-        );
-        break;
-      case '+1day':
-        // วันนี้ 00:00:00 ถึง วันนี้ +1 วัน 23:59:59
-        selectedStartDate.value = today;
-        selectedEndDate.value = today
-            .add(const Duration(days: 1))
-            .add(const Duration(milliseconds: 86399999));
-        break;
-      case '+3days':
-        // วันนี้ 00:00:00 ถึง วันนี้ +3 วัน 23:59:59
-        selectedStartDate.value = today;
-        selectedEndDate.value = today
-            .add(const Duration(days: 3))
-            .add(const Duration(milliseconds: 86399999));
-        break;
-      case '+7days':
-        // วันนี้ 00:00:00 ถึง วันนี้ +7 วัน 23:59:59
-        selectedStartDate.value = today;
-        selectedEndDate.value = today
-            .add(const Duration(days: 7))
-            .add(const Duration(milliseconds: 86399999));
-        break;
-      case '+14days':
-        // วันนี้ 00:00:00 ถึง วันนี้ +14 วัน 23:59:59
-        selectedStartDate.value = today;
-        selectedEndDate.value = today
-            .add(const Duration(days: 14))
-            .add(const Duration(milliseconds: 86399999));
-        break;
-      case '+30days':
-        // วันนี้ 00:00:00 ถึง วันนี้ +30 วัน 23:59:59
-        selectedStartDate.value = today;
-        selectedEndDate.value = today
-            .add(const Duration(days: 30))
-            .add(const Duration(milliseconds: 86399999));
+      case 'nextMonth':
+        // Next month (Start date is 01/oct/2025 00:00 - End date is 31/oct/2025 23:59)
+        final nextMonthStart = DateTime(today.year, today.month + 1, 1);
+        final nextMonthEnd = DateTime(today.year, today.month + 2, 0); // Last day of next month
+        selectedStartDate.value = nextMonthStart;
+        selectedEndDate.value = DateTime(nextMonthEnd.year, nextMonthEnd.month, nextMonthEnd.day, 23, 59, 59);
         break;
       case 'lastWeek':
-        // วันนี้ 00:00:00 ถึง วันนี้ -7 วัน 23:59:59
-        selectedStartDate.value = today.subtract(const Duration(days: 7));
-        selectedEndDate.value = today.add(
-          const Duration(milliseconds: 86399999),
-        );
+        // Last Week (Start date is 14/sep/2025 00:00 - End date is 20/sep/2025 23:59)
+        final lastWeekStart = lastSunday.subtract(const Duration(days: 7));
+        final lastWeekEnd = lastWeekStart.add(const Duration(days: 6));
+        selectedStartDate.value = lastWeekStart;
+        selectedEndDate.value = DateTime(lastWeekEnd.year, lastWeekEnd.month, lastWeekEnd.day, 23, 59, 59);
+        break;
+      case 'lastMonth':
+        // Last month (Start date is 01/aug/2025 00:00 - End date is 31/aug/2025 23:59)
+        final lastMonthStart = DateTime(today.year, today.month - 1, 1);
+        final lastMonthEnd = DateTime(today.year, today.month, 0); // Last day of previous month
+        selectedStartDate.value = lastMonthStart;
+        selectedEndDate.value = DateTime(lastMonthEnd.year, lastMonthEnd.month, lastMonthEnd.day, 23, 59, 59);
+        break;
+      case '+1day':
+        // +1 Day (Start date is 21/sep/2025 00:00 - End date is 22/sep/2025 23:59)
+        selectedStartDate.value = today;
+        selectedEndDate.value = DateTime(today.year, today.month, today.day + 1, 23, 59, 59);
+        break;
+      case '+3days':
+        // +3 Days (Start date is 21/sep/2025 00:00 - End date is 24/sep/2025 23:59)
+        selectedStartDate.value = today;
+        final endDate = today.add(const Duration(days: 3));
+        selectedEndDate.value = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+        break;
+      case '+7days':
+        // +7 Days (Start date is 21/sep/2025 00:00 - End date is 28/sep/2025 23:59)
+        selectedStartDate.value = today;
+        final endDate = today.add(const Duration(days: 7));
+        selectedEndDate.value = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+        break;
+      case '+14days':
+        // +14 Days (Start date is 21/sep/2025 00:00 - End date is 05/oct/2025 23:59)
+        selectedStartDate.value = today;
+        final endDate = today.add(const Duration(days: 14));
+        selectedEndDate.value = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+        break;
+      case '+30days':
+        // +30 Days (Start date is 21/sep/2025 00:00 - End date is 21/oct/2025 23:59)
+        selectedStartDate.value = today;
+        final endDate = today.add(const Duration(days: 30));
+        selectedEndDate.value = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
         break;
     }
     
@@ -1290,10 +1326,9 @@ class BoardController extends GetxController implements BoardView {
     final hasHashtagFilter = selectedHashtags.isNotEmpty;
     final hasInterestFilter = selectedInterests.isNotEmpty;
     final hasStatusFilter = selectedStatuses.isNotEmpty;
-    final hasDateFilter =
-        selectedDateFilterTypes.isNotEmpty &&
-        (selectedStartDate.value != null || selectedEndDate.value != null);
-    final hasShowWithoutDate = showCardsWithoutDate.value;
+    final hasDateFilter = selectedDateFilterTypes.isNotEmpty &&
+        (selectedStartDate.value != null || selectedEndDate.value != null || showCardsWithoutDate.value);
+    final hasShowWithoutDate = showCardsWithoutDate.value && selectedDateFilterTypes.isNotEmpty;
 
     if (!hasAssigneeFilter &&
         !hasCustomerFilter &&
@@ -1317,13 +1352,7 @@ class BoardController extends GetxController implements BoardView {
         ? _getSearchResults(searchQuery.value)
         : _originalLanes;
 
-    // Debug: Print sample card data for troubleshooting
-    if (sourceLanes.isNotEmpty && sourceLanes.first.cards.isNotEmpty) {
-      final sampleCard = sourceLanes.first.cards.first;
-    }
-
     final List<Lane> filterResults = [];
-    int matchingCards = 0;
 
     for (final lane in sourceLanes) {
       // Filter cards by assignee, customer, hashtag, interest, status, and/or date
@@ -1336,7 +1365,6 @@ class BoardController extends GetxController implements BoardView {
         bool hashtagMatches = true;
         bool interestMatches = true;
         bool statusMatches = true;
-        bool dateMatches = true;
 
         // Check assignee filter (OR logic - match any selected assignee)
         if (hasAssigneeFilter) {
@@ -1379,49 +1407,21 @@ class BoardController extends GetxController implements BoardView {
           statusMatches = selectedStatuses.contains(card.status);
         }
 
-        // Check date filter
-        if (hasDateFilter) {
-          dateMatches = _checkDateFilter(card);
-        }
-
-        // Check show cards without date filter
-        bool withoutDateMatches = true;
-        if (hasShowWithoutDate) {
-          // Show cards that don't have any of the selected date types
-          withoutDateMatches = selectedDateFilterTypes.every((filterType) {
-            DateTime? cardDate;
-            switch (filterType) {
-              case 'startDate':
-                cardDate = card.startDate;
-                break;
-              case 'endDate':
-                cardDate = card.endDate;
-                break;
-              case 'createdAt':
-                cardDate = card.createdAt;
-                break;
-              case 'dueDate':
-              case 'toDoDate':
-                // Check if any todo has a dueDate
-                bool hasTodoDueDate = false;
-                if (card.todos.isNotEmpty) {
-                  for (final todo in card.todos) {
-                    if (todo['dueDate'] != null) {
-                      hasTodoDueDate = true;
-                      break;
-                    }
-                  }
-                }
-                cardDate = hasTodoDueDate ? DateTime.now() : null; // If has todo dueDate, consider it has date
-                break;
-              case 'updatedAt':
-                cardDate = card.updatedAt;
-                break;
-              default:
-                cardDate = card.createdAt;
-            }
-            return cardDate == null; // Return true if date is null (no date)
-          });
+        // Check date filter - handle both normal filtering and "show unselected dates"
+        bool dateFilterMatches = true;
+        if (selectedDateFilterTypes.isNotEmpty) {
+          if (showCardsWithoutDate.value) {
+            // Show cards that DON'T have start date AND end date PLUS cards that have dates in range
+            dateFilterMatches = (card.startDate == null && card.endDate == null) || 
+                               ((selectedStartDate.value != null || selectedEndDate.value != null) && 
+                                _checkDateFilter(card));
+          } else if (selectedStartDate.value != null || selectedEndDate.value != null) {
+            // Show only cards that have dates matching the filter
+            dateFilterMatches = _checkDateFilter(card);
+          } else {
+            // Only date types selected, show all cards (with or without dates)
+            dateFilterMatches = true;
+          }
         }
 
         final matches =
@@ -1430,10 +1430,8 @@ class BoardController extends GetxController implements BoardView {
             hashtagMatches &&
             interestMatches &&
             statusMatches &&
-            dateMatches &&
-            withoutDateMatches;
+            dateFilterMatches;
 
-        if (matches) matchingCards++;
         return matches;
       }).toList();
 
@@ -1455,65 +1453,61 @@ class BoardController extends GetxController implements BoardView {
   bool _checkDateFilter(JobCard card) {
     final startDate = selectedStartDate.value;
     final endDate = selectedEndDate.value;
-    final filterTypes = selectedDateFilterTypes;
 
-    // Return true if any of the selected date types match the date range
-    return filterTypes.any((filterType) {
+    if (startDate == null || endDate == null) {
+      return true; // No date range selected
+    }
+
+    // Check if any selected date type falls within the range
+    for (final dateType in selectedDateFilterTypes) {
       DateTime? cardDate;
-
-      // Get the appropriate date from card based on filter type
-      switch (filterType) {
+      
+      switch (dateType) {
         case 'startDate':
-          // Use actual startDate field from card
           cardDate = card.startDate;
           break;
         case 'endDate':
-          // Use actual endDate field from card
           cardDate = card.endDate;
           break;
         case 'createdAt':
           cardDate = card.createdAt;
           break;
-        case 'dueDate':
-        case 'toDoDate':
-          // Check todos for dueDate
-          if (card.todos.isNotEmpty) {
-            for (final todo in card.todos) {
-              if (todo['dueDate'] != null) {
-                cardDate = DateTime.fromMillisecondsSinceEpoch(todo['dueDate'] as int);
-                break;
-              }
-            }
-          }
-          if (cardDate == null) {
-            cardDate = card.dueDate;
-          }
-          break;
         case 'updatedAt':
           cardDate = card.updatedAt;
           break;
-        default:
-          cardDate = card.createdAt;
+        case 'dueDate':
+        case 'toDoDate':
+          // Check if any todo has a dueDate within range
+          if (card.todos.isNotEmpty) {
+            for (final todo in card.todos) {
+              if (todo['dueDate'] != null) {
+                final dueDate = DateTime.fromMillisecondsSinceEpoch(todo['dueDate']);
+                if (_isDateInRange(dueDate, startDate, endDate)) {
+                  return true;
+                }
+              }
+            }
+          }
+          // Also check card's main dueDate if it exists
+          cardDate = card.dueDate;
+          break;
       }
 
-      if (cardDate == null) return false;
-
-      // Check if card date is within the selected range
-      bool matches = true;
-
-      if (startDate != null) {
-        matches =
-            matches &&
-            cardDate.isAfter(startDate.subtract(const Duration(days: 1)));
+      if (cardDate != null && _isDateInRange(cardDate, startDate, endDate)) {
+        return true; // Found at least one matching date
       }
+    }
 
-      if (endDate != null) {
-        matches =
-            matches && cardDate.isBefore(endDate.add(const Duration(days: 1)));
-      }
+    return false; // No dates match the range
+  }
 
-      return matches;
-    });
+  bool _isDateInRange(DateTime date, DateTime startDate, DateTime endDate) {
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    final startOnly = DateTime(startDate.year, startDate.month, startDate.day);
+    final endOnly = DateTime(endDate.year, endDate.month, endDate.day);
+    
+    return (dateOnly.isAfter(startOnly) || dateOnly.isAtSameMomentAs(startOnly)) &&
+           (dateOnly.isBefore(endOnly) || dateOnly.isAtSameMomentAs(endOnly));
   }
 
   List<Lane> _getSearchResults(String query) {
@@ -1701,6 +1695,71 @@ class BoardController extends GetxController implements BoardView {
     } catch (e) {
       print('❌ Failed to load workspace hashtags: $e');
       return [];
+    }
+  }
+
+  // Hydrate user display names for search mapping
+  Future<void> _hydrateUserDisplayNames() async {
+    if (_isHydratingUserNames) return;
+    _isHydratingUserNames = true;
+    
+    try {
+      final Set<String> userIds = {};
+
+      // Collect all user IDs from cards
+      for (final lane in _originalLanes) {
+        for (final card in lane.cards) {
+          if (card.assignedTo.isNotEmpty) {
+            userIds.add(card.assignedTo);
+          }
+          if (card.updatedBy.isNotEmpty) {
+            userIds.add(card.updatedBy);
+          }
+          if (card.createdBy.isNotEmpty) {
+            userIds.add(card.createdBy);
+          }
+          // Add watchers if they exist
+          for (final watcher in card.watchers) {
+            if (watcher.isNotEmpty) {
+              userIds.add(watcher);
+            }
+          }
+          // Add collaborators if they exist  
+          for (final collaborator in card.collaborators) {
+            if (collaborator.isNotEmpty) {
+              userIds.add(collaborator);
+            }
+          }
+        }
+      }
+
+      // Only fetch users that are not already cached
+      final List<String> usersToFetch = userIds
+          .where((id) => !_userDisplayNameCache.containsKey(id))
+          .toList();
+
+      if (usersToFetch.isEmpty) return;
+
+      // Fetch user data in parallel
+      await Future.wait(usersToFetch.map((userId) async {
+        try {
+          final userData = await _repository.getUserById(userId);
+          final displayName = userData?['displayName']?.toString() ?? 
+                             userData?['name']?.toString() ?? 
+                             userData?['fullName']?.toString() ?? 
+                             '';
+          _userDisplayNameCache[userId] = displayName;
+        } catch (_) {
+          _userDisplayNameCache[userId] = '';
+        }
+      }));
+
+      // Re-run search if user is currently searching to include newly resolved names
+      if (isSearching.value && searchQuery.value.isNotEmpty) {
+        _performSearch(searchQuery.value);
+      }
+    } finally {
+      _isHydratingUserNames = false;
     }
   }
 

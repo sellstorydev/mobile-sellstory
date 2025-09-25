@@ -1,11 +1,717 @@
 # PRE PROMPT
     - *important* You don't need to explain what you did. I don't want to know, it's a waste of time. Focus on editing the file to meet the task I gave you.
-    - First read `lib/features/board/BOARD_SUMMARY.md` file for review your memory and brainstrom your self.
-    - For better answer me please read your mememory inside file `lib/features/board/BOARD_SUMMARY.md`
-    - To give me better answers, please write a summary or review or document of each response to a file named `lib/features/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
+    - First read `docs/board/BOARD_SUMMARY.md` file for review your memory and brainstrom your self.
+    - For better answer me please read your mememory inside file `docs/board/BOARD_SUMMARY.md`
+    - To give me better answers, please write a summary or review or document of each response to a file named `docs/board/BOARD_SUMMARY.md`, so AI can remember and improve my prompts next time.
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command in terminal "say finish prompt"
 
+
+Topic:
+Detail: จากข้อนี่ถ้าจะปรับการ search  ของ assignedTo ที่เป็น id จาก path `/workspaces/{workspace id}/cards/{card id}/assignedTo` ให้เป็น displayName โดยใช้การ mapping id กับ path `/users/{user id}/displayName` ตัวอย่าง assignedTo= {user id} ต้องทำยังไงน่ะ
+
+
+assignedTo
+
+Topic:Board Edit Page Error
+Detail: อยากให้ทำการปรับ แก้ไข UI ให้มันดูคล้ายกับส่วนอื่นใน application หน่อย
+
+
+Topic:Board Edit Page Error
+Detail: เมื่อทำการกดเข้าไปที่จัดการ board เกิด error ขึ้นมาตามนี่ /fix error 
+```
+[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: type '_Map<dynamic, dynamic>' is not a subtype of type 'Map<String, dynamic>' in type cast
+#0      _BoardManagementPageState._subscribeQuota.<anonymous closure> (package:sellstory/features/board/view/board_management_page.dart:97:43)
+board_management_page.dart:97
+#1      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+zone.dart:1778
+#2      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+stream_impl.dart:381
+#3      _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+stream_impl.dart:312
+#4      _ForwardingStreamSubscription._add (dart:async/stream_pipe.dart:154:11)
+stream_pipe.dart:154
+#5      _MapStream._handleData (dart:async/stream_pipe.dart:252:10)
+stream_pipe.dart:252
+#6      _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+stream_pipe.dart:184
+#7      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+zone.dart:1778
+#8      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+stream_impl.dart:381
+#9      _DelayedData.perform (dart:async/stream_impl.dart:573:14)
+stream_impl.dart:573
+#10     _PendingEvents.handleNext (dart:async/stream_impl.dart:678:11)
+stream_impl.dart:678
+#11     _PendingEvents.schedule.<anonymous closure> (dart:async/stream_impl.dart:649:7)
+stream_impl.dart:649
+#12     _microtaskLoop (dart:async/schedule_microtask.dart:40:35)
+schedule_microtask.dart:40
+#13     _startMicrotaskLoop (dart:async/schedule_microtask.dart:49:5)
+```
+
+Topic: Workspace Edit Page Error
+Detail: เมื่อทำการกดเข้าไปที่จัดการ Workspaces เกิด error overflow หลังจากกด input  ขึ้นมาตามนี่ /fix error 
+```
+════════ Exception caught by rendering library ═════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 104 pixels on the bottom.
+
+The relevant error-causing widget was:
+    Column Column:file:///Users/kiki/Works/02-SELLSTORY/mobile-sellstory-tran/lib/features/board/view/edit_workspace_page.dart:218:16
+
+: To inspect this widget in Flutter DevTools, visit: http://127.0.0.1:9100/#/inspector?uri=http%3A%2F%2F127.0.0.1%3A51488%2FUoX2giKHUZw%3D%2F&inspectorRef=inspector-13
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be seen. If the content is legitimately bigger than the available space, consider clipping it with a ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex, like a ListView.
+The specific RenderFlex in question is: RenderFlex#1d2b8 relayoutBoundary=up2 OVERFLOWING
+    needs compositing
+    parentData: offset=Offset(24.0, 24.0) (can use size)
+    constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=375.4)
+    size: Size(1085.0, 375.4)
+    direction: vertical
+    mainAxisAlignment: start
+    mainAxisSize: max
+    crossAxisAlignment: start
+    textDirection: ltr
+    verticalDirection: down
+    spacing: 0.0
+    child 1: RenderParagraph#a717d relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 0.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(160.8, 34.0)
+        textAlign: start
+        textDirection: ltr
+        softWrap: wrapping at box width
+        overflow: clip
+        locale: th_TH
+        maxLines: unlimited
+        text: TextSpan
+            debugLabel: ((tall bodyMedium 2021).merge((((blackCupertino bodyMedium).apply).apply).merge(unknown))).merge(unknown)
+            inherit: false
+            color: Color(alpha: 0.8667, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace.sRGB)
+            family: Prompt
+            size: 24.0
+            weight: 700
+            letterSpacing: 0.3
+            baseline: alphabetic
+            height: 1.4x
+            leadingDistribution: even
+            decoration: Color(alpha: 1.0000, red: 0.1333, green: 0.1020, blue: 0.0863, colorSpace: ColorSpace.sRGB) TextDecoration.none
+            "แก้ไขเวิร์กสเปซ"
+    child 2: RenderConstrainedBox#ef4b0 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 34.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(0.0, 8.0)
+        additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=8.0)
+    child 3: RenderParagraph#2c40d relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 42.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(576.1, 23.0)
+        textAlign: start
+        textDirection: ltr
+        softWrap: wrapping at box width
+        overflow: clip
+        locale: th_TH
+        maxLines: unlimited
+        text: TextSpan
+            debugLabel: ((tall bodyMedium 2021).merge((((blackCupertino bodyMedium).apply).apply).merge(unknown))).merge(unknown)
+            inherit: false
+            color: MaterialColor(primary value: Color(alpha: 1.0000, red: 0.6196, green: 0.6196, blue: 0.6196, colorSpace: ColorSpace.sRGB))
+            family: Prompt
+            size: 16.0
+            weight: 400
+            letterSpacing: 0.3
+            baseline: alphabetic
+            height: 1.4x
+            leadingDistribution: even
+            decoration: Color(alpha: 1.0000, red: 0.1333, green: 0.1020, blue: 0.0863, colorSpace: ColorSpace.sRGB) TextDecoration.none
+            "อัปเดตชื่อเวิร์กสเปซของคุณ การเปลี่ยนแปลงจะปรากฏในบอร์ดและสมาชิกทีมทั้งหมด"
+    child 4: RenderConstrainedBox#82e8b relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 65.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(0.0, 32.0)
+        additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=32.0)
+    child 5: RenderParagraph#7b19f relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 97.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(90.9, 23.0)
+        textAlign: start
+        textDirection: ltr
+        softWrap: wrapping at box width
+        overflow: clip
+        locale: th_TH
+        maxLines: unlimited
+        text: TextSpan
+            debugLabel: ((tall bodyMedium 2021).merge((((blackCupertino bodyMedium).apply).apply).merge(unknown))).merge(unknown)
+            inherit: false
+            color: Color(alpha: 0.8667, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace.sRGB)
+            family: Prompt
+            size: 16.0
+            weight: 500
+            letterSpacing: 0.3
+            baseline: alphabetic
+            height: 1.4x
+            leadingDistribution: even
+            decoration: Color(alpha: 1.0000, red: 0.1333, green: 0.1020, blue: 0.0863, colorSpace: ColorSpace.sRGB) TextDecoration.none
+            "ชื่อเวิร์กสเปซ"
+    child 6: RenderConstrainedBox#8dcb2 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 120.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(0.0, 8.0)
+        additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=8.0)
+    child 7: RenderMouseRegion#cf643 relayoutBoundary=up3
+        needs compositing
+        parentData: offset=Offset(0.0, 128.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(1085.0, 56.0)
+        behavior: opaque
+        listeners: enter, exit
+        cursor: SystemMouseCursor(text)
+        child: RenderTapRegion#b36c6 relayoutBoundary=up4
+            needs compositing
+            parentData: <none> (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(1085.0, 56.0)
+            behavior: deferToChild
+            groupId: EditableText
+            child: RenderIgnorePointer#10bbf relayoutBoundary=up5
+                needs compositing
+                parentData: <none> (can use size)
+                constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+                size: Size(1085.0, 56.0)
+                ignoring: false
+                ignoringSemantics: null
+                child: RenderSemanticsAnnotations#e2d30 relayoutBoundary=up6
+                    needs compositing
+                    parentData: <none> (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+                    size: Size(1085.0, 56.0)
+    child 8: RenderConstrainedBox#d3319 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 184.0); flex=1; fit=FlexFit.tight (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, h=0.0)
+        size: Size(0.0, 0.0)
+        additionalConstraints: BoxConstraints(w=0.0, h=0.0)
+    child 9: RenderDecoratedBox#5149b relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 184.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(1085.0, 149.0)
+        decoration: BoxDecoration
+            color: Color(alpha: 1.0000, red: 1.0000, green: 0.9216, blue: 0.9333, colorSpace: ColorSpace.sRGB)
+            border: Border.all(BorderSide(color: Color(alpha: 1.0000, red: 0.9373, green: 0.6039, blue: 0.6039, colorSpace: ColorSpace.sRGB)))
+            borderRadius: BorderRadius.circular(8.0)
+        configuration: ImageConfiguration(bundle: PlatformAssetBundle#a004f(), devicePixelRatio: 2.0, locale: th_TH, textDirection: TextDirection.ltr, platform: iOS)
+        child: RenderPadding#e98c1 relayoutBoundary=up4
+            parentData: <none> (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(1085.0, 149.0)
+            padding: EdgeInsets.all(17.0)
+            textDirection: ltr
+            child: RenderFlex#3d887 relayoutBoundary=up5
+                parentData: offset=Offset(17.0, 17.0) (can use size)
+                constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                size: Size(1051.0, 115.0)
+                direction: vertical
+                mainAxisAlignment: start
+                mainAxisSize: max
+                crossAxisAlignment: start
+                textDirection: ltr
+                verticalDirection: down
+                spacing: 0.0
+                child 1: RenderFlex#cbd06 relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 0.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(1051.0, 23.0)
+                    direction: horizontal
+                    mainAxisAlignment: start
+                    mainAxisSize: max
+                    crossAxisAlignment: center
+                    textDirection: ltr
+                    verticalDirection: down
+                    spacing: 0.0
+                child 2: RenderConstrainedBox#ee8e8 relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 23.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(0.0, 8.0)
+                    additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=8.0)
+                child 3: RenderParagraph#32282 relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 31.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(455.7, 20.0)
+                    textAlign: start
+                    textDirection: ltr
+                    softWrap: wrapping at box width
+                    overflow: clip
+                    locale: th_TH
+                    maxLines: unlimited
+                child 4: RenderConstrainedBox#f5116 relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 51.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(0.0, 16.0)
+                    additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=16.0)
+                child 5: RenderConstrainedBox#94c09 relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 67.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(1051.0, 48.0)
+                    additionalConstraints: BoxConstraints(w=Infinity, 0.0<=h<=Infinity)
+    child 10: RenderConstrainedBox#5be1f relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 333.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(0.0, 24.0)
+        additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=24.0)
+    child 11: RenderFlex#f5d3e relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 357.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(1085.0, 122.0)
+        direction: vertical
+        mainAxisAlignment: start
+        mainAxisSize: max
+        crossAxisAlignment: center
+        verticalDirection: down
+        spacing: 0.0
+        child 1: RenderConstrainedBox#957e1 relayoutBoundary=up4
+            parentData: offset=Offset(0.0, 0.0); flex=null; fit=null (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(1085.0, 55.0)
+            additionalConstraints: BoxConstraints(w=Infinity, 0.0<=h<=Infinity)
+            child: RenderSemanticsAnnotations#a92ee relayoutBoundary=up5
+                parentData: <none> (can use size)
+                constraints: BoxConstraints(w=1085.0, 0.0<=h<=Infinity)
+                semantic boundary
+                size: Size(1085.0, 55.0)
+                child: _RenderInputPadding#d2d81 relayoutBoundary=up6
+                    parentData: <none> (can use size)
+                    constraints: BoxConstraints(w=1085.0, 0.0<=h<=Infinity)
+                    size: Size(1085.0, 55.0)
+        child 2: RenderConstrainedBox#2732d relayoutBoundary=up4
+            parentData: offset=Offset(542.5, 55.0); flex=null; fit=null (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(0.0, 12.0)
+            additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=12.0)
+        child 3: RenderConstrainedBox#4376e relayoutBoundary=up4
+            parentData: offset=Offset(0.0, 67.0); flex=null; fit=null (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(1085.0, 55.0)
+            additionalConstraints: BoxConstraints(w=Infinity, 0.0<=h<=Infinity)
+            child: RenderSemanticsAnnotations#434ab relayoutBoundary=up5
+                parentData: <none> (can use size)
+                constraints: BoxConstraints(w=1085.0, 0.0<=h<=Infinity)
+                semantic boundary
+                size: Size(1085.0, 55.0)
+                child: _RenderInputPadding#20ab1 relayoutBoundary=up6
+                    parentData: <none> (can use size)
+                    constraints: BoxConstraints(w=1085.0, 0.0<=h<=Infinity)
+                    size: Size(1085.0, 55.0)
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════
+```
+
+
+Topic: Workspace selector
+Detail: เมื่อทำการกดเข้าไปที่จัดการ board เกิด error ขึ้นมาตามนี่ /fix error 
+```
+
+════════ Exception caught by rendering library ═════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 299 pixels on the bottom.
+
+The relevant error-causing widget was:
+    Column Column:file:///Users/kiki/Works/02-SELLSTORY/mobile-sellstory-tran/lib/features/board/view/edit_workspace_page.dart:218:16
+
+: To inspect this widget in Flutter DevTools, visit: http://127.0.0.1:9100/#/inspector?uri=http%3A%2F%2F127.0.0.1%3A51488%2FUoX2giKHUZw%3D%2F&inspectorRef=inspector-13
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be seen. If the content is legitimately bigger than the available space, consider clipping it with a ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex, like a ListView.
+The specific RenderFlex in question is: RenderFlex#e6c3f relayoutBoundary=up2 OVERFLOWING
+    needs compositing
+    parentData: offset=Offset(24.0, 24.0) (can use size)
+    constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=180.0)
+    size: Size(1085.0, 180.0)
+    direction: vertical
+    mainAxisAlignment: start
+    mainAxisSize: max
+    crossAxisAlignment: start
+    textDirection: ltr
+    verticalDirection: down
+    spacing: 0.0
+    child 1: RenderParagraph#f168b relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 0.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(160.8, 34.0)
+        textAlign: start
+        textDirection: ltr
+        softWrap: wrapping at box width
+        overflow: clip
+        locale: th_TH
+        maxLines: unlimited
+        text: TextSpan
+            debugLabel: ((tall bodyMedium 2021).merge((((blackCupertino bodyMedium).apply).apply).merge(unknown))).merge(unknown)
+            inherit: false
+            color: Color(alpha: 0.8667, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace.sRGB)
+            family: Prompt
+            size: 24.0
+            weight: 700
+            letterSpacing: 0.3
+            baseline: alphabetic
+            height: 1.4x
+            leadingDistribution: even
+            decoration: Color(alpha: 1.0000, red: 0.1333, green: 0.1020, blue: 0.0863, colorSpace: ColorSpace.sRGB) TextDecoration.none
+            "แก้ไขเวิร์กสเปซ"
+    child 2: RenderConstrainedBox#2c88a relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 34.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(0.0, 8.0)
+        additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=8.0)
+    child 3: RenderParagraph#926bb relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 42.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(576.1, 23.0)
+        textAlign: start
+        textDirection: ltr
+        softWrap: wrapping at box width
+        overflow: clip
+        locale: th_TH
+        maxLines: unlimited
+        text: TextSpan
+            debugLabel: ((tall bodyMedium 2021).merge((((blackCupertino bodyMedium).apply).apply).merge(unknown))).merge(unknown)
+            inherit: false
+            color: MaterialColor(primary value: Color(alpha: 1.0000, red: 0.6196, green: 0.6196, blue: 0.6196, colorSpace: ColorSpace.sRGB))
+            family: Prompt
+            size: 16.0
+            weight: 400
+            letterSpacing: 0.3
+            baseline: alphabetic
+            height: 1.4x
+            leadingDistribution: even
+            decoration: Color(alpha: 1.0000, red: 0.1333, green: 0.1020, blue: 0.0863, colorSpace: ColorSpace.sRGB) TextDecoration.none
+            "อัปเดตชื่อเวิร์กสเปซของคุณ การเปลี่ยนแปลงจะปรากฏในบอร์ดและสมาชิกทีมทั้งหมด"
+    child 4: RenderConstrainedBox#6e326 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 65.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(0.0, 32.0)
+        additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=32.0)
+    child 5: RenderParagraph#67060 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 97.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(90.9, 23.0)
+        textAlign: start
+        textDirection: ltr
+        softWrap: wrapping at box width
+        overflow: clip
+        locale: th_TH
+        maxLines: unlimited
+        text: TextSpan
+            debugLabel: ((tall bodyMedium 2021).merge((((blackCupertino bodyMedium).apply).apply).merge(unknown))).merge(unknown)
+            inherit: false
+            color: Color(alpha: 0.8667, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace.sRGB)
+            family: Prompt
+            size: 16.0
+            weight: 500
+            letterSpacing: 0.3
+            baseline: alphabetic
+            height: 1.4x
+            leadingDistribution: even
+            decoration: Color(alpha: 1.0000, red: 0.1333, green: 0.1020, blue: 0.0863, colorSpace: ColorSpace.sRGB) TextDecoration.none
+            "ชื่อเวิร์กสเปซ"
+    child 6: RenderConstrainedBox#5f539 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 120.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(0.0, 8.0)
+        additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=8.0)
+    child 7: RenderMouseRegion#bc522 relayoutBoundary=up3
+        needs compositing
+        parentData: offset=Offset(0.0, 128.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(1085.0, 56.0)
+        behavior: opaque
+        listeners: enter, exit
+        cursor: SystemMouseCursor(text)
+        child: RenderTapRegion#cc712 relayoutBoundary=up4
+            needs compositing
+            parentData: <none> (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(1085.0, 56.0)
+            behavior: deferToChild
+            groupId: EditableText
+            child: RenderIgnorePointer#5a919 relayoutBoundary=up5
+                needs compositing
+                parentData: <none> (can use size)
+                constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+                size: Size(1085.0, 56.0)
+                ignoring: false
+                ignoringSemantics: null
+                child: RenderSemanticsAnnotations#fcb37 relayoutBoundary=up6
+                    needs compositing
+                    parentData: <none> (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+                    size: Size(1085.0, 56.0)
+    child 8: RenderConstrainedBox#04f21 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 184.0); flex=1; fit=FlexFit.tight (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, h=0.0)
+        size: Size(0.0, 0.0)
+        additionalConstraints: BoxConstraints(w=0.0, h=0.0)
+    child 9: RenderDecoratedBox#0bb00 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 184.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(1085.0, 149.0)
+        decoration: BoxDecoration
+            color: Color(alpha: 1.0000, red: 1.0000, green: 0.9216, blue: 0.9333, colorSpace: ColorSpace.sRGB)
+            border: Border.all(BorderSide(color: Color(alpha: 1.0000, red: 0.9373, green: 0.6039, blue: 0.6039, colorSpace: ColorSpace.sRGB)))
+            borderRadius: BorderRadius.circular(8.0)
+        configuration: ImageConfiguration(bundle: PlatformAssetBundle#6512a(), devicePixelRatio: 2.0, locale: th_TH, textDirection: TextDirection.ltr, platform: iOS)
+        child: RenderPadding#15e4a relayoutBoundary=up4
+            parentData: <none> (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(1085.0, 149.0)
+            padding: EdgeInsets.all(17.0)
+            textDirection: ltr
+            child: RenderFlex#25a12 relayoutBoundary=up5
+                parentData: offset=Offset(17.0, 17.0) (can use size)
+                constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                size: Size(1051.0, 115.0)
+                direction: vertical
+                mainAxisAlignment: start
+                mainAxisSize: max
+                crossAxisAlignment: start
+                textDirection: ltr
+                verticalDirection: down
+                spacing: 0.0
+                child 1: RenderFlex#7b85a relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 0.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(1051.0, 23.0)
+                    direction: horizontal
+                    mainAxisAlignment: start
+                    mainAxisSize: max
+                    crossAxisAlignment: center
+                    textDirection: ltr
+                    verticalDirection: down
+                    spacing: 0.0
+                child 2: RenderConstrainedBox#f479f relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 23.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(0.0, 8.0)
+                    additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=8.0)
+                child 3: RenderParagraph#81515 relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 31.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(455.7, 20.0)
+                    textAlign: start
+                    textDirection: ltr
+                    softWrap: wrapping at box width
+                    overflow: clip
+                    locale: th_TH
+                    maxLines: unlimited
+                child 4: RenderConstrainedBox#af7a2 relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 51.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(0.0, 16.0)
+                    additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=16.0)
+                child 5: RenderConstrainedBox#1a998 relayoutBoundary=up6
+                    parentData: offset=Offset(0.0, 67.0); flex=null; fit=null (can use size)
+                    constraints: BoxConstraints(0.0<=w<=1051.0, 0.0<=h<=Infinity)
+                    size: Size(1051.0, 48.0)
+                    additionalConstraints: BoxConstraints(w=Infinity, 0.0<=h<=Infinity)
+    child 10: RenderConstrainedBox#f61cc relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 333.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(0.0, 24.0)
+        additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=24.0)
+    child 11: RenderFlex#84433 relayoutBoundary=up3
+        parentData: offset=Offset(0.0, 357.0); flex=null; fit=null (can use size)
+        constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+        size: Size(1085.0, 122.0)
+        direction: vertical
+        mainAxisAlignment: start
+        mainAxisSize: max
+        crossAxisAlignment: center
+        verticalDirection: down
+        spacing: 0.0
+        child 1: RenderConstrainedBox#ef17c relayoutBoundary=up4
+            parentData: offset=Offset(0.0, 0.0); flex=null; fit=null (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(1085.0, 55.0)
+            additionalConstraints: BoxConstraints(w=Infinity, 0.0<=h<=Infinity)
+            child: RenderSemanticsAnnotations#73096 relayoutBoundary=up5
+                parentData: <none> (can use size)
+                constraints: BoxConstraints(w=1085.0, 0.0<=h<=Infinity)
+                semantic boundary
+                size: Size(1085.0, 55.0)
+                child: _RenderInputPadding#81b6f relayoutBoundary=up6
+                    parentData: <none> (can use size)
+                    constraints: BoxConstraints(w=1085.0, 0.0<=h<=Infinity)
+                    size: Size(1085.0, 55.0)
+        child 2: RenderConstrainedBox#755c8 relayoutBoundary=up4
+            parentData: offset=Offset(542.5, 55.0); flex=null; fit=null (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(0.0, 12.0)
+            additionalConstraints: BoxConstraints(0.0<=w<=Infinity, h=12.0)
+        child 3: RenderConstrainedBox#cda9b relayoutBoundary=up4
+            parentData: offset=Offset(0.0, 67.0); flex=null; fit=null (can use size)
+            constraints: BoxConstraints(0.0<=w<=1085.0, 0.0<=h<=Infinity)
+            size: Size(1085.0, 55.0)
+            additionalConstraints: BoxConstraints(w=Infinity, 0.0<=h<=Infinity)
+            child: RenderSemanticsAnnotations#90f0e relayoutBoundary=up5
+                parentData: <none> (can use size)
+                constraints: BoxConstraints(w=1085.0, 0.0<=h<=Infinity)
+                semantic boundary
+                size: Size(1085.0, 55.0)
+                child: _RenderInputPadding#a42cb relayoutBoundary=up6
+                    parentData: <none> (can use size)
+                    constraints: BoxConstraints(w=1085.0, 0.0<=h<=Infinity)
+                    size: Size(1085.0, 55.0)
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════
+[GETX] CLOSE TO ROUTE /edit-workspace?workspaceId=xKnLu20t7n6A0IJxl4NN&currentName=test1
+[GETX] GOING TO ROUTE /board-management
+flutter: ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+flutter: │ #0   LoggerService.methodEntry (package:sellstory/core/services/logger_service.dart:200:13)
+logger_service.dart:200
+flutter: │ #1   FirestoreRepository.getBoards (package:sellstory/data/repositories/firestore_repository.dart:1550:15)
+firestore_repository.dart:1550
+flutter: │ #2   BoardController.getBoards (package:sellstory/features/board/controller/board_controller.dart:766:44)
+board_controller.dart:766
+flutter: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+flutter: │ 13:21:15.941 (+0:00:34.781743)
+flutter: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+flutter: │ 🐛 ➡️ Entering: FirestoreRepository.getBoards with params: {workspaceId: xKnLu20t7n6A0IJxl4NN}
+flutter: └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: type '_Map<dynamic, dynamic>' is not a subtype of type 'Map<String, dynamic>' in type cast
+#0      _BoardManagementPageState._subscribeQuota.<anonymous closure> (package:sellstory/features/board/view/board_management_page.dart:97:43)
+board_management_page.dart:97
+#1      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+zone.dart:1778
+#2      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+stream_impl.dart:381
+#3      _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+stream_impl.dart:312
+#4      _ForwardingStreamSubscription._add (dart:async/stream_pipe.dart:154:11)
+stream_pipe.dart:154
+#5      _MapStream._handleData (dart:async/stream_pipe.dart:252:10)
+stream_pipe.dart:252
+#6      _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+stream_pipe.dart:184
+#7      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+zone.dart:1778
+#8      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+stream_impl.dart:381
+#9      _DelayedData.perform (dart:async/stream_impl.dart:573:14)
+stream_impl.dart:573
+#10     _PendingEvents.handleNext (dart:async/stream_impl.dart:678:11)
+stream_impl.dart:678
+#11     _PendingEvents.schedule.<anonymous closure> (dart:async/stream_impl.dart:649:7)
+stream_impl.dart:649
+#12     _microtaskLoop (dart:async/schedule_microtask.dart:40:35)
+schedule_microtask.dart:40
+#13     _startMicrotaskLoop (dart:async/schedule_microtask.dart:49:5)
+
+```
+
+
+Topic: Status card in board `lib/features/board/widgets/status_summary_cards.dart`
+Detail: ผมได้ทำการนำ icon `icon: 'assets/icons/icon-hourglass.svg'` มาใส่ใว้แล้วอยากให้ทำการนำ icon ไปใช้โดยตัว card มันจะมีเท่าๆอยู่ให้เอาไปแทนที่
+
+```
+ [
+            _buildSummaryCard(
+              title: 'Pending',
+              amount: _calculateAmountByStatus('Pending'),
+              count: _getCountByStatus('Pending'),
+              color: const Color(0xFF6B7280),
+              bgColor: const Color(0xFFF3F4F6),
+              width: 110,
+              isSelected: selectedStatuses.contains('Pending'),
+              onTap: () => onStatusTap?.call('Pending'),
+              icon: 'assets/icons/icon-hourglass.svg'
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              title: 'Completed',
+              amount: _calculateAmountByStatus('Done'),
+              count: _getCountByStatus('Done'),
+              color: const Color(0xFF027F00),
+              bgColor: const Color(0xFFE5F2E5),
+              width: 110,
+              isSelected: selectedStatuses.contains('Done'),
+              onTap: () => onStatusTap?.call('Done'),
+              icon: 'assets/icons/icon-clock-loader.svg'
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              title: 'In Progress',
+              amount: _calculateAmountByStatus('In Progress'),
+              count: _getCountByStatus('In Progress'),
+              color: const Color(0xFFFAB73F),
+              bgColor: const Color(0xFFFEF7EB),
+              width: 110,
+              isSelected: selectedStatuses.contains('In Progress'),
+              onTap: () => onStatusTap?.call('In Progress'),
+              icon: 'assets/icons/icon-check.svg'
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              title: 'Cancelled',
+              amount: _calculateAmountByStatus('Cancelled'),
+              count: _getCountByStatus('Cancelled'),
+              color: const Color(0xFFFF6C0C),
+              bgColor: const Color(0xFFFFF0E6),
+              width: 110,
+              isSelected: selectedStatuses.contains('Cancelled'),
+              onTap: () => onStatusTap?.call('Cancelled'),
+              icon: 'assets/icons/icon-error.svg'
+            ),
+          ],
+```
+
+
+##
+Topic: EditCard `lib/features/board/view/edit_card_page.dart`
+Detail: ในส่วนของ comment เมื่อทำการ post,delete หรือ edit comment แล้วไปกด save card มันจะหายไป อยากให้ทำการ check ว่าเกิดจาก หรือ จังหวะ save card ไม่ควรมี procress อะไรที่ทำกระบวนการกับ comment 
+
+##
+Topic: EditCard `lib/features/board/view/edit_card_page.dart`
+Detail: In Content and tasks section button apply template not working. go to copy flow from create card page `lib/features/board/view/create_card_page.dart`
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: เมื่อทำการกด Select date type เป็น start date แล้วกด quick option เป็น today มันแสดงไม่ครบ คือจริงจะต้องแสดง card
+Today,+1 day,+3 days,+7 days,+14 days,+30 days,End date 22/09/2025 , this week, this month, jobcard title1234 เนื่องจากมี start data คาบเกีวกับ
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: เมื่อผมทำการกดที่ quick option แล้วมันไปล่างค่า select date type ออกหมดจริงๆๆมันต้องไม่ล้างออก ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: ผมทำการกด last month แต่มันแสดง card last month กับ this month จริงๆมันต้องแสดงแค่ last month อย่างเดียว ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: คือตอนนี่มันแสดงผิดอยู่นิดหน่อย  ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail:คือตอนนี่มันแสดงผิดอยู่นิดหน่อย ผิดแค่ตอนติ๊ก checkbox Show Unselected Datesแล้ว card +1 day มันไม่ขึ้น แต่ card no date ขึ้น แต่จริงๆต้องขึ้นทั้ง 2 อันเลย คือ +1 day กับ no date ช่วยดูให้หน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail:ยังแสดงผิดอยู่ ถ้าไม่ได้ checkbox Show Unselected Dates จะต้องขึ้นแค่ card +1 day แต่เมื่อติกจะต้อง ขึ้น +1day กับ no date ดูหน่อย มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+
+##
+Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
+Detail: จาก filter ในรูปควรแสดง card ที่ีมี start date หรือ end date อยู่ในช่วงวันที่ที่เลือกและแสดง card ที่ไม่มี start และ end date แต่เมื่อทดสอบจริงๆ กลับแสดง card ที่ไม่มี start date หรือ end date อย่างเดียว fix ให้หน่อย ช่วยดูข้อมูลหน่อยจริงๆต้องโชว์ 2 card ใหมคือ +1 day กับ no date มีข้อมูลตัวอย่างจาก firestore ที่แนบให้ `firestore/backup-workspaces-xKnLu20t7n6A0IJxl4NN-2025-09-21T18-48-22.json`
+
+
+
+##
 Topic: Filter cards `lib/features/board/view/unified_filter_page.dart`
 Detail: Job card date filter select date type,quick option set custom date range: not working.
 
@@ -1037,5 +1743,44 @@ Step
 
 1. add lib html editor in section content and details and pubspec.yaml.
 2. change textfield to html editor.
+
+## 2025-09-24 — AssignedTo Search Display Name Mapping Implementation
+
+### Board Page Search Enhancement - User Display Name Mapping
+
+**Issue**: Search function only matched raw user IDs from assignedTo field, making it hard for users to search by actual person names.
+
+**Solution Implemented**:
+1. Added `_userDisplayNameCache` (Map<String, String>) to BoardController for caching user ID -> display name mappings
+2. Added `_isHydratingUserNames` flag to prevent concurrent hydration
+3. Implemented `_hydrateUserDisplayNames()` method that:
+   - Collects all user IDs from cards (assignedTo, updatedBy, createdBy, watchers, collaborators)
+   - Fetches display names from `/users/{userId}` via `FirestoreRepository.getUserById()`
+   - Caches results to minimize Firestore calls
+   - Runs in parallel for performance
+   - Auto re-runs search if user is currently searching
+4. Enhanced `_cardMatchesSearch()` to search both:
+   - Raw user IDs (original behavior preserved)
+   - Display names from cache
+   - Watchers and collaborators display names
+5. Added hydration trigger in `render()` method after lane data is loaded
+
+**Search now matches**:
+- assignedTo raw ID: `user123`
+- assignedTo display name: `John Doe` 
+- watchers display names: `Jane Smith, Bob Wilson`
+- collaborators display names: `Alice Brown`
+
+**Performance considerations**:
+- Uses existing `getUserById()` method with proper error handling
+- Parallel fetching with Promise.all pattern
+- In-memory caching to avoid repeated Firestore calls
+- Fire-and-forget hydration doesn't block UI
+
+**Files modified**:
+- `lib/features/board/controller/board_controller.dart`: Added display name caching and search logic
+- `docs/board/BOARD_PROMPT_HIS.md`: Documentation update
+
+**Usage**: Users can now search cards by typing assignee names (e.g., "John") instead of remembering user IDs.
 3. map value from card data in path "/workspaces/{workspaces uid}/cards/{card uid}/description" to html editor.
 4. when save button pressed, map value from html editor to card data in path "/workspaces/{workspaces uid}/cards/{card uid}/description".

@@ -38,24 +38,32 @@ class ProductsController extends GetxController {
   // Search controller
   final searchController = TextEditingController();
   bool _isSearchControllerInitialized = false;
+  bool _isDisposed = false;
+  Timer? _searchDebounceTimer;
   
   // Fallback controller for when main controller is disposed
   TextEditingController? _fallbackController;
   
   // Helper to safely access the search controller
   TextEditingController get safeSearchController {
-    if (!_isSearchControllerInitialized) {
-      print('⚠️ SearchController not yet initialized, using fallback');
-      _fallbackController ??= TextEditingController();
-      return _fallbackController!;
-    }
-    
     try {
+      if (_isDisposed) {
+        print('⚠️ Controller is disposed, using fallback');
+        _fallbackController ??= TextEditingController();
+        return _fallbackController!;
+      }
+      
+      if (!_isSearchControllerInitialized) {
+        print('⚠️ SearchController not yet initialized, using fallback');
+        _fallbackController ??= TextEditingController();
+        return _fallbackController!;
+      }
+      
       // Check if controller is disposed by trying to access a property
-      searchController.text;
+      final _ = searchController.text;
       return searchController;
     } catch (e) {
-      print('⚠️ SearchController is disposed, using fallback');
+      print('⚠️ SearchController is disposed or invalid: $e, using fallback');
       _fallbackController ??= TextEditingController();
       return _fallbackController!;
     }
@@ -73,13 +81,14 @@ class ProductsController extends GetxController {
 
   @override
   void onClose() {
+    _isDisposed = true;
     _isSearchControllerInitialized = false;
     
     // Safe disposal of search controller
     try {
       searchController.dispose();
     } catch (e) {
-      print('⚠️ SearchController already disposed: $e');
+      print('⚠️ SearchController disposal error: $e');
     }
     
     // Dispose fallback controller if it was created
@@ -196,8 +205,14 @@ class ProductsController extends GetxController {
   }
 
   void onSearchChanged(String query) {
-    // Only update the search query for display purposes in UI
-    // No search or filtering should happen while typing
+    if (_isDisposed) {
+      print('⚠️ Controller disposed, ignoring search change');
+      return;
+    }
+    
+    // Cancel previous timer if exists
+    _searchDebounceTimer?.cancel();
+    
     searchQuery.value = query;
     
     // If query becomes empty, immediately reset to show all items
@@ -205,7 +220,13 @@ class ProductsController extends GetxController {
       isSearching.value = false;
       filteredProducts.value = products.toList();
     }
-    // Note: For non-empty queries, do nothing - wait for user to click search button
+    
+    // Debounce search for 500ms to avoid too many API calls while typing
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (!_isDisposed) {
+        triggerAlgoliaSearch(query.trim());
+      }
+    });
   }
 
   /// Trigger Algolia search (only when search button is clicked)
@@ -298,6 +319,11 @@ class ProductsController extends GetxController {
   }
 
   void clearSearch() {
+    if (_isDisposed) {
+      print('⚠️ Controller disposed, ignoring clear search');
+      return;
+    }
+    
     searchQuery.value = '';
     searchController.clear();
     isSearching.value = false;

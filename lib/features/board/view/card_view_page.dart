@@ -228,7 +228,7 @@ class _CardViewPageState extends State<CardViewPage> {
       if (!_canView) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Job Card Details'),
+            title: Text('job_card_details'.tr),
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
             elevation: 0,
@@ -244,7 +244,7 @@ class _CardViewPageState extends State<CardViewPage> {
                 const SizedBox(height: 12),
                 const Text('You do not have permission to view this card.', style: TextStyle(color: Colors.grey)),
                 const SizedBox(height: 12),
-                ElevatedButton(onPressed: () => Get.back(), child: const Text('Close')),
+                ElevatedButton(onPressed: () => Get.back(), child: Text('close'.tr)),
               ],
             ),
           ),
@@ -253,7 +253,7 @@ class _CardViewPageState extends State<CardViewPage> {
 
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Job Card Details'),
+          title: Text('job_card_details'.tr),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 0,
@@ -265,11 +265,11 @@ class _CardViewPageState extends State<CardViewPage> {
                   if (_canEdit) {
                     Get.to(() => EditCardPage(card: _currentCard));
                   } else {
-                    Get.snackbar('Permission', 'You do not have permission to edit this card', snackPosition: SnackPosition.BOTTOM);
+                    Get.snackbar('no_permission'.tr, 'no_permission_edit_card'.tr, snackPosition: SnackPosition.BOTTOM);
                   }
                 },
                 icon: const Icon(Icons.edit),
-                tooltip: 'Edit Card',
+                tooltip: 'edit_card'.tr,
               ),
             // Action menu
             PopupMenuButton<String>(
@@ -282,7 +282,7 @@ class _CardViewPageState extends State<CardViewPage> {
                       children: [
                         const Icon(Icons.copy, size: 20),
                         const SizedBox(width: 12),
-                        const Text('Duplicate Card'),
+                        Text('duplicate_card'.tr),
                       ],
                     ),
                   ),
@@ -294,7 +294,7 @@ class _CardViewPageState extends State<CardViewPage> {
                       children: [
                         const Icon(Icons.delete, color: Colors.red, size: 20),
                         const SizedBox(width: 12),
-                        const Text('Delete Card', style: TextStyle(color: Colors.red)),
+                        Text('delete_card'.tr, style: TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
@@ -348,8 +348,8 @@ class _CardViewPageState extends State<CardViewPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Job ID',
+        Text(
+          'job_id'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,

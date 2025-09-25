@@ -7,7 +7,6 @@ import '../controller/board_controller.dart';
 import '../../../data/services/mobile_permissions_service.dart';
 import '../../../data/services/firestore_service.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
-import '../../customers/view/add_edit_customer_page.dart';
 import '../../../core/widgets/hashtag_input_field.dart';
 import '../../../core/services/hashtag_service.dart';
 import '../../../core/widgets/customers_input_field.dart' as cif;
@@ -65,7 +64,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   String _selectedLane = '';
   List<String> _selectedCustomerIds = [];
   String _selectedCompany = 'none';
-  String _selectedCustomerInterest = 'เริ่มต้น';
+  String _selectedCustomerInterest = 'interest_initial'.tr;
   String _selectedStatus = 'Pending';
   DateTime? _startDate;
   DateTime? _endDate;
@@ -84,18 +83,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   // Status options
   final List<Map<String, dynamic>> _statusOptions = [
-    {'value': 'Pending', 'label': 'Pending', 'icon': Icons.schedule},
-    {'value': 'In Progress', 'label': 'In Progress', 'icon': Icons.schedule},
-    {'value': 'Done', 'label': 'Done', 'icon': Icons.schedule},
-    {'value': 'Cancelled', 'label': 'Cancelled', 'icon': Icons.schedule},
+    {'value': 'Pending', 'label': 'status_pending'.tr, 'icon': Icons.schedule},
+    {'value': 'In Progress', 'label': 'status_in_progress'.tr, 'icon': Icons.schedule},
+    {'value': 'Done', 'label': 'status_done'.tr, 'icon': Icons.schedule},
+    {'value': 'Cancelled', 'label': 'status_cancelled'.tr, 'icon': Icons.schedule},
   ];
 
   // Customer Interest options
   final List<String> _customerInterestOptions = [
-    'เริ่มต้น',
-    'น้อย (Low)',
-    'กลาง (Medium)',
-    'มาก (High)',
+    'interest_initial'.tr,
+    'interest_low'.tr + ' (Low)',
+    'interest_medium'.tr + ' (Medium)',
+    'interest_high'.tr + ' (High)',
   ];
 
   @override
@@ -210,6 +209,26 @@ class _CreateCardPageState extends State<CreateCardPage> {
     }
   }
 
+  Future<void> _initializeData() async {
+    // Set default values
+    _titleController.text = 'new_card'.tr;
+    _assigneeController.text = '';
+
+    // Generate default job ID
+    _generateJobId();
+
+    // Load available options
+    await _loadAvailableOptions();
+
+    // Set default lane if provided
+    if (widget.laneId != null) {
+      _selectedLane = widget.laneId!;
+      print('✅ Set default lane from parameter: $_selectedLane');
+    } else {
+      print('⚠️ No laneId parameter provided');
+    }
+  }
+
   Future<void> _loadAvailableOptions() async {
     // Load lanes for current board
     final currentBoardId = _controller.currentBoardId.value;
@@ -269,7 +288,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
     // Companies will be loaded when customer is selected
     _availableCompanies = [
-      {'id': 'none', 'name': 'None'},
+      {'id': 'none', 'name': 'none_option_short'.tr},
     ];
     _selectedCompany = 'none';
   }
@@ -368,8 +387,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
       final customer = customers.firstWhereOrNull((c) => c.id == customerId);
 
       if (customer != null && customer.companyNames.isNotEmpty) {
-        final companyMap = <String, Map<String, dynamic>>{};
-        companyMap['none'] = {'id': 'none', 'name': 'None'};
+  final companyMap = <String, Map<String, dynamic>>{};
+  companyMap['none'] = {'id': 'none', 'name': 'none_option_short'.tr};
 
         for (final company in customer.companyNames) {
           companyMap[company['id']] = {
@@ -393,7 +412,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
         if (mounted) {
           setState(() {
             _availableCompanies = [
-              {'id': 'none', 'name': 'None'},
+              {'id': 'none', 'name': 'none_option_short'.tr},
             ];
             _selectedCompany = 'none';
           });
@@ -405,7 +424,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       if (mounted) {
         setState(() {
           _availableCompanies = [
-            {'id': 'none', 'name': 'None'},
+            {'id': 'none', 'name': 'none_option_short'.tr},
           ];
           _selectedCompany = 'none';
         });
@@ -429,21 +448,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return _assigneeController.text;
   }
 
-  String? _getValidCustomerValue() {
-    if (_selectedCustomerIds.isEmpty) return null;
-
-    // Check if the first selected customer exists in available customers
-    final firstCustomerId = _selectedCustomerIds.first;
-    final isValidCustomer = _availableCustomers.any(
-      (customer) => customer.id == firstCustomerId,
-    );
-    if (!isValidCustomer) {
-      // Clear invalid customer
-      _selectedCustomerIds.clear();
-      return null;
-    }
-    return firstCustomerId;
-  }
+  
 
   String? _getValidCompanyValue() {
     if (_selectedCompany.isEmpty) return null;
@@ -466,7 +471,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       final currentBoardId = _controller.currentBoardId.value;
       final currentWorkspaceId = _controller.currentWorkspaceId.value;
       if (currentBoardId.isEmpty || currentWorkspaceId.isEmpty) {
-        _showError('No board or workspace selected');
+        _showError('no_board_or_workspace_selected'.tr);
         return;
       }
 
@@ -481,7 +486,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       if (boardData == null ||
           boardData['todoTemplates'] == null ||
           (boardData['todoTemplates'] as List).isEmpty) {
-        _showError('No todo templates available for this board');
+        _showError('no_todo_templates_for_board'.tr);
         return;
       }
 
@@ -491,7 +496,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       final selectedTemplate = await showDialog<Map<String, dynamic>>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Select Todo Template'),
+          title: Text('select_todo_template'.tr),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -500,7 +505,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
               itemBuilder: (context, index) {
                 final template = todoTemplates[index];
                 return ListTile(
-                  title: Text(template['name'] ?? 'Unnamed Template'),
+                  title: Text(template['name'] ?? 'unnamed_template'.tr),
                   onTap: () => Navigator.of(context).pop(template),
                 );
               },
@@ -509,7 +514,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text('cancel'.tr),
             ),
           ],
         ),
@@ -545,8 +550,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         });
 
         Get.snackbar(
-          'Success',
-          'Todo template applied successfully',
+          'success'.tr,
+          'todo_template_applied_success'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -555,7 +560,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       }
     } catch (e) {
       print('❌ Error showing todo templates: $e');
-      _showError('Failed to load todo templates: ${e.toString()}');
+      _showError('failed_to_load_todo_templates'.trParams({'error': e.toString()}));
     }
   }
 
@@ -623,22 +628,22 @@ class _CreateCardPageState extends State<CreateCardPage> {
   Future<void> _saveCard() async {
     if (!(MobilePermissionsService.to.isOwner ||
         MobilePermissionsService.to.can('jobcard:create'))) {
-      _showError('You do not have permission to create cards');
+      _showError('no_create_permission'.tr);
       return;
     }
     // Validate required fields
     if (_titleController.text.trim().isEmpty) {
-      _showError('Job Card Title is required');
+      _showError('card_title_required'.tr);
       return;
     }
 
     if (_assigneeController.text.trim().isEmpty) {
-      _showError('Assignee is required');
+      _showError('assignee_required'.tr);
       return;
     }
 
     if (_selectedCustomerIds.isEmpty) {
-      _showError('Customer is required');
+      _showError('customer_required'.tr);
       return;
     }
 
@@ -677,7 +682,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
         );
         customerName = selectedCustomer?.displayName ?? '';
       }
-
 
       // Prepare company data in correct format
       Map<String, dynamic>? companyData;
@@ -860,7 +864,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
       // Only show error and keep page open if there's an error
       if (mounted) {
-        _showError('Failed to create card: ${e.toString()}');
+  _showError('failed_to_create_card'.trParams({'error': e.toString()}));
         setState(() {
           _isLoading = false;
         });
@@ -870,7 +874,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   void _showError(String message) {
     Get.snackbar(
-      'Error',
+      'error'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
@@ -892,7 +896,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
               Icon(Icons.warning, color: Colors.white, size: 24),
               const SizedBox(width: 8),
               Text(
-                'Warning',
+                'warning'.tr,
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -902,14 +906,14 @@ class _CreateCardPageState extends State<CreateCardPage> {
             ],
           ),
           content: Text(
-            'Description editor unavailable, card will be created without description. You can edit it later.',
+            'description_unavailable'.tr,
             style: TextStyle(color: Colors.white, fontSize: 14),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                'OK',
+                'ok'.tr,
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -928,7 +932,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     if (!_canCreateCard) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Create Job Card'),
+          title: Text('create_job_card'.tr),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 0,
@@ -945,14 +949,14 @@ class _CreateCardPageState extends State<CreateCardPage> {
             children: [
               Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 12),
-              const Text(
-                'คุณไม่มีสิทธิ์สร้าง Job Card',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+              Text(
+                'no_create_permission'.tr,
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'ต้องการสิทธิ์ jobcard:create หรือเป็นเจ้าของ Workspace',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+              Text(
+                'need_jobcard_create_permission'.tr,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -965,7 +969,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                     vertical: 12,
                   ),
                 ),
-                child: const Text('ปิด'),
+                child: Text('close'.tr),
               ),
             ],
           ),
@@ -988,7 +992,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Create Job Card'),
+          title: Text('create_job_card'.tr),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 0,
@@ -1040,7 +1044,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                         children: [
                           // Basic Information Section
                           _buildSectionCard(
-                            title: 'Basic Information',
+                            title: 'card_information'.tr,
                             icon: Icons.info_outline,
                             color: Colors.blue,
                             children: [
@@ -1049,19 +1053,18 @@ class _CreateCardPageState extends State<CreateCardPage> {
                               _buildTitleSection(),
                               const SizedBox(height: 20),
                               _buildLaneSection(),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Assignment Section
-                          _buildSectionCard(
-                            title: 'Assignment & Tags',
-                            icon: Icons.assignment_ind,
-                            color: Colors.purple,
-                            children: [
-                              _buildHashtagSection(),
+                              const SizedBox(height: 20),
+                              _buildExpectedClosingDateSection(),
                               const SizedBox(height: 20),
                               _buildAssigneeSection(),
+                              const SizedBox(height: 20),
+                              _buildCustomerSection(),
+                              const SizedBox(height: 20),
+                              _buildCompanySection(),
+                              const SizedBox(height: 20),
+                              _buildCustomerInterestSection(),
+                              const SizedBox(height: 20),
+                              _buildHashtagSection(),
                               const SizedBox(height: 20),
                               _buildCollaboratorsSection(),
                               const SizedBox(height: 20),
@@ -1069,43 +1072,29 @@ class _CreateCardPageState extends State<CreateCardPage> {
                             ],
                           ),
                           const SizedBox(height: 24),
-
-                          // Customer Information Section
-                          _buildSectionCard(
-                            title: 'Customer Information',
-                            icon: Icons.business,
-                            color: Colors.green,
-                            children: [
-                              _buildCustomerSection(),
-                              const SizedBox(height: 20),
-                              _buildCompanySection(),
-                              const SizedBox(height: 20),
-                              _buildCustomerInterestSection(),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
                           // Timeline & Status Section
                           _buildSectionCard(
-                            title: 'Timeline & Status',
+                            title: 'status'.tr,
                             icon: Icons.schedule,
                             color: Colors.orange,
-                            children: [
-                              _buildExpectedClosingDateSection(),
-                              const SizedBox(height: 20),
-                              _buildStatusSection(),
-                            ],
+                            children: [_buildStatusSection()],
                           ),
                           const SizedBox(height: 24),
-
                           // Content Section
                           _buildSectionCard(
-                            title: 'Content & Tasks',
+                            title: 'description_label'.tr,
+                            icon: Icons.edit_document,
+                            color: Colors.lightGreen,
+                            children: [
+                              _buildDetailsSection(),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _buildSectionCard(
+                            title: 'to_do_list'.tr,
                             icon: Icons.edit_document,
                             color: Colors.indigo,
                             children: [
-                              _buildDetailsSection(),
-                              const SizedBox(height: 20),
                               _buildTodoListSection(),
                             ],
                           ),
@@ -1184,8 +1173,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Job ID',
+        Text(
+          'job_id'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -1196,8 +1185,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         TextField(
           controller: _jobIdController,
           enabled: false, // Disable the field
-          decoration: const InputDecoration(
-            hintText: 'auto-generated',
+          decoration: InputDecoration(
+            hintText: 'auto_generated'.tr,
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             fillColor: Color(
@@ -1214,8 +1203,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Job Card Title',
+        Text(
+          'card_title_label'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -1238,8 +1227,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Lane',
+        Text(
+          'lane_label'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -1286,8 +1275,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
           children: [
             Icon(Icons.tag, size: 18, color: Colors.purple[700]),
             const SizedBox(width: 6),
-            const Text(
-              'Hashtags',
+            Text(
+              'hashtags_label'.tr,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1305,8 +1294,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
               _selectedHashtagIds = selectedHashtagIds;
             });
           },
-          label: 'Hashtags',
-          hintText: 'Select hashtags',
+          label: 'hashtags_label'.tr,
+          hintText: 'hashtags_hint'.tr,
           workspaceId: widget.workspaceId,
         ),
       ],
@@ -1317,8 +1306,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Assignee *',
+        Text(
+          'assignee_label'.tr + ' *',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -1328,8 +1317,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _getValidAssigneeValue(),
-          decoration: const InputDecoration(
-            hintText: 'Select an assignee',
+          decoration: InputDecoration(
+            hintText: 'assignee_hint'.tr,
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
@@ -1361,8 +1350,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Customer *',
+        Text(
+          'customer_label'.tr + ' *',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -1383,8 +1372,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
               _loadCompaniesForCustomer(selectedIds.first);
             }
           },
-          label: 'Customer',
-          hintText: 'Select a customer',
+          label: 'customer_label'.tr,
+          hintText: 'select_customer'.tr,
           allowMultipleSelection: false,
           showBorder: false,
           workspaceId: widget.workspaceId,
@@ -1398,8 +1387,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Company',
+        Text(
+          'company_label'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -1463,8 +1452,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Customer Interest',
+        Text(
+          'customer_interest_label'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -1503,8 +1492,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
           children: [
             Icon(Icons.date_range, size: 18, color: Colors.teal[700]),
             const SizedBox(width: 6),
-            const Text(
-              'Expected Closing Date',
+            Text(
+              'expected_closing_date_label'.tr,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1556,7 +1545,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Start Date',
+                              'start_date_type'.tr,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: _startDate != null
@@ -1571,7 +1560,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                         Text(
                           _startDate != null
                               ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                              : 'Select start date',
+                              : 'select_start_date'.tr,
                           style: TextStyle(
                             fontSize: 14,
                             color: _startDate != null
@@ -1621,7 +1610,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'End Date',
+                              'end_date_type'.tr,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: _endDate != null
@@ -1636,7 +1625,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                         Text(
                           _endDate != null
                               ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                              : 'Select end date',
+                              : 'select_end_date'.tr,
                           style: TextStyle(
                             fontSize: 14,
                             color: _endDate != null
@@ -1660,90 +1649,68 @@ class _CreateCardPageState extends State<CreateCardPage> {
   }
 
   Widget _buildStatusSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.flag, size: 18, color: Colors.orange[700]),
-            const SizedBox(width: 6),
-            const Text(
-              'Status',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.grey[50],
+      ),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: _statusOptions.map((status) {
+          final isSelected = _selectedStatus == status['value'];
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.primaryOrange.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedStatus = status['value'];
+                });
+              },
+              icon: Icon(status['icon'], size: 16),
+              label: Text(
+                status['label'],
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSelected
+                    ? AppTheme.primaryOrange
+                    : Colors.white,
+                foregroundColor: isSelected ? Colors.white : Colors.black87,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primaryOrange
+                        : Colors.grey[300]!,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                elevation: isSelected ? 2 : 0,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.grey[50],
-          ),
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: _statusOptions.map((status) {
-              final isSelected = _selectedStatus == status['value'];
-              return Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppTheme.primaryOrange.withOpacity(0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _selectedStatus = status['value'];
-                    });
-                  },
-                  icon: Icon(status['icon'], size: 16),
-                  label: Text(
-                    status['label'],
-                    style: TextStyle(
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isSelected
-                        ? AppTheme.primaryOrange
-                        : Colors.white,
-                    foregroundColor: isSelected ? Colors.white : Colors.black87,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      side: BorderSide(
-                        color: isSelected
-                            ? AppTheme.primaryOrange
-                            : Colors.grey[300]!,
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    elevation: isSelected ? 2 : 0,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -1755,8 +1722,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
           children: [
             Icon(Icons.people, size: 18, color: Colors.blue[700]),
             const SizedBox(width: 6),
-            const Text(
-              'Collaborators',
+            Text(
+              'collaborators_label'.tr,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1798,7 +1765,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Selected (${_selectedCollaborators.length})',
+                            '${'selected'.tr} (${_selectedCollaborators.length})',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -1858,7 +1825,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Available to Add',
+                          'available_to_add'.tr,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -1881,7 +1848,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(color: Colors.grey[300]!),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
                                 Icon(
                                   Icons.info_outline,
@@ -1890,8 +1857,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  'All users have been selected',
-                                  style: TextStyle(
+                                  'all_users_selected'.tr,
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey,
                                     fontStyle: FontStyle.italic,
@@ -1962,8 +1929,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
           children: [
             Icon(Icons.visibility, size: 18, color: Colors.green[700]),
             const SizedBox(width: 6),
-            const Text(
-              'Watchers',
+            Text(
+              'watchers_label'.tr,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -2005,7 +1972,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Selected (${_selectedWatchers.length})',
+                            '${'selected'.tr} (${_selectedWatchers.length})',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -2065,7 +2032,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Available to Add',
+                          'available_to_add'.tr,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -2087,7 +2054,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(color: Colors.grey[300]!),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
                                 Icon(
                                   Icons.info_outline,
@@ -2096,8 +2063,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  'All users have been selected',
-                                  style: TextStyle(
+                                  'all_users_selected'.tr,
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey,
                                     fontStyle: FontStyle.italic,
@@ -2160,8 +2127,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Description',
+        Text(
+          'description_label'.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -2177,8 +2144,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
           ),
           child: HtmlEditor(
             controller: _htmlEditorController,
-            htmlEditorOptions: const HtmlEditorOptions(
-              hint: 'Enter description...',
+            htmlEditorOptions: HtmlEditorOptions(
+              hint: 'enter_description_hint'.tr,
               shouldEnsureVisible: false,
               initialText: '',
               characterLimit: 10000,
@@ -2254,8 +2221,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'To-Do List',
+        Text(
+          'to_do_list'.tr,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -2268,7 +2235,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
             ElevatedButton.icon(
               onPressed: _showTodoTemplates,
               icon: const Icon(Icons.description, size: 16),
-              label: const Text('Apply Template'),
+              label: Text('apply_template'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 foregroundColor: Colors.black87,
@@ -2285,7 +2252,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
             ElevatedButton.icon(
               onPressed: _addTodoItem,
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add Item'),
+              label: Text('add_item'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
                 foregroundColor: Colors.white,
@@ -2311,10 +2278,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
               border: Border.all(color: Colors.grey[300]!),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'No to-do items yet. Add one to get started!',
-                style: TextStyle(color: Colors.grey),
+                'no_todo_items_yet'.tr,
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           )
@@ -2356,7 +2323,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
               child: OutlinedButton.icon(
                 onPressed: _isLoading ? null : () => Get.back(),
                 icon: const Icon(Icons.close, size: 18),
-                label: const Text('Cancel'),
+                label: Text('cancel'.tr),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.grey[700],
                   side: BorderSide(color: Colors.grey[300]!),
@@ -2385,7 +2352,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                       )
                     : const Icon(Icons.save, size: 18),
                 label: Text(
-                  _isLoading ? 'Saving...' : 'Save Card',
+                  _isLoading ? 'saving_progress'.tr : 'save_card'.tr,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
@@ -2441,7 +2408,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     final String? timeOption = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Set Todo Time'),
+        title: Text('set_todo_time'.tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -2460,7 +2427,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Current: ${_getCurrentTimeType(index)}',
+                      '${'current'.tr}: ${_getCurrentTimeType(index)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -2485,7 +2452,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                     : Colors.blue,
               ),
               title: Text(
-                'Set Due Date & Time',
+                'due_date_time'.tr,
                 style: TextStyle(
                   fontWeight: _todoItems[index]['dueDate'] != null
                       ? FontWeight.w600
@@ -2494,7 +2461,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
               ),
               subtitle: _todoItems[index]['dueDate'] != null
                   ? Text(
-                      'Currently set',
+                      'currently_set'.tr,
                       style: TextStyle(color: Colors.green[700]),
                     )
                   : null,
@@ -2508,7 +2475,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                     : Colors.green,
               ),
               title: Text(
-                'Set Duration',
+                'set_duration'.tr,
                 style: TextStyle(
                   fontWeight: _todoItems[index]['endTime'] != null
                       ? FontWeight.w600
@@ -2517,7 +2484,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
               ),
               subtitle: _todoItems[index]['endTime'] != null
                   ? Text(
-                      'Currently set',
+                      'currently_set'.tr,
                       style: TextStyle(color: Colors.green[700]),
                     )
                   : null,
@@ -2530,7 +2497,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 _todoItems[index]['endTime'] != null)
               ListTile(
                 leading: const Icon(Icons.clear, color: Colors.red),
-                title: const Text('Clear All Times'),
+                title: Text('clear_all_times'.tr),
                 onTap: () => Navigator.of(context).pop('clear'),
               ),
           ],
@@ -2604,7 +2571,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
     final int? duration = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Set Duration'),
+  title: Text('set_duration'.tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -2623,7 +2590,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'End time: ${_formatDateTime(endTime)}',
+                        '${'end_time'.tr}: ${_formatDateTime(endTime)}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.green[700],
@@ -2637,27 +2604,27 @@ class _CreateCardPageState extends State<CreateCardPage> {
             TextField(
               controller: durationController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Duration (minutes)',
-                hintText: 'Enter duration in minutes',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'duration_minutes'.tr,
+                hintText: 'enter_duration_minutes'.tr,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Quick select:',
-              style: TextStyle(fontWeight: FontWeight.w500),
+            Text(
+              '${'quick_select'.tr}:',
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               children: [
-                _buildDurationChip('15 min', 15, durationController, now),
-                _buildDurationChip('30 min', 30, durationController, now),
-                _buildDurationChip('1 hour', 60, durationController, now),
-                _buildDurationChip('2 hours', 120, durationController, now),
-                _buildDurationChip('4 hours', 240, durationController, now),
-                _buildDurationChip('8 hours', 480, durationController, now),
+                _buildDurationChip('15 ${'minutes_short'.tr}', 15, durationController, now),
+                _buildDurationChip('30 ${'minutes_short'.tr}', 30, durationController, now),
+                _buildDurationChip('1 ${'hour'.tr}', 60, durationController, now),
+                _buildDurationChip('2 ${'hours'.tr}', 120, durationController, now),
+                _buildDurationChip('4 ${'hours'.tr}', 240, durationController, now),
+                _buildDurationChip('8 ${'hours'.tr}', 480, durationController, now),
               ],
             ),
           ],
@@ -2665,14 +2632,14 @@ class _CreateCardPageState extends State<CreateCardPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr),
           ),
           ElevatedButton(
             onPressed: () {
               final value = int.tryParse(durationController.text);
               Navigator.of(context).pop(value);
             },
-            child: const Text('Set'),
+            child: Text('set'.tr),
           ),
         ],
       ),
@@ -2725,11 +2692,11 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
   String _getCurrentTimeType(int index) {
     if (_todoItems[index]['dueDate'] != null) {
-      return 'Due Date & Time';
+          return 'due_date_time'.tr;
     } else if (_todoItems[index]['endTime'] != null) {
-      return 'Duration';
+          return 'duration'.tr;
     }
-    return 'None';
+        return 'none_option_short'.tr;
   }
 
   String _getCurrentTimeValue(int index) {
@@ -2774,8 +2741,8 @@ class _CreateCardPageState extends State<CreateCardPage> {
               Expanded(
                 child: TextField(
                   controller: controller,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter todo item...',
+                  decoration: InputDecoration(
+                    hintText: 'enter_todo_item_hint'.tr,
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 8,
@@ -2867,7 +2834,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                           Icon(Icons.today, size: 16, color: Colors.blue[700]),
                           const SizedBox(width: 4),
                           Text(
-                            'Due: ${_formatDateTime(dueDate)}',
+                            '${'due_date_time'.tr}: ${_formatDateTime(dueDate)}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.blue[700],
@@ -2897,7 +2864,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
                           Icon(Icons.timer, size: 16, color: Colors.green[700]),
                           const SizedBox(width: 4),
                           Text(
-                            'End: ${_formatDateTime(endTime)}',
+                            '${'end_time'.tr}: ${_formatDateTime(endTime)}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.green[700],

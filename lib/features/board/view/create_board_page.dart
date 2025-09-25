@@ -24,7 +24,7 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
   @override
   void initState() {
     super.initState();
-    _nameController.text = 'New Board';
+    _nameController.text = 'new_board'.tr;
   }
 
   @override
@@ -35,14 +35,14 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
 
   Future<void> _createBoard() async {
     if (!_canManageBoard) {
-      _showError('You do not have permission to create boards');
+      _showError('no_permission_create_boards'.tr);
       return;
     }
 
     final name = _nameController.text.trim();
     
     if (name.isEmpty) {
-      _showError('Board name is required');
+      _showError('board_name_required'.tr);
       return;
     }
 
@@ -56,8 +56,8 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
     try {
       await _controller.createBoard(name);
       Get.snackbar(
-        'Success',
-        'Board created successfully',
+        'success'.tr,
+        'board_created_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -68,7 +68,7 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
       if (msg.contains('quota_exceeded:boards')) {
         QuotaGuard.handleQuotaException(context, e);
       } else {
-        _showError('Failed to create board: ${e.toString()}');
+        _showError('failed_to_create_board'.tr + ': ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -79,7 +79,7 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
 
   void _showError(String message) {
     Get.snackbar(
-      'Error',
+      'error'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
@@ -92,13 +92,14 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
     if (!_canManageBoard) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Create Board'),
-          backgroundColor: AppTheme.primaryOrange,
-          foregroundColor: Colors.white,
+          title: Text('create_board'.tr),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
           actions: [
             IconButton(
               onPressed: () => Get.back(),
-              icon: const Icon(Icons.close),
+              icon: const Icon(Icons.close, color: Colors.black),
             ),
           ],
         ),
@@ -108,9 +109,9 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
             children: [
               Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 12),
-              const Text('คุณไม่มีสิทธิ์สร้างบอร์ด', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              Text('no_permission_create_board_msg'.tr, style: TextStyle(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 8),
-              const Text('ต้องการสิทธิ์ settings:board:manage หรือเป็นเจ้าของ Workspace', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text('need_board_manage_permission'.tr, style: TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Get.back(),
@@ -119,7 +120,7 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                child: const Text('ปิด'),
+                child: Text('close_btn'.tr),
               ),
             ],
           ),
@@ -129,13 +130,14 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Board'),
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
+        title: Text('create_board'.tr),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, color: Colors.black),
           ),
         ],
       ),
@@ -146,8 +148,8 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Board Name',
+                  Text(
+                    'board_name'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -157,8 +159,8 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter board name',
+                    decoration: InputDecoration(
+                      hintText: 'enter_board_name'.tr,
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     ),
@@ -175,30 +177,30 @@ class _CreateBoardPageState extends State<CreateBoardPage> {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text(
-                        'Create Board',
+                      child: Text(
+                        'create_board'.tr,
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Card(
+                  Card(
                     child: Padding(
-                      padding: EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'What will be created:',
-                            style: TextStyle(
+                            'what_will_be_created'.tr,
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          SizedBox(height: 8),
-                          Text('• A new board with the specified name'),
-                          Text('• Default lanes: To Do, In Progress, Done'),
-                          Text('• Board will be added to current workspace'),
+                          const SizedBox(height: 8),
+                          Text('• ${'new_board_with_name'.tr}'),
+                          Text('• ${'default_lanes_todo'.tr}'),
+                          Text('• ${'board_added_to_workspace'.tr}'),
                         ],
                       ),
                     ),

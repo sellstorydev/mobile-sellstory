@@ -206,16 +206,16 @@ class JobCardTile extends StatelessWidget {
       switch (e.key) {
         case 'customId':
           children.add(
-            _kv('Job ID', card.customId.isNotEmpty ? card.customId : card.id),
+            _kv('job_id'.tr, card.customId.isNotEmpty ? card.customId : card.id),
           );
           break;
         case 'status':
-          children.add(_kv('Status', card.status));
+          children.add(_kv('status'.tr, card.status));
           break;
         case 'dateRange':
           children.add(
             _kv(
-              'Date Range',
+              'date_range_label'.tr,
               _fmtDateRange(
                 card.startDate?.millisecondsSinceEpoch,
                 card.endDate?.millisecondsSinceEpoch,
@@ -233,12 +233,12 @@ class JobCardTile extends StatelessWidget {
           break;
         case 'assignee':
           children.add(
-            _kv('Assignee', userNameCache[card.assignedTo] ?? card.assignedTo),
+            _kv('assignee_label'.tr, userNameCache[card.assignedTo] ?? card.assignedTo),
           );
           break;
         case 'customerInterest':
           if (card.customerInterest?.isNotEmpty == true) {
-            children.add(_kv('Customer Interest', card.customerInterest!));
+            children.add(_kv('customer_interest_label'.tr, card.customerInterest!));
           }
           break;
         case 'collaborators':
@@ -246,19 +246,19 @@ class JobCardTile extends StatelessWidget {
             final names = card.collaborators
                 .map((id) => userNameCache[id] ?? id)
                 .join(', ');
-            children.add(_kv('Collaborators', names));
+            children.add(_kv('collaborators_label'.tr, names));
           }
           break;
         case 'customer':
           if (card.customer.isNotEmpty) {
-            children.add(_kv('Customer', card.customer));
+            children.add(_kv('customer_label'.tr, card.customer));
           }
           break;
         case 'company':
           if (card.company != null) {
             final value = card.company?['value'] ?? '';
             if (value.toString().isNotEmpty) {
-              children.add(_kv('Company', value.toString()));
+              children.add(_kv('company_label'.tr, value.toString()));
             }
           }
           break;
@@ -272,16 +272,16 @@ class JobCardTile extends StatelessWidget {
           break;
         case 'grandTotal':
           children.add(
-            _kv('Grand Total', _currencyFmt.format(totals.grandTotal)),
+            _kv('card_grand_total'.tr, _currencyFmt.format(totals.grandTotal)),
           );
           break;
         case 'netTotal':
-          children.add(_kv('Net Total', _currencyFmt.format(totals.netTotal)));
+          children.add(_kv('card_net_total'.tr, _currencyFmt.format(totals.netTotal)));
           break;
         case 'totalAmountBeforeDiscount':
           children.add(
             _kv(
-              'Total (before discount)',
+              'total_before_discount_label'.tr,
               _currencyFmt.format(totals.totalBeforeDiscount),
             ),
           );
@@ -289,7 +289,7 @@ class JobCardTile extends StatelessWidget {
         case 'totalAmountAfterDiscount':
           children.add(
             _kv(
-              'Total (after discount)',
+              'total_after_discount_label'.tr,
               _currencyFmt.format(totals.totalAfterDiscount),
             ),
           );
@@ -297,7 +297,7 @@ class JobCardTile extends StatelessWidget {
         case 'totalAmountBeforeVat':
           children.add(
             _kv(
-              'Total (before VAT)',
+              'total_before_vat_label'.tr,
               _currencyFmt.format(totals.totalBeforeVat),
             ),
           );
@@ -309,7 +309,7 @@ class JobCardTile extends StatelessWidget {
                 .replaceAll(RegExp(r'<[^>]+>'), '')
                 .trim();
             children.add(
-              _kv('Description', plain.isEmpty ? '(HTML content)' : plain),
+              _kv('description_label'.tr, plain.isEmpty ? 'html_content'.tr : plain),
             );
           }
           break;
@@ -318,7 +318,7 @@ class JobCardTile extends StatelessWidget {
           final completed = card.todos
               .where((t) => (t['completed'] ?? false) == true)
               .length;
-          children.add(_kv('To-Do', '$completed/$total'));
+          children.add(_kv('to_do_label'.tr, '$completed/$total'));
           break;
         default:
           // Ignore unknown keys to remain forward compatible

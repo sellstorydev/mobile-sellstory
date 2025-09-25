@@ -36,13 +36,13 @@ class _EditBoardPageState extends State<EditBoardPage> {
 
   Future<void> _updateBoard() async {
     if (!_canManageBoard) {
-      _showError('You do not have permission to update this board');
+      _showError('no_permission_edit_board'.tr);
       return;
     }
     final name = _nameController.text.trim();
     
     if (name.isEmpty) {
-      _showError('Board name is required');
+      _showError('board_name_required'.tr);
       return;
     }
 
@@ -59,8 +59,8 @@ class _EditBoardPageState extends State<EditBoardPage> {
       await _controller.updateBoard(widget.board.id, name);
       
       Get.snackbar(
-        'Success',
-        'Board updated successfully',
+        'success'.tr,
+        'board_updated_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -68,7 +68,7 @@ class _EditBoardPageState extends State<EditBoardPage> {
 
       Get.back();
     } catch (e) {
-      _showError('Failed to update board: ${e.toString()}');
+      _showError('${'failed_to_update_board'.tr}: ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
@@ -78,15 +78,13 @@ class _EditBoardPageState extends State<EditBoardPage> {
 
   Future<void> _deleteBoard() async {
     if (!_canManageBoard) {
-      _showError('You do not have permission to delete this board');
+      _showError('no_permission_delete_board'.tr);
       return;
     }
     final confirmed = await DialogUtils.showDeleteConfirmDialog(
       context: context,
-      title: 'Delete Board',
-      content: 'Are you sure you want to delete "${widget.board.name}"?\n\n'
-          'This will also delete all lanes and cards in this board. '
-          'This action cannot be undone.',
+      title: 'delete_board'.tr,
+      content: 'delete_board_confirmation'.tr.replaceAll('{name}', widget.board.name),
     );
 
     if (confirmed != true) return;
@@ -99,8 +97,8 @@ class _EditBoardPageState extends State<EditBoardPage> {
       await _controller.deleteBoard(widget.board.id);
       
       Get.snackbar(
-        'Success',
-        'Board deleted successfully',
+        'success'.tr,
+        'board_deleted_successfully'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -108,7 +106,7 @@ class _EditBoardPageState extends State<EditBoardPage> {
 
       Get.back();
     } catch (e) {
-      _showError('Failed to delete board: ${e.toString()}');
+      _showError('${'failed_to_delete_board'.tr}: ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
@@ -118,7 +116,7 @@ class _EditBoardPageState extends State<EditBoardPage> {
 
   void _showError(String message) {
     Get.snackbar(
-      'Error',
+      'error'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
@@ -131,13 +129,14 @@ class _EditBoardPageState extends State<EditBoardPage> {
     if (!_canManageBoard) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Edit Board'),
-          backgroundColor: AppTheme.primaryOrange,
-          foregroundColor: Colors.white,
+          title: Text('edit_board'.tr),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
           actions: [
             IconButton(
               onPressed: () => Get.back(),
-              icon: const Icon(Icons.close),
+              icon: const Icon(Icons.close, color: Colors.black),
             ),
           ],
         ),
@@ -147,9 +146,9 @@ class _EditBoardPageState extends State<EditBoardPage> {
             children: [
               Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 12),
-              const Text('คุณไม่มีสิทธิ์แก้ไขบอร์ดนี้', style: TextStyle(fontSize: 16, color: Colors.grey)),
+              Text('no_permission_edit_board_msg'.tr, style: const TextStyle(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 8),
-              const Text('ต้องการสิทธิ์ settings:board:manage หรือเป็นเจ้าของ Workspace', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text('need_board_manage_permission'.tr, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Get.back(),
@@ -158,7 +157,7 @@ class _EditBoardPageState extends State<EditBoardPage> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                child: const Text('ปิด'),
+                child: Text('close_btn'.tr),
               ),
             ],
           ),
@@ -168,13 +167,14 @@ class _EditBoardPageState extends State<EditBoardPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Board'),
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
+        title: Text('edit_board'.tr),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, color: Colors.black),
           ),
         ],
       ),
@@ -185,8 +185,8 @@ class _EditBoardPageState extends State<EditBoardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Board Name',
+                  Text(
+                    'board_name'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -196,8 +196,8 @@ class _EditBoardPageState extends State<EditBoardPage> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter board name',
+                    decoration: InputDecoration(
+                      hintText: 'enter_board_name'.tr,
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     ),
@@ -214,8 +214,8 @@ class _EditBoardPageState extends State<EditBoardPage> {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text(
-                        'Update Board',
+                      child: Text(
+                        'update_board'.tr,
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
@@ -230,8 +230,8 @@ class _EditBoardPageState extends State<EditBoardPage> {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text(
-                        'Delete Board',
+                      child: Text(
+                        'delete_board'.tr,
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
@@ -243,19 +243,19 @@ class _EditBoardPageState extends State<EditBoardPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Board Information:',
+                          Text(
+                            'board_information'.tr,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Text('• Name: ${widget.board.name}'),
-                          Text('• Created: ${_formatDate(widget.board.createdAt)}'),
-                          Text('• Updated: ${_formatDate(widget.board.updatedAt)}'),
-                          Text('• Lanes: ${widget.board.lanes.length}'),
-                          Text('• Members: ${widget.board.memberUids.length}'),
+                          Text('• ${'name'.tr}: ${widget.board.name}'),
+                          Text('• ${'board_created'.tr}: ${_formatDate(widget.board.createdAt)}'),
+                          Text('• ${'updated_at_label'.tr}: ${_formatDate(widget.board.updatedAt)}'),
+                          // Text('• ${'board_lanes'.tr}: ${widget.board.lanes.length}'),
+                          Text('• ${'board_members'.tr}: ${widget.board.memberUids.length}'),
                         ],
                       ),
                     ),
