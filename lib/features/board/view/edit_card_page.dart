@@ -6427,7 +6427,17 @@ class _EditCardPageState extends State<EditCardPage> {
     );
   }
 
-
+  Future<void> _openAddCustomerPage() async {
+    // TODO: Implement add customer functionality when AddEditCustomerPage is available
+    Get.snackbar(
+      'info'.tr,
+      'add_customer_feature_coming_soon'.tr,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
 
   // Product management methods
   void _addProduct() {
