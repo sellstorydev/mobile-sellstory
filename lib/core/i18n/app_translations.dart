@@ -887,6 +887,7 @@ class AppTranslations extends Translations {
       'password_too_weak': 'Password is too weak',
       'password_reset_failed': 'Password reset failed',
       'contact_admin_error': 'An error occurred. Please contact SellStory admin',
+      'otp_hint_placeholder': '123456',
 
       // Board Management Page
       'board_management': 'Board Management',
@@ -1985,6 +1986,7 @@ class AppTranslations extends Translations {
       'password_too_weak': 'รหัสผ่านไม่ปลอดภัยเพียงพอ',
       'password_reset_failed': 'การรีเซ็ตรหัสผ่านไม่สำเร็จ',
       'contact_admin_error': 'เกิดข้อผิดพลาด กรุณาติดต่อ SellStory admin',
+      'otp_hint_placeholder': '123456',
 
       // Board Management Page
       'board_management': 'จัดการบอร์ด',

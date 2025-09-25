@@ -42,7 +42,7 @@ class ForgotPasswordOtpPage extends StatelessWidget {
                     style: const TextStyle(color: Colors.black, letterSpacing: 4),
                     decoration: InputDecoration(
                       counterText: '',
-                      hintText: '123456',
+                      hintText: 'otp_hint_placeholder'.tr,
                       filled: true,
                       fillColor: AppTheme.backgroundGrey,
                       border: OutlineInputBorder(

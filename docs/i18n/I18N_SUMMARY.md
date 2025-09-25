@@ -5,6 +5,42 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Forgot Password OTP Page Translation (September 25, 2025)
+**File**: `lib/features/login/view/forgot_password_otp_page.dart`
+
+#### Issue Analysis:
+- Found hardcoded placeholder text "123456" in OTP input field
+- Placeholder was not using translation system for proper internationalization
+- Text should be translatable for consistency with i18n patterns
+
+#### Changes Made:
+1. **Added Translation Key**: Created new `otp_hint_placeholder` key in `app_translations.dart`
+2. **Updated OTP Input**: Replaced hardcoded placeholder with `'otp_hint_placeholder'.tr`
+
+#### Technical Implementation:
+```dart
+// Before (hardcoded):
+hintText: '123456',
+
+// After (translation key):
+hintText: 'otp_hint_placeholder'.tr,
+```
+
+#### Translation Keys Added:
+```dart
+// English (en_US)
+'otp_hint_placeholder': '123456',
+
+// Thai (th)
+'otp_hint_placeholder': '123456',
+```
+
+#### Benefits:
+- **Proper I18N**: Now follows GetX translation system (.tr pattern)
+- **Consistency**: Matches established internationalization approach in the codebase
+- **Localization Ready**: Easy to provide different placeholder format for other languages
+- **Complete Translation**: All text in OTP page now uses translation keys
+
 ### Password Reset Error Message Translation (September 25, 2025)
 **File**: `lib/features/login/controller/forgot_password_controller.dart`
 
