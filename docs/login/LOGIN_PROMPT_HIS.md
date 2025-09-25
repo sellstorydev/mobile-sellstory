@@ -8,6 +8,34 @@
 
 
 Topic: Flow password reset
+Detail: ในหน้ากรอกรหัสผ่านใหม่ (forgot_password_reset_page.dart) ตรงช่องกรอกรหัสผ่านใหม่ (new password) กับช่องยืนยันรหัสผ่านใหม่ (confirm new password) ควรจะมี icon รูปตา เพื่อให้ผู้ใช้สามารถกดดูรหัสผ่านที่กรอกได้
+
+```dart
+                  Obx(() => TextFormField(
+                        controller: controller.newPasswordController,
+                        obscureText: !controller.isNewPasswordVisible.value,
+                        decoration: InputDecoration(
+                          labelText: 'new_password'.tr,
+                          hintText: 'new_password_hint'.tr,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              controller.isNewPasswordVisible.value
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              controller.isNewPasswordVisible.value =
+                                  !controller.isNewPasswordVisible.value;
+                            },
+                          ),
+                        ),
+                        onChanged: (value) {
+                          controller.newPassword.value = value;
+                        },
+                      )),
+```
+
+Topic: Flow password reset
 Detail: ในหน้ากรอกรหัสผ่านใหม่ (forgot_password_reset_page.dart) ข้อความ "รหัสผ่านทั้งสองช่องต้องตรงกัน" กับ "รหัสผ่านทั้งสองช่องไม่ตรงกัน" ไม่ควรขึ้นก่อนที่ผู้ใช้จะกรอกข้อมูลในช่อง "ยืนยันรหัสผ่านใหม่" (confirm new password) เพราะจะทำให้ผู้ใช้สับสน ควรจะแสดงข้อความนี้ก็ต่อเมื่อผู้ใช้เริ่มกรอกข้อมูลในช่อง "ยืนยันรหัสผ่านใหม่" แล้วเท่านั้น
 
 ```dart
