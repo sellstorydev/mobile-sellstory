@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 
@@ -303,6 +304,131 @@ class WebviewApiService {
     } catch (e) {
       print('❌ Error getting document share URL: $e');
       return null;
+    }
+  }
+
+  /// Generate PDF from document
+  /// Returns the PDF as bytes along with the filename
+  Future<Map<String, dynamic>?> generatePdfFromDocument({
+    required String documentId,
+    required String documentType,
+    String? workspaceId,
+    bool? twoPass,
+    bool? forceManualFontEmbedding,
+  }) async {
+    try {
+      print('🔄 Generating PDF for document ID: $documentId, Type: $documentType');
+
+      // Prepare request data
+      final requestData = <String, dynamic>{
+        'documentId': documentId,
+        'documentType': documentType,
+      };
+
+      if (workspaceId != null) {
+        requestData['workspaceId'] = workspaceId;
+      }
+      if (twoPass != null) {
+        requestData['twoPass'] = twoPass;
+      }
+      if (forceManualFontEmbedding != null) {
+        requestData['forceManualFontEmbedding'] = forceManualFontEmbedding;
+      }
+
+      print('📤 Request data: $requestData');
+
+      final response = await _apiClient.post(
+        '/api/generate-pdf-from-doc',
+        data: requestData,
+        options: Options(
+          responseType: ResponseType.bytes, // Important: Request response as bytes
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // PDF generation can take longer, so increase timeout
+          receiveTimeout: const Duration(minutes: 2), // 2 minutes for PDF generation
+          sendTimeout: const Duration(seconds: 30), // 30 seconds for request sending
+        ),
+      );
+
+      // Check if we received PDF data
+      if (response.data != null) {
+        print('📥 Response received: ${response.data.runtimeType}, size: ${response.data is List ? (response.data as List).length : 'unknown'} bytes');
+        print('📋 Response headers: ${response.headers.toString()}');
+        
+        // Extract filename from Content-Disposition header if available
+        String? filename;
+        final contentDisposition = response.headers['content-disposition']?.first;
+        if (contentDisposition != null) {
+          final filenameMatch = RegExp(r'filename[^;=\n]*=(.*)')
+              .firstMatch(contentDisposition);
+          if (filenameMatch != null) {
+            filename = filenameMatch.group(1)?.replaceAll('"', '').trim();
+          }
+        }
+
+        // Fallback filename if not provided in headers
+        filename ??= '${documentType.toUpperCase()}_$documentId.pdf';
+
+        print('📁 Extracted filename: $filename');
+
+        return {
+          'data': response.data as List<int>,
+          'filename': filename,
+          'contentType': response.headers['content-type']?.first ?? 'application/pdf',
+        };
+      }
+
+      print('❌ Empty PDF response received');
+      return null;
+    } on DioException catch (e) {
+      print('❌ DioException generating PDF: ${e.message}');
+      
+      // Try to parse error response if it's JSON
+      if (e.response?.data != null) {
+        try {
+          // Convert bytes to string if needed
+          String errorText;
+          if (e.response!.data is List<int>) {
+            errorText = String.fromCharCodes(e.response!.data);
+          } else {
+            errorText = e.response!.data.toString();
+          }
+          
+          // Try to parse as JSON error response
+          final errorData = jsonDecode(errorText);
+          if (errorData is Map<String, dynamic> && errorData['error'] != null) {
+            print('❌ Server error: ${errorData['error']}');
+            return {
+              'error': errorData['error'],
+              'details': errorData['details'],
+            };
+          }
+        } catch (parseError) {
+          print('❌ Could not parse error response: $parseError');
+        }
+      }
+      
+      // Handle specific timeout errors with more helpful messages
+      String errorMessage = 'Failed to generate PDF: ${e.message}';
+      if (e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = 'PDF generation timed out. The document may be complex or the server is busy. Please try again.';
+      } else if (e.type == DioExceptionType.sendTimeout) {
+        errorMessage = 'Request timed out while sending data. Please check your internet connection and try again.';
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        errorMessage = 'Connection timed out. Please check your internet connection and try again.';
+      }
+      
+      return {
+        'error': errorMessage,
+        'statusCode': e.response?.statusCode,
+        'type': e.type.toString(),
+      };
+    } catch (e) {
+      print('❌ Unexpected error generating PDF: $e');
+      return {
+        'error': 'Unexpected error: $e',
+      };
     }
   }
 }
