@@ -3,6 +3,53 @@
 
 ## Recent Changes
 
+### Password Reset Error Message Translation (September 25, 2025)
+
+**Issue:** The `requestOtp()` function in password reset flow was showing hardcoded Thai text "เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory" instead of using proper translation keys.
+
+**Solution Applied:**
+1. **Added Translation Key**: Created new translation key `contact_admin_error` with the same Thai text
+2. **Updated Code**: Changed hardcoded text to use `'contact_admin_error'.tr` for proper internationalization
+3. **Consistency**: Applied the same translation key to both `requestOtp()` and `resendOtp()` functions
+
+**Technical Changes:**
+
+**Before:**
+```dart
+} else {
+  errorMessage = 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory';
+}
+```
+
+**After:**
+```dart
+} else {
+  errorMessage = 'contact_admin_error'.tr;
+}
+```
+
+**Translation Key Added:**
+```dart
+// English (en_US)
+'contact_admin_error': 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory',
+
+// Thai (th)  
+'contact_admin_error': 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory',
+```
+
+**Files Modified:**
+- `lib/core/i18n/app_translations.dart`
+  - Added `contact_admin_error` translation key for both English and Thai
+- `lib/features/login/controller/forgot_password_controller.dart`
+  - Updated error message in `requestOtp()` function to use translation key
+  - Updated error message in `resendOtp()` function to use translation key
+
+**Benefits:**
+- **Proper I18N**: Now follows established translation pattern using GetX .tr system
+- **Maintainability**: Text can be updated in translation files without code changes  
+- **Localization Ready**: Easy to provide different translations for other languages
+- **Consistent Pattern**: Matches the established codebase internationalization approach
+
 ### In-App Browser Link Opening Implementation (September 21, 2025)
 
 **Issue:** Link "สอบถามเพิ่มเติม" (https://lin.ee/uaT3pzf) in login page was opening external browser instead of in-app browser.

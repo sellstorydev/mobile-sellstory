@@ -59,7 +59,7 @@ class ForgotPasswordController extends GetxController {
                  errorMessage.toLowerCase().contains('connection')) {
         errorMessage = 'network_error'.tr;
       } else {
-        errorMessage = 'request_failed'.tr;
+        errorMessage = 'contact_admin_error'.tr;
       }
       _toastError(errorMessage);
     } finally {
@@ -84,7 +84,7 @@ class ForgotPasswordController extends GetxController {
                  errorMessage.toLowerCase().contains('connection')) {
         errorMessage = 'network_error'.tr;
       } else {
-        errorMessage = 'request_failed'.tr;
+        errorMessage = 'contact_admin_error'.tr;
       }
       _toastError(errorMessage);
     } finally {
