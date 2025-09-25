@@ -3,6 +3,67 @@
 
 ## Recent Changes
 
+### Password Reset Confirmation Message UX Fix (September 25, 2025)
+
+**Issue:** In the password reset page, the password match/mismatch messages ("รหัสผ่านทั้งสองช่องต้องตรงกัน" / "รหัสผ่านทั้งสองช่องไม่ตรงกัน") were showing before the user started typing in the confirm password field, causing confusion.
+
+**Root Cause Analysis:**
+- Password validation message was displaying immediately when both fields had any content
+- This created a poor UX as users would see error messages before they finished typing
+- The validation should only appear after the user has started interacting with the confirm password field
+
+**Solution Applied:**
+1. **Added Conditional Display**: Only show password match messages when confirmPassword field is not empty
+2. **Improved UX Flow**: Messages now appear only after user starts typing in the confirm field
+3. **Maintained Functionality**: All existing validation logic remains intact
+
+**Technical Changes:**
+
+**Before:**
+```dart
+Obx(() {
+  final match = controller.newPassword.value.isNotEmpty &&
+      controller.confirmPassword.value.isNotEmpty &&
+      controller.newPassword.value == controller.confirmPassword.value;
+  return Text(
+    match ? 'passwords_match'.tr : 'passwords_do_not_match'.tr,
+    style: TextStyle(
+      color: match ? Colors.green : Get.theme.colorScheme.error,
+    ),
+  );
+}),
+```
+
+**After:**
+```dart
+Obx(() {
+  if (controller.confirmPassword.value.isEmpty) {
+    return const SizedBox.shrink();
+  }
+  final match = controller.newPassword.value.isNotEmpty &&
+      controller.confirmPassword.value.isNotEmpty &&
+      controller.newPassword.value == controller.confirmPassword.value;
+  return Text(
+    match ? 'passwords_match'.tr : 'passwords_do_not_match'.tr,
+    style: TextStyle(
+      color: match ? Colors.green : Get.theme.colorScheme.error,
+    ),
+  );
+}),
+```
+
+**Files Modified:**
+- `lib/features/login/view/forgot_password_reset_page.dart`
+  - Added conditional check for confirmPassword.value.isEmpty
+  - Return SizedBox.shrink() when confirm field is empty
+  - Maintained existing validation logic for when field has content
+
+**Benefits:**
+- **Better UX**: No confusing messages before user interaction
+- **Logical Flow**: Messages appear only when relevant
+- **Reduced Confusion**: Users see validation only after they start confirming password
+- **Maintained Validation**: All password matching logic preserved
+
 ### Password Reset OTP Display Fix (September 25, 2025)
 
 **Issue:** User reported that in the OTP page, placeholder text was showing literal "{last4}" and "{secound}" instead of actual phone number digits in the display text.

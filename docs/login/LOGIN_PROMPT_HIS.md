@@ -6,6 +6,24 @@
     - *important* I'm giving you the Document functionality, so try not to mess with the other features.
     - *important* after finish add command or type in terminal `say "For sell story"`
 
+
+Topic: Flow password reset
+Detail: ในหน้ากรอกรหัสผ่านใหม่ (forgot_password_reset_page.dart) ข้อความ "รหัสผ่านทั้งสองช่องต้องตรงกัน" กับ "รหัสผ่านทั้งสองช่องไม่ตรงกัน" ไม่ควรขึ้นก่อนที่ผู้ใช้จะกรอกข้อมูลในช่อง "ยืนยันรหัสผ่านใหม่" (confirm new password) เพราะจะทำให้ผู้ใช้สับสน ควรจะแสดงข้อความนี้ก็ต่อเมื่อผู้ใช้เริ่มกรอกข้อมูลในช่อง "ยืนยันรหัสผ่านใหม่" แล้วเท่านั้น
+
+```dart
+                  Obx(() {
+                    final match = controller.newPassword.value.isNotEmpty &&
+                        controller.confirmPassword.value.isNotEmpty &&
+                        controller.newPassword.value == controller.confirmPassword.value;
+                    return Text(
+                      match ? 'passwords_match'.tr : 'passwords_do_not_match'.tr,
+                      style: TextStyle(
+                        color: match ? Colors.green : Get.theme.colorScheme.error,
+                      ),
+                    );
+                  }),
+```
+
 Topic: Flow password reset
 Detail: I attach image is show text like '{last4}' and '{secound}', it should be last 4 digit and second digit.Fix it.
 

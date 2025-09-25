@@ -86,6 +86,9 @@ class ForgotPasswordResetPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Obx(() {
+                    if (controller.confirmPassword.value.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
                     final match = controller.newPassword.value.isNotEmpty &&
                         controller.confirmPassword.value.isNotEmpty &&
                         controller.newPassword.value == controller.confirmPassword.value;
