@@ -1,11 +1,16 @@
+import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/services/webview_api_service.dart';
 import '../view/add_edit_document_page.dart';
+import '../../board/controller/board_controller.dart';
 
 class DocumentViewPage extends StatefulWidget {
   final String documentType; // 'QT', 'INV', 'RT'
@@ -26,6 +31,7 @@ class DocumentViewPage extends StatefulWidget {
 class _DocumentViewPageState extends State<DocumentViewPage> {
   WebViewController? _webViewController;
   bool _isLoading = true;
+  bool _isDownloadingPdf = false;
   String _errorMessage = '';
   late WebviewApiService _webviewApiService;
   String? _currentUserId;
@@ -93,7 +99,23 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
 
       _currentUserId = user.uid;
 
-      // Get user's workspace information from Firestore
+      // Try to get workspace ID from BoardController first
+      try {
+        if (Get.isRegistered<BoardController>()) {
+          final boardController = Get.find<BoardController>();
+          final workspaceId = boardController.currentWorkspaceId.value;
+          if (workspaceId.isNotEmpty) {
+            _currentWorkspaceId = workspaceId;
+            print('✅ Using workspace ID from BoardController: $workspaceId');
+            return; // Successfully got workspace ID, no need for Firebase fallback
+          }
+        }
+      } catch (e) {
+        print('❌ Failed to get workspace ID from BoardController: $e');
+      }
+
+      // Fallback: Get user's workspace information from Firestore
+      print('🔄 Falling back to Firebase workspace lookup...');
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -105,12 +127,13 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
           final workspaces = userData['workspaces'] as List;
           if (workspaces.isNotEmpty) {
             _currentWorkspaceId = workspaces[0]['id'] as String;
+            print('✅ Using workspace ID from Firebase fallback: $_currentWorkspaceId');
           }
         }
       }
 
-      if (_currentWorkspaceId == null) {
-        throw Exception('No workspace found for user');
+      if (_currentWorkspaceId == null || _currentWorkspaceId!.isEmpty) {
+        throw Exception('No workspace found for user. Please make sure you are logged in and have selected a workspace.');
       }
     } catch (e) {
       print('❌ Failed to initialize user and workspace: $e');
@@ -557,6 +580,318 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
     }
   }
 
+  Future<void> _downloadPdf() async {
+    try {
+      setState(() {
+        _isDownloadingPdf = true;
+      });
+
+      // Show progress dialog
+      Get.dialog(
+        WillPopScope(
+          onWillPop: () async => false, // Prevent dismissing during generation
+          child: AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  Get.locale?.languageCode == 'th' 
+                    ? 'กำลังสร้าง PDF...' 
+                    : 'Generating PDF...',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  Get.locale?.languageCode == 'th' 
+                    ? 'อาจใช้เวลา 1-2 นาที กรุณารอสักครู่'
+                    : 'This may take 1-2 minutes, please wait',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+        barrierDismissible: false,
+      );
+
+      // Get workspace ID from BoardController
+      String? workspaceId;
+      try {
+        if (Get.isRegistered<BoardController>()) {
+          final boardController = Get.find<BoardController>();
+          workspaceId = boardController.currentWorkspaceId.value;
+        }
+      } catch (e) {
+        print('❌ Failed to get workspace ID from BoardController: $e');
+      }
+
+      // Fallback to Firebase-based workspace ID if BoardController is not available
+      if (workspaceId == null || workspaceId.isEmpty) {
+        workspaceId = _currentWorkspaceId;
+      }
+
+      if (workspaceId == null || workspaceId.isEmpty) {
+        throw Exception('Workspace ID not available. Please make sure you are logged in and have selected a workspace.');
+      }
+
+      // Generate PDF using the API
+      final result = await _webviewApiService.generatePdfFromDocument(
+        documentId: widget.documentId,
+        documentType: _documentTypeName,
+        workspaceId: workspaceId,
+        twoPass: true, // Enable better layout
+      );
+
+      if (result == null) {
+        throw Exception('Failed to generate PDF - no response received');
+      }
+
+      // Check for errors in the response
+      if (result['error'] != null) {
+        throw Exception(result['error']);
+      }
+
+      // Get PDF data and filename
+      final pdfData = result['data'] as List<int>?;
+      final filename = result['filename'] as String?;
+
+      if (pdfData == null || pdfData.isEmpty) {
+        throw Exception('Empty PDF data received');
+      }
+
+      // Convert to Uint8List for saving
+      final bytes = Uint8List.fromList(pdfData);
+      
+      // Get the app's documents directory
+      Directory? directory;
+      try {
+        if (Platform.isAndroid) {
+          directory = await getExternalStorageDirectory();
+        } else {
+          directory = await getApplicationDocumentsDirectory();
+        }
+      } catch (e) {
+        // Fallback to application documents directory
+        directory = await getApplicationDocumentsDirectory();
+      }
+      
+      if (directory == null) {
+        throw Exception('Could not access device storage');
+      }
+
+      // Create filename with timestamp if not provided
+      final actualFilename = filename ?? 'document_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final file = File('${directory.path}/$actualFilename');
+      
+      // Save the PDF file
+      await file.writeAsBytes(bytes);
+      
+      print('✅ PDF saved successfully: ${file.path}');
+      print('✅ PDF size: ${bytes.length} bytes');
+      
+      // Dismiss progress dialog
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+
+      // For development: Show detailed success information
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green),
+                  const SizedBox(width: 8),
+                  Text(Get.locale?.languageCode == 'th' ? 'ดาวน์โหลดสำเร็จ' : 'DOWNLOAD SUCCESS'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    Get.locale?.languageCode == 'th' 
+                      ? 'บันทึก PDF สำเร็จแล้ว' 
+                      : 'PDF downloaded successfully!',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          Get.locale?.languageCode == 'th' ? 'รายละเอียด:' : 'Details:',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text('${Get.locale?.languageCode == 'th' ? 'ชื่อไฟล์' : 'Filename'}: $actualFilename'),
+                        Text('${Get.locale?.languageCode == 'th' ? 'ขนาด' : 'Size'}: ${(bytes.length / 1024).toStringAsFixed(1)} KB'),
+                        Text('${Get.locale?.languageCode == 'th' ? 'ประเภท' : 'Type'}: ${_documentTypeLabel}'),
+                        Text('${Get.locale?.languageCode == 'th' ? 'ตำแหน่ง' : 'Location'}: ${file.path}'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            Get.locale?.languageCode == 'th' 
+                              ? 'ไฟล์ PDF ถูกบันทึกในอุปกรณ์ของคุณแล้ว'
+                              : 'PDF file has been saved to your device storage.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: file.path));
+                    Get.snackbar(
+                      Get.locale?.languageCode == 'th' ? 'คัดลอกแล้ว' : 'Copied',
+                      Get.locale?.languageCode == 'th' 
+                        ? 'คัดลอกที่อยู่ไฟล์แล้ว'
+                        : 'File path copied to clipboard',
+                      snackPosition: SnackPosition.TOP,
+                      duration: const Duration(seconds: 2),
+                    );
+                  },
+                  child: Text(Get.locale?.languageCode == 'th' ? 'คัดลอกที่อยู่' : 'Copy Path'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+
+    } catch (e) {
+      print('❌ Error downloading PDF: $e');
+      
+      // Dismiss progress dialog
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+
+      // Show error dialog with more details
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.error, color: Colors.red),
+                  const SizedBox(width: 8),
+                  Text(Get.locale?.languageCode == 'th' ? 'เกิดข้อผิดพลาด' : 'Error'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    Get.locale?.languageCode == 'th' 
+                      ? 'ไม่สามารถดาวน์โหลด PDF ได้' 
+                      : 'Failed to download PDF',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Text(
+                      e.toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red.shade700,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    Get.locale?.languageCode == 'th' 
+                      ? 'กรุณาลองใหม่อีกครั้ง หรือติดต่อฝ่ายสนับสนุนหากปัญหายังคงอยู่'
+                      : 'Please try again or contact support if the problem persists.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('OK'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _downloadPdf(); // Retry
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(Get.locale?.languageCode == 'th' ? 'ลองใหม่' : 'Try Again'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloadingPdf = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -567,6 +902,23 @@ class _DocumentViewPageState extends State<DocumentViewPage> {
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         actions: [
+          // Download PDF button
+          IconButton(
+            icon: _isDownloadingPdf
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.textPrimary),
+                    ),
+                  )
+                : const Icon(Icons.download),
+            onPressed: _isDownloadingPdf ? null : _downloadPdf,
+            tooltip: _isDownloadingPdf 
+              ? (Get.locale?.languageCode == 'th' ? 'กำลังดาวน์โหลด' : 'Downloading')
+              : (Get.locale?.languageCode == 'th' ? 'ดาวน์โหลด PDF' : 'Download PDF'),
+          ),
           // Edit button
           IconButton(
             icon: const Icon(Icons.edit),
