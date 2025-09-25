@@ -428,25 +428,6 @@ class _ProductsPageState extends State<ProductsPage> {
     });
   }
 
-  Widget _buildSearchAndClearSuffixIcons(ProductsController controller) {
-    return Obx(() {
-      final hasSearchText = controller.searchQuery.value.isNotEmpty;
-      
-      if (!hasSearchText) {
-        return const SizedBox.shrink();
-      }
-
-      return IconButton(
-        tooltip: 'ล้างคำค้น',
-        icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
-        onPressed: () {
-          controller.clearSearch();
-          _searchFocus.requestFocus();
-        },
-      );
-    });
-  }
-
   void _triggerSearch(ProductsController controller) {
     try {
       if (!Get.isRegistered<ProductsController>()) {

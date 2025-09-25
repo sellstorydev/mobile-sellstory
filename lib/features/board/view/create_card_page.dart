@@ -209,25 +209,6 @@ class _CreateCardPageState extends State<CreateCardPage> {
     }
   }
 
-  Future<void> _initializeData() async {
-    // Set default values
-    _titleController.text = 'new_card'.tr;
-    _assigneeController.text = '';
-
-    // Generate default job ID
-    _generateJobId();
-
-    // Load available options
-    await _loadAvailableOptions();
-
-    // Set default lane if provided
-    if (widget.laneId != null) {
-      _selectedLane = widget.laneId!;
-      print('✅ Set default lane from parameter: $_selectedLane');
-    } else {
-      print('⚠️ No laneId parameter provided');
-    }
-  }
 
   Future<void> _loadAvailableOptions() async {
     // Load lanes for current board
