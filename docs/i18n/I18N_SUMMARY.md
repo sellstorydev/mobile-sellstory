@@ -5,6 +5,43 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
+### Password Reset Error Message Translation (September 25, 2025)
+**File**: `lib/features/login/controller/forgot_password_controller.dart`
+
+#### Issue Analysis:
+- Found hardcoded Thai error message in password reset controller
+- Text "เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory" was not using translation system
+- Inconsistent with established i18n patterns in the codebase
+
+#### Changes Made:
+1. **Added Translation Key**: Created new `contact_admin_error` key in `app_translations.dart`
+2. **Updated Controller**: Replaced hardcoded Thai text with `'contact_admin_error'.tr`
+3. **Applied Consistently**: Updated both `requestOtp()` and `resendOtp()` functions
+
+#### Technical Implementation:
+```dart
+// Before (hardcoded):
+errorMessage = 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory';
+
+// After (translation key):
+errorMessage = 'contact_admin_error'.tr;
+```
+
+#### Translation Keys Added:
+```dart
+// English (en_US)
+'contact_admin_error': 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory',
+
+// Thai (th)
+'contact_admin_error': 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory',
+```
+
+#### Benefits:
+- **Proper I18N**: Now follows GetX translation system (.tr pattern)
+- **Maintainability**: Error text can be updated in translation files
+- **Consistency**: Matches established internationalization approach  
+- **Localization Ready**: Easy to add different language versions
+
 ### Edit Card Page Full Localization (2025-09-23)
 Files: `lib/features/board/view/edit_card_page.dart`, `lib/core/i18n/app_translations.dart`
 

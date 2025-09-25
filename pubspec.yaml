@@ -89,7 +89,7 @@ dependencies:
 
   # Image picker for chat attachments
   image_picker: ^1.0.7
-/storage/emulated/0/Android/data/me.sellstory.pro/files/EST-250922-0002.pdf
+  
   # Permission handler for camera and gallery permissions
   permission_handler: ^11.3.1
 
