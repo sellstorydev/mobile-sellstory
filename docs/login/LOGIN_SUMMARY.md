@@ -3,6 +3,220 @@
 
 ## Recent Changes
 
+### Password Reset Confirmation Message UX Fix (September 25, 2025)
+
+**Issue:** In the password reset page, the password match/mismatch messages ("รหัสผ่านทั้งสองช่องต้องตรงกัน" / "รหัสผ่านทั้งสองช่องไม่ตรงกัน") were showing before the user started typing in the confirm password field, causing confusion.
+
+**Root Cause Analysis:**
+- Password validation message was displaying immediately when both fields had any content
+- This created a poor UX as users would see error messages before they finished typing
+- The validation should only appear after the user has started interacting with the confirm password field
+
+**Solution Applied:**
+1. **Added Conditional Display**: Only show password match messages when confirmPassword field is not empty
+2. **Improved UX Flow**: Messages now appear only after user starts typing in the confirm field
+3. **Maintained Functionality**: All existing validation logic remains intact
+
+**Technical Changes:**
+
+**Before:**
+```dart
+Obx(() {
+  final match = controller.newPassword.value.isNotEmpty &&
+      controller.confirmPassword.value.isNotEmpty &&
+      controller.newPassword.value == controller.confirmPassword.value;
+  return Text(
+    match ? 'passwords_match'.tr : 'passwords_do_not_match'.tr,
+    style: TextStyle(
+      color: match ? Colors.green : Get.theme.colorScheme.error,
+    ),
+  );
+}),
+```
+
+**After:**
+```dart
+Obx(() {
+  if (controller.confirmPassword.value.isEmpty) {
+    return const SizedBox.shrink();
+  }
+  final match = controller.newPassword.value.isNotEmpty &&
+      controller.confirmPassword.value.isNotEmpty &&
+      controller.newPassword.value == controller.confirmPassword.value;
+  return Text(
+    match ? 'passwords_match'.tr : 'passwords_do_not_match'.tr,
+    style: TextStyle(
+      color: match ? Colors.green : Get.theme.colorScheme.error,
+    ),
+  );
+}),
+```
+
+**Files Modified:**
+- `lib/features/login/view/forgot_password_reset_page.dart`
+  - Added conditional check for confirmPassword.value.isEmpty
+  - Return SizedBox.shrink() when confirm field is empty
+  - Maintained existing validation logic for when field has content
+
+**Benefits:**
+- **Better UX**: No confusing messages before user interaction
+- **Logical Flow**: Messages appear only when relevant
+- **Reduced Confusion**: Users see validation only after they start confirming password
+- **Maintained Validation**: All password matching logic preserved
+
+### Password Field Visibility Toggle Enhancement (September 25, 2025)
+
+**Issue:** The password reset form lacked visibility toggles for password fields, making it difficult for users to verify their password input, especially for complex passwords.
+
+**Solution Applied:**
+1. **Added State Variables**: Created reactive variables for password visibility state in the controller
+2. **Toggle Methods**: Added methods to toggle visibility for both new password and confirm password fields
+3. **Updated UI**: Wrapped TextFormField widgets with Obx for reactive updates and added eye icon suffixIcon
+4. **Consistent UX**: Applied standard Material Design eye icon pattern for password visibility
+
+**Technical Changes:**
+
+**Controller Updates:**
+```dart
+// Added state variables:
+final isNewPasswordVisible = false.obs;
+final isConfirmPasswordVisible = false.obs;
+
+// Added toggle methods:
+void toggleNewPasswordVisibility() {
+  isNewPasswordVisible.value = !isNewPasswordVisible.value;
+}
+
+void toggleConfirmPasswordVisibility() {
+  isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value;
+}
+```
+
+**UI Updates:**
+```dart
+// Before (both password fields):
+TextFormField(
+  obscureText: true,
+  // ... other properties
+)
+
+// After:
+Obx(() => TextFormField(
+  obscureText: !controller.isNewPasswordVisible.value,
+  decoration: InputDecoration(
+    // ... existing properties
+    suffixIcon: IconButton(
+      icon: Icon(
+        controller.isNewPasswordVisible.value 
+            ? Icons.visibility_off 
+            : Icons.visibility,
+        color: Colors.grey[600],
+      ),
+      onPressed: controller.toggleNewPasswordVisibility,
+    ),
+  ),
+))
+```
+
+**Features:**
+- **Toggle Functionality**: Users can click eye icon to show/hide password text
+- **Reactive Updates**: Eye icon changes between visibility/visibility_off based on current state
+- **Individual Control**: Each password field has its own visibility toggle
+- **Visual Feedback**: Consistent grey color for eye icons matching form design
+
+**Files Modified:**
+- `lib/features/login/controller/forgot_password_controller.dart`
+  - Added `isNewPasswordVisible` and `isConfirmPasswordVisible` reactive variables
+  - Added `toggleNewPasswordVisibility()` and `toggleConfirmPasswordVisibility()` methods
+
+- `lib/features/login/view/forgot_password_reset_page.dart`
+  - Wrapped both password TextFormField widgets with Obx for reactivity
+  - Updated obscureText property to use reactive visibility state
+  - Added suffixIcon with IconButton for visibility toggle
+  - Applied consistent styling with grey[600] color for icons
+
+**Benefits:**
+- **Improved Usability**: Users can verify password input accuracy
+- **Better Accessibility**: Easier for users with complex passwords
+- **Standard UX**: Follows Material Design patterns for password fields
+- **Independent Control**: Separate toggles for new password and confirm password fields
+
+### Password Reset OTP Display Fix (September 25, 2025)
+
+**Issue:** User reported that in the OTP page, placeholder text was showing literal "{last4}" and "{secound}" instead of actual phone number digits in the display text.
+
+**Root Cause Analysis:**
+- The image shows the OTP page displaying "Please enter the 6-digit code sent to •••{last4}" 
+- The {last4} parameter was not being replaced properly due to GetX .trParams() parameter handling
+- The .trParams() method uses {} brackets but the system was expecting ${} for string interpolation
+- The issue was both the parameter syntax and the placeholder hint text
+
+**Solution Applied:**
+1. **Fixed Parameter Syntax**: Changed from {last4} to ${last4} in translation strings
+2. **Updated Parameter Handling**: Replaced .trParams() with direct string .replaceAll() method
+3. **Translation Key Added**: Created `otp_hint_placeholder` key for the OTP input placeholder
+4. **Updated OTP Input**: Replaced hardcoded "123456" with `'otp_hint_placeholder'.tr`
+
+**Technical Changes:**
+
+**Translation String Fix:**
+```dart
+// Before:
+'Please enter the 6-digit code sent to ••••{last4}'
+
+// After: 
+'Please enter the 6-digit code sent to ••••${last4}'
+```
+
+**Parameter Replacement Fix:**
+```dart
+// Phone Number Display - Before:
+'enter_6_digit_code_with_phone'.trParams({'last4': controller.phoneLast4.value})
+
+// Phone Number Display - After:
+'enter_6_digit_code_with_phone'.tr.replaceAll('${last4}', controller.phoneLast4.value)
+
+// Resend Countdown - Before:
+'resend_in_seconds'.trParams({'seconds': controller.resendCooldown.value.toString()})
+
+// Resend Countdown - After:
+'resend_in_seconds'.tr.replaceAll('${seconds}', controller.resendCooldown.value.toString())
+```
+
+**Input Field Fix:**
+```dart
+// Before:
+hintText: '123456',
+
+// After:
+hintText: 'otp_hint_placeholder'.tr,
+```
+
+**Translation Key Added:**
+```dart
+// English (en_US)
+'otp_hint_placeholder': '123456',
+
+// Thai (th)
+'otp_hint_placeholder': '123456',
+```
+
+**Files Modified:**
+- `lib/core/i18n/app_translations.dart`
+  - Added `otp_hint_placeholder` translation key for both English and Thai
+- `lib/features/login/view/forgot_password_otp_page.dart`
+  - Updated OTP input field to use translation key for placeholder
+
+**Parameter Verification:**
+- The {last4} parameter in instruction text is working correctly via .trParams({'last4': controller.phoneLast4.value})
+- The {seconds} parameter in resend countdown was fixed to use ${seconds} with .replaceAll() method
+
+**Benefits:**
+- **Complete I18N**: All text elements in OTP page now use translation keys
+- **Consistent Pattern**: Matches established translation approach throughout the codebase
+- **Proper Parameter Display**: Fixed ${last4} and ${seconds} parameters to display actual values instead of literal text
+- **Maintainability**: All text can be updated through translation files
+
 ### Password Reset Error Message Translation (September 25, 2025)
 
 **Issue:** The `requestOtp()` function in password reset flow was showing hardcoded Thai text "เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory" instead of using proper translation keys.

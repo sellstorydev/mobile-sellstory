@@ -866,9 +866,9 @@ class AppTranslations extends Translations {
       'request_otp': 'Request OTP',
       'enter_6_digit_code': 'Please enter the 6-digit code',
       'enter_6_digit_code_with_phone':
-          'Please enter the 6-digit code sent to ••••{last4}',
+          'Please enter the 6-digit code sent to ••••\${last4}',
       'resend': 'Resend',
-      'resend_in_seconds': 'Resend in {seconds}s',
+      'resend_in_seconds': 'Resend in \${seconds}s',
       'reset_password_title': 'Reset Password',
       'new_password': 'New Password',
       'new_password_hint': 'At least 8 characters',
@@ -887,6 +887,7 @@ class AppTranslations extends Translations {
       'password_too_weak': 'Password is too weak',
       'password_reset_failed': 'Password reset failed',
       'contact_admin_error': 'An error occurred. Please contact SellStory admin',
+      'otp_hint_placeholder': '123456',
 
       // Board Management Page
       'board_management': 'Board Management',
@@ -1964,9 +1965,9 @@ class AppTranslations extends Translations {
       'request_otp': 'ขอรหัส OTP',
       'enter_6_digit_code': 'กรุณากรอกรหัส 6 หลัก',
       'enter_6_digit_code_with_phone':
-          'กรุณากรอกรหัส 6 หลักที่ส่งไปยัง ••••{last4}',
+          'กรุณากรอกรหัส 6 หลักที่ส่งไปยัง ••••\${last4}',
       'resend': 'ส่งใหม่',
-      'resend_in_seconds': 'ส่งใหม่ใน {seconds}s',
+      'resend_in_seconds': 'ส่งใหม่ใน \${seconds}s',
       'reset_password_title': 'รีเซ็ตรหัสผ่าน',
       'new_password': 'รหัสผ่านใหม่',
       'new_password_hint': 'อย่างน้อย 8 ตัวอักษร',
@@ -1985,6 +1986,7 @@ class AppTranslations extends Translations {
       'password_too_weak': 'รหัสผ่านไม่ปลอดภัยเพียงพอ',
       'password_reset_failed': 'การรีเซ็ตรหัสผ่านไม่สำเร็จ',
       'contact_admin_error': 'เกิดข้อผิดพลาด กรุณาติดต่อ SellStory admin',
+      'otp_hint_placeholder': '123456',
 
       // Board Management Page
       'board_management': 'จัดการบอร์ด',
