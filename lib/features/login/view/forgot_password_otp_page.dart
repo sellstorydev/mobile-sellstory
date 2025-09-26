@@ -27,7 +27,7 @@ class ForgotPasswordOtpPage extends StatelessWidget {
                 children: [
                   Obx(() => Text(
                         controller.phone.value.isNotEmpty
-                            ? 'enter_6_digit_code_with_phone'.trParams({'last4': controller.phoneLast4.value})
+                            ? 'enter_6_digit_code_with_phone'.tr.replaceAll('\${last4}', controller.phoneLast4.value)
                             : 'enter_6_digit_code'.tr,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w600,
@@ -42,7 +42,7 @@ class ForgotPasswordOtpPage extends StatelessWidget {
                     style: const TextStyle(color: Colors.black, letterSpacing: 4),
                     decoration: InputDecoration(
                       counterText: '',
-                      hintText: '123456',
+                      hintText: 'otp_hint_placeholder'.tr,
                       filled: true,
                       fillColor: AppTheme.backgroundGrey,
                       border: OutlineInputBorder(
@@ -70,7 +70,7 @@ class ForgotPasswordOtpPage extends StatelessWidget {
                             child: Text(
                               controller.resendCooldown.value == 0
                                   ? 'resend'.tr
-                                  : 'resend_in_seconds'.trParams({'seconds': controller.resendCooldown.value.toString()}),
+                                  : 'resend_in_seconds'.tr.replaceAll('\${seconds}', controller.resendCooldown.value.toString()),
                               style: TextStyle(
                                 color: controller.resendCooldown.value == 0
                                     ? AppTheme.primaryOrange

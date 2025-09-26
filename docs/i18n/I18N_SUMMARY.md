@@ -22,62 +22,78 @@ This document tracks the internationalization (i18n) work done on the SellStory 
 
 ## Translation Work Done
 
-### Products Page Translation (2025-09-24)
-File: `lib/features/products/view/products_page.dart`
+### Forgot Password OTP Page Translation (September 25, 2025)
+**File**: `lib/features/login/view/forgot_password_otp_page.dart`
 
-#### Analysis:
-- Products page already used translation keys but several keys existed only in Thai section (`th`) without English counterparts
-- Missing English keys caused fallback or mismatched UI when locale = en_US
-- Added comprehensive English product-related keys to mirror Thai definitions and ensure full bilingual support
+#### Issue Analysis:
+- Found hardcoded placeholder text "123456" in OTP input field
+- Placeholder was not using translation system for proper internationalization
+- Text should be translatable for consistency with i18n patterns
 
-#### Added English Keys (with Thai already existing):
-```
-products: Products
-add_product: Add Product
-add_products: Add Products
-edit_product: Edit Product
-search_products: Search products...
-no_products: No products yet
-no_products_found: No products found
-start_adding_first_product: Start adding your first product
-try_different_search: Try a different search
-all_products_count: All Products ({count})
-no_permission_view_products: You do not have permission to view products
-error_occurred: An error occurred
-try_again: Try Again
-confirm_delete_product: Confirm Delete Product
-delete_product_confirmation: Are you sure you want to delete product "{name}"? (irreversible)
-error: Error (added for product context though global existed in Thai only instance earlier)
-cannot_delete_product_no_workspace: Cannot delete product: Workspace not found
-product_deleted_successfully: Product deleted successfully
-cannot_delete_product: Cannot delete product
-error_deleting_product: Error deleting product: {error}
-not_on_sale: Not on sale
-product_name: Product Name
-product_description: Product Description
-product_price: Price
-product_quantity: Quantity
-product_unit: Unit
-product_stock: Stock
-product_status: Status
-product_active: Active
-product_inactive: Inactive
-add_product_hint: Click "Add Product" to start adding items
+#### Changes Made:
+1. **Added Translation Key**: Created new `otp_hint_placeholder` key in `app_translations.dart`
+2. **Updated OTP Input**: Replaced hardcoded placeholder with `'otp_hint_placeholder'.tr`
+
+#### Technical Implementation:
+```dart
+// Before (hardcoded):
+hintText: '123456',
+
+// After (translation key):
+hintText: 'otp_hint_placeholder'.tr,
 ```
 
-#### Thai Keys Alignment:
-- Ensured Thai section retains existing keys: products, add_product, search_products, no_products, no_products_found, start_adding_first_product, try_different_search, all_products_count, no_permission_view_products, add_product_hint
-- No duplicate insertion performed in Thai map (already present)
+#### Translation Keys Added:
+```dart
+// English (en_US)
+'otp_hint_placeholder': '123456',
 
-#### Result:
-- Products page now fully localized both EN/TH with symmetrical key coverage
-- Prevents missing-key fallbacks and improves clarity of product management UI
+// Thai (th)
+'otp_hint_placeholder': '123456',
+```
 
-#### Next Suggestions:
-- Consider adding pagination/status keys if pagination UX evolves (e.g., loading_more_products, end_of_list)
-- Audit `add_edit_product_page.dart` for any remaining literals (most already translated)
+#### Benefits:
+- **Proper I18N**: Now follows GetX translation system (.tr pattern)
+- **Consistency**: Matches established internationalization approach in the codebase
+- **Localization Ready**: Easy to provide different placeholder format for other languages
+- **Complete Translation**: All text in OTP page now uses translation keys
 
----
+### Password Reset Error Message Translation (September 25, 2025)
+**File**: `lib/features/login/controller/forgot_password_controller.dart`
+
+#### Issue Analysis:
+- Found hardcoded Thai error message in password reset controller
+- Text "เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory" was not using translation system
+- Inconsistent with established i18n patterns in the codebase
+
+#### Changes Made:
+1. **Added Translation Key**: Created new `contact_admin_error` key in `app_translations.dart`
+2. **Updated Controller**: Replaced hardcoded Thai text with `'contact_admin_error'.tr`
+3. **Applied Consistently**: Updated both `requestOtp()` and `resendOtp()` functions
+
+#### Technical Implementation:
+```dart
+// Before (hardcoded):
+errorMessage = 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory';
+
+// After (translation key):
+errorMessage = 'contact_admin_error'.tr;
+```
+
+#### Translation Keys Added:
+```dart
+// English (en_US)
+'contact_admin_error': 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory',
+
+// Thai (th)
+'contact_admin_error': 'เกิดข้อผิดพลาด กรุณาติดต่อ admin sellstory',
+```
+
+#### Benefits:
+- **Proper I18N**: Now follows GetX translation system (.tr pattern)
+- **Maintainability**: Error text can be updated in translation files
+- **Consistency**: Matches established internationalization approach  
+- **Localization Ready**: Easy to add different language versions
 
 ### Edit Card Page Full Localization (2025-09-23)
 Files: `lib/features/board/view/edit_card_page.dart`, `lib/core/i18n/app_translations.dart`
