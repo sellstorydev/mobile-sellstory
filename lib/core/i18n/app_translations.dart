@@ -1516,6 +1516,19 @@ class AppTranslations extends Translations {
       'product_info': 'Product Information',
       'on_sale': 'On Sale',
       'draft': 'Draft',
+      
+      // Workspace app bar (English)
+      'select_workspace_and_board': 'Select Workspace and Board',
+      'current_workspace': 'Current Workspace',
+      'select_board': 'Select Board',
+      'manage_board': 'Manage Board',
+      'change_workspace': 'Change Workspace',
+      'loading_boards': 'Loading boards...',
+      'no_boards_in_workspace': 'No boards in this workspace',
+      'single_workspace_message': 'You only have one workspace currently',
+      'job_card_count': '{count} Job Cards',
+      'workspace': 'Workspace',
+      'board': 'Board',
     },
     'th': {
       'calendar': 'ปฏิทิน',

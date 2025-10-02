@@ -260,20 +260,24 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                                           color: isSelected ? AppTheme.primaryOrange : Colors.black87,
                                         ),
                                       ),
-                                      Obx(() {
-                                        // Count cards in this board
-                                        final boardCards = ctrl.lanes
-                                            .where((lane) => lane.boardId == board.id)
-                                            .expand((lane) => lane.cards)
-                                            .length;
-                                        return Text(
-                                          'job_card_count'.tr.replaceAll('{count}', '$boardCards'),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        );
-                                      }),
+                                      Builder(
+                                        builder: (context) {
+                                          // Get card count from API cache
+                                          final boardInfo = ctrl.getBoardInfoFromCache(
+                                            ctrl.currentWorkspaceId.value,
+                                            board.id,
+                                          );
+                                          final cardCount = boardInfo?['cardCount'] ?? 0;
+                                          
+                                          return Text(
+                                            'job_card_count'.tr.replaceAll('{count}', '$cardCount'),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -323,9 +327,21 @@ class _WorkspaceAppBarState extends State<WorkspaceAppBar> {
                               if (mounted) setModalState(() {});
                               try {
                                 final boards = await ctrl.getBoardsForWorkspace(id);
-                                _workspaceBoardsCache[id] = boards.map((b) => {
-                                  'id': b.id,
-                                  'name': b.name,
+                                _workspaceBoardsCache[id] = boards.map((b) {
+                                  // Get card count from API cache
+                                  final boardInfo = ctrl.getBoardInfoFromCache(id, b.id);
+                                  final cardCount = boardInfo?['cardCount'] ?? 0;
+                                  
+                                  print('📊 Board: ${b.name} (${b.id}) - Card Count: $cardCount');
+                                  
+                                  // Store card count for later use
+                                  _boardCardCounts[b.id] = cardCount;
+                                  
+                                  return {
+                                    'id': b.id,
+                                    'name': b.name,
+                                    'cardCount': cardCount,
+                                  };
                                 }).toList();
                               } catch (_) {
                                 _workspaceBoardsCache[id] = const [];

@@ -25,6 +25,9 @@ class BoardController extends GetxController implements BoardView {
   List<MobileWorkspaceResponse> _cachedWorkspaces = [];
   String? _cachedActiveWorkspaceId;
 
+  // Computed property to get available workspaces for UI
+  List<Map<String, dynamic>> get availableWorkspaces => userWorkspaces;
+
   // Observable variables
   final RxString currentUserId = ''.obs;
   final RxString currentWorkspaceId = ''.obs;
@@ -687,7 +690,6 @@ class BoardController extends GetxController implements BoardView {
 
   // Getters for UI
   bool get hasWorkspaces => userWorkspaces.isNotEmpty;
-  List<Map<String, dynamic>> get availableWorkspaces => userWorkspaces;
 
   // Get customers for current workspace
   Future<List<Customer>> getCustomers() async {
@@ -835,6 +837,33 @@ class BoardController extends GetxController implements BoardView {
     } catch (e) {
       print('❌ Failed to get boards from cache for workspace $workspaceId: $e');
       return [];
+    }
+  }
+
+  // Get board info with card count from cache
+  Map<String, dynamic>? getBoardInfoFromCache(String workspaceId, String boardId) {
+    try {
+      final workspace = _cachedWorkspaces.firstWhereOrNull(
+        (w) => w.id == workspaceId,
+      );
+      
+      if (workspace == null) return null;
+
+      final boardInfo = workspace.boards.firstWhereOrNull(
+        (b) => b.id == boardId,
+      );
+
+      if (boardInfo == null) return null;
+
+      return {
+        'id': boardInfo.id,
+        'name': boardInfo.name,
+        'cardCount': boardInfo.cardCount,
+        'laneCount': boardInfo.laneCount,
+      };
+    } catch (e) {
+      print('❌ Error getting board info from cache: $e');
+      return null;
     }
   }
 

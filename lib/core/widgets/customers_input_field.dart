@@ -109,22 +109,22 @@ class _CustomersInputFieldState extends State<CustomersInputField> {
               );
             }
 
-            if (customers.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'ไม่พบลูกค้าในระบบ',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              );
-            }
+            // if (customers.isEmpty) {
+            //   return Container(
+            //     padding: const EdgeInsets.all(12),
+            //     decoration: BoxDecoration(
+            //       color: Colors.grey.shade100,
+            //       borderRadius: BorderRadius.circular(8),
+            //     ),
+            //     child: const Text(
+            //       'ไม่พบลูกค้าในระบบ',
+            //       style: TextStyle(
+            //         color: AppTheme.textSecondary,
+            //         fontStyle: FontStyle.italic,
+            //       ),
+            //     ),
+            //   );
+            // }
 
             return Column(
               children: [
