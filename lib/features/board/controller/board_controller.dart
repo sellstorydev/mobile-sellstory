@@ -304,6 +304,39 @@ class BoardController extends GetxController implements BoardView {
     }
   }
 
+  // Refresh workspace data from API
+  Future<void> refreshWorkspaceData() async {
+    try {
+      print('🔄 Refreshing workspace data from API...');
+
+      // Fetch latest workspace data from API
+      final apiResponse = await _apiService.getWorkspaces();
+
+      if (!apiResponse.success || apiResponse.data == null) {
+        throw Exception(apiResponse.error ?? 'Failed to fetch workspaces');
+      }
+
+      // Update cache with latest data
+      _cachedWorkspaces = apiResponse.data!.workspaces;
+      _cachedActiveWorkspaceId = apiResponse.data!.activeWorkspaceId;
+
+      // Update userWorkspaces observable
+      userWorkspaces.value = _cachedWorkspaces
+          .map((w) => w.toWorkspaceMap())
+          .toList();
+
+      print('✅ Workspace data refreshed: ${_cachedWorkspaces.length} workspaces');
+      
+      // If we're on a specific workspace, update its boards cache
+      if (currentWorkspaceId.value.isNotEmpty) {
+        await getBoards();
+      }
+    } catch (e) {
+      print('❌ Failed to refresh workspace data: $e');
+      // Don't throw - this is a background refresh
+    }
+  }
+
   // Switch workspace
   Future<void> switchWorkspace(String workspaceId) async {
     try {
@@ -343,6 +376,9 @@ class BoardController extends GetxController implements BoardView {
         }
       }
 
+      // Refresh workspace data from API to get latest card counts
+      await refreshWorkspaceData();
+
       // Clear current data
       lanes.clear();
       userAssignedCards.clear();
@@ -350,7 +386,7 @@ class BoardController extends GetxController implements BoardView {
       currentBoardId.value = '';
       currentBoardName.value = '';
 
-      // Load boards for the new workspace
+      // Load boards for the new workspace (already refreshed above)
       await getBoards();
     } catch (e) {
       print('❌ Failed to switch workspace: $e');
@@ -362,6 +398,9 @@ class BoardController extends GetxController implements BoardView {
   // Switch board
   Future<void> switchBoard(String boardId) async {
     try {
+      // Refresh workspace data to get latest card counts
+      await refreshWorkspaceData();
+
       // Check if board exists in current boards list
       final board = boards.firstWhereOrNull((b) => b.id == boardId);
       if (board == null) {
