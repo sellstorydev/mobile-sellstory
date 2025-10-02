@@ -458,11 +458,19 @@ class _EditCardPageState extends State<EditCardPage> {
     // Initialize todos
     _todoItems = List<Map<String, dynamic>>.from(
       widget.card.todos.map((todo) {
-        // Handle title field from Firestore data structure
-        final titleText = todo['title'] ?? todo['text'] ?? '';
+        // Handle title field from Firestore data structure.
+        // If the stored value already contains HTML tags, preserve it in 'html'.
+        final rawTitle = todo['title'] ?? todo['text'] ?? '';
+        final bool looksLikeHtml = rawTitle is String && rawTitle.contains('<') && rawTitle.contains('>');
+        final plainExtract = rawTitle is String
+            ? rawTitle
+                .replaceAll(RegExp(r'<[^>]*>'), '')
+                .trim()
+            : '';
         return {
           'id': todo['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-          'text': titleText,
+          'text': looksLikeHtml ? plainExtract : rawTitle,
+          'html': looksLikeHtml ? rawTitle : '',
           'isCompleted': todo['isCompleted'] ?? todo['completed'] ?? false,
           'dueDate': todo['dueDate'] != null
               ? DateTime.fromMillisecondsSinceEpoch(todo['dueDate'])
@@ -471,7 +479,10 @@ class _EditCardPageState extends State<EditCardPage> {
           'endTime': todo['endTime'] != null
               ? DateTime.fromMillisecondsSinceEpoch(todo['endTime'])
               : null,
-          'controller': TextEditingController(text: titleText),
+          // Keep legacy text controller for fallback editing (not used once HtmlEditor replaces input)
+          'controller': TextEditingController(text: looksLikeHtml ? plainExtract : rawTitle),
+          // HtmlEditor controller for rich text editing per item
+          'htmlController': HtmlEditorController(),
         };
       }),
     );
@@ -3776,16 +3787,21 @@ class _EditCardPageState extends State<EditCardPage> {
 
       // Prepare todos data in correct format
       final todosData = _todoItems
-          .map(
-            (todo) => {
+          .map((todo) {
+            final String html = (todo['html'] ?? '').toString();
+            final String text = (todo['text'] ?? '').toString();
+            // If user provided custom html keep it, else wrap plain text with legacy style wrapper.
+            final String finalHtml = html.isNotEmpty
+                ? html
+                : '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>$text</em></strong></span></p>';
+            return {
               'id': 'todo-${todo['id']}',
-              'title':
-                  '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>${todo['text'] ?? ''}</em></strong></span></p>',
+              'title': finalHtml,
               'completed': todo['isCompleted'] ?? false,
               'dueDate': _normalizeEpoch(todo['dueDate']),
               'mentions': [],
-            },
-          )
+            };
+          })
           .toList();
 
       // Format description as HTML from HTML editor with webview disposal protection
@@ -4652,7 +4668,7 @@ class _EditCardPageState extends State<EditCardPage> {
   }
 
   Widget _buildTodoItem(int index, Map<String, dynamic> todo) {
-    final TextEditingController controller = todo['controller'];
+  // Legacy plain text controller kept for backward compatibility, not used after migrating to HtmlEditor
     final DateTime? dueDate = todo['dueDate'];
     final DateTime? endTime = todo['endTime'];
 
@@ -4680,28 +4696,39 @@ class _EditCardPageState extends State<EditCardPage> {
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
 
-              // Input field
+              // Rich text input field (HtmlEditor)
               Expanded(
-                child: TextField(
-                  controller: controller,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter todo item...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                child: SizedBox(
+                  height: 120,
+                  child: HtmlEditor(
+                    controller: todo['htmlController'],
+                    htmlEditorOptions: HtmlEditorOptions(
+                      hint: 'Enter todo item…',
+                      initialText: todo['html']?.isNotEmpty == true
+                          ? todo['html']
+                          : (todo['text'] ?? ''),
+                      shouldEnsureVisible: false,
                     ),
-                  ),
-                  onChanged: (value) {
-                    todo['text'] = value;
-                  },
-                  style: TextStyle(
-                    decoration: (todo['isCompleted'] ?? false)
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                    color: (todo['isCompleted'] ?? false)
-                        ? Colors.grey[600]
-                        : Colors.black87,
+                    htmlToolbarOptions: const HtmlToolbarOptions(
+                      defaultToolbarButtons: [
+                        StyleButtons(),
+                        FontButtons(clearAll: false),
+                        ColorButtons(),
+                      ],
+                      toolbarPosition: ToolbarPosition.belowEditor,
+                      toolbarType: ToolbarType.nativeScrollable,
+                    ),
+                    otherOptions: const OtherOptions(height: 120),
+                    callbacks: Callbacks(
+                      onChangeContent: (content) {
+                        // Store html and plain text fallback
+                        todo['html'] = content ?? '';
+                        final plain = (content ?? '')
+                            .replaceAll(RegExp(r'<[^>]*>'), '')
+                            .trim();
+                        todo['text'] = plain;
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -4831,11 +4858,13 @@ class _EditCardPageState extends State<EditCardPage> {
       _todoItems.add({
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'text': '',
+        'html': '',
         'isCompleted': false,
         'dueDate': null,
         'duration': null,
         'endTime': null,
-        'controller': TextEditingController(),
+        'controller': TextEditingController(), // legacy plain text fallback
+        'htmlController': HtmlEditorController(),
       });
     });
   }

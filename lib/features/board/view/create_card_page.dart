@@ -634,17 +634,20 @@ class _CreateCardPageState extends State<CreateCardPage> {
 
       // Prepare todos data in correct format
       final todosData = _todoItems
-          .map(
-            (todo) => {
-              'id':
-                  'todo-${todo['id']}', // Add 'todo-' prefix to match correct structure
-              'title':
-                  '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>${todo['text'] ?? ''}</em></strong></span></p>', // HTML format
+          .map((todo) {
+            final String html = (todo['html'] ?? '').toString();
+            final String text = (todo['text'] ?? '').toString();
+            final String finalHtml = html.isNotEmpty
+                ? html
+                : '<p><span style="color: rgb(2, 8, 23); font-size: 24px;"><strong><em>$text</em></strong></span></p>';
+            return {
+              'id': 'todo-${todo['id']}', // Add 'todo-' prefix to match correct structure
+              'title': finalHtml, // HTML content
               'completed': todo['isCompleted'] ?? false,
               'dueDate': todo['dueDate']?.millisecondsSinceEpoch,
               'mentions': [],
-            },
-          )
+            };
+          })
           .toList();
 
       // Format description as HTML from HTML editor with webview disposal protection
@@ -2315,11 +2318,13 @@ class _CreateCardPageState extends State<CreateCardPage> {
       _todoItems.add({
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'text': '',
+        'html': '',
         'isCompleted': false,
         'dueDate': null,
         'duration': null,
         'endTime': null,
-        'controller': TextEditingController(),
+        'controller': TextEditingController(), // fallback text controller
+        'htmlController': HtmlEditorController(),
       });
     });
   }
@@ -2640,7 +2645,7 @@ class _CreateCardPageState extends State<CreateCardPage> {
   }
 
   Widget _buildTodoItem(int index, Map<String, dynamic> todo) {
-    final TextEditingController controller = todo['controller'];
+  // Legacy plain text controller kept for backward compatibility (unused with HtmlEditor)
     final DateTime? dueDate = todo['dueDate'];
     final DateTime? endTime = todo['endTime'];
 
@@ -2668,28 +2673,38 @@ class _CreateCardPageState extends State<CreateCardPage> {
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
 
-              // Input field
+              // Rich text input field (HtmlEditor)
               Expanded(
-                child: TextField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    hintText: 'enter_todo_item_hint'.tr,
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                child: SizedBox(
+                  height: 120,
+                  child: HtmlEditor(
+                    controller: todo['htmlController'],
+                    htmlEditorOptions: HtmlEditorOptions(
+                      hint: 'enter_todo_item_hint'.tr,
+                      initialText: todo['html']?.isNotEmpty == true
+                          ? todo['html']
+                          : (todo['text'] ?? ''),
+                      shouldEnsureVisible: false,
                     ),
-                  ),
-                  onChanged: (value) {
-                    todo['text'] = value;
-                  },
-                  style: TextStyle(
-                    decoration: (todo['isCompleted'] ?? false)
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                    color: (todo['isCompleted'] ?? false)
-                        ? Colors.grey[600]
-                        : Colors.black87,
+                    htmlToolbarOptions: const HtmlToolbarOptions(
+                      defaultToolbarButtons: [
+                        StyleButtons(),
+                        FontButtons(clearAll: false),
+                        ColorButtons(),
+                      ],
+                      toolbarPosition: ToolbarPosition.belowEditor,
+                      toolbarType: ToolbarType.nativeScrollable,
+                    ),
+                    otherOptions: const OtherOptions(height: 120),
+                    callbacks: Callbacks(
+                      onChangeContent: (content) {
+                        todo['html'] = content ?? '';
+                        final plain = (content ?? '')
+                            .replaceAll(RegExp(r'<[^>]*>'), '')
+                            .trim();
+                        todo['text'] = plain;
+                      },
+                    ),
                   ),
                 ),
               ),
