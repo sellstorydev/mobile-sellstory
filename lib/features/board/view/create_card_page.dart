@@ -609,12 +609,10 @@ class _CreateCardPageState extends State<CreateCardPage> {
             _assigneeController.text.trim();
       }
 
-      // Get customer name if selected
-      String customerName = '';
+      // Get customer ID - both customer and customerId should have the same value
+      String customerId = '';
       if (_selectedCustomerIds.isNotEmpty) {
-        // Customer lookup is now handled by the controller
-        final selectedCustomer = null; // Controller handles customer data
-        customerName = selectedCustomer?.displayName ?? '';
+        customerId = _selectedCustomerIds.first;
       }
 
       // Prepare company data in correct format
@@ -736,11 +734,9 @@ class _CreateCardPageState extends State<CreateCardPage> {
         order: 0, // Will be set by the system
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        customer: customerName,
+        customer: customerId, // Set customer to customerId value
         updatedByDisplayName: assigneeDisplayName, // Use assignee display name
-        customerId: _selectedCustomerIds.isNotEmpty
-            ? _selectedCustomerIds.first
-            : null,
+        customerId: customerId, // Set customerId to the same value as customer
         company: companyData, // Store company as object with id, label, value
         customerInterest: _selectedCustomerInterest,
         hashtag: _selectedHashtagTexts.isNotEmpty

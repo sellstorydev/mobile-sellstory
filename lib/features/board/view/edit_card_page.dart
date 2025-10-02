@@ -3778,11 +3778,10 @@ class _EditCardPageState extends State<EditCardPage> {
             _selectedAssignee;
       }
 
-      // Get customer name if selected
-      String customerName = '';
+      // Get customer ID - both customer and customerId should have the same value
+      String customerId = '';
       if (_selectedCustomerIds.isNotEmpty) {
-        // Customer lookup is now handled by the controller
-        customerName = _selectedCustomerIds.first; // Use ID as fallback
+        customerId = _selectedCustomerIds.first;
       }
 
       // Prepare todos data in correct format
@@ -3899,10 +3898,8 @@ class _EditCardPageState extends State<EditCardPage> {
         customId: _jobIdController.text.trim(),
         status: _selectedStatus,
         assignedTo: _selectedAssignee,
-        customer: customerName, // Store customer name, not ID
-        customerId: _selectedCustomerIds.isNotEmpty
-            ? _selectedCustomerIds.first
-            : null,
+        customer: customerId, // Set customer to customerId value
+        customerId: customerId, // Set customerId to the same value as customer
         customerInterest: _selectedCustomerInterest,
         laneId: _selectedLane,
         dueDate: _expectedClosingDate,
