@@ -2509,7 +2509,7 @@ class AppTranslations extends Translations {
       'cancelled_status': 'ยกเลิก',
 
       // Field Display Labels (Thai)
-      'date_range_label': 'ช่วงวันที่',
+      'date_range_label': 'วันที่ดำเนินงาน',
       'created_at_label': 'สร้างเมื่อ',
       'total_before_discount_label': 'ยอดรวม (ก่อนส่วนลด)',
       'total_after_discount_label': 'ยอดรวม (หลังส่วนลด)',

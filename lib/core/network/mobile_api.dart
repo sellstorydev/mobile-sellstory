@@ -1,6 +1,6 @@
 // filepath: /Users/sarawutpromdee/Documents/Sellstoory/mobile-sellstory/lib/core/network/mobile_api.dart
 import 'package:dio/dio.dart';
-
+import 'dart:developer' as dev;
 import '../../data/services/firebase_auth_service.dart';
 
 /// Central config/constants for Mobile Data API
@@ -20,6 +20,7 @@ class MobileApiAuth {
       throw Exception('Unauthorized: Not signed in');
     }
     final token = await user.getIdToken();
+    dev.log('-------------------------------> My Token: $token');
     if (token == null || token.isEmpty) {
       throw Exception('Unauthorized: Missing token');
     }
