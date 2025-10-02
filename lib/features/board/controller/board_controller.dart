@@ -14,10 +14,16 @@ import '../../../data/services/mobile_permissions_service.dart';
 import 'lane_display_controller.dart';
 import '../../../core/services/quota_usage_service.dart';
 import '../../customers/controller/customers_controller.dart';
+import '../../../data/services/mobile_workspace_api_service.dart';
 
 class BoardController extends GetxController implements BoardView {
   final FirestoreRepository _repository = Get.find<FirestoreRepository>();
+  late final MobileWorkspaceApiService _apiService;
   late BoardPresenter _presenter;
+
+  // Cache for workspace data from API
+  List<MobileWorkspaceResponse> _cachedWorkspaces = [];
+  String? _cachedActiveWorkspaceId;
 
   // Observable variables
   final RxString currentUserId = ''.obs;
@@ -154,6 +160,7 @@ class BoardController extends GetxController implements BoardView {
   void onInit() {
     super.onInit();
     _presenter = BoardPresenter(this, _repository);
+    _apiService = MobileWorkspaceApiService();
     searchTextController = TextEditingController();
     _isControllerInitialized = true;
 
@@ -212,44 +219,58 @@ class BoardController extends GetxController implements BoardView {
     try {
       currentUserId.value = userId;
 
-      // Get user's workspaces
-      final workspaces = await _repository.getUserWorkspaces(userId);
-      userWorkspaces.value = workspaces;
+      print('🔄 Initializing user with API...');
 
-      if (workspaces.isNotEmpty) {
-        // Try to get last active workspace ID
-        String? selectedWorkspaceId;
-        String? selectedWorkspaceName;
+      // Fetch workspace data from API
+      final apiResponse = await _apiService.getWorkspaces();
 
-        try {
-          final lastActiveWorkspaceId = await _repository
-              .getUserLastActiveWorkspaceId(userId);
+      if (!apiResponse.success || apiResponse.data == null) {
+        throw Exception(apiResponse.error ?? 'Failed to fetch workspaces');
+      }
 
-          if (lastActiveWorkspaceId != null &&
-              lastActiveWorkspaceId.isNotEmpty) {
-            // Check if the last active workspace still exists in user's workspaces
-            final lastActiveWorkspace = workspaces.firstWhereOrNull(
-              (ws) => ws['id'] == lastActiveWorkspaceId,
-            );
+      // Cache the API response
+      _cachedWorkspaces = apiResponse.data!.workspaces;
+      _cachedActiveWorkspaceId = apiResponse.data!.activeWorkspaceId;
 
-            if (lastActiveWorkspace != null) {
-              selectedWorkspaceId = lastActiveWorkspaceId;
-              selectedWorkspaceName = lastActiveWorkspace['name'] as String;
-            }
+      // Convert workspaces to compatible format
+      userWorkspaces.value = _cachedWorkspaces
+          .map((w) => w.toWorkspaceMap())
+          .toList();
+
+      print('✅ Found ${_cachedWorkspaces.length} workspaces from API');
+
+      if (_cachedWorkspaces.isNotEmpty) {
+        // Select workspace based on API's activeWorkspaceId or first workspace
+        String selectedWorkspaceId;
+        String selectedWorkspaceName;
+
+        if (_cachedActiveWorkspaceId != null &&
+            _cachedActiveWorkspaceId!.isNotEmpty) {
+          final activeWorkspace = _cachedWorkspaces.firstWhereOrNull(
+            (ws) => ws.id == _cachedActiveWorkspaceId,
+          );
+
+          if (activeWorkspace != null) {
+            selectedWorkspaceId = activeWorkspace.id;
+            selectedWorkspaceName = activeWorkspace.name;
+            print('✅ Using active workspace: $selectedWorkspaceName');
+          } else {
+            // Fallback to first workspace
+            final firstWorkspace = _cachedWorkspaces.first;
+            selectedWorkspaceId = firstWorkspace.id;
+            selectedWorkspaceName = firstWorkspace.name;
+            print('⚠️ Active workspace not found, using first: $selectedWorkspaceName');
           }
-        } catch (e) {
-          print('❌ Failed to get last active workspace: $e');
+        } else {
+          // No active workspace, use first
+          final firstWorkspace = _cachedWorkspaces.first;
+          selectedWorkspaceId = firstWorkspace.id;
+          selectedWorkspaceName = firstWorkspace.name;
+          print('ℹ️ No active workspace, using first: $selectedWorkspaceName');
         }
 
-        // Fallback to first workspace if no last active workspace
-        if (selectedWorkspaceId == null) {
-          final firstWorkspace = workspaces.first;
-          selectedWorkspaceId = firstWorkspace['id'] as String;
-          selectedWorkspaceName = firstWorkspace['name'] as String;
-        }
-
-        currentWorkspaceId.value = selectedWorkspaceId ?? '';
-        currentWorkspaceName.value = selectedWorkspaceName ?? '';
+        currentWorkspaceId.value = selectedWorkspaceId;
+        currentWorkspaceName.value = selectedWorkspaceName;
 
         // Prefetch permissions for selected workspace
         try {
@@ -261,7 +282,8 @@ class BoardController extends GetxController implements BoardView {
             '❌ Failed to prefetch permissions for workspace: $currentWorkspaceId',
           );
         }
-        // Load boards for the selected workspace
+
+        // Load boards from cached API data
         await getBoards();
 
         // Auto-select first board if available
@@ -275,6 +297,7 @@ class BoardController extends GetxController implements BoardView {
     } catch (e) {
       print('❌ Failed to initialize user: $e');
       error.value = 'Failed to initialize user data';
+      rethrow;
     }
   }
 
@@ -767,7 +790,14 @@ class BoardController extends GetxController implements BoardView {
     }
 
     try {
-      final boardsList = await _repository.getBoards(currentWorkspaceId.value);
+      // Get boards from cached API data
+      final boardsList = _apiService.getBoardsForWorkspaceFromCache(
+        currentWorkspaceId.value,
+        _cachedWorkspaces,
+      );
+
+      print('✅ Got ${boardsList.length} boards from cache for workspace ${currentWorkspaceId.value}');
+
       boards.value = boardsList;
       return boardsList;
     } catch (e) {
@@ -780,10 +810,30 @@ class BoardController extends GetxController implements BoardView {
   // Get boards for specific workspace
   Future<List<Board>> getBoardsForWorkspace(String workspaceId) async {
     try {
-      final boardsList = await _repository.getBoards(workspaceId);
+      // Get boards from cached API data
+      final boardsList = _apiService.getBoardsForWorkspaceFromCache(
+        workspaceId,
+        _cachedWorkspaces,
+      );
+
+      print('✅ Got ${boardsList.length} boards from cache for workspace $workspaceId');
+
       return boardsList;
     } catch (e) {
       print('❌ Failed to get boards for workspace $workspaceId: $e');
+      return [];
+    }
+  }
+
+  // Get boards for workspace synchronously from cache (for UI)
+  List<Board> getBoardsForWorkspaceFromCache(String workspaceId) {
+    try {
+      return _apiService.getBoardsForWorkspaceFromCache(
+        workspaceId,
+        _cachedWorkspaces,
+      );
+    } catch (e) {
+      print('❌ Failed to get boards from cache for workspace $workspaceId: $e');
       return [];
     }
   }
